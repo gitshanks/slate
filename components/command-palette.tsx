@@ -44,6 +44,8 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [results, setResults] = React.useState<SearchResult[]>([]);
+  const [approximate, setApproximate] = React.useState(false);
+  const [approxQuery, setApproxQuery] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
   const adding = React.useRef(false);
@@ -65,6 +67,8 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
   React.useEffect(() => {
     if (!query.trim()) {
       setResults([]);
+      setApproximate(false);
+      setApproxQuery(null);
       return;
     }
     setLoading(true);
@@ -76,6 +80,8 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
         });
         const data = await res.json();
         setResults(data.results ?? []);
+        setApproximate(Boolean(data.approximate));
+        setApproxQuery(data.approxQuery ?? null);
       } catch {
         // ignore aborts
       } finally {
@@ -138,7 +144,13 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
             </div>
           )}
           {results.length > 0 && (
-            <CommandGroup heading="Results">
+            <CommandGroup
+              heading={
+                approximate
+                  ? `Approximate results${approxQuery ? ` for "${approxQuery}"` : ""}`
+                  : "Results"
+              }
+            >
               {results.map((r) => {
                 const name = r.title || r.name || "Untitled";
                 const date = r.release_date || r.first_air_date || "";

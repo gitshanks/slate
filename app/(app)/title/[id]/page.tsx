@@ -8,6 +8,7 @@ import { StatusPill } from "@/components/status-pill";
 import { StarRating } from "@/components/star-rating";
 import { ReviewSheet } from "@/components/review-sheet";
 import { RemoveButton } from "@/components/remove-button";
+import { ViewTransition } from "@/components/view-transition";
 import { formatRuntime, formatYear } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -39,13 +40,15 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
           <div className="hidden md:block">
             <div className="relative aspect-[2/3] overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/40">
               {poster && (
-                <Image
-                  src={poster}
-                  alt={title.title}
-                  fill
-                  sizes="240px"
-                  className="object-cover"
-                />
+                <ViewTransition name={`poster-${title.id}`}>
+                  <Image
+                    src={poster}
+                    alt={title.title}
+                    fill
+                    sizes="240px"
+                    className="object-cover"
+                  />
+                </ViewTransition>
               )}
             </div>
 
@@ -109,14 +112,17 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               </div>
             )}
 
+            <div className="mt-6">
+              <StatusPill titleId={title.id} status={title.status} />
+            </div>
+
             {title.overview && (
               <p className="mt-6 max-w-2xl text-base leading-relaxed text-foreground/85">
                 {title.overview}
               </p>
             )}
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <StatusPill titleId={title.id} status={title.status} />
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <ReviewSheet
                 titleId={title.id}
                 titleName={title.title}

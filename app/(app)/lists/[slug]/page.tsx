@@ -3,6 +3,7 @@ import { supabase, type ListRow, type TitleRow } from "@/lib/supabase";
 import { MediaGrid } from "@/components/media-grid";
 import { EmptyState } from "@/components/empty-state";
 import { AddToListPicker } from "@/components/add-to-list-picker";
+import { DeleteListButton } from "@/components/delete-list-button";
 import { ListPlus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -40,16 +41,22 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
 
   return (
     <div>
-      <div className="mb-10">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-          List
-        </p>
-        <h1 className="mt-1 text-4xl font-semibold tracking-tight">{(list as ListRow).name}</h1>
-        {(list as ListRow).description && (
-          <p className="mt-2 max-w-2xl text-muted-foreground">
-            {(list as ListRow).description}
+      <div className="mb-10 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+            List
           </p>
-        )}
+          <h1 className="mt-1 text-4xl font-semibold tracking-tight">{(list as ListRow).name}</h1>
+          {(list as ListRow).description && (
+            <p className="mt-2 max-w-2xl text-muted-foreground">
+              {(list as ListRow).description}
+            </p>
+          )}
+        </div>
+        <DeleteListButton
+          listId={(list as ListRow).id}
+          listName={(list as ListRow).name}
+        />
       </div>
 
       <div className="mb-10">

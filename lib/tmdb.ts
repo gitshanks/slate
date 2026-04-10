@@ -151,6 +151,8 @@ export function normalizeForStorage(
       release_date: m.release_date || null,
       runtime: m.runtime ?? null,
       genres: m.genres ?? [],
+      tmdb_rating: m.vote_average ?? null,
+      tmdb_vote_count: m.vote_count ?? null,
     };
   }
   const t = detail as TmdbTvDetail;
@@ -165,5 +167,7 @@ export function normalizeForStorage(
     release_date: t.first_air_date || null,
     runtime: t.episode_run_time?.[0] ?? null,
     genres: t.genres ?? [],
+    tmdb_rating: t.vote_average ?? null,
+    tmdb_vote_count: t.vote_count ?? null,
   };
 }

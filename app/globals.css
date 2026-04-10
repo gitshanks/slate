@@ -173,3 +173,25 @@
     -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 100%);
   }
 }
+
+/* ─── View Transitions ─────────────────────────────────────────── */
+/* Snappier default; the browser's 300ms feels sluggish here.       */
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Crossfade root pages a little faster than the morphing poster. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

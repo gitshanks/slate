@@ -67,6 +67,8 @@ export interface TitleRow {
   favorite: boolean;
   added_at: string;
   watched_at: string | null;
+  tmdb_rating: number | null;
+  tmdb_vote_count: number | null;
 }
 
 export interface ListRow {
