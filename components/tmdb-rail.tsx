@@ -30,7 +30,7 @@ export function TmdbRail({ title, items, savedTmdbIds }: TmdbRailProps) {
       </div>
 
       <div
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="-mr-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 pr-4 sm:-mr-6 sm:pr-6 lg:-mr-10 lg:pr-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {items.map((item) => {
           const name = item.title ?? item.name ?? "Untitled";
