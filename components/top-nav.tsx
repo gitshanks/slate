@@ -21,19 +21,6 @@ export function TopNav() {
     <header className="sticky top-0 z-40 w-full glass border-b border-border/60">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link href="/" className="group flex items-center gap-2">
-          <div className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-primary-foreground transition-transform group-hover:rotate-12">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-            >
-              <polygon points="6 3 20 12 6 21 6 3" />
-            </svg>
-          </div>
           <span className="text-sm font-semibold tracking-tight">slate</span>
         </Link>
 
