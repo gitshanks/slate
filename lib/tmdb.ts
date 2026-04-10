@@ -126,7 +126,7 @@ export async function getTitleMeta(
       vote_average: detail.vote_average ?? null,
       vote_count: detail.vote_count ?? null,
       tagline: detail.tagline ?? null,
-      reviews: reviews.results.slice(0, 5),
+      reviews: reviews.results.slice(0, 10),
     };
   } catch {
     return { vote_average: null, vote_count: null, tagline: null, reviews: [] };

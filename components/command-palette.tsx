@@ -105,9 +105,13 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
       const t = toast.loading(`Adding "${name}"…`);
       startTransition(async () => {
         try {
-          await addTitle({ tmdbId: item.id, mediaType: item.media_type });
+          const row = await addTitle({ tmdbId: item.id, mediaType: item.media_type });
           toast.success(`Added "${name}"`, { id: t });
-          router.refresh();
+          if (row?.id) {
+            router.push(`/title/${row.id}`);
+          } else {
+            router.refresh();
+          }
         } catch (err) {
           toast.error(err instanceof Error ? err.message : "Failed to add", { id: t });
         } finally {

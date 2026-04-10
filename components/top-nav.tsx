@@ -21,7 +21,7 @@ export function TopNav() {
   return (
     <header className="sticky top-0 z-40 w-full glass border-b border-border/60">
       <div className="mx-auto flex h-14 max-w-[1480px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
-        <Link href="/" prefetch className="group flex items-center gap-2">
+        <Link href="/" prefetch className="group flex items-center">
           <span className="text-base font-semibold tracking-tight sm:text-sm">slate</span>
         </Link>
 
@@ -71,9 +71,9 @@ export function TopNav() {
         </div>
       </div>
 
-      {/* Mobile nav row */}
+      {/* Mobile nav row — -ml-3.5 on first item so text aligns with "slate" logo above */}
       <nav className="flex items-center gap-1 px-4 pb-2 md:hidden">
-        {LINKS.map((l) => {
+        {LINKS.map((l, i) => {
           const active =
             l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
           return (
@@ -83,6 +83,7 @@ export function TopNav() {
               prefetch
               className={cn(
                 "rounded-full px-3.5 py-1.5 text-sm transition-colors",
+                i === 0 && "-ml-3.5",
                 active
                   ? "bg-accent text-foreground"
                   : "text-muted-foreground hover:text-foreground"

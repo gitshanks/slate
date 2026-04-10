@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabase, type ListRow } from "@/lib/supabase";
 import { EmptyState } from "@/components/empty-state";
 import { CreateListForm } from "@/components/create-list-form";
+import { DeleteListButton } from "@/components/delete-list-button";
 import { ListPlus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -60,22 +61,32 @@ export default async function ListsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(lists as ListRow[]).map((list) => (
-            <Link
-              key={list.id}
-              href={`/lists/${list.slug}`}
-              className="group rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)]"
-            >
-              <h3 className="text-lg font-semibold tracking-tight">{list.name}</h3>
-              {list.description && (
-                <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                  {list.description}
+            // Wrapper div so we can absolutely position the delete button
+            // without nesting interactive elements inside <Link>
+            <div key={list.id} className="relative group/card">
+              <Link
+                href={`/lists/${list.slug}`}
+                className="block rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)]"
+              >
+                <h3 className="text-lg font-semibold tracking-tight pr-8">{list.name}</h3>
+                {list.description && (
+                  <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                    {list.description}
+                  </p>
+                )}
+                <p className="mt-4 text-xs text-muted-foreground font-mono">
+                  {counts[list.id] ?? 0}{" "}
+                  {(counts[list.id] ?? 0) === 1 ? "title" : "titles"}
                 </p>
-              )}
-              <p className="mt-4 text-xs text-muted-foreground font-mono">
-                {counts[list.id] ?? 0}{" "}
-                {(counts[list.id] ?? 0) === 1 ? "title" : "titles"}
-              </p>
-            </Link>
+              </Link>
+              {/* Delete — absolutely positioned, stops click propagation */}
+              <DeleteListButton
+                listId={list.id}
+                listName={list.name}
+                iconOnly
+                className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 transition-opacity"
+              />
+            </div>
           ))}
         </div>
       )}

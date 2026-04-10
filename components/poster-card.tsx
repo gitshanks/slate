@@ -1,10 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Heart, ThumbsUp, ThumbsDown, Star } from "lucide-react";
 import { ViewTransition } from "@/components/view-transition";
+import { PosterCardActions } from "@/components/poster-card-actions";
 import { cn, formatYear } from "@/lib/utils";
 import { posterUrl } from "@/lib/tmdb-image";
 import type { TitleRow } from "@/lib/supabase";
-import { Star } from "lucide-react";
 
 interface PosterCardProps {
   title: Pick<
@@ -20,23 +21,32 @@ interface PosterCardProps {
   priority?: boolean;
 }
 
+/** Map sentiment value → icon element */
+function SentimentChip({ rating }: { rating: number }) {
+  if (rating === 3) return <Heart className="h-3 w-3 fill-rose-400 text-rose-400" />;
+  if (rating === 2) return <ThumbsUp className="h-3 w-3 fill-emerald-400 text-emerald-400" />;
+  if (rating === 1) return <ThumbsDown className="h-3 w-3 fill-zinc-400 text-zinc-400" />;
+  return null;
+}
+
 export function PosterCard({ title, priority }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
   const tmdb = title.tmdb_rating != null ? Number(title.tmdb_rating) : null;
+  const userRating = title.rating != null ? Number(title.rating) : null;
 
   return (
     <Link
       href={`/title/${title.id}`}
       prefetch
-      className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-xl will-change-transform"
+      className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-xl"
     >
       <div
         className={cn(
           "relative aspect-[2/3] overflow-hidden rounded-xl",
           "bg-card hairline",
           "transition-all duration-200 ease-out",
-          "group-hover:-translate-y-1 group-hover:shadow-[0_24px_60px_-20px_hsl(var(--primary)/0.35)]"
+          "hoverable:group-hover:-translate-y-1 hoverable:group-hover:shadow-[0_24px_60px_-20px_hsl(var(--primary)/0.35)]"
         )}
       >
         {src ? (
@@ -47,7 +57,7 @@ export function PosterCard({ title, priority }: PosterCardProps) {
               fill
               priority={priority}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
-              className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+              className="object-cover transition-transform duration-300 ease-out hoverable:group-hover:scale-[1.04]"
             />
           </ViewTransition>
         ) : (
@@ -56,10 +66,10 @@ export function PosterCard({ title, priority }: PosterCardProps) {
           </div>
         )}
 
-        {/* Bottom gradient + meta on hover */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+        {/* Bottom gradient + title meta on hover (pointer devices only) */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-0 transition-opacity duration-200 hoverable:group-hover:opacity-100" />
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pb-12 opacity-0 translate-y-1 transition-all duration-200 hoverable:group-hover:opacity-100 hoverable:group-hover:translate-y-0">
           <p className="text-sm font-medium text-white line-clamp-2 leading-snug">
             {title.title}
           </p>
@@ -69,24 +79,30 @@ export function PosterCard({ title, priority }: PosterCardProps) {
           </div>
         </div>
 
-        {/* Personal rating chip (top-right) */}
-        {title.rating != null && (
-          <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/70 backdrop-blur px-2 py-1 text-[11px] font-medium text-white">
-            <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-            {Number(title.rating).toFixed(1)}
+        {/* Personal sentiment chip (top-right) */}
+        {userRating != null && (
+          <div className="absolute right-2 top-2 flex items-center justify-center rounded-full bg-black/70 backdrop-blur p-1.5">
+            <SentimentChip rating={userRating} />
           </div>
         )}
 
-        {/* TMDB rating chip (top-left) — hidden on hover so the meta overlay is clean */}
+        {/* TMDB rating chip (top-left) — hidden on hover */}
         {tmdb != null && tmdb > 0 && (
-          <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-1 text-[11px] font-mono font-medium text-white transition-opacity duration-200 group-hover:opacity-0">
+          <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-1 text-[11px] font-mono font-medium text-white transition-opacity duration-200 hoverable:group-hover:opacity-0">
             <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
             {tmdb.toFixed(1)}
           </div>
         )}
+
+        {/* Quick-action strip: delete + sentiment */}
+        <PosterCardActions
+          titleId={title.id}
+          titleName={title.title}
+          currentRating={userRating}
+        />
       </div>
 
-      {/* Always-visible title under poster on mobile, hidden on desktop where hover reveals */}
+      {/* Always-visible title under poster on mobile */}
       <div className="mt-2 px-0.5 sm:hidden">
         <p className="text-xs font-medium text-foreground line-clamp-1">{title.title}</p>
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">

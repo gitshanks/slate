@@ -28,14 +28,30 @@ const DialogOverlay = React.forwardRef<
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
 const dialogContentVariants = cva(
-  "fixed left-[50%] top-[50%] z-50 grid translate-x-[-50%] translate-y-[-50%] gap-4 bg-background shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-lg border p-6",
+  // Mobile: anchored to top of screen, full width, slides in from top
+  // Desktop (sm+): centered with zoom animation
+  [
+    "fixed z-50 grid gap-4 bg-background shadow-lg border",
+    // Mobile positioning — top anchored
+    "left-0 right-0 top-0 rounded-t-none rounded-b-2xl translate-x-0 translate-y-0",
+    "data-[state=open]:animate-in data-[state=closed]:animate-out",
+    "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+    "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+    "duration-200",
+    // Desktop — centered
+    "sm:left-[50%] sm:top-[50%] sm:right-auto sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg",
+    "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
+    "sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%]",
+    "sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]",
+    "p-6",
+  ].join(" "),
   {
     variants: {
       size: {
-        sm:   "w-full max-w-sm",
-        md:   "w-full max-w-lg",
-        lg:   "w-full max-w-2xl",
-        full: "w-full max-w-[calc(100vw-2rem)] h-[calc(100vh-2rem)]",
+        sm:   "w-full sm:max-w-sm",
+        md:   "w-full sm:max-w-lg",
+        lg:   "w-full sm:max-w-2xl",
+        full: "w-full sm:max-w-[calc(100vw-2rem)] sm:h-[calc(100vh-2rem)]",
       },
     },
     defaultVariants: { size: "md" },

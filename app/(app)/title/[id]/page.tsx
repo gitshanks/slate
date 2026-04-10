@@ -3,9 +3,10 @@ import Image from "next/image";
 import { Star } from "lucide-react";
 import { supabase, type TitleRow } from "@/lib/supabase";
 import { posterUrl, getTitleMeta } from "@/lib/tmdb";
+import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import { BackdropHero } from "@/components/backdrop-hero";
 import { StatusPill } from "@/components/status-pill";
-import { StarRating } from "@/components/star-rating";
+import { SentimentRating } from "@/components/sentiment-rating";
 import { ReviewSheet } from "@/components/review-sheet";
 import { RemoveButton } from "@/components/remove-button";
 import { ViewTransition } from "@/components/view-transition";
@@ -27,12 +28,27 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const poster = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
   const runtime = formatRuntime(title.runtime);
+  const ambientBg = rawPosterUrl(title.poster_path, "w342");
 
   // Pull live TMDB rating + reviews (cached for 1h)
   const meta = await getTitleMeta(title.media_type, title.tmdb_id);
 
   return (
-    <div className="-mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14">
+    <div className="-mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20">
+      {/* Ambient glow from poster colors */}
+      {ambientBg && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 -z-10 opacity-[0.07]"
+          style={{
+            backgroundImage: `url(${ambientBg})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(80px) saturate(3)",
+          }}
+        />
+      )}
+
       <BackdropHero path={title.backdrop_path} alt={title.title} />
 
       <div className="relative -mt-44 px-4 sm:-mt-48 sm:px-6 lg:px-10">
@@ -112,8 +128,14 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               </div>
             )}
 
-            <div className="mt-6">
+            {/* ── Consolidated action row: status + sentiment + remove ── */}
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <StatusPill titleId={title.id} status={title.status} />
+              <SentimentRating
+                titleId={title.id}
+                rating={title.rating != null ? Number(title.rating) : null}
+              />
+              <RemoveButton titleId={title.id} titleName={title.title} />
             </div>
 
             {title.overview && (
@@ -122,27 +144,28 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               </p>
             )}
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
+            {/* Notes — below overview, low visual weight */}
+            <div className="mt-4">
               <ReviewSheet
                 titleId={title.id}
                 titleName={title.title}
-                initialRating={title.rating != null ? Number(title.rating) : null}
                 initialReview={title.review}
               />
-              <RemoveButton titleId={title.id} titleName={title.title} />
             </div>
 
+            {/* Your note / sentiment display */}
             {(title.rating != null || title.review) && (
-              <div className="mt-10 rounded-2xl border border-border bg-card p-6">
+              <div className="mt-8 rounded-2xl border border-border bg-card p-6">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
-                  Your review
+                  Your take
                 </p>
                 {title.rating != null && (
-                  <div className="mt-3 flex items-center gap-3">
-                    <StarRating value={Number(title.rating)} readOnly size={22} />
-                    <span className="font-mono text-sm text-muted-foreground">
-                      {Number(title.rating).toFixed(1)} / 5
-                    </span>
+                  <div className="mt-3">
+                    <SentimentRating
+                      titleId={title.id}
+                      rating={Number(title.rating)}
+                      readOnly
+                    />
                   </div>
                 )}
                 {title.review && (

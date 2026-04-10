@@ -123,6 +123,12 @@
   --font-mono: var(--font-mono), ui-monospace, "JetBrains Mono", monospace;
 }
 
+/* Eliminate 300ms tap delay on all interactive elements */
+* { touch-action: manipulation; }
+
+/* Hover-only variant: animations that should ONLY run on pointer devices */
+@custom-variant hoverable (@media (hover: hover) and (pointer: fine));
+
 @layer base {
   * {
     border-color: hsl(var(--border));
@@ -174,6 +180,16 @@
   }
 }
 
+/* ─── Mobile performance ──────────────────────────────────────── */
+/* Kill backdrop-filter on mobile — causes scroll jank in Safari   */
+@media (max-width: 767px) {
+  .glass {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: hsl(var(--background) / 0.97);
+  }
+}
+
 /* ─── View Transitions ─────────────────────────────────────────── */
 /* Snappier default; the browser's 300ms feels sluggish here.       */
 ::view-transition-old(*),
@@ -186,6 +202,15 @@
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 200ms;
+}
+
+/* Disable view transitions on mobile — too choppy on iOS Safari */
+@media (max-width: 767px) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
