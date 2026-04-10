@@ -96,7 +96,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
   return (
     <Ctx.Provider value={{ open: () => setOpen(true) }}>
       {children}
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
         <CommandInput
           placeholder="Search movies and TV shows…"
           value={query}
