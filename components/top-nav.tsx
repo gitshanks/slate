@@ -21,31 +21,33 @@ export function TopNav() {
   return (
     <header className="sticky top-0 z-40 w-full glass border-b border-border/60">
       <div className="mx-auto flex h-14 max-w-[1480px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
-        <Link href="/" prefetch className="group flex items-center">
-          <span className="text-xl font-bold tracking-tight">slate</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/" prefetch className="group flex items-center">
+            <span className="text-xl font-bold tracking-tight">slate</span>
+          </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
-          {LINKS.map((l) => {
-            const active =
-              l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                prefetch
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-sm transition-colors",
-                  active
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
-                )}
-              >
-                {l.label}
-              </Link>
-            );
-          })}
-        </nav>
+          <nav className="hidden items-center gap-0.5 md:flex">
+            {LINKS.map((l) => {
+              const active =
+                l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  prefetch
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-sm transition-colors",
+                    active
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                  )}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
 
         <div className="flex items-center gap-1">
           <button

@@ -16,6 +16,7 @@ import {
   getTrending,
   getPopularMovies,
   getNowPlaying,
+  getPopularTv,
 } from "@/lib/tmdb";
 
 export const dynamic = "force-dynamic";
@@ -25,12 +26,13 @@ export default async function WatchlistPage(props: PageProps<"/">) {
 
   // Fetch library + all three TMDB catalogues + the full set of saved tmdb_ids
   // in parallel to avoid a waterfall.
-  const [libResult, trending, popular, nowPlaying, savedRowsRes] =
+  const [libResult, trending, popular, nowPlaying, popularTv, savedRowsRes] =
     await Promise.all([
       fetchTitlesByStatus("want", sp),
       getTrending(),
       getPopularMovies(),
       getNowPlaying(),
+      getPopularTv(),
       supabase.from("titles").select("tmdb_id").then(
         ({ data }) => (data ?? []) as { tmdb_id: number }[]
       ),
@@ -79,6 +81,7 @@ export default async function WatchlistPage(props: PageProps<"/">) {
       <TmdbRail title="Trending this week" items={trending} savedTmdbIds={savedTmdbIds} />
       <TmdbRail title="Popular films" items={popular} savedTmdbIds={savedTmdbIds} />
       <TmdbRail title="Now playing" items={nowPlaying} savedTmdbIds={savedTmdbIds} />
+      <TmdbRail title="Popular TV shows" items={popularTv} savedTmdbIds={savedTmdbIds} />
     </div>
   );
 }

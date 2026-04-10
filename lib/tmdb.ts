@@ -179,47 +179,88 @@ export async function getTitleMeta(
 
 // ─── Discovery / catalogues ───────────────────────────────────────
 
-/** Trending titles across movies + tv for the past week. */
+/** Trending titles across movies + tv for the past week (pages 1+2). */
 export async function getTrending(): Promise<TmdbSearchResult[]> {
   try {
-    const data = await tmdb<{ results: TmdbSearchResult[] }>(
-      "/trending/all/week",
-      { language: "en-US" }
+    const [p1, p2] = await Promise.all([
+      tmdb<{ results: TmdbSearchResult[] }>("/trending/all/week", {
+        language: "en-US",
+        page: "1",
+      }),
+      tmdb<{ results: TmdbSearchResult[] }>("/trending/all/week", {
+        language: "en-US",
+        page: "2",
+      }).catch(() => ({ results: [] as TmdbSearchResult[] })),
+    ]);
+    return [...p1.results, ...p2.results].filter(
+      (r) => r.media_type === "movie" || r.media_type === "tv"
     );
-    // Filter out people; we only want movies and tv
-    return data.results
-      .filter((r) => r.media_type === "movie" || r.media_type === "tv")
-      .slice(0, 20);
   } catch {
     return [];
   }
 }
 
-/** Popular films right now. */
+/** Popular films right now (pages 1+2). */
 export async function getPopularMovies(): Promise<TmdbSearchResult[]> {
   try {
-    const data = await tmdb<{ results: TmdbSearchResult[] }>("/movie/popular", {
-      language: "en-US",
-      page: "1",
-    });
-    return data.results
-      .slice(0, 20)
-      .map((r) => ({ ...r, media_type: "movie" as const }));
+    const [p1, p2] = await Promise.all([
+      tmdb<{ results: TmdbSearchResult[] }>("/movie/popular", {
+        language: "en-US",
+        page: "1",
+      }),
+      tmdb<{ results: TmdbSearchResult[] }>("/movie/popular", {
+        language: "en-US",
+        page: "2",
+      }).catch(() => ({ results: [] as TmdbSearchResult[] })),
+    ]);
+    return [...p1.results, ...p2.results].map((r) => ({
+      ...r,
+      media_type: "movie" as const,
+    }));
   } catch {
     return [];
   }
 }
 
-/** Now playing in theaters. */
+/** Now playing in theaters (pages 1+2). */
 export async function getNowPlaying(): Promise<TmdbSearchResult[]> {
   try {
-    const data = await tmdb<{ results: TmdbSearchResult[] }>(
-      "/movie/now_playing",
-      { language: "en-US", page: "1" }
-    );
-    return data.results
-      .slice(0, 20)
-      .map((r) => ({ ...r, media_type: "movie" as const }));
+    const [p1, p2] = await Promise.all([
+      tmdb<{ results: TmdbSearchResult[] }>("/movie/now_playing", {
+        language: "en-US",
+        page: "1",
+      }),
+      tmdb<{ results: TmdbSearchResult[] }>("/movie/now_playing", {
+        language: "en-US",
+        page: "2",
+      }).catch(() => ({ results: [] as TmdbSearchResult[] })),
+    ]);
+    return [...p1.results, ...p2.results].map((r) => ({
+      ...r,
+      media_type: "movie" as const,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Popular TV shows right now (pages 1+2). */
+export async function getPopularTv(): Promise<TmdbSearchResult[]> {
+  try {
+    const [p1, p2] = await Promise.all([
+      tmdb<{ results: TmdbSearchResult[] }>("/tv/popular", {
+        language: "en-US",
+        page: "1",
+      }),
+      tmdb<{ results: TmdbSearchResult[] }>("/tv/popular", {
+        language: "en-US",
+        page: "2",
+      }).catch(() => ({ results: [] as TmdbSearchResult[] })),
+    ]);
+    return [...p1.results, ...p2.results].map((r) => ({
+      ...r,
+      media_type: "tv" as const,
+    }));
   } catch {
     return [];
   }
