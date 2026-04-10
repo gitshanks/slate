@@ -41,6 +41,7 @@ export function FilterBar({ genres, showYearSort = true }: FilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = React.useTransition();
 
   const currentType = searchParams.get("type") ?? "";
   const currentGenre = searchParams.get("genre") ?? "";
@@ -55,7 +56,9 @@ export function FilterBar({ genres, showYearSort = true }: FilterBarProps) {
       if (value) params.set(key, value);
       else params.delete(key);
       const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      startTransition(() => {
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      });
     },
     [pathname, router, searchParams]
   );
@@ -68,7 +71,7 @@ export function FilterBar({ genres, showYearSort = true }: FilterBarProps) {
   );
 
   return (
-    <div className="mb-8 flex flex-wrap items-center gap-2">
+    <div className={cn("mb-8 flex flex-wrap items-center gap-2 transition-opacity duration-150", isPending && "opacity-60 pointer-events-none")}>
       {/* Type segmented */}
       <div className="inline-flex rounded-full border border-border bg-card p-1 shadow-sm">
         {TYPE_OPTIONS.map(({ value, label, icon: Icon }) => {
@@ -229,7 +232,7 @@ export function FilterBar({ genres, showYearSort = true }: FilterBarProps) {
       {hasAny && (
         <button
           type="button"
-          onClick={() => router.replace(pathname, { scroll: false })}
+          onClick={() => startTransition(() => router.replace(pathname, { scroll: false }))}
           className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
         >
           <X className="h-3 w-3" />
