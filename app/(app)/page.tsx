@@ -25,14 +25,12 @@ export default async function WatchlistPage() {
 
   const titles = (data ?? []) as TitleRow[];
 
-  const userName = process.env.APP_USER_NAME || "there";
-
   return (
     <div>
       <div className="mb-10 flex items-end justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">
-            Hi {userName} 👋
+          <p className="text-2xl font-semibold tracking-tight">
+            Hi Nish 👋
           </p>
           <h1 className="mt-1 text-4xl font-semibold tracking-tight">Your Watchlist</h1>
         </div>

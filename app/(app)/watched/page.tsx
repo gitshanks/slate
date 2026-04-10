@@ -23,10 +23,10 @@ export default async function WatchedPage() {
   }
 
   const titles = (data ?? []) as TitleRow[];
-  const ratedCount = titles.filter((t) => t.rating != null).length;
-  const avg =
-    ratedCount > 0
-      ? titles.reduce((s, t) => s + (Number(t.rating) || 0), 0) / ratedCount
+  const tmdbRated = titles.filter((t) => t.tmdb_rating != null && Number(t.tmdb_rating) > 0);
+  const tmdbAvg =
+    tmdbRated.length > 0
+      ? tmdbRated.reduce((s, t) => s + Number(t.tmdb_rating), 0) / tmdbRated.length
       : null;
 
   return (
@@ -42,8 +42,8 @@ export default async function WatchedPage() {
           <div>
             {titles.length} {titles.length === 1 ? "title" : "titles"}
           </div>
-          {avg != null && (
-            <div className="font-mono">avg {avg.toFixed(1)} / 5</div>
+          {tmdbAvg != null && (
+            <div className="font-mono">avg {tmdbAvg.toFixed(1)} TMDB</div>
           )}
         </div>
       </div>

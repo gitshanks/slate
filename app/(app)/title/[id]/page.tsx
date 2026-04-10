@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { Star } from "lucide-react";
+import { Star, ExternalLink } from "lucide-react";
 import { supabase, type TitleRow } from "@/lib/supabase";
 import { posterUrl, getTitleMeta } from "@/lib/tmdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
@@ -29,6 +29,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const year = formatYear(title.release_date);
   const runtime = formatRuntime(title.runtime);
   const ambientBg = rawPosterUrl(title.poster_path, "w342");
+  const tmdbUrl = `https://www.themoviedb.org/${title.media_type}/${title.tmdb_id}`;
 
   // Pull live TMDB rating + reviews (cached for 1h)
   const meta = await getTitleMeta(title.media_type, title.tmdb_id);
@@ -69,20 +70,25 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
             </div>
 
             {meta.vote_average != null && meta.vote_average > 0 && (
-              <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
+              <a
+                href={tmdbUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40 hover:bg-card/80"
+              >
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
                   <span className="font-mono text-sm font-medium">
                     {meta.vote_average.toFixed(1)}
                   </span>
-                  <span className="text-xs text-muted-foreground">/ 10</span>
+                  <span className="text-xs text-muted-foreground">/ 10 TMDB</span>
                 </div>
                 {meta.vote_count != null && (
                   <span className="text-[11px] text-muted-foreground font-mono">
                     {meta.vote_count.toLocaleString()} votes
                   </span>
                 )}
-              </div>
+              </a>
             )}
           </div>
 
@@ -104,7 +110,12 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
 
             {/* Mobile: TMDB rating chip */}
             {meta.vote_average != null && meta.vote_average > 0 && (
-              <div className="mt-3 inline-flex md:hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5">
+              <a
+                href={tmdbUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex md:hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 transition-colors hover:border-primary/40"
+              >
                 <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
                 <span className="font-mono text-xs font-medium">
                   {meta.vote_average.toFixed(1)}
@@ -112,7 +123,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 <span className="text-[10px] text-muted-foreground">
                   TMDB · {meta.vote_count?.toLocaleString() ?? 0}
                 </span>
-              </div>
+              </a>
             )}
 
             {title.genres && title.genres.length > 0 && (
@@ -153,34 +164,29 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               />
             </div>
 
-            {/* Your note / sentiment display */}
-            {(title.rating != null || title.review) && (
+            {/* Your note — only shown when a note exists */}
+            {title.review && (
               <div className="mt-8 rounded-2xl border border-border bg-card p-6">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
-                  Your take
+                  Your note
                 </p>
-                {title.rating != null && (
-                  <div className="mt-3">
-                    <SentimentRating
-                      titleId={title.id}
-                      rating={Number(title.rating)}
-                      readOnly
-                    />
-                  </div>
-                )}
-                {title.review && (
-                  <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/85">
-                    {title.review}
-                  </p>
-                )}
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/85">
+                  {title.review}
+                </p>
               </div>
             )}
 
             {meta.reviews.length > 0 && (
               <div className="mt-12">
-                <h2 className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+                <a
+                  href={tmdbUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono hover:text-foreground transition-colors"
+                >
                   What people are saying
-                </h2>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
                 <div className="mt-5 space-y-4">
                   {meta.reviews.map((r) => {
                     const rating = r.author_details?.rating ?? null;

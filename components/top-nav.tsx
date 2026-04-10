@@ -22,7 +22,7 @@ export function TopNav() {
     <header className="sticky top-0 z-40 w-full glass border-b border-border/60">
       <div className="mx-auto flex h-14 max-w-[1480px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
         <Link href="/" prefetch className="group flex items-center">
-          <span className="text-base font-semibold tracking-tight sm:text-sm">slate</span>
+          <span className="text-xl font-bold tracking-tight">slate</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
