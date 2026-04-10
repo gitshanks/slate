@@ -3,8 +3,15 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { Loader2, Film, Tv } from "lucide-react";
+import {
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import { Loader2, Film, Tv, Star } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { addTitle } from "@/lib/actions";
 import { toast } from "sonner";
@@ -18,6 +25,7 @@ interface SearchResult {
   release_date?: string;
   first_air_date?: string;
   overview?: string;
+  vote_average?: number;
 }
 
 interface CommandPaletteContextValue {
@@ -38,6 +46,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
   const [results, setResults] = React.useState<SearchResult[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
+  const adding = React.useRef(false);
   const router = useRouter();
 
   // Cmd+K / Ctrl+K shortcut
@@ -72,26 +81,36 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
       } finally {
         setLoading(false);
       }
-    }, 220);
+    }, 180);
     return () => {
       clearTimeout(t);
       ctrl.abort();
     };
   }, [query]);
 
-  function handleSelect(item: SearchResult) {
-    startTransition(async () => {
-      try {
-        await addTitle({ tmdbId: item.id, mediaType: item.media_type });
-        toast.success(`Added "${item.title || item.name}" to your watchlist`);
-        setOpen(false);
-        setQuery("");
-        router.refresh();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to add");
-      }
-    });
-  }
+  const handleSelect = React.useCallback(
+    (item: SearchResult) => {
+      if (adding.current) return;
+      adding.current = true;
+      const name = item.title || item.name || "Untitled";
+      // Optimistic close — feels instant
+      setOpen(false);
+      setQuery("");
+      const t = toast.loading(`Adding "${name}"…`);
+      startTransition(async () => {
+        try {
+          await addTitle({ tmdbId: item.id, mediaType: item.media_type });
+          toast.success(`Added "${name}"`, { id: t });
+          router.refresh();
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Failed to add", { id: t });
+        } finally {
+          adding.current = false;
+        }
+      });
+    },
+    [router]
+  );
 
   return (
     <Ctx.Provider value={{ open: () => setOpen(true) }}>
@@ -102,7 +121,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
           value={query}
           onValueChange={setQuery}
         />
-        <CommandList>
+        <CommandList className="max-h-[60vh]">
           {loading && (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -112,10 +131,10 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
             <CommandEmpty>No results.</CommandEmpty>
           )}
           {!loading && !query && (
-            <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+            <div className="px-4 py-10 text-center text-xs text-muted-foreground">
               Type a title to search TMDB.
               <br />
-              Press <kbd className="font-mono">↵</kbd> to add to your watchlist.
+              Press <kbd className="font-mono">↵</kbd> or click to add.
             </div>
           )}
           {results.length > 0 && (
@@ -125,22 +144,27 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                 const date = r.release_date || r.first_air_date || "";
                 const year = date ? date.slice(0, 4) : "";
                 const poster = posterUrl(r.poster_path, "w92");
+                const vote = r.vote_average && r.vote_average > 0 ? r.vote_average : null;
                 return (
                   <CommandItem
                     key={`${r.media_type}-${r.id}`}
-                    value={`${name} ${year}`}
+                    value={`${r.media_type}-${r.id}`}
                     onSelect={() => handleSelect(r)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelect(r);
+                    }}
                     disabled={pending}
                     className="gap-3"
                   >
-                    <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                    <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-muted">
                       {poster ? (
-                        <Image src={poster} alt={name} fill className="object-cover" sizes="40px" />
+                        <Image src={poster} alt={name} fill className="object-cover" sizes="44px" />
                       ) : null}
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-sm font-medium">{name}</span>
-                      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono uppercase">
+                      <span className="truncate text-sm font-medium text-foreground">{name}</span>
+                      <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono uppercase">
                         {r.media_type === "movie" ? (
                           <Film className="h-3 w-3" />
                         ) : (
@@ -148,6 +172,12 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                         )}
                         {r.media_type}
                         {year && <span>· {year}</span>}
+                        {vote && (
+                          <span className="ml-1 inline-flex items-center gap-0.5">
+                            <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                            {vote.toFixed(1)}
+                          </span>
+                        )}
                       </span>
                     </div>
                   </CommandItem>

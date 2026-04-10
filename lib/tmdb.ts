@@ -49,6 +49,7 @@ export interface TmdbMovieDetail {
   runtime: number | null;
   genres: { id: number; name: string }[];
   vote_average: number;
+  vote_count: number;
   tagline: string | null;
 }
 
@@ -65,6 +66,7 @@ export interface TmdbTvDetail {
   number_of_episodes: number;
   genres: { id: number; name: string }[];
   vote_average: number;
+  vote_count: number;
   tagline: string | null;
 }
 
@@ -86,6 +88,49 @@ export async function getMovie(id: number) {
 
 export async function getTv(id: number) {
   return tmdb<TmdbTvDetail>(`/tv/${id}`, { language: "en-US" });
+}
+
+export interface TmdbReview {
+  id: string;
+  author: string;
+  author_details?: { rating: number | null; avatar_path: string | null };
+  content: string;
+  created_at: string;
+  url: string;
+}
+
+export interface TmdbDetailWithMeta {
+  vote_average: number | null;
+  vote_count: number | null;
+  tagline: string | null;
+  reviews: TmdbReview[];
+}
+
+/**
+ * Fetch TMDB rating + reviews for an existing title. Used on the detail page.
+ * Cached for an hour by next.
+ */
+export async function getTitleMeta(
+  type: "movie" | "tv",
+  tmdbId: number
+): Promise<TmdbDetailWithMeta> {
+  try {
+    const [detail, reviews] = await Promise.all([
+      type === "movie" ? getMovie(tmdbId) : getTv(tmdbId),
+      tmdb<{ results: TmdbReview[] }>(`/${type}/${tmdbId}/reviews`, {
+        language: "en-US",
+        page: "1",
+      }),
+    ]);
+    return {
+      vote_average: detail.vote_average ?? null,
+      vote_count: detail.vote_count ?? null,
+      tagline: detail.tagline ?? null,
+      reviews: reviews.results.slice(0, 5),
+    };
+  } catch {
+    return { vote_average: null, vote_count: null, tagline: null, reviews: [] };
+  }
 }
 
 /** Normalise either a movie or TV detail into the shape we store. */
