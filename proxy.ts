@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const COOKIE = "watchlist-unlocked";
+const COOKIE = "slate-unlocked";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

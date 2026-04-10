@@ -34,7 +34,7 @@ export function TopNav() {
               <polygon points="6 3 20 12 6 21 6 3" />
             </svg>
           </div>
-          <span className="text-sm font-semibold tracking-tight">cinephile</span>
+          <span className="text-sm font-semibold tracking-tight">slate</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">

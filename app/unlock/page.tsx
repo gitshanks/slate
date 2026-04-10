@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const COOKIE = "watchlist-unlocked";
+const COOKIE = "slate-unlocked";
 
 async function unlock(formData: FormData) {
   "use server";

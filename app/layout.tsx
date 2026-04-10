@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "cinephile — your watchlist",
+  title: "slate — your watchlist",
   description: "A private Letterboxd for the things you want to watch.",
 };
 
