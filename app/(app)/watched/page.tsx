@@ -1,16 +1,18 @@
-import { supabase, type TitleRow } from "@/lib/supabase";
 import { MediaGrid } from "@/components/media-grid";
 import { EmptyState } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
 import { Eye } from "lucide-react";
+import {
+  fetchTitlesByStatus,
+  type TitleFilterParams,
+} from "@/lib/title-filters";
+import { formatTmdbScore } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function WatchedPage() {
-  const { data, error } = await supabase
-    .from("titles")
-    .select("*")
-    .eq("status", "watched")
-    .order("watched_at", { ascending: false, nullsFirst: false });
+export default async function WatchedPage(props: PageProps<"/watched">) {
+  const sp = (await props.searchParams) as TitleFilterParams;
+  const { titles, allGenres, error } = await fetchTitlesByStatus("watched", sp);
 
   if (error) {
     return (
@@ -22,12 +24,15 @@ export default async function WatchedPage() {
     );
   }
 
-  const titles = (data ?? []) as TitleRow[];
-  const tmdbRated = titles.filter((t) => t.tmdb_rating != null && Number(t.tmdb_rating) > 0);
-  const tmdbAvg =
+  const tmdbRated = titles.filter(
+    (t) => t.tmdb_rating != null && Number(t.tmdb_rating) > 0
+  );
+  const tmdbAvgRaw =
     tmdbRated.length > 0
-      ? tmdbRated.reduce((s, t) => s + Number(t.tmdb_rating), 0) / tmdbRated.length
+      ? tmdbRated.reduce((s, t) => s + Number(t.tmdb_rating), 0) /
+        tmdbRated.length
       : null;
+  const tmdbAvg = formatTmdbScore(tmdbAvgRaw);
 
   return (
     <div>
@@ -42,11 +47,11 @@ export default async function WatchedPage() {
           <div>
             {titles.length} {titles.length === 1 ? "title" : "titles"}
           </div>
-          {tmdbAvg != null && (
-            <div className="font-mono">avg {tmdbAvg.toFixed(1)} TMDB</div>
-          )}
+          {tmdbAvg && <div className="font-mono">avg {tmdbAvg} TMDB</div>}
         </div>
       </div>
+
+      <FilterBar genres={allGenres} />
 
       {titles.length === 0 ? (
         <EmptyState

@@ -27,3 +27,16 @@ export function formatRuntime(minutes: number | null | undefined): string {
   if (m === 0) return `${h}h`;
   return `${h}h ${m}m`;
 }
+
+/**
+ * Format a TMDB vote_average (0–10) as a user score percentage: 7.4 → "74%".
+ * Returns null if the value isn't a usable number.
+ */
+export function formatTmdbScore(
+  value: number | string | null | undefined
+): string | null {
+  if (value == null) return null;
+  const n = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return `${Math.round(n * 10)}%`;
+}

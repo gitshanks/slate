@@ -1,11 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, ThumbsUp, ThumbsDown, Star } from "lucide-react";
+import { Clock, Eye, Check } from "lucide-react";
 import { ViewTransition } from "@/components/view-transition";
 import { PosterCardActions } from "@/components/poster-card-actions";
-import { cn, formatYear } from "@/lib/utils";
+import { cn, formatTmdbScore, formatYear } from "@/lib/utils";
 import { posterUrl } from "@/lib/tmdb-image";
-import type { TitleRow } from "@/lib/supabase";
+import type { TitleRow, TitleStatus } from "@/lib/supabase";
 
 interface PosterCardProps {
   title: Pick<
@@ -15,25 +15,24 @@ interface PosterCardProps {
     | "poster_path"
     | "release_date"
     | "media_type"
-    | "rating"
+    | "status"
     | "tmdb_rating"
   >;
   priority?: boolean;
 }
 
-/** Map sentiment value → icon element */
-function SentimentChip({ rating }: { rating: number }) {
-  if (rating === 3) return <Heart className="h-3 w-3 fill-rose-400 text-rose-400" />;
-  if (rating === 2) return <ThumbsUp className="h-3 w-3 fill-emerald-400 text-emerald-400" />;
-  if (rating === 1) return <ThumbsDown className="h-3 w-3 fill-zinc-400 text-zinc-400" />;
+/** Map a status value → small icon element */
+function StatusChip({ status }: { status: TitleStatus }) {
+  if (status === "want") return <Clock className="h-3 w-3 text-white/90" />;
+  if (status === "watching") return <Eye className="h-3 w-3 text-sky-300" />;
+  if (status === "watched") return <Check className="h-3 w-3 text-emerald-300" />;
   return null;
 }
 
 export function PosterCard({ title, priority }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
-  const tmdb = title.tmdb_rating != null ? Number(title.tmdb_rating) : null;
-  const userRating = title.rating != null ? Number(title.rating) : null;
+  const score = formatTmdbScore(title.tmdb_rating);
 
   return (
     <Link
@@ -79,26 +78,23 @@ export function PosterCard({ title, priority }: PosterCardProps) {
           </div>
         </div>
 
-        {/* Personal sentiment chip (top-right) */}
-        {userRating != null && (
-          <div className="absolute right-2 top-2 flex items-center justify-center rounded-full bg-black/70 backdrop-blur p-1.5">
-            <SentimentChip rating={userRating} />
+        {/* Status chip (top-right) */}
+        <div className="absolute right-2 top-2 flex items-center justify-center rounded-full bg-black/70 backdrop-blur p-1.5">
+          <StatusChip status={title.status} />
+        </div>
+
+        {/* TMDB user score chip (top-left) — hidden on hover */}
+        {score && (
+          <div className="absolute left-2 top-2 rounded-full bg-black/60 backdrop-blur-sm px-2 py-1 text-[11px] font-mono font-medium text-white transition-opacity duration-200 hoverable:group-hover:opacity-0">
+            {score}
           </div>
         )}
 
-        {/* TMDB rating chip (top-left) — hidden on hover */}
-        {tmdb != null && tmdb > 0 && (
-          <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-1 text-[11px] font-mono font-medium text-white transition-opacity duration-200 hoverable:group-hover:opacity-0">
-            <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-            {tmdb.toFixed(1)}
-          </div>
-        )}
-
-        {/* Quick-action strip: delete + sentiment */}
+        {/* Quick-action strip: status + delete */}
         <PosterCardActions
           titleId={title.id}
           titleName={title.title}
-          currentRating={userRating}
+          currentStatus={title.status}
         />
       </div>
 
@@ -107,13 +103,10 @@ export function PosterCard({ title, priority }: PosterCardProps) {
         <p className="text-xs font-medium text-foreground line-clamp-1">{title.title}</p>
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
           {year && <span>{year}</span>}
-          {tmdb != null && tmdb > 0 && (
+          {score && (
             <>
               {year && <span>·</span>}
-              <span className="inline-flex items-center gap-0.5">
-                <Star className="h-2.5 w-2.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                {tmdb.toFixed(1)}
-              </span>
+              <span>{score}</span>
             </>
           )}
         </div>

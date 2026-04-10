@@ -1,29 +1,53 @@
-import { supabase, type TitleRow } from "@/lib/supabase";
+import {
+  supabase,
+  type TitleRow,
+} from "@/lib/supabase";
 import { MediaGrid } from "@/components/media-grid";
 import { EmptyState } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
+import { TmdbRail } from "@/components/tmdb-rail";
 import { Film } from "lucide-react";
 import { OpenPaletteHint } from "@/components/open-palette-hint";
+import {
+  fetchTitlesByStatus,
+  type TitleFilterParams,
+} from "@/lib/title-filters";
+import {
+  getTrending,
+  getPopularMovies,
+  getNowPlaying,
+} from "@/lib/tmdb";
 
 export const dynamic = "force-dynamic";
 
-export default async function WatchlistPage() {
-  const { data, error } = await supabase
-    .from("titles")
-    .select("*")
-    .eq("status", "want")
-    .order("added_at", { ascending: false });
+export default async function WatchlistPage(props: PageProps<"/">) {
+  const sp = (await props.searchParams) as TitleFilterParams;
 
-  if (error) {
+  // Fetch library + all three TMDB catalogues + the full set of saved tmdb_ids
+  // in parallel to avoid a waterfall.
+  const [libResult, trending, popular, nowPlaying, savedRowsRes] =
+    await Promise.all([
+      fetchTitlesByStatus("want", sp),
+      getTrending(),
+      getPopularMovies(),
+      getNowPlaying(),
+      supabase.from("titles").select("tmdb_id").then(
+        ({ data }) => (data ?? []) as { tmdb_id: number }[]
+      ),
+    ]);
+
+  if (libResult.error) {
     return (
       <EmptyState
         icon={<Film className="h-6 w-6" />}
         title="Couldn't reach the database"
-        description={error.message}
+        description={libResult.error.message}
       />
     );
   }
 
-  const titles = (data ?? []) as TitleRow[];
+  const titles = libResult.titles as TitleRow[];
+  const savedTmdbIds = new Set<number>(savedRowsRes.map((r) => r.tmdb_id));
 
   return (
     <div>
@@ -39,6 +63,8 @@ export default async function WatchlistPage() {
         </p>
       </div>
 
+      <FilterBar genres={libResult.allGenres} />
+
       {titles.length === 0 ? (
         <EmptyState
           icon={<Film className="h-6 w-6" />}
@@ -49,6 +75,10 @@ export default async function WatchlistPage() {
       ) : (
         <MediaGrid titles={titles} />
       )}
+
+      <TmdbRail title="Trending this week" items={trending} savedTmdbIds={savedTmdbIds} />
+      <TmdbRail title="Popular films" items={popular} savedTmdbIds={savedTmdbIds} />
+      <TmdbRail title="Now playing" items={nowPlaying} savedTmdbIds={savedTmdbIds} />
     </div>
   );
 }

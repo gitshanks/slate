@@ -13,8 +13,6 @@ import {
 } from "@/components/ui/command";
 import { Loader2, Film, Tv, Star } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
-import { addTitle } from "@/lib/actions";
-import { toast } from "sonner";
 
 interface SearchResult {
   id: number;
@@ -47,8 +45,6 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
   const [approximate, setApproximate] = React.useState(false);
   const [approxQuery, setApproxQuery] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
-  const [pending, startTransition] = React.useTransition();
-  const adding = React.useRef(false);
   const router = useRouter();
 
   // Cmd+K / Ctrl+K shortcut
@@ -96,28 +92,12 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
 
   const handleSelect = React.useCallback(
     (item: SearchResult) => {
-      if (adding.current) return;
-      adding.current = true;
-      const name = item.title || item.name || "Untitled";
-      // Optimistic close — feels instant
+      // Preview-before-add: navigate to the discover page where the user can
+      // review TMDB details and confirm the add. Closing the palette + the
+      // navigation itself is the feedback — no optimistic toast needed.
       setOpen(false);
       setQuery("");
-      const t = toast.loading(`Adding "${name}"…`);
-      startTransition(async () => {
-        try {
-          const row = await addTitle({ tmdbId: item.id, mediaType: item.media_type });
-          toast.success(`Added "${name}"`, { id: t });
-          if (row?.id) {
-            router.push(`/title/${row.id}`);
-          } else {
-            router.refresh();
-          }
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Failed to add", { id: t });
-        } finally {
-          adding.current = false;
-        }
-      });
+      router.push(`/discover/${item.media_type}/${item.id}`);
     },
     [router]
   );
@@ -144,7 +124,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
             <div className="px-4 py-10 text-center text-xs text-muted-foreground">
               Type a title to search TMDB.
               <br />
-              Press <kbd className="font-mono">↵</kbd> or click to add.
+              Press <kbd className="font-mono">↵</kbd> or click to preview.
             </div>
           )}
           {results.length > 0 && (
@@ -170,7 +150,6 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                       e.preventDefault();
                       handleSelect(r);
                     }}
-                    disabled={pending}
                     className="gap-3"
                   >
                     <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-muted">

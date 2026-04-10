@@ -104,32 +104,124 @@ export interface TmdbDetailWithMeta {
   vote_count: number | null;
   tagline: string | null;
   reviews: TmdbReview[];
+  trailerKey: string | null;
+  recommendations: TmdbSearchResult[];
+}
+
+export interface TmdbVideo {
+  key: string;
+  site: string;
+  type: string;
+  official: boolean;
+  name: string;
 }
 
 /**
- * Fetch TMDB rating + reviews for an existing title. Used on the detail page.
- * Cached for an hour by next.
+ * Fetch TMDB rating + reviews + trailer + recommendations for an existing title.
+ * Used on the detail page. Cached for an hour by next.
  */
 export async function getTitleMeta(
   type: "movie" | "tv",
   tmdbId: number
 ): Promise<TmdbDetailWithMeta> {
   try {
-    const [detail, reviews] = await Promise.all([
+    // Fire everything in parallel — no waterfalls
+    const [detail, reviews, videos, recs] = await Promise.all([
       type === "movie" ? getMovie(tmdbId) : getTv(tmdbId),
       tmdb<{ results: TmdbReview[] }>(`/${type}/${tmdbId}/reviews`, {
         language: "en-US",
         page: "1",
       }),
+      tmdb<{ results: TmdbVideo[] }>(`/${type}/${tmdbId}/videos`, {
+        language: "en-US",
+      }).catch(() => ({ results: [] as TmdbVideo[] })),
+      tmdb<{ results: TmdbSearchResult[] }>(
+        `/${type}/${tmdbId}/recommendations`,
+        { language: "en-US", page: "1" }
+      ).catch(() => ({ results: [] as TmdbSearchResult[] })),
     ]);
+
+    // Pick the best trailer: prefer official YouTube trailers
+    const trailer =
+      videos.results.find(
+        (v) => v.site === "YouTube" && v.type === "Trailer" && v.official
+      ) ??
+      videos.results.find((v) => v.site === "YouTube" && v.type === "Trailer") ??
+      videos.results.find((v) => v.site === "YouTube" && v.type === "Teaser") ??
+      null;
+
+    // Recommendations from /{type}/{id}/recommendations already carry media_type,
+    // but occasionally don't — default to the parent type.
+    const recommendations = recs.results.slice(0, 12).map((r) => ({
+      ...r,
+      media_type: (r.media_type ?? type) as TmdbSearchResult["media_type"],
+    }));
+
     return {
       vote_average: detail.vote_average ?? null,
       vote_count: detail.vote_count ?? null,
       tagline: detail.tagline ?? null,
       reviews: reviews.results.slice(0, 10),
+      trailerKey: trailer?.key ?? null,
+      recommendations,
     };
   } catch {
-    return { vote_average: null, vote_count: null, tagline: null, reviews: [] };
+    return {
+      vote_average: null,
+      vote_count: null,
+      tagline: null,
+      reviews: [],
+      trailerKey: null,
+      recommendations: [],
+    };
+  }
+}
+
+// ─── Discovery / catalogues ───────────────────────────────────────
+
+/** Trending titles across movies + tv for the past week. */
+export async function getTrending(): Promise<TmdbSearchResult[]> {
+  try {
+    const data = await tmdb<{ results: TmdbSearchResult[] }>(
+      "/trending/all/week",
+      { language: "en-US" }
+    );
+    // Filter out people; we only want movies and tv
+    return data.results
+      .filter((r) => r.media_type === "movie" || r.media_type === "tv")
+      .slice(0, 20);
+  } catch {
+    return [];
+  }
+}
+
+/** Popular films right now. */
+export async function getPopularMovies(): Promise<TmdbSearchResult[]> {
+  try {
+    const data = await tmdb<{ results: TmdbSearchResult[] }>("/movie/popular", {
+      language: "en-US",
+      page: "1",
+    });
+    return data.results
+      .slice(0, 20)
+      .map((r) => ({ ...r, media_type: "movie" as const }));
+  } catch {
+    return [];
+  }
+}
+
+/** Now playing in theaters. */
+export async function getNowPlaying(): Promise<TmdbSearchResult[]> {
+  try {
+    const data = await tmdb<{ results: TmdbSearchResult[] }>(
+      "/movie/now_playing",
+      { language: "en-US", page: "1" }
+    );
+    return data.results
+      .slice(0, 20)
+      .map((r) => ({ ...r, media_type: "movie" as const }));
+  } catch {
+    return [];
   }
 }
 

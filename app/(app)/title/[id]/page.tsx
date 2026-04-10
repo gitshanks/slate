@@ -10,7 +10,9 @@ import { SentimentRating } from "@/components/sentiment-rating";
 import { ReviewSheet } from "@/components/review-sheet";
 import { RemoveButton } from "@/components/remove-button";
 import { ViewTransition } from "@/components/view-transition";
-import { formatRuntime, formatYear } from "@/lib/utils";
+import { TrailerButton } from "@/components/trailer-button";
+import { TmdbRail } from "@/components/tmdb-rail";
+import { formatRuntime, formatTmdbScore, formatYear } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -31,8 +33,9 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const ambientBg = rawPosterUrl(title.poster_path, "w342");
   const tmdbUrl = `https://www.themoviedb.org/${title.media_type}/${title.tmdb_id}`;
 
-  // Pull live TMDB rating + reviews (cached for 1h)
+  // Pull live TMDB rating + reviews + trailer + recommendations (cached for 1h)
   const meta = await getTitleMeta(title.media_type, title.tmdb_id);
+  const userScore = formatTmdbScore(meta.vote_average);
 
   return (
     <div className="-mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20">
@@ -69,7 +72,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               )}
             </div>
 
-            {meta.vote_average != null && meta.vote_average > 0 && (
+            {userScore && (
               <a
                 href={tmdbUrl}
                 target="_blank"
@@ -78,10 +81,10 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               >
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                  <span className="font-mono text-sm font-medium">
-                    {meta.vote_average.toFixed(1)}
+                  <span className="font-mono text-sm font-medium">{userScore}</span>
+                  <span className="text-xs text-muted-foreground">
+                    TMDB User Score
                   </span>
-                  <span className="text-xs text-muted-foreground">/ 10 TMDB</span>
                 </div>
                 {meta.vote_count != null && (
                   <span className="text-[11px] text-muted-foreground font-mono">
@@ -109,7 +112,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
             )}
 
             {/* Mobile: TMDB rating chip */}
-            {meta.vote_average != null && meta.vote_average > 0 && (
+            {userScore && (
               <a
                 href={tmdbUrl}
                 target="_blank"
@@ -117,9 +120,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 className="mt-3 inline-flex md:hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 transition-colors hover:border-primary/40"
               >
                 <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                <span className="font-mono text-xs font-medium">
-                  {meta.vote_average.toFixed(1)}
-                </span>
+                <span className="font-mono text-xs font-medium">{userScore}</span>
                 <span className="text-[10px] text-muted-foreground">
                   TMDB · {meta.vote_count?.toLocaleString() ?? 0}
                 </span>
@@ -139,14 +140,24 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               </div>
             )}
 
-            {/* ── Consolidated action row: status + sentiment + remove ── */}
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <StatusPill titleId={title.id} status={title.status} />
-              <SentimentRating
-                titleId={title.id}
-                rating={title.rating != null ? Number(title.rating) : null}
-              />
-              <RemoveButton titleId={title.id} titleName={title.title} />
+            {/* ── Action rows — sentiment + remove first, status below ── */}
+            <div className="mt-6 space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <SentimentRating
+                  titleId={title.id}
+                  rating={title.rating != null ? Number(title.rating) : null}
+                />
+                <RemoveButton titleId={title.id} titleName={title.title} />
+                {meta.trailerKey && (
+                  <TrailerButton
+                    trailerKey={meta.trailerKey}
+                    titleName={title.title}
+                  />
+                )}
+              </div>
+              <div>
+                <StatusPill titleId={title.id} status={title.status} />
+              </div>
             </div>
 
             {title.overview && (
@@ -223,6 +234,13 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                   })}
                 </div>
               </div>
+            )}
+
+            {meta.recommendations.length > 0 && (
+              <TmdbRail
+                title={`If you liked ${title.title}…`}
+                items={meta.recommendations}
+              />
             )}
           </div>
         </div>

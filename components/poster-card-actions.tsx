@@ -1,38 +1,41 @@
 "use client";
 
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Heart, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Trash2, Clock, Eye, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { removeTitle, setRating } from "@/lib/actions";
+import { removeTitle, setStatus } from "@/lib/actions";
+import type { TitleStatus } from "@/lib/supabase";
 import { toast } from "sonner";
 
-type Sentiment = 1 | 2 | 3;
-
-const SENTIMENTS: {
-  value: Sentiment;
+const STATUS_OPTIONS: {
+  value: TitleStatus;
   icon: React.ElementType;
   label: string;
   activeClass: string;
 }[] = [
-  { value: 3, icon: Heart, label: "Love", activeClass: "text-rose-400 fill-rose-400" },
-  { value: 2, icon: ThumbsUp, label: "Like", activeClass: "text-emerald-400 fill-emerald-400" },
-  { value: 1, icon: ThumbsDown, label: "Dislike", activeClass: "text-zinc-400 fill-zinc-400" },
+  { value: "want", icon: Clock, label: "Want to watch", activeClass: "text-white" },
+  { value: "watching", icon: Eye, label: "Watching", activeClass: "text-sky-300" },
+  { value: "watched", icon: Check, label: "Watched", activeClass: "text-emerald-300" },
 ];
 
 interface PosterCardActionsProps {
   titleId: string;
   titleName: string;
-  currentRating: number | null;
+  currentStatus: TitleStatus;
 }
 
 export function PosterCardActions({
   titleId,
   titleName,
-  currentRating,
+  currentStatus,
 }: PosterCardActionsProps) {
   const [deletePending, startDelete] = useTransition();
-  const [ratingPending, startRating] = useTransition();
+  const [statusPending, startStatus] = useTransition();
+  const [optimisticStatus, setOptimisticStatus] = useOptimistic<
+    TitleStatus,
+    TitleStatus
+  >(currentStatus, (_, next) => next);
   const router = useRouter();
 
   function handleDelete(e: React.MouseEvent) {
@@ -50,21 +53,21 @@ export function PosterCardActions({
     });
   }
 
-  function handleRating(e: React.MouseEvent, value: Sentiment) {
+  function handleStatus(e: React.MouseEvent, value: TitleStatus) {
     e.preventDefault();
     e.stopPropagation();
-    const next = currentRating === value ? null : value;
-    startRating(async () => {
+    if (value === optimisticStatus) return;
+    startStatus(async () => {
+      setOptimisticStatus(value);
       try {
-        await setRating(titleId, next);
-        router.refresh();
+        await setStatus(titleId, value);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed");
       }
     });
   }
 
-  const isPending = deletePending || ratingPending;
+  const isPending = deletePending || statusPending;
 
   return (
     // Visible on mobile always (small icons); revealed on hover on desktop
@@ -81,24 +84,23 @@ export function PosterCardActions({
       )}
       onClick={(e) => e.preventDefault()}
     >
-      {/* Sentiment buttons */}
+      {/* Status quick-actions */}
       <div className="flex items-center gap-1">
-        {SENTIMENTS.map(({ value, icon: Icon, label, activeClass }) => {
-          const active = currentRating === value;
+        {STATUS_OPTIONS.map(({ value, icon: Icon, label, activeClass }) => {
+          const active = optimisticStatus === value;
           return (
             <button
               key={value}
               type="button"
               aria-label={label}
-              onClick={(e) => handleRating(e, value)}
+              title={label}
+              onClick={(e) => handleStatus(e, value)}
               className={cn(
                 "inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors",
-                active
-                  ? activeClass
-                  : "text-white/60 hover:text-white"
+                active ? activeClass : "text-white/60 hover:text-white"
               )}
             >
-              <Icon className={cn("h-3.5 w-3.5", active && "fill-current")} />
+              <Icon className="h-3.5 w-3.5" />
             </button>
           );
         })}

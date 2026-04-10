@@ -1,16 +1,17 @@
-import { supabase, type TitleRow } from "@/lib/supabase";
 import { MediaGrid } from "@/components/media-grid";
 import { EmptyState } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
 import { Play } from "lucide-react";
+import {
+  fetchTitlesByStatus,
+  type TitleFilterParams,
+} from "@/lib/title-filters";
 
 export const dynamic = "force-dynamic";
 
-export default async function WatchingPage() {
-  const { data, error } = await supabase
-    .from("titles")
-    .select("*")
-    .eq("status", "watching")
-    .order("added_at", { ascending: false });
+export default async function WatchingPage(props: PageProps<"/watching">) {
+  const sp = (await props.searchParams) as TitleFilterParams;
+  const { titles, allGenres, error } = await fetchTitlesByStatus("watching", sp);
 
   if (error) {
     return (
@@ -21,8 +22,6 @@ export default async function WatchingPage() {
       />
     );
   }
-
-  const titles = (data ?? []) as TitleRow[];
 
   return (
     <div>
@@ -37,6 +36,8 @@ export default async function WatchingPage() {
           {titles.length} {titles.length === 1 ? "title" : "titles"}
         </p>
       </div>
+
+      <FilterBar genres={allGenres} />
 
       {titles.length === 0 ? (
         <EmptyState

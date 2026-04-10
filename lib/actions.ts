@@ -30,6 +30,22 @@ export async function addTitle(input: { tmdbId: number; mediaType: "movie" | "tv
   return data;
 }
 
+/**
+ * Called by the discover preview page's Add button via a <form>. Upserts the
+ * title and redirects straight to its detail page — callers don't need to
+ * await the returned id.
+ */
+export async function addTitleFromPreview(formData: FormData) {
+  const tmdbId = Number(formData.get("tmdbId"));
+  const mediaType = String(formData.get("mediaType")) as "movie" | "tv";
+  if (!tmdbId || (mediaType !== "movie" && mediaType !== "tv")) {
+    throw new Error("Invalid preview payload");
+  }
+  const row = await addTitle({ tmdbId, mediaType });
+  if (!row?.id) throw new Error("Failed to add title");
+  redirect(`/title/${row.id}`);
+}
+
 export async function setStatus(titleId: string, status: TitleStatus) {
   const patch: Record<string, unknown> = { status };
   if (status === "watched") patch.watched_at = new Date().toISOString();
