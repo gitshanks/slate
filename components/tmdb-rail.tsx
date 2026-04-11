@@ -29,8 +29,12 @@ export function TmdbRail({ title, items, savedTmdbIds }: TmdbRailProps) {
         </h2>
       </div>
 
+      {/* Bleed wrapper carries the negative margin; inner div is the actual
+          scroll container. Keeping them separate avoids a Chrome quirk where
+          overflow:auto on a flex element ignores negative-margin width. */}
+      <div className="-mr-4 sm:-mr-6 lg:-mr-10">
       <div
-        className="-mr-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 pr-4 sm:-mr-6 sm:pr-6 lg:-mr-10 lg:pr-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 pr-4 sm:pr-6 lg:pr-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {items.map((item) => {
           const name = item.title ?? item.name ?? "Untitled";
@@ -90,6 +94,7 @@ export function TmdbRail({ title, items, savedTmdbIds }: TmdbRailProps) {
             </Link>
           );
         })}
+      </div>
       </div>
     </section>
   );
