@@ -12,3 +12,8 @@ export function backdropUrl(path: string | null | undefined, size = "w1280") {
   if (!path) return null;
   return `${TMDB_IMG}/${size}${path}`;
 }
+
+export function profileUrl(path: string | null | undefined, size = "w185") {
+  if (!path) return null;
+  return `${TMDB_IMG}/${size}${path}`;
+}

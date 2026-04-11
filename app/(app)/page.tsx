@@ -6,6 +6,7 @@ import { MediaGrid } from "@/components/media-grid";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { TmdbRail } from "@/components/tmdb-rail";
+import { HomeHero } from "@/components/home-hero";
 import { Film } from "lucide-react";
 import { OpenPaletteHint } from "@/components/open-palette-hint";
 import {
@@ -25,18 +26,30 @@ export default async function WatchlistPage(props: PageProps<"/">) {
   const sp = (await props.searchParams) as TitleFilterParams;
 
   // Fetch library + all three TMDB catalogues + the full set of saved tmdb_ids
-  // in parallel to avoid a waterfall.
-  const [libResult, trending, popular, nowPlaying, popularTv, savedRowsRes] =
-    await Promise.all([
-      fetchTitlesByStatus("want", sp),
-      getTrending(),
-      getPopularMovies(),
-      getNowPlaying(),
-      getPopularTv(),
-      supabase.from("titles").select("tmdb_id").then(
-        ({ data }) => (data ?? []) as { tmdb_id: number }[]
-      ),
-    ]);
+  // + the full library (for hero selection) in parallel to avoid a waterfall.
+  const [
+    libResult,
+    trending,
+    popular,
+    nowPlaying,
+    popularTv,
+    savedRowsRes,
+    heroRowsRes,
+  ] = await Promise.all([
+    fetchTitlesByStatus("want", sp),
+    getTrending(),
+    getPopularMovies(),
+    getNowPlaying(),
+    getPopularTv(),
+    supabase.from("titles").select("tmdb_id").then(
+      ({ data }) => (data ?? []) as { tmdb_id: number }[]
+    ),
+    supabase
+      .from("titles")
+      .select("*")
+      .order("added_at", { ascending: false })
+      .then(({ data }) => (data ?? []) as TitleRow[]),
+  ]);
 
   if (libResult.error) {
     return (
@@ -53,12 +66,16 @@ export default async function WatchlistPage(props: PageProps<"/">) {
 
   return (
     <div>
+      <HomeHero titles={heroRowsRes} />
+
       <div className="mb-10 flex items-end justify-between">
         <div>
-          <p className="text-2xl font-semibold tracking-tight">
-            Hi Nish 👋
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+            Your watchlist
           </p>
-          <h1 className="mt-1 text-4xl font-semibold tracking-tight">Your Watchlist</h1>
+          <h1 className="mt-1 text-4xl font-semibold tracking-tight">
+            Up next
+          </h1>
         </div>
         <p className="hidden text-xs text-muted-foreground sm:block">
           {titles.length} {titles.length === 1 ? "title" : "titles"}

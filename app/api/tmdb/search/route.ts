@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { searchMulti, type TmdbSearchResult } from "@/lib/tmdb";
+import { supabase, type TitleRow } from "@/lib/supabase";
 
 type Filtered = TmdbSearchResult & { media_type: "movie" | "tv" };
 
@@ -9,14 +10,47 @@ function filterMedia(results: TmdbSearchResult[]): Filtered[] {
   );
 }
 
+/** Shape we return for library hits — just enough for the palette row. */
+type LibraryHit = Pick<
+  TitleRow,
+  | "id"
+  | "tmdb_id"
+  | "media_type"
+  | "title"
+  | "poster_path"
+  | "release_date"
+  | "tmdb_rating"
+  | "status"
+>;
+
+async function searchLibrary(q: string): Promise<LibraryHit[]> {
+  try {
+    const { data } = await supabase
+      .from("titles")
+      .select(
+        "id, tmdb_id, media_type, title, poster_path, release_date, tmdb_rating, status"
+      )
+      .ilike("title", `%${q}%`)
+      .order("added_at", { ascending: false })
+      .limit(8);
+    return (data as LibraryHit[] | null) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") ?? "";
-  if (!q.trim()) return NextResponse.json({ results: [] });
+  if (!q.trim()) return NextResponse.json({ library: [], results: [] });
 
   try {
-    // First pass: exact query
-    const first = await searchMulti(q);
+    // Fire the library query and TMDB search in parallel — no waterfalls.
+    const [library, first] = await Promise.all([
+      searchLibrary(q.trim()),
+      searchMulti(q),
+    ]);
+
     let results = filterMedia(first.results).slice(0, 12);
     let approximate = false;
     let approxQuery: string | null = null;
@@ -38,7 +72,7 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.json({ results, approximate, approxQuery });
+    return NextResponse.json({ library, results, approximate, approxQuery });
   } catch (err) {
     const message = err instanceof Error ? err.message : "TMDB error";
     return NextResponse.json({ error: message }, { status: 500 });

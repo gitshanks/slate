@@ -12,6 +12,7 @@ import { RemoveButton } from "@/components/remove-button";
 import { ViewTransition } from "@/components/view-transition";
 import { TrailerButton } from "@/components/trailer-button";
 import { TmdbRail } from "@/components/tmdb-rail";
+import { CastRail } from "@/components/cast-rail";
 import { formatRuntime, formatTmdbScore, formatYear } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -111,6 +112,15 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               </p>
             )}
 
+            {meta.directedBy.length > 0 && (
+              <p className="mt-2 text-xs text-muted-foreground font-mono">
+                {title.media_type === "movie" ? "Directed by" : "Created by"}{" "}
+                <span className="text-foreground">
+                  {meta.directedBy.join(", ")}
+                </span>
+              </p>
+            )}
+
             {/* Mobile: TMDB rating chip */}
             {userScore && (
               <a
@@ -174,6 +184,8 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 initialReview={title.review}
               />
             </div>
+
+            {meta.cast.length > 0 && <CastRail cast={meta.cast} />}
 
             {/* Your note — only shown when a note exists */}
             {title.review && (

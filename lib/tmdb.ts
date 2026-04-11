@@ -99,6 +99,21 @@ export interface TmdbReview {
   url: string;
 }
 
+export interface TmdbCastMember {
+  id: number;
+  name: string;
+  character: string;
+  profile_path: string | null;
+  order: number;
+}
+
+export interface TmdbCrewMember {
+  id: number;
+  name: string;
+  job: string;
+  department: string;
+}
+
 export interface TmdbDetailWithMeta {
   vote_average: number | null;
   vote_count: number | null;
@@ -106,6 +121,9 @@ export interface TmdbDetailWithMeta {
   reviews: TmdbReview[];
   trailerKey: string | null;
   recommendations: TmdbSearchResult[];
+  cast: TmdbCastMember[];
+  /** Directors for movies, creators for TV — ready-formatted names. */
+  directedBy: string[];
 }
 
 export interface TmdbVideo {
@@ -126,7 +144,7 @@ export async function getTitleMeta(
 ): Promise<TmdbDetailWithMeta> {
   try {
     // Fire everything in parallel — no waterfalls
-    const [detail, reviews, videos, recs] = await Promise.all([
+    const [detail, reviews, videos, recs, credits] = await Promise.all([
       type === "movie" ? getMovie(tmdbId) : getTv(tmdbId),
       tmdb<{ results: TmdbReview[] }>(`/${type}/${tmdbId}/reviews`, {
         language: "en-US",
@@ -139,6 +157,13 @@ export async function getTitleMeta(
         `/${type}/${tmdbId}/recommendations`,
         { language: "en-US", page: "1" }
       ).catch(() => ({ results: [] as TmdbSearchResult[] })),
+      tmdb<{ cast: TmdbCastMember[]; crew: TmdbCrewMember[] }>(
+        `/${type}/${tmdbId}/credits`,
+        { language: "en-US" }
+      ).catch(() => ({
+        cast: [] as TmdbCastMember[],
+        crew: [] as TmdbCrewMember[],
+      })),
     ]);
 
     // Pick the best trailer: prefer official YouTube trailers
@@ -157,6 +182,25 @@ export async function getTitleMeta(
       media_type: (r.media_type ?? type) as TmdbSearchResult["media_type"],
     }));
 
+    // Top 15 billed cast, keeping order.
+    const cast = (credits.cast ?? [])
+      .slice()
+      .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
+      .slice(0, 15);
+
+    // Directors for films, creators for series (from detail.created_by if present).
+    let directedBy: string[] = [];
+    if (type === "movie") {
+      directedBy = (credits.crew ?? [])
+        .filter((c) => c.job === "Director")
+        .map((c) => c.name);
+    } else {
+      const createdBy = (detail as TmdbTvDetail & {
+        created_by?: { name: string }[];
+      }).created_by;
+      directedBy = (createdBy ?? []).map((c) => c.name);
+    }
+
     return {
       vote_average: detail.vote_average ?? null,
       vote_count: detail.vote_count ?? null,
@@ -164,6 +208,8 @@ export async function getTitleMeta(
       reviews: reviews.results.slice(0, 10),
       trailerKey: trailer?.key ?? null,
       recommendations,
+      cast,
+      directedBy,
     };
   } catch {
     return {
@@ -173,6 +219,8 @@ export async function getTitleMeta(
       reviews: [],
       trailerKey: null,
       recommendations: [],
+      cast: [],
+      directedBy: [],
     };
   }
 }
