@@ -123,8 +123,13 @@
   --font-mono: var(--font-mono), ui-monospace, "JetBrains Mono", monospace;
 }
 
-/* Eliminate 300ms tap delay on all interactive elements */
-* { touch-action: manipulation; }
+/* Eliminate 300ms tap delay on all interactive elements.
+   Wrapped in @layer base so utility classes like `touch-pan-x` on
+   horizontal rails can override it — unlayered rules would beat
+   Tailwind's layered utilities regardless of specificity. */
+@layer base {
+  * { touch-action: manipulation; }
+}
 
 /* Hover-only variant: animations that should ONLY run on pointer devices */
 @custom-variant hoverable (@media (hover: hover) and (pointer: fine));
