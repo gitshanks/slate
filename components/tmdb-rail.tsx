@@ -34,8 +34,8 @@ export function TmdbRail({ title, items, savedTmdbIds }: TmdbRailProps) {
           scroll container. Keeping them separate avoids a Chrome quirk where
           overflow:auto on a flex element ignores negative-margin width. */}
       <div className="-mr-4 sm:-mr-6 lg:-mr-10">
-      <RailScroller>
-        {items.map((item) => {
+        <RailScroller>
+          {items.map((item) => {
           const name = item.title ?? item.name ?? "Untitled";
           const date = item.release_date ?? item.first_air_date;
           const year = formatYear(date);
@@ -93,7 +93,7 @@ export function TmdbRail({ title, items, savedTmdbIds }: TmdbRailProps) {
             </Link>
           );
         })}
-      </RailScroller>
+        </RailScroller>
       </div>
     </section>
   );
