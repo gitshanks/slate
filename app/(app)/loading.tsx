@@ -25,21 +25,10 @@ function RailSkeleton({ label }: { label: string }) {
 export default function HomeLoading() {
   return (
     <div>
-      {/* Hero skeleton — matches HomeHero dimensions */}
-      <div className="-mx-4 -mt-8 sm:-mx-6 sm:-mt-10 lg:-mx-10 lg:-mt-14 mb-10">
-        <div className="relative h-[45vh] min-h-[380px] w-full overflow-hidden">
-          <Skeleton className="absolute inset-0 rounded-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
-          <div className="absolute bottom-8 left-0 right-0 px-4 sm:px-6 lg:px-10">
-            <Skeleton shape="text" className="h-3 w-24" />
-            <Skeleton className="mt-3 h-10 w-2/3 max-w-xl rounded-md" />
-            <Skeleton shape="text" className="mt-4 h-4 w-1/2 max-w-sm" />
-            <div className="mt-5 flex gap-2">
-              <Skeleton className="h-9 w-24 rounded-full" />
-              <Skeleton className="h-9 w-24 rounded-full" />
-            </div>
-          </div>
-        </div>
+      {/* Header skeleton */}
+      <div className="mb-10">
+        <Skeleton shape="text" className="h-3 w-24" />
+        <Skeleton className="mt-3 h-10 w-40 rounded-md" />
       </div>
 
       {/* Filter bar skeleton */}

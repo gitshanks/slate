@@ -11,9 +11,10 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Loader2, Film, Tv, Star, Plus, Check, Library } from "lucide-react";
+import { Loader2, Film, Tv, Star, Clock, Eye, Check, Library } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { addTitle } from "@/lib/actions";
+import type { TitleStatus } from "@/lib/supabase";
 
 interface SearchResult {
   id: number;
@@ -136,12 +137,12 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
   );
 
   const handleQuickAdd = React.useCallback(
-    async (item: SearchResult) => {
+    async (item: SearchResult, status: TitleStatus) => {
       const key = `${item.media_type}-${item.id}`;
       if (adding.has(key) || justAdded.has(key)) return;
       setAdding((s) => new Set(s).add(key));
       try {
-        await addTitle({ tmdbId: item.id, mediaType: item.media_type });
+        await addTitle({ tmdbId: item.id, mediaType: item.media_type, status });
         setJustAdded((s) => new Set(s).add(key));
       } catch {
         // Swallow — the badge just won't flip. Next keystroke clears state.
@@ -299,29 +300,39 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                         <Check className="h-3 w-3" />
                         Saved
                       </span>
+                    ) : isAdding ? (
+                      <span className="ml-auto inline-flex shrink-0 items-center">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                      </span>
                     ) : (
-                      <button
-                        type="button"
-                        aria-label={`Add ${name} to watchlist`}
-                        disabled={isAdding}
+                      <div
+                        className="ml-auto inline-flex shrink-0 items-center gap-0.5"
                         onMouseDown={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                         }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleQuickAdd(r);
-                        }}
-                        className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-50"
                       >
-                        {isAdding ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Plus className="h-3 w-3" />
-                        )}
-                        Add
-                      </button>
+                        {([
+                          { status: "want" as const, icon: Clock, label: "Want" },
+                          { status: "watching" as const, icon: Eye, label: "Watching" },
+                          { status: "watched" as const, icon: Check, label: "Watched" },
+                        ]).map(({ status, icon: Icon, label }) => (
+                          <button
+                            key={status}
+                            type="button"
+                            aria-label={`Add as ${label}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleQuickAdd(r, status);
+                            }}
+                            className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-card px-2 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                          >
+                            <Icon className="h-3 w-3" />
+                            <span className="hidden sm:inline">{label}</span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </CommandItem>
                 );

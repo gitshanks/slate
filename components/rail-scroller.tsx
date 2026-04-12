@@ -1,86 +1,97 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
- * Horizontal scroll container for TMDB rails.
+ * Horizontal scroll container with Netflix-style arrow navigation.
  *
- * - `touch-pan-x` — sets `touch-action: pan-x` so iPad swipes scroll the
- *   rail instead of the page. (Requires the global
- *   `* { touch-action: manipulation }` rule to be in @layer base, otherwise
- *   unlayered rules win the cascade.)
- * - Desktop drag-to-scroll — click and drag anywhere in the rail. We use
- *   pointer events filtered by `pointerType === 'mouse'` so native touch
- *   scrolling on iPad is untouched.
- * - Click suppression — if a drag happened, swallow the ensuing click so
- *   the user doesn't accidentally open the tile they were dragging from.
+ * - Touch devices: native pan-x scroll (iPad swipe scrolls horizontally).
+ * - Desktop: left/right arrow buttons that scroll by one "page" width.
+ * - Arrows auto-hide when scrolled to the respective edge.
  */
 export function RailScroller({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateArrows = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-
-    let active = false;
-    let dragged = false;
-    let startX = 0;
-    let startScroll = 0;
-    const THRESHOLD = 5; // px before we consider it a drag vs a click
-
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return; // let touch use native scroll
-      active = true;
-      dragged = false;
-      startX = e.clientX;
-      startScroll = el.scrollLeft;
-      el.style.cursor = "grabbing";
-      el.style.userSelect = "none";
-    };
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!active) return;
-      const dx = e.clientX - startX;
-      if (!dragged && Math.abs(dx) > THRESHOLD) dragged = true;
-      if (dragged) el.scrollLeft = startScroll - dx;
-    };
-
-    const endDrag = () => {
-      if (!active) return;
-      active = false;
-      el.style.cursor = "";
-      el.style.userSelect = "";
-    };
-
-    const onClickCapture = (e: MouseEvent) => {
-      if (dragged) {
-        e.preventDefault();
-        e.stopPropagation();
-        dragged = false;
-      }
-    };
-
-    el.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", endDrag);
-    window.addEventListener("pointercancel", endDrag);
-    el.addEventListener("click", onClickCapture, true);
-
+    updateArrows();
+    el.addEventListener("scroll", updateArrows, { passive: true });
+    // Also update on resize (e.g. window resize changes clientWidth).
+    const ro = new ResizeObserver(updateArrows);
+    ro.observe(el);
     return () => {
-      el.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", endDrag);
-      window.removeEventListener("pointercancel", endDrag);
-      el.removeEventListener("click", onClickCapture, true);
+      el.removeEventListener("scroll", updateArrows);
+      ro.disconnect();
     };
+  }, [updateArrows]);
+
+  const scroll = useCallback((direction: "left" | "right") => {
+    const el = ref.current;
+    if (!el) return;
+    const distance = el.clientWidth * 0.8;
+    el.scrollBy({
+      left: direction === "left" ? -distance : distance,
+      behavior: "smooth",
+    });
   }, []);
 
   return (
-    <div
-      ref={ref}
-      className="touch-pan-x flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 pr-4 sm:pr-6 lg:pr-10 cursor-grab [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
-      {children}
+    <div className="group/rail relative">
+      {/* Left arrow */}
+      <button
+        type="button"
+        aria-label="Scroll left"
+        onClick={() => scroll("left")}
+        className={cn(
+          "absolute -left-1 top-0 z-10 hidden h-full w-10 items-center justify-center",
+          "bg-gradient-to-r from-background/90 to-transparent",
+          "transition-opacity duration-200",
+          "hoverable:flex",
+          canScrollLeft
+            ? "opacity-0 hoverable:group-hover/rail:opacity-100"
+            : "pointer-events-none opacity-0"
+        )}
+      >
+        <ChevronLeft className="h-6 w-6 text-foreground drop-shadow" />
+      </button>
+
+      {/* Scroll container */}
+      <div
+        ref={ref}
+        className="touch-pan-x flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 pr-4 sm:pr-6 lg:pr-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {children}
+      </div>
+
+      {/* Right arrow */}
+      <button
+        type="button"
+        aria-label="Scroll right"
+        onClick={() => scroll("right")}
+        className={cn(
+          "absolute -right-1 top-0 z-10 hidden h-full w-10 items-center justify-center",
+          "bg-gradient-to-l from-background/90 to-transparent",
+          "transition-opacity duration-200",
+          "hoverable:flex",
+          canScrollRight
+            ? "opacity-0 hoverable:group-hover/rail:opacity-100"
+            : "pointer-events-none opacity-0"
+        )}
+      >
+        <ChevronRight className="h-6 w-6 text-foreground drop-shadow" />
+      </button>
     </div>
   );
 }

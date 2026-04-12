@@ -10,23 +10,29 @@ import { slugify } from "@/lib/utils";
  * Add a TMDB title to the library. If it already exists, no-op
  * (we still revalidate so the UI reflects state).
  */
-export async function addTitle(input: { tmdbId: number; mediaType: "movie" | "tv" }) {
+export async function addTitle(input: {
+  tmdbId: number;
+  mediaType: "movie" | "tv";
+  status?: TitleStatus;
+}) {
   const detail =
     input.mediaType === "movie" ? await getMovie(input.tmdbId) : await getTv(input.tmdbId);
   const normalized = normalizeForStorage(input.mediaType, detail);
 
+  const status = input.status ?? "want";
+  const patch: Record<string, unknown> = { ...normalized, status };
+  if (status === "watched") patch.watched_at = new Date().toISOString();
+
   const { data, error } = await supabase
     .from("titles")
-    .upsert(
-      { ...normalized, status: "want" },
-      { onConflict: "tmdb_id,media_type", ignoreDuplicates: false }
-    )
+    .upsert(patch, { onConflict: "tmdb_id,media_type", ignoreDuplicates: false })
     .select("id")
     .single();
 
   if (error) throw new Error(error.message);
   revalidatePath("/");
   revalidatePath("/watched");
+  revalidatePath("/watching");
   return data;
 }
 

@@ -39,7 +39,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const userScore = formatTmdbScore(meta.vote_average);
 
   return (
-    <div className="-mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20">
+    <div className="-mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20 overflow-x-hidden">
       {/* Ambient glow from poster colors */}
       {ambientBg && (
         <div
@@ -78,19 +78,19 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 href={tmdbUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40 hover:bg-card/80"
+                className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40 hover:bg-card/80"
               >
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                  <span className="font-mono text-sm font-medium">{userScore}</span>
-                  <span className="text-xs text-muted-foreground">
-                    TMDB User Score
-                  </span>
+                <Star className="h-4 w-4 shrink-0 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                <span className="font-mono text-lg font-semibold tabular-nums">{userScore}</span>
+                <div className="flex flex-col text-[11px] leading-tight text-muted-foreground">
+                  <span>TMDB User</span>
+                  <span>Score</span>
                 </div>
                 {meta.vote_count != null && (
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    {meta.vote_count.toLocaleString()} votes
-                  </span>
+                  <div className="ml-auto flex flex-col text-right text-[11px] leading-tight text-muted-foreground font-mono">
+                    <span>{meta.vote_count.toLocaleString()}</span>
+                    <span>votes</span>
+                  </div>
                 )}
               </a>
             )}

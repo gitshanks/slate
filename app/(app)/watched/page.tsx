@@ -129,7 +129,7 @@ export default async function WatchedPage(props: PageProps<"/watched">) {
           description="When you mark a title as watched it'll show up here."
         />
       ) : (
-        <MediaGrid titles={titles} />
+        <MediaGrid titles={titles} showSentiment />
       )}
     </div>
   );
