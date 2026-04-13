@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Film, Tv, LayoutGrid, ChevronDown, X } from "lucide-react";
+import { Film, Tv, LayoutGrid, ChevronDown, X, Heart, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Popover,
@@ -15,6 +15,8 @@ export interface FilterBarProps {
   genres: { id: number; name: string }[];
   /** Whether to show the "Newest release" sort option (hide if all items lack dates). */
   showYearSort?: boolean;
+  /** Whether to show the sentiment (loved/liked/disliked) filter. */
+  showSentiment?: boolean;
 }
 
 const TYPE_OPTIONS = [
@@ -31,13 +33,20 @@ const YEAR_OPTIONS = [
   { value: "older", label: "Older" },
 ] as const;
 
+const SENTIMENT_OPTIONS = [
+  { value: "", label: "All", icon: LayoutGrid },
+  { value: "loved", label: "Loved", icon: Heart },
+  { value: "liked", label: "Liked", icon: ThumbsUp },
+  { value: "disliked", label: "Disliked", icon: ThumbsDown },
+] as const;
+
 const SORT_OPTIONS = [
   { value: "", label: "Recently added" },
   { value: "rating", label: "Highest rated" },
   { value: "year", label: "Newest release" },
 ] as const;
 
-export function FilterBar({ genres, showYearSort = true }: FilterBarProps) {
+export function FilterBar({ genres, showYearSort = true, showSentiment = false }: FilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -47,6 +56,7 @@ export function FilterBar({ genres, showYearSort = true }: FilterBarProps) {
   const currentGenre = searchParams.get("genre") ?? "";
   const currentYear = searchParams.get("year") ?? "";
   const currentSort = searchParams.get("sort") ?? "";
+  const currentSentiment = searchParams.get("sentiment") ?? "";
 
   const activeGenre = genres.find((g) => String(g.id) === currentGenre);
 
@@ -63,7 +73,7 @@ export function FilterBar({ genres, showYearSort = true }: FilterBarProps) {
     [pathname, router, searchParams]
   );
 
-  const hasAny = currentType || currentGenre || currentYear || currentSort;
+  const hasAny = currentType || currentGenre || currentYear || currentSort || currentSentiment;
 
   const sortOptions = React.useMemo(
     () => (showYearSort ? SORT_OPTIONS : SORT_OPTIONS.filter((o) => o.value !== "year")),
@@ -94,6 +104,31 @@ export function FilterBar({ genres, showYearSort = true }: FilterBarProps) {
           );
         })}
       </div>
+
+      {/* Sentiment segmented — only on watched page */}
+      {showSentiment && (
+        <div className="inline-flex rounded-full border border-border bg-card p-1 shadow-sm">
+          {SENTIMENT_OPTIONS.map(({ value, label, icon: Icon }) => {
+            const active = currentSentiment === value;
+            return (
+              <button
+                key={value || "all-sentiment"}
+                type="button"
+                onClick={() => setParam("sentiment", value)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Genre popover — only show if we have any genres */}
       {genres.length > 0 && (

@@ -6,6 +6,7 @@ export interface TitleFilterParams {
   genre?: string;
   year?: string;
   sort?: string;
+  sentiment?: string;
 }
 
 /**
@@ -80,6 +81,13 @@ export async function fetchTitlesByStatus(
       filtered = filtered.filter((t) =>
         t.genres?.some((g) => g.id === genreId) ?? false
       );
+    }
+  }
+  if (sp.sentiment) {
+    const sentimentMap: Record<string, number> = { loved: 3, liked: 2, disliked: 1 };
+    const ratingValue = sentimentMap[sp.sentiment];
+    if (ratingValue !== undefined) {
+      filtered = filtered.filter((t) => Number(t.rating) === ratingValue);
     }
   }
   if (sp.year) {

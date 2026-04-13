@@ -54,7 +54,7 @@ export default async function WatchedPage(props: PageProps<"/watched">) {
 
       <WatchedStats titles={titles} />
 
-      <FilterBar genres={allGenres} />
+      <FilterBar genres={allGenres} showSentiment />
 
       {titles.length === 0 ? (
         <EmptyState
