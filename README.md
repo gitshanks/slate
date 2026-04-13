@@ -1,4 +1,4 @@
-# cinephile
+# watchlist
 
 A private, sleek watchlist for movies and TV shows. Like Letterboxd, but for one
 person — yours.
