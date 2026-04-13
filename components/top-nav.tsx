@@ -6,7 +6,6 @@ import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useNavDirection } from "@/components/nav-direction-context";
 import * as React from "react";
 
 const LINKS = [
@@ -20,7 +19,6 @@ export function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { open } = useCommandPalette();
-  const { setDirection } = useNavDirection();
   const touchStart = React.useRef<{ x: number; y: number } | null>(null);
 
   React.useEffect(() => {
@@ -38,10 +36,8 @@ export function TopNav() {
         l.href === "/" ? pathname === "/" : pathname.startsWith(l.href)
       );
       if (dx < 0 && currentIndex < LINKS.length - 1) {
-        setDirection("left");
         router.push(LINKS[currentIndex + 1].href);
       } else if (dx > 0 && currentIndex > 0) {
-        setDirection("right");
         router.push(LINKS[currentIndex - 1].href);
       }
     };
