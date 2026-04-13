@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
+import * as React from "react";
 
 const LINKS = [
   { href: "/", label: "Watchlist" },
@@ -16,7 +17,37 @@ const LINKS = [
 
 export function TopNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const { open } = useCommandPalette();
+  const touchStart = React.useRef<{ x: number; y: number } | null>(null);
+
+  React.useEffect(() => {
+    const onTouchStart = (e: TouchEvent) => {
+      touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!touchStart.current) return;
+      const dx = e.changedTouches[0].clientX - touchStart.current.x;
+      const dy = e.changedTouches[0].clientY - touchStart.current.y;
+      touchStart.current = null;
+      // Ignore swipes that are more vertical than horizontal, or too short
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      const currentIndex = LINKS.findIndex((l) =>
+        l.href === "/" ? pathname === "/" : pathname.startsWith(l.href)
+      );
+      if (dx < 0 && currentIndex < LINKS.length - 1) {
+        router.push(LINKS[currentIndex + 1].href);
+      } else if (dx > 0 && currentIndex > 0) {
+        router.push(LINKS[currentIndex - 1].href);
+      }
+    };
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [pathname, router]);
 
   return (
     <header className="sticky top-0 z-40 w-full glass border-b border-border/60">
