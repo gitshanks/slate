@@ -22,7 +22,7 @@ export function CastRail({ cast }: CastRailProps) {
         Cast
       </h2>
 
-      <div className="grid grid-cols-4 gap-x-4 gap-y-6 sm:grid-cols-6 md:grid-cols-8">
+      <div className="flex gap-4 overflow-x-auto pb-1 -mx-1 px-1">
         {cast.map((member) => {
           const photo = profileUrl(member.profile_path, "w185");
           const initials = member.name
@@ -37,9 +37,9 @@ export function CastRail({ cast }: CastRailProps) {
             <Link
               key={member.id}
               href={`/person/${member.id}`}
-              className="group block shrink-0 snap-start focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-full"
+              className="group block shrink-0 w-[72px] snap-start focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-full"
             >
-              <div className="relative mx-auto aspect-square w-full max-w-[88px] overflow-hidden rounded-full border border-border bg-card shadow-sm transition-all duration-200 hoverable:group-hover:border-primary/50 hoverable:group-hover:shadow-md">
+              <div className="relative aspect-square w-full overflow-hidden rounded-full border border-border bg-card shadow-sm transition-all duration-200 hoverable:group-hover:border-primary/50 hoverable:group-hover:shadow-md">
                 {photo ? (
                   <Image
                     src={photo}

@@ -22,6 +22,7 @@ export function FilteredGrid({ allTitles, status, showSentiment }: FilteredGridP
     genre: sp.get("genre") ?? undefined,
     year: sp.get("year") ?? undefined,
     sort: sp.get("sort") ?? undefined,
+    sentiment: sp.get("sentiment") ?? undefined,
   };
   const titles = filterAndSort(allTitles, status, params);
 

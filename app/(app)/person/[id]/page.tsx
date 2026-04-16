@@ -1,10 +1,9 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
-import Link from "next/link";
 import { getPersonDetail, getPersonCredits } from "@/lib/tmdb";
 import { profileUrl } from "@/lib/tmdb-image";
 import { TmdbRail } from "@/components/tmdb-rail";
+import { BackButton } from "@/components/back-button";
 import type { TmdbSearchResult } from "@/lib/tmdb";
 
 export default async function PersonPage(props: PageProps<"/person/[id]">) {
@@ -36,15 +35,11 @@ export default async function PersonPage(props: PageProps<"/person/[id]">) {
   }));
 
   return (
-    <div className="-mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20">
+    <div className="-mx-4 -my-5 sm:-mx-6 sm:-my-6 lg:-mx-10 lg:-my-8 pb-20">
       <div className="px-4 pt-6 sm:px-6 lg:px-10">
-        <Link
-          href="javascript:history.back()"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors font-mono uppercase tracking-[0.15em]"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" />
-          Back
-        </Link>
+        <div className="mx-auto max-w-5xl">
+          <BackButton />
+        </div>
       </div>
 
       <div className="px-4 pt-8 sm:px-6 lg:px-10">
