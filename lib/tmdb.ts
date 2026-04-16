@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 export { posterUrl, backdropUrl, TMDB_IMG } from "@/lib/tmdb-image";
 
@@ -114,6 +115,19 @@ export interface TmdbCrewMember {
   department: string;
 }
 
+export interface TmdbProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+}
+
+export interface TmdbWatchProviders {
+  /** Flatrate (streaming) providers available in the region. */
+  providers: TmdbProvider[];
+  /** JustWatch-powered TMDB page for this title — link all logos here. */
+  link: string;
+}
+
 export interface TmdbDetailWithMeta {
   vote_average: number | null;
   vote_count: number | null;
@@ -124,6 +138,32 @@ export interface TmdbDetailWithMeta {
   cast: TmdbCastMember[];
   /** Directors for movies, creators for TV — ready-formatted names. */
   directedBy: string[];
+  /** Streaming availability (flatrate only, US region). Null if unavailable. */
+  watchProviders: TmdbWatchProviders | null;
+}
+
+export interface TmdbPersonDetail {
+  id: number;
+  name: string;
+  biography: string;
+  birthday: string | null;
+  place_of_birth: string | null;
+  profile_path: string | null;
+  known_for_department: string;
+}
+
+export interface TmdbCombinedCredit {
+  id: number;
+  media_type: "movie" | "tv";
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  release_date?: string;
+  first_air_date?: string;
+  vote_average?: number;
+  popularity: number;
+  character?: string;
 }
 
 export interface TmdbVideo {
@@ -135,16 +175,17 @@ export interface TmdbVideo {
 }
 
 /**
- * Fetch TMDB rating + reviews + trailer + recommendations for an existing title.
- * Used on the detail page. Cached for an hour by next.
+ * Fetch TMDB rating + reviews + trailer + recommendations + watch providers for
+ * an existing title. Wrapped with React cache() so multiple async server
+ * components on the same page share one fetch — no duplicate requests.
  */
-export async function getTitleMeta(
+export const getTitleMeta = cache(async (
   type: "movie" | "tv",
   tmdbId: number
-): Promise<TmdbDetailWithMeta> {
+): Promise<TmdbDetailWithMeta> => {
   try {
     // Fire everything in parallel — no waterfalls
-    const [detail, reviews, videos, recs, credits] = await Promise.all([
+    const [detail, reviews, videos, recs, credits, watchData] = await Promise.all([
       type === "movie" ? getMovie(tmdbId) : getTv(tmdbId),
       tmdb<{ results: TmdbReview[] }>(`/${type}/${tmdbId}/reviews`, {
         language: "en-US",
@@ -164,6 +205,9 @@ export async function getTitleMeta(
         cast: [] as TmdbCastMember[],
         crew: [] as TmdbCrewMember[],
       })),
+      tmdb<{ results: Record<string, { flatrate?: TmdbProvider[]; link: string }> }>(
+        `/${type}/${tmdbId}/watch/providers`
+      ).catch(() => null),
     ]);
 
     // Pick the best trailer: prefer official YouTube trailers
@@ -201,6 +245,12 @@ export async function getTitleMeta(
       directedBy = (createdBy ?? []).map((c) => c.name);
     }
 
+    const usProviders = watchData?.results?.["US"] ?? null;
+    const watchProviders: TmdbWatchProviders | null =
+      usProviders && usProviders.flatrate?.length
+        ? { providers: usProviders.flatrate, link: usProviders.link }
+        : null;
+
     return {
       vote_average: detail.vote_average ?? null,
       vote_count: detail.vote_count ?? null,
@@ -210,6 +260,7 @@ export async function getTitleMeta(
       recommendations,
       cast,
       directedBy,
+      watchProviders,
     };
   } catch {
     return {
@@ -221,9 +272,10 @@ export async function getTitleMeta(
       recommendations: [],
       cast: [],
       directedBy: [],
+      watchProviders: null,
     };
   }
-}
+});
 
 // ─── Discovery / catalogues ───────────────────────────────────────
 
@@ -312,6 +364,33 @@ export async function getPopularTv(): Promise<TmdbSearchResult[]> {
   } catch {
     return [];
   }
+}
+
+// ─── Person ──────────────────────────────────────────────────────
+
+export async function getPersonDetail(id: number): Promise<TmdbPersonDetail> {
+  return tmdb<TmdbPersonDetail>(`/person/${id}`, { language: "en-US" });
+}
+
+/**
+ * Combined credits for a person, sorted by popularity descending.
+ * Returns the top 20 unique titles (movie or TV).
+ */
+export async function getPersonCredits(id: number): Promise<TmdbCombinedCredit[]> {
+  const res = await tmdb<{
+    cast: TmdbCombinedCredit[];
+  }>(`/person/${id}/combined_credits`, { language: "en-US" });
+
+  const seen = new Set<string>();
+  return res.cast
+    .filter((c) => {
+      const key = `${c.media_type}-${c.id}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return c.media_type === "movie" || c.media_type === "tv";
+    })
+    .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
+    .slice(0, 20);
 }
 
 /** Normalise either a movie or TV detail into the shape we store. */

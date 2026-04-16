@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabase, type TitleStatus } from "@/lib/supabase";
 import { getMovie, getTv, normalizeForStorage } from "@/lib/tmdb";
@@ -30,9 +30,7 @@ export async function addTitle(input: {
     .single();
 
   if (error) throw new Error(error.message);
-  revalidatePath("/");
-  revalidatePath("/watched");
-  revalidatePath("/watching");
+  revalidateTag("titles", {});
   return data;
 }
 
@@ -60,8 +58,7 @@ export async function setStatus(titleId: string, status: TitleStatus) {
   const { error } = await supabase.from("titles").update(patch).eq("id", titleId);
   if (error) throw new Error(error.message);
 
-  revalidatePath("/");
-  revalidatePath("/watched");
+  revalidateTag("titles", {});
   revalidatePath(`/title/${titleId}`);
 }
 
@@ -72,7 +69,7 @@ export async function setRating(titleId: string, rating: number | null) {
     .eq("id", titleId);
   if (error) throw new Error(error.message);
   revalidatePath(`/title/${titleId}`);
-  revalidatePath("/watched");
+  revalidateTag("titles", {});
 }
 
 export async function setReview(titleId: string, review: string) {
@@ -103,8 +100,7 @@ export async function toggleFavorite(titleId: string) {
 export async function removeTitle(titleId: string) {
   const { error } = await supabase.from("titles").delete().eq("id", titleId);
   if (error) throw new Error(error.message);
-  revalidatePath("/");
-  revalidatePath("/watched");
+  revalidateTag("titles", {});
 }
 
 // ─── Lists ────────────────────────────────────────────────────────
