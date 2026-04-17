@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 
 const LINKS = [
   { href: "/", label: "Watchlist" },
@@ -69,6 +70,7 @@ export function TopNav() {
           >
             <Search className="h-5 w-5" />
           </button>
+          <PwaInstallButton />
           <ThemeToggle />
         </div>
       </div>
