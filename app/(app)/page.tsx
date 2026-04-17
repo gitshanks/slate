@@ -38,7 +38,7 @@ export default async function WatchlistPage() {
 
   return (
     <div>
-      <div className="mb-10 flex items-end justify-between">
+      <div className="mb-6 flex items-end justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
             Your watchlist

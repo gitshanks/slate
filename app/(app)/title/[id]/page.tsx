@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { Star, ExternalLink, Tv } from "lucide-react";
+import { Star, ExternalLink } from "lucide-react";
 import { supabase, type TitleRow } from "@/lib/supabase";
 import { posterUrl, getTitleMeta } from "@/lib/tmdb";
 import type { TmdbDetailWithMeta } from "@/lib/tmdb";
-import { posterUrl as rawPosterUrl, TMDB_IMG } from "@/lib/tmdb-image";
+import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import { BackdropHero } from "@/components/backdrop-hero";
 import { StatusPill } from "@/components/status-pill";
 import { SentimentRating } from "@/components/sentiment-rating";
@@ -13,6 +13,7 @@ import { ReviewSheet } from "@/components/review-sheet";
 import { RemoveButton } from "@/components/remove-button";
 import { ViewTransition } from "@/components/view-transition";
 import { TrailerButton } from "@/components/trailer-button";
+import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -129,33 +130,10 @@ async function TitleTrailerAndProviders({
         <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} />
       )}
       {meta.watchProviders && meta.watchProviders.providers.length > 0 && (
-        <a
-          href={meta.watchProviders.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 transition-colors hover:border-primary/40 hover:bg-card/80"
-          title="Where to watch"
-        >
-          <Tv className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="flex items-center gap-1.5">
-            {meta.watchProviders.providers.slice(0, 4).map((p) => (
-              <Image
-                key={p.provider_id}
-                src={`${TMDB_IMG}/w45${p.logo_path}`}
-                alt={p.provider_name}
-                width={20}
-                height={20}
-                className="rounded-sm"
-                title={p.provider_name}
-              />
-            ))}
-          </span>
-          {meta.watchProviders.providers.length > 4 && (
-            <span className="text-[11px] text-muted-foreground font-mono">
-              +{meta.watchProviders.providers.length - 4}
-            </span>
-          )}
-        </a>
+        <WatchProvidersButton
+          providers={meta.watchProviders.providers}
+          link={meta.watchProviders.link}
+        />
       )}
     </div>
   );
@@ -215,7 +193,7 @@ async function TitleCastRecsReviews({
                       {date}
                     </span>
                   </header>
-                  <p className="mt-3 line-clamp-6 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
                     {r.content}
                   </p>
                 </article>

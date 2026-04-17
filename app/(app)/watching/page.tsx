@@ -20,7 +20,7 @@ export default async function WatchingPage() {
 
   return (
     <div>
-      <div className="mb-10 flex items-end justify-between">
+      <div className="mb-6 flex items-end justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
             In progress
