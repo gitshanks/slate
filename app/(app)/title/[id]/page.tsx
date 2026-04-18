@@ -254,43 +254,32 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               />
             </Suspense>
 
-            {/* Genre chips — from Supabase, always immediate */}
-            {title.genres && title.genres.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {title.genres.map((g) => (
-                  <span
-                    key={g.id}
-                    className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground"
-                  >
-                    {g.name}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Action rows */}
-            <div className="mt-6 space-y-3">
-              {/* Row 1: status + sentiment + delete — all same height (h-9) */}
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusPill titleId={title.id} status={title.status} />
-                <SentimentRating
+            {/* Single action row: status · sentiment · delete · trailer · add-to-list · genres */}
+            {/* Everything is h-9 so they align on the same baseline */}
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <StatusPill titleId={title.id} status={title.status} />
+              <SentimentRating
+                titleId={title.id}
+                rating={title.rating != null ? Number(title.rating) : null}
+              />
+              <RemoveButton titleId={title.id} titleName={title.title} iconOnly />
+              <Suspense fallback={null}>
+                <TitleTrailerAndProviders
+                  type={title.media_type}
+                  tmdbId={title.tmdb_id}
+                  titleName={title.title}
                   titleId={title.id}
-                  rating={title.rating != null ? Number(title.rating) : null}
                 />
-                <RemoveButton titleId={title.id} titleName={title.title} iconOnly />
-              </div>
-              {/* Row 2: trailer + where to watch + add to list */}
-              <div className="flex flex-wrap items-center gap-3">
-                <Suspense fallback={null}>
-                  <TitleTrailerAndProviders
-                    type={title.media_type}
-                    tmdbId={title.tmdb_id}
-                    titleName={title.title}
-                    titleId={title.id}
-                  />
-                </Suspense>
-                <AddTitleToListButton titleId={title.id} lists={userLists} />
-              </div>
+              </Suspense>
+              <AddTitleToListButton titleId={title.id} lists={userLists} />
+              {title.genres && title.genres.map((g) => (
+                <span
+                  key={g.id}
+                  className="inline-flex h-9 items-center rounded-full border border-border px-3 text-[11px] text-muted-foreground"
+                >
+                  {g.name}
+                </span>
+              ))}
             </div>
 
             {/* Overview — from Supabase, immediate */}

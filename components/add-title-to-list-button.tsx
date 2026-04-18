@@ -39,7 +39,7 @@ export function AddTitleToListButton({ titleId, lists }: AddTitleToListButtonPro
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
         >
           <ListPlus className="h-3.5 w-3.5 text-muted-foreground" />
           Add to list
