@@ -1,9 +1,8 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import { Star, ExternalLink } from "lucide-react";
 import { supabase, type TitleRow } from "@/lib/supabase";
-import { posterUrl, getTitleMeta } from "@/lib/tmdb";
+import { getTitleMeta } from "@/lib/tmdb";
 import type { TmdbDetailWithMeta } from "@/lib/tmdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import { BackdropHero } from "@/components/backdrop-hero";
@@ -11,7 +10,6 @@ import { StatusPill } from "@/components/status-pill";
 import { SentimentRating } from "@/components/sentiment-rating";
 import { ReviewSheet } from "@/components/review-sheet";
 import { RemoveButton } from "@/components/remove-button";
-import { ViewTransition } from "@/components/view-transition";
 import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { TmdbRail } from "@/components/tmdb-rail";
@@ -48,41 +46,6 @@ async function TitleTaglineDirector({
   );
 }
 
-async function TitleScoreDesktop({
-  type,
-  tmdbId,
-  tmdbUrl,
-}: {
-  type: "movie" | "tv";
-  tmdbId: number;
-  tmdbUrl: string;
-}) {
-  const meta = await getTitleMeta(type, tmdbId);
-  const userScore = formatTmdbScore(meta.vote_average);
-  if (!userScore) return null;
-  return (
-    <a
-      href={tmdbUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40 hover:bg-card/80"
-    >
-      <Star className="h-4 w-4 shrink-0 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-      <span className="font-mono text-lg font-semibold tabular-nums">{userScore}</span>
-      <div className="flex flex-col text-[11px] leading-tight text-muted-foreground">
-        <span>TMDB User</span>
-        <span>Score</span>
-      </div>
-      {meta.vote_count != null && (
-        <div className="ml-auto flex flex-col text-right text-[11px] leading-tight text-muted-foreground font-mono">
-          <span>{meta.vote_count.toLocaleString()}</span>
-          <span>votes</span>
-        </div>
-      )}
-    </a>
-  );
-}
-
 async function TitleScoreMobile({
   type,
   tmdbId,
@@ -100,7 +63,7 @@ async function TitleScoreMobile({
       href={tmdbUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="mt-3 inline-flex md:hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 transition-colors hover:border-primary/40"
+      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 transition-colors hover:border-primary/40"
     >
       <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
       <span className="font-mono text-xs font-medium">{userScore}</span>
@@ -193,7 +156,7 @@ async function TitleCastRecsReviews({
                       {date}
                     </span>
                   </header>
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
+                  <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/80">
                     {r.content}
                   </p>
                 </article>
@@ -226,7 +189,6 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   if (error || !data) notFound();
 
   const title = data as TitleRow;
-  const poster = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
   const runtime = formatRuntime(title.runtime);
   const ambientBg = rawPosterUrl(title.poster_path, "w342");
@@ -250,30 +212,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
       <BackdropHero path={title.backdrop_path} alt={title.title} />
 
       <div className="relative -mt-44 px-4 sm:-mt-48 sm:px-6 lg:px-10">
-        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-[240px_1fr] md:gap-12">
-          {/* Desktop poster + score (score streams in) */}
-          <div className="hidden md:block">
-            <div className="relative aspect-[2/3] overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/40">
-              {poster && (
-                <ViewTransition name={`poster-${title.id}`}>
-                  <Image
-                    src={poster}
-                    alt={title.title}
-                    fill
-                    sizes="240px"
-                    className="object-cover"
-                  />
-                </ViewTransition>
-              )}
-            </div>
-            <Suspense fallback={<div className="mt-4 h-16 rounded-xl bg-muted/20 animate-pulse" />}>
-              <TitleScoreDesktop
-                type={title.media_type}
-                tmdbId={title.tmdb_id}
-                tmdbUrl={tmdbUrl}
-              />
-            </Suspense>
-          </div>
+        <div className="mx-auto max-w-3xl">
 
           {/* Main content */}
           <div>

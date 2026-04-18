@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Tv, ExternalLink } from "lucide-react";
+import { Tv } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -53,9 +53,12 @@ export function WatchProvidersButton({ providers, link }: WatchProvidersButtonPr
           <DialogTitle className="text-sm font-semibold">Where to watch</DialogTitle>
           <div className="mt-1 grid grid-cols-1 gap-2">
             {providers.map((p) => (
-              <div
+              <a
                 key={p.provider_id}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card/50 px-3 py-2.5"
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-xl border border-border bg-card/50 px-3 py-2.5 transition-colors hover:border-primary/40 hover:bg-card"
               >
                 <Image
                   src={`${TMDB_IMG}/w92${p.logo_path}`}
@@ -65,18 +68,9 @@ export function WatchProvidersButton({ providers, link }: WatchProvidersButtonPr
                   className="rounded-lg"
                 />
                 <span className="text-sm font-medium">{p.provider_name}</span>
-              </div>
+              </a>
             ))}
           </div>
-          <a
-            href={link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-          >
-            View all options on JustWatch
-            <ExternalLink className="h-3 w-3" />
-          </a>
         </DialogContent>
       </Dialog>
     </>

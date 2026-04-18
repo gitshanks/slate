@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { profileUrl } from "@/lib/tmdb-image";
 import type { TmdbCastMember } from "@/lib/tmdb";
+import { RailScroller } from "@/components/rail-scroller";
 
 interface CastRailProps {
   cast: TmdbCastMember[];
@@ -22,7 +23,8 @@ export function CastRail({ cast }: CastRailProps) {
         Cast
       </h2>
 
-      <div className="flex gap-4 overflow-x-auto pb-1 -mx-1 px-1">
+      <div className="-mr-4 sm:-mr-6 lg:-mr-10">
+      <RailScroller>
         {cast.map((member) => {
           const photo = profileUrl(member.profile_path, "w185");
           const initials = member.name
@@ -65,6 +67,7 @@ export function CastRail({ cast }: CastRailProps) {
             </Link>
           );
         })}
+      </RailScroller>
       </div>
     </section>
   );

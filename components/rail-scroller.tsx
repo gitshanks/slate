@@ -60,7 +60,7 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
           "transition-opacity duration-200",
           "hoverable:flex",
           canScrollLeft
-            ? "opacity-0 hoverable:group-hover/rail:opacity-100"
+            ? "opacity-100"
             : "pointer-events-none opacity-0"
         )}
       >
@@ -86,7 +86,7 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
           "transition-opacity duration-200",
           "hoverable:flex",
           canScrollRight
-            ? "opacity-0 hoverable:group-hover/rail:opacity-100"
+            ? "opacity-100"
             : "pointer-events-none opacity-0"
         )}
       >
