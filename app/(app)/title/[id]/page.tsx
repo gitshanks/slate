@@ -232,7 +232,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
       <BackdropHero path={title.backdrop_path} alt={title.title} />
 
       <div className="relative z-10 pt-8 px-4 sm:pt-10 sm:px-6 lg:pt-14 lg:px-10">
-        <div>
+        <div className="max-w-2xl">
 
           {/* Main content */}
           <div>

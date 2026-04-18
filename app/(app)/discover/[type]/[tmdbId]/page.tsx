@@ -89,7 +89,7 @@ export default async function DiscoverTitlePage(
       <BackdropHero path={detail.backdrop_path} alt={titleName} />
 
       <div className="relative z-10 pt-8 px-4 sm:pt-10 sm:px-6 lg:pt-14 lg:px-10">
-        <div>
+        <div className="max-w-2xl">
 
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
