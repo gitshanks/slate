@@ -32,16 +32,27 @@ function createStub(): SupabaseClient {
   } as unknown as SupabaseClient;
 }
 
+// Demo mode: per-visitor cookie-backed sandbox. Gated at build time so the
+// private deployment never imports this code.
+function buildDemoClient(): SupabaseClient {
+  // Dynamic import keeps demo-client.ts out of the private bundle entirely.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createDemoClient } = require("@/lib/demo-client") as typeof import("@/lib/demo-client");
+  return createDemoClient() as unknown as SupabaseClient;
+}
+
 export const supabase: SupabaseClient =
-  url && serviceKey
-    ? createClient(url, serviceKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      })
-    : (() => {
-        console.warn(
-          "[supabase] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. " +
-            "Using a no-op stub. Set them in .env.local for real data."
-        );
-        return createStub();
-      })();
+  process.env.NEXT_PUBLIC_DEMO_MODE === "1"
+    ? buildDemoClient()
+    : url && serviceKey
+      ? createClient(url, serviceKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        })
+      : (() => {
+          console.warn(
+            "[supabase] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. " +
+              "Using a no-op stub. Set them in .env.local for real data."
+          );
+          return createStub();
+        })();
 

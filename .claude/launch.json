@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "dev"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "watchlist-demo",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "NEXT_PUBLIC_DEMO_MODE=1 npx next dev --port 3002"],
+      "port": 3002,
+      "autoPort": true
     }
   ]
 }

@@ -54,6 +54,27 @@ npm install
 
 > **Tip — private + public deployments from one repo:** Import the same GitHub repo twice in Vercel. Set `APP_PASSCODE` on the private project for personal use. Leave it unset on the public project for a portfolio-friendly open version. Both stay in sync automatically on every push.
 
+## Demo mode (public portfolio deployment)
+
+Set `NEXT_PUBLIC_DEMO_MODE=1` on a second Vercel project pointing at the same repo. No Supabase project is needed — the app runs fully interactive using a synthetic library seeded at first load and a per-visitor cookie sandbox for mutations.
+
+**What demo mode does:**
+- Loads a pre-built library of 30 titles across Watchlist / Watching / Watched / Dropped
+- Lets visitors add titles, change statuses, rate, review, and manage lists — all state lives in their browser cookie
+- Each visitor's session is isolated; refreshing clears nothing (cookie persists 7 days); clearing cookies resets to seed
+- Renders a dismissible banner explaining it's a demo
+
+**Env vars for the public project:**
+
+| Variable | Value |
+|---|---|
+| `TMDB_API_KEY` | Your TMDB key (still needed — search, cast, providers are live) |
+| `NEXT_PUBLIC_DEMO_MODE` | `1` |
+
+Leave `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `APP_PASSCODE` **unset** on the public project.
+
+The private deployment is completely unaffected — `NEXT_PUBLIC_DEMO_MODE` is inlined at build time by Next.js and the demo code is eliminated as dead code when the flag is absent.
+
 ### 5. Run locally
 
 ```bash

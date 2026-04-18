@@ -16,6 +16,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Demo mode is always open — no passcode gate.
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "1") return NextResponse.next();
+
   const passcode = process.env.APP_PASSCODE;
   // If no passcode is configured, the app is open (useful for first-run).
   if (!passcode) return NextResponse.next();

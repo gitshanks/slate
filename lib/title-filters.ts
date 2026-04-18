@@ -10,6 +10,9 @@ export type { TitleFilterParams } from "@/lib/filter-utils";
  * Fetch ALL titles for a status — no filtering applied here.
  * Filtering/sorting happens client-side in FilteredGrid so it's instant.
  * Cached by Next.js; invalidated via revalidateTag("titles") on mutations.
+ *
+ * In demo mode we bypass the cache entirely: per-visitor cookie state cannot
+ * be shared across requests, so caching would serve stale data to the visitor.
  */
 const cachedQuery = unstable_cache(
   async (status: TitleStatus) => {
@@ -23,8 +26,17 @@ const cachedQuery = unstable_cache(
   { tags: ["titles"] }
 );
 
+async function liveQuery(status: TitleStatus) {
+  const { data, error } = await supabase
+    .from("titles")
+    .select("*")
+    .eq("status", status);
+  return { data: (data ?? []) as TitleRow[], error };
+}
+
 export async function fetchTitlesByStatus(status: TitleStatus) {
-  const { data, error } = await cachedQuery(status);
+  const query = process.env.NEXT_PUBLIC_DEMO_MODE === "1" ? liveQuery : cachedQuery;
+  const { data, error } = await query(status);
   if (error) {
     return { titles: [] as TitleRow[], allGenres: [], error };
   }
