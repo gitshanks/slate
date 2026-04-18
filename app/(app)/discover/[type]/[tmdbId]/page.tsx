@@ -12,6 +12,7 @@ import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import { supabase } from "@/lib/supabase";
 import { BackdropHero } from "@/components/backdrop-hero";
 import { TrailerButton } from "@/components/trailer-button";
+import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
 import { addTitleFromPreview } from "@/lib/actions";
@@ -88,7 +89,7 @@ export default async function DiscoverTitlePage(
       <BackdropHero path={detail.backdrop_path} alt={titleName} />
 
       <div className="relative -mt-44 px-4 sm:-mt-48 sm:px-6 lg:px-10">
-        <div className="mx-auto max-w-3xl">
+        <div>
 
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
@@ -115,28 +116,25 @@ export default async function DiscoverTitlePage(
               </p>
             )}
 
-            {/* Mobile TMDB chip */}
-            {userScore && (
-              <a
-                href={tmdbUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 transition-colors hover:border-primary/40"
-              >
-                <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                <span className="font-mono text-xs font-medium">{userScore}</span>
-                <span className="text-[10px] text-muted-foreground">
-                  TMDB
-                </span>
-              </a>
-            )}
-
-            {genres.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
+            {/* TMDB chip + genres */}
+            {(userScore || genres.length > 0) && (
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                {userScore && (
+                  <a
+                    href={tmdbUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 transition-colors hover:border-primary/40"
+                  >
+                    <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                    <span className="font-mono text-[11px] font-medium">{userScore}</span>
+                    <span className="text-[10px] text-muted-foreground">TMDB</span>
+                  </a>
+                )}
                 {genres.map((g) => (
                   <span
                     key={g.id}
-                    className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground"
+                    className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground"
                   >
                     {g.name}
                   </span>
@@ -144,15 +142,15 @@ export default async function DiscoverTitlePage(
               </div>
             )}
 
-            {/* Action row: Add or Already saved */}
-            <div className="mt-6 flex flex-wrap items-center gap-3">
+            {/* Action row: Add or Already saved · trailer · providers */}
+            <div className="mt-6 flex flex-wrap items-center gap-2">
               {existing ? (
                 <Link
                   href={`/title/${existing.id}`}
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                 >
                   Already in your library
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               ) : (
                 <form action={addTitleFromPreview}>
@@ -160,15 +158,22 @@ export default async function DiscoverTitlePage(
                   <input type="hidden" name="mediaType" value={type} />
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-3.5 w-3.5" />
                     Add to watchlist
                   </button>
                 </form>
               )}
               {meta.trailerKey && (
                 <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} />
+              )}
+              {meta.watchProviders && meta.watchProviders.providers.length > 0 && (
+                <WatchProvidersButton
+                  providers={meta.watchProviders.providers}
+                  link={meta.watchProviders.link}
+                  titleName={titleName}
+                />
               )}
             </div>
 

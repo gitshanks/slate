@@ -47,31 +47,43 @@ async function TitleTaglineDirector({
   );
 }
 
-async function TitleScoreMobile({
+async function TitleScoreAndGenres({
   type,
   tmdbId,
   tmdbUrl,
+  genres,
 }: {
   type: "movie" | "tv";
   tmdbId: number;
   tmdbUrl: string;
+  genres: { id: number; name: string }[] | null;
 }) {
   const meta = await getTitleMeta(type, tmdbId);
   const userScore = formatTmdbScore(meta.vote_average);
-  if (!userScore) return null;
+  if (!userScore && (!genres || genres.length === 0)) return null;
   return (
-    <a
-      href={tmdbUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 transition-colors hover:border-primary/40"
-    >
-      <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-      <span className="font-mono text-xs font-medium">{userScore}</span>
-      <span className="text-[10px] text-muted-foreground">
-        TMDB · {meta.vote_count?.toLocaleString() ?? 0}
-      </span>
-    </a>
+    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      {userScore && (
+        <a
+          href={tmdbUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 transition-colors hover:border-primary/40"
+        >
+          <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+          <span className="font-mono text-[11px] font-medium">{userScore}</span>
+          <span className="text-[10px] text-muted-foreground">TMDB</span>
+        </a>
+      )}
+      {genres && genres.map((g) => (
+        <span
+          key={g.id}
+          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground"
+        >
+          {g.name}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -220,7 +232,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
       <BackdropHero path={title.backdrop_path} alt={title.title} />
 
       <div className="relative -mt-44 px-4 sm:-mt-48 sm:px-6 lg:px-10">
-        <div className="mx-auto max-w-3xl">
+        <div>
 
           {/* Main content */}
           <div>
@@ -245,16 +257,17 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               />
             </Suspense>
 
-            {/* Mobile TMDB score chip streams in */}
+            {/* TMDB score + genres streams in */}
             <Suspense fallback={null}>
-              <TitleScoreMobile
+              <TitleScoreAndGenres
                 type={title.media_type}
                 tmdbId={title.tmdb_id}
                 tmdbUrl={tmdbUrl}
+                genres={title.genres}
               />
             </Suspense>
 
-            {/* Single action row: status · sentiment · delete · trailer · add-to-list · genres */}
+            {/* Single action row: status · sentiment · delete · trailer · providers · add-to-list */}
             {/* Everything is h-9 so they align on the same baseline */}
             <div className="mt-6 flex flex-wrap items-center gap-2">
               <StatusPill titleId={title.id} status={title.status} />
@@ -272,14 +285,6 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 />
               </Suspense>
               <AddTitleToListButton titleId={title.id} lists={userLists} />
-              {title.genres && title.genres.map((g) => (
-                <span
-                  key={g.id}
-                  className="inline-flex h-9 items-center rounded-full border border-border px-3 text-[11px] text-muted-foreground"
-                >
-                  {g.name}
-                </span>
-              ))}
             </div>
 
             {/* Overview — from Supabase, immediate */}

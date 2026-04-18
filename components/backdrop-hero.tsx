@@ -12,7 +12,7 @@ export function BackdropHero({
 }) {
   const src = backdropUrl(path, "w1280");
   return (
-    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-16 h-[60vh] min-h-[420px] w-screen overflow-hidden">
+    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] -mt-16 h-screen min-h-[600px] w-screen overflow-hidden">
       {src ? (
         <Image
           src={src}
