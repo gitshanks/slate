@@ -115,8 +115,11 @@ export function WatchedStats({ titles }: WatchedStatsProps) {
       </div>
 
       {titles.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card/60 px-4 py-4 backdrop-blur">
-          <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted/40">
+        <div className="rounded-2xl border border-border bg-card/60 px-5 py-5 backdrop-blur">
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Sentiment
+          </p>
+          <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted/40">
             {segments.map((seg) =>
               seg.count > 0 ? (
                 <div
@@ -128,16 +131,17 @@ export function WatchedStats({ titles }: WatchedStatsProps) {
               ) : null
             )}
           </div>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[11px] text-muted-foreground font-mono">
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-[11px] text-muted-foreground">
             {segments.map((seg) => (
               <div key={seg.key} className="flex items-center gap-1.5">
                 <span
-                  className={`inline-block h-2 w-2 rounded-full ${seg.color}`}
+                  className={`inline-block h-2.5 w-2.5 rounded-full ${seg.color}`}
                   aria-hidden
                 />
                 {seg.icon}
                 <span>
                   {seg.label} · <span className="text-foreground">{seg.count}</span>
+                  <span className="text-muted-foreground/60"> ({Math.round((seg.count / total) * 100)}%)</span>
                 </span>
               </div>
             ))}

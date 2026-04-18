@@ -83,7 +83,7 @@ export function FilterBar({ genres, showYearSort = true, showSentiment = false }
   return (
     <div className={cn("mb-8 flex flex-wrap items-center gap-2 transition-opacity duration-150", isPending && "opacity-60 pointer-events-none")}>
       {/* Type segmented */}
-      <div className="inline-flex rounded-full border border-border bg-card p-1 shadow-sm">
+      <div className="inline-flex h-9 items-center rounded-full border border-border bg-card p-1 shadow-sm">
         {TYPE_OPTIONS.map(({ value, label, icon: Icon }) => {
           const active = currentType === value;
           return (
@@ -107,7 +107,7 @@ export function FilterBar({ genres, showYearSort = true, showSentiment = false }
 
       {/* Sentiment segmented — only on watched page */}
       {showSentiment && (
-        <div className="inline-flex rounded-full border border-border bg-card p-1 shadow-sm">
+        <div className="inline-flex h-9 items-center rounded-full border border-border bg-card p-1 shadow-sm">
           {SENTIMENT_OPTIONS.map(({ value, label, icon: Icon }) => {
             const active = currentSentiment === value;
             return (
@@ -137,7 +137,7 @@ export function FilterBar({ genres, showYearSort = true, showSentiment = false }
             <button
               type="button"
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors",
+                "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors",
                 activeGenre
                   ? "border-primary/50 text-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -190,7 +190,7 @@ export function FilterBar({ genres, showYearSort = true, showSentiment = false }
           <button
             type="button"
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors",
+              "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors",
               currentYear
                 ? "border-primary/50 text-foreground"
                 : "text-muted-foreground hover:text-foreground"
@@ -230,7 +230,7 @@ export function FilterBar({ genres, showYearSort = true, showSentiment = false }
           <button
             type="button"
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors",
+              "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors",
               currentSort
                 ? "border-primary/50 text-foreground"
                 : "text-muted-foreground hover:text-foreground"
@@ -268,7 +268,7 @@ export function FilterBar({ genres, showYearSort = true, showSentiment = false }
         <button
           type="button"
           onClick={() => startTransition(() => router.replace(pathname, { scroll: false }))}
-          className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex h-9 items-center gap-1 rounded-full px-2 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
         >
           <X className="h-3 w-3" />
           Clear

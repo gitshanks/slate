@@ -143,6 +143,9 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
+  html {
+    scrollbar-gutter: stable;
+  }
   body {
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
