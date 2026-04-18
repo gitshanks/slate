@@ -17,7 +17,7 @@ export function BackdropHero({
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute left-1/2 right-1/2 top-0 -ml-[50vw] -mr-[50vw] -mt-16 h-screen min-h-[720px] w-screen overflow-hidden"
+      className="pointer-events-none absolute left-1/2 right-1/2 top-0 -ml-[50vw] -mr-[50vw] -mt-16 h-[calc(100vh+4rem)] min-h-[760px] w-screen overflow-hidden"
     >
       {src ? (
         <Image
@@ -31,22 +31,22 @@ export function BackdropHero({
       ) : (
         <div className="h-full w-full bg-card" />
       )}
-      {/* Readability overlays: strong left column + bottom fade to bg + primary glow */}
+      {/* Global darkening + fade to bg at bottom + gentle left weight for text */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to right, hsl(var(--background) / 0.92) 0%, hsl(var(--background) / 0.6) 30%, hsl(var(--background) / 0.15) 55%, transparent 75%)",
+            "linear-gradient(to right, hsl(var(--background) / 0.7) 0%, hsl(var(--background) / 0.35) 45%, hsl(var(--background) / 0.15) 75%, hsl(var(--background) / 0.1) 100%)",
         }}
       />
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to top, hsl(var(--background) / 0.95) 0%, hsl(var(--background) / 0.25) 40%, transparent 75%)",
+            "linear-gradient(to top, hsl(var(--background)) 0%, hsl(var(--background) / 0.3) 40%, transparent 85%)",
         }}
       />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(var(--primary)/0.18),transparent_55%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(var(--primary)/0.15),transparent_60%)]" />
     </div>
   );
 }

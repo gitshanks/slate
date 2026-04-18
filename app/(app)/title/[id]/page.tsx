@@ -68,7 +68,7 @@ async function TitleScoreAndGenres({
           href={tmdbUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 transition-colors hover:border-primary/40"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/80 backdrop-blur-md px-2.5 py-1 transition-colors hover:border-primary/40"
         >
           <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
           <span className="font-mono text-[11px] font-medium">{userScore}</span>
@@ -78,7 +78,7 @@ async function TitleScoreAndGenres({
       {genres && genres.map((g) => (
         <span
           key={g.id}
-          className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground"
+          className="inline-flex items-center rounded-full border border-border/80 bg-card/80 backdrop-blur-md px-2.5 py-1 text-[11px] text-foreground/85"
         >
           {g.name}
         </span>
@@ -215,7 +215,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const userLists = (listsData ?? []) as { id: string; name: string }[];
 
   return (
-    <div className="relative -mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20 overflow-x-hidden">
+    <div className="relative -mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20">
       {ambientBg && (
         <div
           aria-hidden
@@ -232,7 +232,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
       <BackdropHero path={title.backdrop_path} alt={title.title} />
 
       <div className="relative z-10 pt-8 px-4 sm:pt-10 sm:px-6 lg:pt-14 lg:px-10">
-        <div className="max-w-2xl">
+        <div>
 
           {/* Main content */}
           <div>
@@ -244,7 +244,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
             </p>
 
             {/* Title */}
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
+            <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {title.title}
             </h1>
 
