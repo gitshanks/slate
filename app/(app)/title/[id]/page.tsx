@@ -12,6 +12,7 @@ import { ReviewSheet } from "@/components/review-sheet";
 import { RemoveButton } from "@/components/remove-button";
 import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
+import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,7 +89,7 @@ async function TitleTrailerAndProviders({
   const meta = await getTitleMeta(type, tmdbId);
   if (!meta.trailerKey && !meta.watchProviders) return null;
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-3">
+    <>
       {meta.trailerKey && (
         <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} />
       )}
@@ -99,7 +100,7 @@ async function TitleTrailerAndProviders({
           titleName={titleName}
         />
       )}
-    </div>
+    </>
   );
 }
 
@@ -195,6 +196,12 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const ambientBg = rawPosterUrl(title.poster_path, "w342");
   const tmdbUrl = `https://www.themoviedb.org/${title.media_type}/${title.tmdb_id}`;
 
+  const { data: listsData } = await supabase
+    .from("lists")
+    .select("id, name")
+    .order("name", { ascending: true });
+  const userLists = (listsData ?? []) as { id: string; name: string }[];
+
   return (
     <div className="-mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20 overflow-x-hidden">
       {ambientBg && (
@@ -261,27 +268,29 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               </div>
             )}
 
-            {/* Action rows — sentiment + remove always immediate */}
+            {/* Action rows */}
             <div className="mt-6 space-y-3">
-              <div className="flex flex-wrap items-center gap-3">
+              {/* Row 1: status + sentiment + delete — all same height (h-9) */}
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusPill titleId={title.id} status={title.status} />
                 <SentimentRating
                   titleId={title.id}
                   rating={title.rating != null ? Number(title.rating) : null}
                 />
-                <RemoveButton titleId={title.id} titleName={title.title} />
+                <RemoveButton titleId={title.id} titleName={title.title} iconOnly />
               </div>
-              <div>
-                <StatusPill titleId={title.id} status={title.status} />
+              {/* Row 2: trailer + where to watch + add to list */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Suspense fallback={null}>
+                  <TitleTrailerAndProviders
+                    type={title.media_type}
+                    tmdbId={title.tmdb_id}
+                    titleName={title.title}
+                    titleId={title.id}
+                  />
+                </Suspense>
+                <AddTitleToListButton titleId={title.id} lists={userLists} />
               </div>
-              {/* Trailer + where to watch stream in */}
-              <Suspense fallback={null}>
-                <TitleTrailerAndProviders
-                  type={title.media_type}
-                  tmdbId={title.tmdb_id}
-                  titleName={title.title}
-                  titleId={title.id}
-                />
-              </Suspense>
             </div>
 
             {/* Overview — from Supabase, immediate */}

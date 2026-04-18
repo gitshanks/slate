@@ -74,7 +74,7 @@ export default async function ListsPage() {
             <div key={list.id} className="relative group/card">
               <Link
                 href={`/lists/${list.slug}`}
-                className="flex h-[148px] flex-col rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)]"
+                className="flex h-[176px] flex-col rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)]"
               >
                 <div className="flex-1 pr-8">
                   <h3 className="text-lg font-semibold tracking-tight">{list.name}</h3>

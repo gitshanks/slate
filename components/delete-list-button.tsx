@@ -2,7 +2,6 @@
 
 import { useTransition } from "react";
 import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { deleteList } from "@/lib/actions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -69,14 +68,14 @@ export function DeleteListButton({
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
+    <button
+      type="button"
       onClick={onClick}
-      loading={pending}
-      leftIcon={<Trash2 className="h-3.5 w-3.5" />}
+      disabled={pending}
+      className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive disabled:opacity-50"
     >
+      <Trash2 className="h-3.5 w-3.5" />
       Delete list
-    </Button>
+    </button>
   );
 }

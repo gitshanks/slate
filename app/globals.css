@@ -188,6 +188,16 @@
   }
 }
 
+/* ─── Radix scroll-lock fix ──────────────────────────────────── */
+/* Radix Dialog adds padding-right to body to compensate for the   */
+/* scrollbar it hides. Since we already use scrollbar-gutter:      */
+/* stable on html, that space is always reserved — so the extra    */
+/* padding causes a jump instead of preventing one.                */
+body[data-scroll-locked] {
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+}
+
 /* ─── Mobile performance ──────────────────────────────────────── */
 /* Kill backdrop-filter on mobile — causes scroll jank in Safari   */
 @media (max-width: 767px) {

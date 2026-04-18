@@ -10,9 +10,11 @@ import { toast } from "sonner";
 export function RemoveButton({
   titleId,
   titleName,
+  iconOnly = false,
 }: {
   titleId: string;
   titleName: string;
+  iconOnly?: boolean;
 }) {
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -28,6 +30,20 @@ export function RemoveButton({
         toast.error(e instanceof Error ? e.message : "Failed");
       }
     });
+  }
+
+  if (iconOnly) {
+    return (
+      <button
+        type="button"
+        aria-label="Remove from library"
+        onClick={onClick}
+        disabled={pending}
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive disabled:opacity-50"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    );
   }
 
   return (
