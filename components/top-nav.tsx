@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
@@ -23,8 +24,23 @@ export function TopNav() {
     <header className="sticky top-0 z-40 w-full glass border-b border-border/60">
       <div className="mx-auto flex h-14 max-w-[1480px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
         <div className="flex items-center gap-3">
-          <Link href="/" prefetch className="group flex items-center">
-            <span className="text-xl font-bold tracking-tight">slate</span>
+          <Link href="/" prefetch className="group flex items-center" aria-label="Slate — home">
+            <Image
+              src="/brand/logo-light.svg"
+              alt="Slate"
+              width={96}
+              height={26}
+              priority
+              className="hidden h-[26px] w-auto dark:block"
+            />
+            <Image
+              src="/brand/logo-dark.svg"
+              alt="Slate"
+              width={96}
+              height={26}
+              priority
+              className="h-[26px] w-auto dark:hidden"
+            />
           </Link>
 
           <nav className="hidden items-center gap-0.5 md:flex">
