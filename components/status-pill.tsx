@@ -1,23 +1,24 @@
 "use client";
 
 import { useOptimistic, useTransition } from "react";
-import { Check, Eye, Clock } from "lucide-react";
+import { Check, Eye, Clock, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TitleStatus } from "@/lib/supabase";
 import { setStatus } from "@/lib/actions";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const OPTIONS: { value: TitleStatus; label: string; icon: React.ElementType }[] = [
   { value: "want", label: "Want", icon: Clock },
   { value: "watching", label: "Watching", icon: Eye },
   { value: "watched", label: "Watched", icon: Check },
 ];
-
-const INDEX: Record<string, number> = {
-  want: 0,
-  watching: 1,
-  watched: 2,
-};
 
 export function StatusPill({
   titleId,
@@ -44,45 +45,41 @@ export function StatusPill({
     });
   }
 
-  // Map out-of-band statuses ("dropped", etc.) to "no active segment".
-  const activeIndex = INDEX[optimisticStatus] ?? -1;
+  const active = OPTIONS.find((o) => o.value === optimisticStatus) ?? OPTIONS[0];
+  const Icon = active.icon;
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Watch status"
-      className="relative inline-flex rounded-full border border-border bg-card p-1 shadow-sm backdrop-blur"
-    >
-      {/* Sliding indicator */}
-      {activeIndex >= 0 && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-1 left-1 w-[calc((100%-0.5rem)/3)] rounded-full bg-primary shadow-[0_6px_20px_-8px_hsl(var(--primary)/0.7)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
-          style={{ transform: `translateX(calc(${activeIndex} * 100%))` }}
-        />
-      )}
-
-      {OPTIONS.map(({ value, label, icon: Icon }) => {
-        const active = value === optimisticStatus;
-        return (
-          <button
-            key={value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={() => update(value)}
-            className={cn(
-              "relative z-10 inline-flex min-w-[6.5rem] items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition-colors duration-200",
-              active
-                ? "text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Icon className="h-3.5 w-3.5" />
-            {label}
-          </button>
-        );
-      })}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Icon className="h-3.5 w-3.5 text-primary" />
+          <span>{active.label}</span>
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[9rem]">
+        <DropdownMenuRadioGroup
+          value={optimisticStatus}
+          onValueChange={(v) => update(v as TitleStatus)}
+        >
+          {OPTIONS.map(({ value, label, icon: Opt }) => (
+            <DropdownMenuRadioItem
+              key={value}
+              value={value}
+              className={cn(
+                "gap-2 pl-8",
+                value === optimisticStatus && "text-foreground"
+              )}
+            >
+              <Opt className="h-3.5 w-3.5" />
+              {label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

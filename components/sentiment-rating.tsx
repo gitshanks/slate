@@ -1,22 +1,17 @@
 "use client";
 
 import { useOptimistic, useTransition } from "react";
-import { Heart, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Heart, ThumbsUp, ThumbsDown, ChevronDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { setRating } from "@/lib/actions";
 import { toast } from "sonner";
-
-/**
- * Love / Like / Dislike sentiment picker.
- *
- * Stored in the existing `rating` column as integers:
- *   3 = Love ❤️
- *   2 = Like 👍
- *   1 = Dislike 👎
- *   null = not yet rated
- *
- * No DB migration needed — the column is numeric(3,1).
- */
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export type Sentiment = 1 | 2 | 3;
 
@@ -26,32 +21,15 @@ const SENTIMENTS: {
   label: string;
   activeClass: string;
 }[] = [
-  {
-    value: 3,
-    icon: Heart,
-    label: "Love",
-    activeClass: "text-rose-500 fill-rose-500",
-  },
-  {
-    value: 2,
-    icon: ThumbsUp,
-    label: "Like",
-    activeClass: "text-emerald-500 fill-emerald-500",
-  },
-  {
-    value: 1,
-    icon: ThumbsDown,
-    label: "Dislike",
-    activeClass: "text-zinc-400 fill-zinc-400",
-  },
+  { value: 3, icon: Heart, label: "Love", activeClass: "text-rose-500 fill-rose-500" },
+  { value: 2, icon: ThumbsUp, label: "Like", activeClass: "text-emerald-500 fill-emerald-500" },
+  { value: 1, icon: ThumbsDown, label: "Dislike", activeClass: "text-zinc-400 fill-zinc-400" },
 ];
 
 interface SentimentRatingProps {
   titleId: string;
   rating: number | null;
-  /** If true, renders as display-only (no click handlers) */
   readOnly?: boolean;
-  /** Compact icon-only mode for grid chips */
   compact?: boolean;
 }
 
@@ -67,13 +45,12 @@ export function SentimentRating({
     (_, next) => next
   );
 
-  function update(value: Sentiment) {
+  function update(value: Sentiment | null) {
     if (readOnly) return;
-    const next = optimistic === value ? null : value;
     startTransition(async () => {
-      setOptimistic(next);
+      setOptimistic(value);
       try {
-        await setRating(titleId, next);
+        await setRating(titleId, value);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Failed to save");
       }
@@ -81,7 +58,6 @@ export function SentimentRating({
   }
 
   if (compact) {
-    // Single icon chip for grid cards
     const match = SENTIMENTS.find((s) => s.value === optimistic);
     if (!match) return null;
     const Icon = match.icon;
@@ -92,34 +68,58 @@ export function SentimentRating({
     );
   }
 
+  const match = SENTIMENTS.find((s) => s.value === optimistic);
+  const TriggerIcon = match ? match.icon : Minus;
+  const triggerLabel = match ? match.label : "Rate";
+
+  if (readOnly) {
+    if (!match) return null;
+    const Icon = match.icon;
+    return (
+      <span className={cn("inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-xs font-medium", match.activeClass)}>
+        <Icon className="h-3.5 w-3.5 fill-current" />
+        {match.label}
+      </span>
+    );
+  }
+
   return (
-    <div
-      role={readOnly ? "img" : "group"}
-      aria-label="Your sentiment"
-      className="inline-flex items-center gap-1"
-    >
-      {SENTIMENTS.map(({ value, icon: Icon, label, activeClass }) => {
-        const active = optimistic === value;
-        return (
-          <button
-            key={value}
-            type="button"
-            aria-label={label}
-            aria-pressed={active}
-            onClick={() => update(value)}
-            disabled={readOnly}
-            className={cn(
-              "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border transition-all duration-150",
-              active
-                ? cn("bg-card border-transparent shadow-sm", activeClass)
-                : "bg-card text-muted-foreground hover:text-foreground hover:border-border/80",
-              readOnly && "cursor-default"
-            )}
-          >
-            <Icon className={cn("h-4 w-4", active && "fill-current")} />
-          </button>
-        );
-      })}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <TriggerIcon className={cn("h-3.5 w-3.5", match ? cn(match.activeClass, "fill-current") : "text-muted-foreground")} />
+          <span className={match ? "" : "text-muted-foreground"}>{triggerLabel}</span>
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[9rem]">
+        {SENTIMENTS.map(({ value, icon: Icon, label, activeClass }) => {
+          const active = optimistic === value;
+          return (
+            <DropdownMenuItem
+              key={value}
+              onClick={() => update(active ? null : value)}
+              className="gap-2"
+            >
+              <Icon className={cn("h-3.5 w-3.5", active ? cn(activeClass, "fill-current") : "text-muted-foreground")} />
+              <span className={active ? "font-medium" : ""}>{label}</span>
+              {active && <span className="ml-auto text-[10px] text-muted-foreground">✓</span>}
+            </DropdownMenuItem>
+          );
+        })}
+        {optimistic !== null && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => update(null)} className="gap-2 text-muted-foreground">
+              <Minus className="h-3.5 w-3.5" />
+              Clear
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

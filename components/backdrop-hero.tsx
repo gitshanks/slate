@@ -36,7 +36,7 @@ export function BackdropHero({
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to right, hsl(var(--background) / 0.7) 0%, hsl(var(--background) / 0.35) 45%, hsl(var(--background) / 0.15) 75%, hsl(var(--background) / 0.1) 100%)",
+            "linear-gradient(to right, hsl(var(--background) / 0.9) 0%, hsl(var(--background) / 0.7) 35%, hsl(var(--background) / 0.35) 60%, hsl(var(--background) / 0.15) 100%)",
         }}
       />
       <div
