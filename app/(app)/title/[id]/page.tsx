@@ -215,7 +215,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const userLists = (listsData ?? []) as { id: string; name: string }[];
 
   return (
-    <div className="-mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20 overflow-x-hidden">
+    <div className="relative -mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20 overflow-x-hidden">
       {ambientBg && (
         <div
           aria-hidden
@@ -231,7 +231,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
 
       <BackdropHero path={title.backdrop_path} alt={title.title} />
 
-      <div className="relative -mt-44 px-4 sm:-mt-48 sm:px-6 lg:px-10">
+      <div className="relative z-10 pt-8 px-4 sm:pt-10 sm:px-6 lg:pt-14 lg:px-10">
         <div>
 
           {/* Main content */}
