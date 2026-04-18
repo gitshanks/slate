@@ -28,18 +28,18 @@ export function TopNav() {
             <Image
               src="/brand/logo-light.svg"
               alt="Slate"
-              width={96}
-              height={26}
+              width={74}
+              height={20}
               priority
-              className="hidden h-[26px] w-auto dark:block"
+              className="hidden h-5 w-auto dark:block"
             />
             <Image
               src="/brand/logo-dark.svg"
               alt="Slate"
-              width={96}
-              height={26}
+              width={74}
+              height={20}
               priority
-              className="h-[26px] w-auto dark:hidden"
+              className="h-5 w-auto dark:hidden"
             />
           </Link>
 
