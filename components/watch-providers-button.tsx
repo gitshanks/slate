@@ -11,12 +11,35 @@ import {
 import type { TmdbProvider } from "@/lib/tmdb";
 import { TMDB_IMG } from "@/lib/tmdb-image";
 
+// Maps TMDB provider_id → streaming service search URL template (title appended as query).
+const PROVIDER_URLS: Record<number, (t: string) => string> = {
+  8:    (t) => `https://www.netflix.com/search?q=${t}`,
+  9:    (t) => `https://www.amazon.com/s?k=${t}&i=instant-video`,
+  10:   (t) => `https://www.amazon.com/s?k=${t}&i=instant-video`,
+  15:   (t) => `https://www.hulu.com/search?q=${t}`,
+  337:  (t) => `https://www.disneyplus.com/search/${t}`,
+  350:  (t) => `https://tv.apple.com/search?term=${t}`,
+  384:  (t) => `https://www.max.com/search?q=${t}`,
+  1899: (t) => `https://www.max.com/search?q=${t}`,
+  386:  (t) => `https://www.peacocktv.com/search?q=${t}`,
+  387:  (t) => `https://www.peacocktv.com/search?q=${t}`,
+  531:  (t) => `https://www.paramountplus.com/search/${t}/`,
+  283:  (t) => `https://www.crunchyroll.com/search?q=${t}`,
+  11:   (t) => `https://mubi.com/en/search?q=${t}`,
+};
+
+function providerUrl(providerId: number, titleName: string, fallback: string): string {
+  const fn = PROVIDER_URLS[providerId];
+  return fn ? fn(encodeURIComponent(titleName)) : fallback;
+}
+
 interface WatchProvidersButtonProps {
   providers: TmdbProvider[];
   link: string;
+  titleName: string;
 }
 
-export function WatchProvidersButton({ providers, link }: WatchProvidersButtonProps) {
+export function WatchProvidersButton({ providers, link, titleName }: WatchProvidersButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -55,7 +78,7 @@ export function WatchProvidersButton({ providers, link }: WatchProvidersButtonPr
             {providers.map((p) => (
               <a
                 key={p.provider_id}
-                href={link}
+                href={providerUrl(p.provider_id, titleName, link)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 rounded-xl border border-border bg-card/50 px-3 py-2.5 transition-colors hover:border-primary/40 hover:bg-card"

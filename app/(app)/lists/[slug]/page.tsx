@@ -4,6 +4,7 @@ import { MediaGrid } from "@/components/media-grid";
 import { EmptyState } from "@/components/empty-state";
 import { AddToListPicker } from "@/components/add-to-list-picker";
 import { DeleteListButton } from "@/components/delete-list-button";
+import { ShareListButton } from "@/components/share-list-button";
 import { ListPlus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -53,10 +54,13 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
             </p>
           )}
         </div>
-        <DeleteListButton
-          listId={(list as ListRow).id}
-          listName={(list as ListRow).name}
-        />
+        <div className="flex items-center gap-2 shrink-0">
+          <ShareListButton listName={(list as ListRow).name} />
+          <DeleteListButton
+            listId={(list as ListRow).id}
+            listName={(list as ListRow).name}
+          />
+        </div>
       </div>
 
       <div className="mb-10">

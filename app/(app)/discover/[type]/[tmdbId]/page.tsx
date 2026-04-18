@@ -1,12 +1,10 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowRight, Plus, Star } from "lucide-react";
 import {
   getMovie,
   getTv,
   getTitleMeta,
-  posterUrl,
   type TmdbMovieDetail,
   type TmdbTvDetail,
 } from "@/lib/tmdb";
@@ -64,7 +62,6 @@ export default async function DiscoverTitlePage(
       ? (detail as TmdbMovieDetail).runtime
       : (detail as TmdbTvDetail).episode_run_time?.[0] ?? null;
 
-  const poster = posterUrl(detail.poster_path, "w500");
   const ambientBg = rawPosterUrl(detail.poster_path, "w342");
   const genres: { id: number; name: string }[] = detail.genres ?? [];
   const year = formatYear(releaseDate);
@@ -91,44 +88,7 @@ export default async function DiscoverTitlePage(
       <BackdropHero path={detail.backdrop_path} alt={titleName} />
 
       <div className="relative -mt-44 px-4 sm:-mt-48 sm:px-6 lg:px-10">
-        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-[240px_1fr] md:gap-12">
-          <div className="hidden md:block">
-            <div className="relative aspect-[2/3] overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/40">
-              {poster && (
-                <Image
-                  src={poster}
-                  alt={titleName}
-                  fill
-                  sizes="240px"
-                  className="object-cover"
-                />
-              )}
-            </div>
-
-            {userScore && (
-              <a
-                href={tmdbUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40 hover:bg-card/80"
-              >
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                  <span className="font-mono text-sm font-medium">
-                    {userScore}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    TMDB User Score
-                  </span>
-                </div>
-                {meta.vote_count != null && (
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    {meta.vote_count.toLocaleString()} votes
-                  </span>
-                )}
-              </a>
-            )}
-          </div>
+        <div className="mx-auto max-w-3xl">
 
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
@@ -161,7 +121,7 @@ export default async function DiscoverTitlePage(
                 href={tmdbUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 inline-flex md:hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 transition-colors hover:border-primary/40"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 transition-colors hover:border-primary/40"
               >
                 <Star className="h-3.5 w-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
                 <span className="font-mono text-xs font-medium">{userScore}</span>

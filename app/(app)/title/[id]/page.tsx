@@ -96,6 +96,7 @@ async function TitleTrailerAndProviders({
         <WatchProvidersButton
           providers={meta.watchProviders.providers}
           link={meta.watchProviders.link}
+          titleName={titleName}
         />
       )}
     </div>
