@@ -50,6 +50,27 @@ export async function addTitleFromPreview(formData: FormData) {
   redirect(`/title/${row.id}`);
 }
 
+/**
+ * Called by the status dropdown on the discover page. Adds the title
+ * with the chosen status then redirects to the title detail page.
+ */
+export async function addTitleWithStatus(formData: FormData) {
+  const tmdbId = Number(formData.get("tmdbId"));
+  const mediaType = String(formData.get("mediaType")) as "movie" | "tv";
+  const status = String(formData.get("status")) as TitleStatus;
+  if (!tmdbId || (mediaType !== "movie" && mediaType !== "tv")) {
+    throw new Error("Invalid payload");
+  }
+  const validStatuses: TitleStatus[] = ["want", "watching", "watched"];
+  const row = await addTitle({
+    tmdbId,
+    mediaType,
+    status: validStatuses.includes(status) ? status : "want",
+  });
+  if (!row?.id) throw new Error("Failed to add title");
+  redirect(`/title/${row.id}`);
+}
+
 export async function setStatus(titleId: string, status: TitleStatus) {
   const patch: Record<string, unknown> = { status };
   if (status === "watched") patch.watched_at = new Date().toISOString();

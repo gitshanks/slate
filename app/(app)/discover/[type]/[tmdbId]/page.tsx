@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Plus, Star } from "lucide-react";
+import { ArrowRight, Star } from "lucide-react";
 import {
   getMovie,
   getTv,
@@ -16,7 +16,7 @@ import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
-import { addTitleFromPreview } from "@/lib/actions";
+import { AddStatusDropdown } from "@/components/add-status-dropdown";
 import { formatRuntime, formatTmdbScore, formatYear } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -148,17 +148,7 @@ export default async function DiscoverTitlePage(
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               ) : (
-                <form action={addTitleFromPreview}>
-                  <input type="hidden" name="tmdbId" value={tmdbId} />
-                  <input type="hidden" name="mediaType" value={type} />
-                  <button
-                    type="submit"
-                    className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Add to watchlist
-                  </button>
-                </form>
+                <AddStatusDropdown tmdbId={tmdbId} mediaType={type} />
               )}
               {meta.trailerKey && (
                 <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} />
