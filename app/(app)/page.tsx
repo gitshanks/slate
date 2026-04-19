@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { supabase } from "@/lib/supabase";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
@@ -12,7 +13,12 @@ import {
   getPopularMovies,
   getNowPlaying,
   getPopularTv,
+  getRecommendedFromWatched,
 } from "@/lib/tmdb";
+
+export const metadata: Metadata = {
+  title: "slate — Watchlist",
+};
 
 export default async function WatchlistPage() {
   const [libResult, savedRowsRes] = await Promise.all([
@@ -67,6 +73,7 @@ export default async function WatchlistPage() {
         </Suspense>
       )}
 
+      <TmdbRailAsync title="You might like" fetcher={getRecommendedFromWatched} savedTmdbIds={savedTmdbIds} />
       <TmdbRailAsync title="Trending this week" fetcher={getTrending} savedTmdbIds={savedTmdbIds} />
       <TmdbRailAsync title="Popular films" fetcher={getPopularMovies} savedTmdbIds={savedTmdbIds} />
       <TmdbRailAsync title="Now playing" fetcher={getNowPlaying} savedTmdbIds={savedTmdbIds} />

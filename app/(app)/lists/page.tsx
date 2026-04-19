@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { supabase, type ListRow } from "@/lib/supabase";
 import { EmptyState } from "@/components/empty-state";
@@ -7,6 +8,10 @@ import { ShareListButton } from "@/components/share-list-button";
 import { ListPlus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "slate — Lists",
+};
 
 export default async function ListsPage() {
   const { data: lists, error } = await supabase

@@ -1,4 +1,5 @@
 import { Fragment, Suspense } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Star, ExternalLink } from "lucide-react";
 import { supabase, type TitleRow } from "@/lib/supabase";
@@ -19,6 +20,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatRuntime, formatTmdbScore, formatYear } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(
+  props: PageProps<"/title/[id]">
+): Promise<Metadata> {
+  const { id } = await props.params;
+  const { data } = await supabase
+    .from("titles")
+    .select("title")
+    .eq("id", id)
+    .single();
+  const name = (data as { title: string } | null)?.title;
+  return { title: name ? `slate — ${name}` : "slate — Title" };
+}
 
 // ─── Async sub-components (all share one cached getTitleMeta call) ──
 

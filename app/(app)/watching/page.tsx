@@ -1,9 +1,14 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { FilteredGrid } from "@/components/filtered-grid";
 import { Play } from "lucide-react";
 import { fetchTitlesByStatus } from "@/lib/title-filters";
+
+export const metadata: Metadata = {
+  title: "slate — Watching",
+};
 
 export default async function WatchingPage() {
   const { titles: allTitles, allGenres, error } = await fetchTitlesByStatus("watching");

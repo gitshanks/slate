@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { supabase, type TitleRow } from "@/lib/supabase";
 
 export { posterUrl, backdropUrl, TMDB_IMG } from "@/lib/tmdb-image";
 
@@ -361,6 +362,88 @@ export async function getPopularTv(): Promise<TmdbSearchResult[]> {
       ...r,
       media_type: "tv" as const,
     }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Personalised "You might like" pool. Picks the user's top watched titles
+ * (by sentiment rating, then TMDB score) as seeds, fans out to TMDB's
+ * /recommendations for each, merges by co-occurrence so titles surfaced
+ * by multiple seeds rank higher, and strips anything already saved.
+ */
+export async function getRecommendedFromWatched(): Promise<TmdbSearchResult[]> {
+  try {
+    const [{ data: watched }, { data: saved }] = await Promise.all([
+      supabase
+        .from("titles")
+        .select("tmdb_id, media_type, rating, tmdb_rating")
+        .eq("status", "watched"),
+      supabase.from("titles").select("tmdb_id"),
+    ]);
+
+    const seeds = (watched ?? []) as Pick<
+      TitleRow,
+      "tmdb_id" | "media_type" | "rating" | "tmdb_rating"
+    >[];
+    if (seeds.length === 0) return [];
+
+    const savedIds = new Set<number>(
+      ((saved ?? []) as { tmdb_id: number }[]).map((r) => r.tmdb_id)
+    );
+
+    // Rank seeds: user sentiment first (higher = loved), then TMDB score.
+    const topSeeds = seeds
+      .slice()
+      .sort((a, b) => {
+        const ra = a.rating != null ? Number(a.rating) : -999;
+        const rb = b.rating != null ? Number(b.rating) : -999;
+        if (rb !== ra) return rb - ra;
+        const ta = a.tmdb_rating != null ? Number(a.tmdb_rating) : 0;
+        const tb = b.tmdb_rating != null ? Number(b.tmdb_rating) : 0;
+        return tb - ta;
+      })
+      .slice(0, 8);
+
+    const seedIds = new Set<number>(topSeeds.map((s) => s.tmdb_id));
+
+    const fetched = await Promise.all(
+      topSeeds.map((s) =>
+        tmdb<{ results: TmdbSearchResult[] }>(
+          `/${s.media_type}/${s.tmdb_id}/recommendations`,
+          { language: "en-US", page: "1" }
+        )
+          .then((r) =>
+            r.results.map((x) => ({
+              ...x,
+              media_type: (x.media_type ?? s.media_type) as TmdbSearchResult["media_type"],
+            }))
+          )
+          .catch(() => [] as TmdbSearchResult[])
+      )
+    );
+
+    // Merge by tmdb id, tallying co-occurrence so items recommended by
+    // multiple seeds float to the top.
+    const pool = new Map<number, { item: TmdbSearchResult; hits: number }>();
+    for (const list of fetched) {
+      for (const item of list) {
+        if (item.media_type !== "movie" && item.media_type !== "tv") continue;
+        if (savedIds.has(item.id) || seedIds.has(item.id)) continue;
+        const prev = pool.get(item.id);
+        if (prev) prev.hits += 1;
+        else pool.set(item.id, { item, hits: 1 });
+      }
+    }
+
+    return Array.from(pool.values())
+      .sort((a, b) => {
+        if (b.hits !== a.hits) return b.hits - a.hits;
+        return (b.item.vote_average ?? 0) - (a.item.vote_average ?? 0);
+      })
+      .slice(0, 24)
+      .map((e) => e.item);
   } catch {
     return [];
   }
