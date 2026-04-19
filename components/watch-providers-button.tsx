@@ -85,8 +85,8 @@ export function WatchProvidersButton({ providers, link, titleName }: WatchProvid
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogTitle className="text-sm font-semibold">Where to watch</DialogTitle>
+        <DialogContent className="top-[50%] translate-y-[-50%] left-[50%] translate-x-[-50%] right-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl p-4">
+          <DialogTitle className="pr-6 text-sm font-semibold">Where to watch</DialogTitle>
           <div className="mt-1 grid grid-cols-1 gap-2">
             {providers.map((p) => (
               <a
