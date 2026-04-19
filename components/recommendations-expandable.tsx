@@ -37,13 +37,26 @@ export function RecommendationsExpandable({
 
   return (
     <section className="mt-14">
-      <div className="mb-4 flex items-baseline justify-between">
+      <div className="mb-4 flex items-baseline justify-between gap-3">
         <h2 className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
           {title}
         </h2>
-        <span className="text-[11px] text-muted-foreground font-mono">
-          {items.length} picks
-        </span>
+        {canExpand && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-mono transition-colors hover:text-foreground"
+          >
+            {expanded ? "Show less" : `See more (${gridItems.length})`}
+            <ChevronDown
+              className={cn(
+                "h-3 w-3 transition-transform",
+                expanded && "rotate-180"
+              )}
+            />
+          </button>
+        )}
       </div>
 
       <div>
@@ -68,25 +81,6 @@ export function RecommendationsExpandable({
               variant="grid"
             />
           ))}
-        </div>
-      )}
-
-      {canExpand && (
-        <div className="mt-6 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            aria-expanded={expanded}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono transition-colors hover:border-primary/40 hover:text-foreground"
-          >
-            {expanded ? "Show less" : `See more (${gridItems.length})`}
-            <ChevronDown
-              className={cn(
-                "h-3.5 w-3.5 transition-transform",
-                expanded && "rotate-180"
-              )}
-            />
-          </button>
         </div>
       )}
     </section>
