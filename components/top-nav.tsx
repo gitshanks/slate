@@ -91,8 +91,8 @@ export function TopNav() {
         </div>
       </div>
 
-      {/* Mobile nav row — -ml-3.5 on first item so text aligns with "slate" logo above */}
-      <nav className="flex items-center gap-1 px-4 pb-2 md:hidden">
+      {/* Mobile nav row — padding matches the top row so tabs align with logo/content below */}
+      <nav className="flex items-center gap-1 px-4 pb-2 sm:px-6 md:hidden">
         {LINKS.map((l, i) => {
           const active =
             l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
