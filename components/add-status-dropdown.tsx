@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Clock, Eye, Check, ChevronDown } from "lucide-react";
+import { Clock, Eye, Check, ChevronDown, Plus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +49,8 @@ export function AddStatusDropdown({ tmdbId, mediaType }: AddStatusDropdownProps)
           disabled={isPending}
           className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
         >
+          <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-muted-foreground">Add to library</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>
