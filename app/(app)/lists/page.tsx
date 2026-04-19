@@ -3,6 +3,7 @@ import { supabase, type ListRow } from "@/lib/supabase";
 import { EmptyState } from "@/components/empty-state";
 import { CreateListForm } from "@/components/create-list-form";
 import { DeleteListButton } from "@/components/delete-list-button";
+import { ShareListButton } from "@/components/share-list-button";
 import { ListPlus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -76,7 +77,7 @@ export default async function ListsPage() {
                 href={`/lists/${list.slug}`}
                 className="flex h-[176px] flex-col rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)]"
               >
-                <div className="flex-1 pr-8">
+                <div className="flex-1 pr-20">
                   <h3 className="text-lg font-semibold tracking-tight">{list.name}</h3>
                   {list.description && (
                     <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
@@ -104,13 +105,18 @@ export default async function ListsPage() {
                   )}
                 </div>
               </Link>
-              {/* Delete — absolutely positioned, stops click propagation */}
-              <DeleteListButton
-                listId={list.id}
-                listName={list.name}
-                iconOnly
-                className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 transition-opacity"
-              />
+              {/* Share + Delete — absolutely positioned, stop click propagation */}
+              <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
+                <ShareListButton
+                  listSlug={list.slug}
+                  listName={list.name}
+                />
+                <DeleteListButton
+                  listId={list.id}
+                  listName={list.name}
+                  iconOnly
+                />
+              </div>
             </div>
           ))}
         </div>
