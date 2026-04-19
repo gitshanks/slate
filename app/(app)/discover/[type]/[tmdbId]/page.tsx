@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Plus, Star } from "lucide-react";
@@ -92,11 +93,31 @@ export default async function DiscoverTitlePage(
         <div>
 
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-              {type === "movie" ? "Film" : "Series"}
-              {year && <span> · {year}</span>}
-              {runtime && <span> · {runtime}</span>}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+              <span>{type === "movie" ? "Film" : "Series"}</span>
+              {year && <><span aria-hidden>·</span><span>{year}</span></>}
+              {runtime && <><span aria-hidden>·</span><span>{runtime}</span></>}
+              {genres.map((g) => (
+                <Fragment key={g.id}>
+                  <span aria-hidden>·</span>
+                  <span>{g.name}</span>
+                </Fragment>
+              ))}
+              {userScore && (
+                <>
+                  <span aria-hidden>·</span>
+                  <a
+                    href={tmdbUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+                  >
+                    <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                    <span>{userScore} TMDB</span>
+                  </a>
+                </>
+              )}
+            </div>
             <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {titleName}
             </h1>
@@ -114,32 +135,6 @@ export default async function DiscoverTitlePage(
                   {meta.directedBy.join(", ")}
                 </span>
               </p>
-            )}
-
-            {/* TMDB chip + genres */}
-            {(userScore || genres.length > 0) && (
-              <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                {userScore && (
-                  <a
-                    href={tmdbUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/80 backdrop-blur-md px-2.5 py-1 transition-colors hover:border-primary/40"
-                  >
-                    <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                    <span className="font-mono text-[11px] font-medium">{userScore}</span>
-                    <span className="text-[10px] text-muted-foreground">TMDB</span>
-                  </a>
-                )}
-                {genres.map((g) => (
-                  <span
-                    key={g.id}
-                    className="inline-flex items-center rounded-full border border-border/80 bg-card/80 backdrop-blur-md px-2.5 py-1 text-[11px] text-foreground/85"
-                  >
-                    {g.name}
-                  </span>
-                ))}
-              </div>
             )}
 
             {/* Action row: Add or Already saved · trailer · providers */}

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { NotebookPen } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -39,9 +40,14 @@ export function ReviewSheet({
 
   return (
     <>
-      <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
+      >
+        <NotebookPen className="h-3.5 w-3.5 text-muted-foreground" />
         {initialReview ? "Edit note" : "Add note"}
-      </Button>
+      </button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md">
           <SheetHeader>

@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Star, ExternalLink } from "lucide-react";
 import { supabase, type TitleRow } from "@/lib/supabase";
@@ -47,43 +47,31 @@ async function TitleTaglineDirector({
   );
 }
 
-async function TitleScoreAndGenres({
+async function TitleScore({
   type,
   tmdbId,
   tmdbUrl,
-  genres,
 }: {
   type: "movie" | "tv";
   tmdbId: number;
   tmdbUrl: string;
-  genres: { id: number; name: string }[] | null;
 }) {
   const meta = await getTitleMeta(type, tmdbId);
   const userScore = formatTmdbScore(meta.vote_average);
-  if (!userScore && (!genres || genres.length === 0)) return null;
+  if (!userScore) return null;
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-1.5">
-      {userScore && (
-        <a
-          href={tmdbUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/80 backdrop-blur-md px-2.5 py-1 transition-colors hover:border-primary/40"
-        >
-          <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-          <span className="font-mono text-[11px] font-medium">{userScore}</span>
-          <span className="text-[10px] text-muted-foreground">TMDB</span>
-        </a>
-      )}
-      {genres && genres.map((g) => (
-        <span
-          key={g.id}
-          className="inline-flex items-center rounded-full border border-border/80 bg-card/80 backdrop-blur-md px-2.5 py-1 text-[11px] text-foreground/85"
-        >
-          {g.name}
-        </span>
-      ))}
-    </div>
+    <>
+      <span aria-hidden>·</span>
+      <a
+        href={tmdbUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+      >
+        <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+        <span>{userScore} TMDB</span>
+      </a>
+    </>
   );
 }
 
@@ -236,12 +224,25 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
 
           {/* Main content */}
           <div>
-            {/* Label row */}
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-              {title.media_type === "movie" ? "Film" : "Series"}
-              {year && <span> · {year}</span>}
-              {runtime && <span> · {runtime}</span>}
-            </p>
+            {/* Label row: type · year · runtime · genres · TMDB score */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+              <span>{title.media_type === "movie" ? "Film" : "Series"}</span>
+              {year && <><span aria-hidden>·</span><span>{year}</span></>}
+              {runtime && <><span aria-hidden>·</span><span>{runtime}</span></>}
+              {(title.genres ?? []).map((g) => (
+                <Fragment key={g.id}>
+                  <span aria-hidden>·</span>
+                  <span>{g.name}</span>
+                </Fragment>
+              ))}
+              <Suspense fallback={null}>
+                <TitleScore
+                  type={title.media_type}
+                  tmdbId={title.tmdb_id}
+                  tmdbUrl={tmdbUrl}
+                />
+              </Suspense>
+            </div>
 
             {/* Title */}
             <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
@@ -254,16 +255,6 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 type={title.media_type}
                 tmdbId={title.tmdb_id}
                 mediaType={title.media_type}
-              />
-            </Suspense>
-
-            {/* TMDB score + genres streams in */}
-            <Suspense fallback={null}>
-              <TitleScoreAndGenres
-                type={title.media_type}
-                tmdbId={title.tmdb_id}
-                tmdbUrl={tmdbUrl}
-                genres={title.genres}
               />
             </Suspense>
 
@@ -285,6 +276,11 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 />
               </Suspense>
               <AddTitleToListButton titleId={title.id} lists={userLists} />
+              <ReviewSheet
+                titleId={title.id}
+                titleName={title.title}
+                initialReview={title.review}
+              />
             </div>
 
             {/* Overview — from Supabase, immediate */}
@@ -293,15 +289,6 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 {title.overview}
               </p>
             )}
-
-            {/* Notes */}
-            <div className="mt-4">
-              <ReviewSheet
-                titleId={title.id}
-                titleName={title.title}
-                initialReview={title.review}
-              />
-            </div>
 
             {/* Your saved note */}
             {title.review && (
