@@ -442,7 +442,7 @@ export async function getRecommendedFromWatched(): Promise<TmdbSearchResult[]> {
         if (b.hits !== a.hits) return b.hits - a.hits;
         return (b.item.vote_average ?? 0) - (a.item.vote_average ?? 0);
       })
-      .slice(0, 24)
+      .slice(0, 80)
       .map((e) => e.item);
   } catch {
     return [];

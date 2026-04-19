@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { TmdbRailAsync } from "@/components/tmdb-rail-async";
+import { RecommendationsSection } from "@/components/recommendations-section";
 import { FilteredGrid } from "@/components/filtered-grid";
 import { Film } from "lucide-react";
 import { OpenPaletteHint } from "@/components/open-palette-hint";
@@ -13,7 +14,6 @@ import {
   getPopularMovies,
   getNowPlaying,
   getPopularTv,
-  getRecommendedFromWatched,
 } from "@/lib/tmdb";
 
 export const metadata: Metadata = {
@@ -73,7 +73,7 @@ export default async function WatchlistPage() {
         </Suspense>
       )}
 
-      <TmdbRailAsync title="You might like" fetcher={getRecommendedFromWatched} savedTmdbIds={savedTmdbIds} />
+      <RecommendationsSection title="You might like" savedTmdbIds={savedTmdbIds} />
       <TmdbRailAsync title="Trending this week" fetcher={getTrending} savedTmdbIds={savedTmdbIds} />
       <TmdbRailAsync title="Popular films" fetcher={getPopularMovies} savedTmdbIds={savedTmdbIds} />
       <TmdbRailAsync title="Now playing" fetcher={getNowPlaying} savedTmdbIds={savedTmdbIds} />
