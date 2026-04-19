@@ -49,7 +49,7 @@ export function StatusPill({
   const Icon = active.icon;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"

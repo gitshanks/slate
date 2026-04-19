@@ -30,10 +30,7 @@ export function TmdbRail({ title, items, savedTmdbIds }: TmdbRailProps) {
         </h2>
       </div>
 
-      {/* Bleed wrapper carries the negative margin; RailScroller is the actual
-          scroll container. Keeping them separate avoids a Chrome quirk where
-          overflow:auto on a flex element ignores negative-margin width. */}
-      <div className="-mr-4 sm:-mr-6 lg:-mr-10">
+      <div>
         <RailScroller>
           {items.map((item) => {
           const name = item.title ?? item.name ?? "Untitled";

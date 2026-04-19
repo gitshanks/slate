@@ -70,7 +70,7 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
       {/* Scroll container */}
       <div
         ref={ref}
-        className="touch-pan-x flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 pr-4 sm:pr-6 lg:pr-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="touch-pan-x flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {children}
       </div>

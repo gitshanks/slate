@@ -24,7 +24,7 @@ export function TopNav() {
     <header className="sticky top-0 z-40 w-full glass border-b border-border/60">
       <div className="mx-auto flex h-14 max-w-[1480px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
         <div className="flex items-center gap-3">
-          <Link href="/" prefetch className="group flex items-center pt-1 pb-2" aria-label="Slate — home">
+          <Link href="/" prefetch className="group flex items-center pt-1 pb-2" aria-label="Slate home">
             <Image
               src="/brand/logo-light.svg"
               alt="Slate"

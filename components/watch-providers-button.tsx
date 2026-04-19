@@ -13,19 +13,32 @@ import { TMDB_IMG } from "@/lib/tmdb-image";
 
 // Maps TMDB provider_id → streaming service search URL template (title appended as query).
 const PROVIDER_URLS: Record<number, (t: string) => string> = {
+  2:    (t) => `https://tv.apple.com/search?term=${t}`,
+  3:    (t) => `https://play.google.com/store/search?q=${t}&c=movies`,
+  7:    (t) => `https://www.vudu.com/content/browse/list?searchTerm=${t}`,
   8:    (t) => `https://www.netflix.com/search?q=${t}`,
   9:    (t) => `https://www.amazon.com/s?k=${t}&i=instant-video`,
   10:   (t) => `https://www.amazon.com/s?k=${t}&i=instant-video`,
+  11:   (t) => `https://mubi.com/films/search?query=${t}`,
   15:   (t) => `https://www.hulu.com/search?q=${t}`,
-  337:  (t) => `https://www.disneyplus.com/search/${t}`,
+  68:   (t) => `https://www.microsoft.com/en-us/search?q=${t}`,
+  99:   (t) => `https://www.shudder.com/search?q=${t}`,
+  188:  (t) => `https://www.youtube.com/results?search_query=${t}`,
+  192:  (t) => `https://www.youtube.com/results?search_query=${t}`,
+  257:  (t) => `https://www.fubo.tv/welcome/search/${t}`,
+  283:  (t) => `https://www.crunchyroll.com/search?q=${t}`,
+  337:  (t) => `https://www.disneyplus.com/search?q=${t}`,
   350:  (t) => `https://tv.apple.com/search?term=${t}`,
-  384:  (t) => `https://www.max.com/search?q=${t}`,
-  1899: (t) => `https://www.max.com/search?q=${t}`,
+  363:  (t) => `https://www.hoopladigital.com/search?q=${t}`,
+  372:  (t) => `https://www.discoveryplus.com/search?q=${t}`,
+  384:  (t) => `https://play.max.com/search?q=${t}`,
   386:  (t) => `https://www.peacocktv.com/search?q=${t}`,
   387:  (t) => `https://www.peacocktv.com/search?q=${t}`,
-  531:  (t) => `https://www.paramountplus.com/search/${t}/`,
-  283:  (t) => `https://www.crunchyroll.com/search?q=${t}`,
-  11:   (t) => `https://mubi.com/en/search?q=${t}`,
+  465:  (t) => `https://www.amcplus.com/search?q=${t}`,
+  531:  (t) => `https://www.paramountplus.com/search/?q=${t}`,
+  1715: (t) => `https://www.amazon.com/s?k=${t}&i=instant-video`,
+  1796: (t) => `https://www.netflix.com/search?q=${t}`,
+  1899: (t) => `https://play.max.com/search?q=${t}`,
 };
 
 function providerUrl(providerId: number, titleName: string, fallback: string): string {

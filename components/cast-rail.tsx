@@ -23,7 +23,7 @@ export function CastRail({ cast }: CastRailProps) {
         Cast
       </h2>
 
-      <div className="-mr-4 sm:-mr-6 lg:-mr-10">
+      <div>
       <RailScroller>
         {cast.map((member) => {
           const photo = profileUrl(member.profile_path, "w185");

@@ -9,8 +9,8 @@ function RailSkeleton({ title }: { title: string }) {
       <p className="mb-4 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
         {title}
       </p>
-      <div className="-mr-4 sm:-mr-6 lg:-mr-10">
-        <div className="flex gap-3 overflow-hidden pb-2 pr-4 sm:pr-6 lg:pr-10">
+      <div>
+        <div className="flex gap-3 overflow-hidden pb-2">
           {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} className="w-[140px] shrink-0 sm:w-[160px]">
               <Skeleton className="aspect-[2/3] w-full rounded-xl" />
