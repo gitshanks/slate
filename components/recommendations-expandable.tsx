@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { TmdbSearchResult } from "@/lib/tmdb";
-import { RailScroller } from "@/components/rail-scroller";
 import { TmdbTile } from "@/components/tmdb-tile";
 import { cn } from "@/lib/utils";
 
-const RAIL_COUNT = 24;
+const COLLAPSED_COUNT = 12;
 
 interface RecommendationsExpandableProps {
   title: string;
@@ -16,10 +15,11 @@ interface RecommendationsExpandableProps {
 }
 
 /**
- * "You might like" section — rail of the top picks plus a "See more"
- * toggle that reveals the remaining recommendations as a grid.
- * All items are delivered from the server in one payload, so expand
- * is instant with no extra fetch.
+ * "You might like" section — a grid of personalised picks that renders a
+ * truncated preview by default and expands inline to reveal the rest. No
+ * horizontal scroll affordance: the whole list is one continuous grid and
+ * "See more" is the only way to read past the preview row. All items are
+ * delivered from the server in one payload so expand is instant.
  */
 export function RecommendationsExpandable({
   title,
@@ -31,9 +31,9 @@ export function RecommendationsExpandable({
   if (items.length === 0) return null;
 
   const savedSet = new Set<number>(savedTmdbIds ?? []);
-  const railItems = items.slice(0, RAIL_COUNT);
-  const gridItems = items.slice(RAIL_COUNT);
-  const canExpand = gridItems.length > 0;
+  const hiddenCount = Math.max(items.length - COLLAPSED_COUNT, 0);
+  const canExpand = hiddenCount > 0;
+  const visibleItems = expanded ? items : items.slice(0, COLLAPSED_COUNT);
 
   return (
     <section className="mt-14">
@@ -48,7 +48,7 @@ export function RecommendationsExpandable({
             aria-expanded={expanded}
             className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-mono transition-colors hover:text-foreground"
           >
-            {expanded ? "Show less" : `See more (${gridItems.length})`}
+            {expanded ? "Show less" : `See more (${hiddenCount})`}
             <ChevronDown
               className={cn(
                 "h-3 w-3 transition-transform",
@@ -59,30 +59,16 @@ export function RecommendationsExpandable({
         )}
       </div>
 
-      <div>
-        <RailScroller>
-          {railItems.map((item) => (
-            <TmdbTile
-              key={`${item.media_type}-${item.id}`}
-              item={item}
-              saved={savedSet.has(item.id)}
-            />
-          ))}
-        </RailScroller>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6">
+        {visibleItems.map((item) => (
+          <TmdbTile
+            key={`${item.media_type}-${item.id}`}
+            item={item}
+            saved={savedSet.has(item.id)}
+            variant="grid"
+          />
+        ))}
       </div>
-
-      {expanded && canExpand && (
-        <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6">
-          {gridItems.map((item) => (
-            <TmdbTile
-              key={`${item.media_type}-${item.id}`}
-              item={item}
-              saved={savedSet.has(item.id)}
-              variant="grid"
-            />
-          ))}
-        </div>
-      )}
     </section>
   );
 }
