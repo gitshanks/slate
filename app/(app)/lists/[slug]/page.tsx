@@ -55,7 +55,7 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ShareListButton listName={(list as ListRow).name} />
+          <ShareListButton listSlug={(list as ListRow).slug} listName={(list as ListRow).name} />
           <DeleteListButton
             listId={(list as ListRow).id}
             listName={(list as ListRow).name}
