@@ -7,23 +7,25 @@ export const metadata: Metadata = {
 
 export default function ImportPage() {
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-8">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Import
-        </p>
-        <h1 className="mt-1 text-4xl font-semibold tracking-tight">
-          Bring your library
-        </h1>
-        <p className="mt-4 text-sm text-muted-foreground">
-          Move over from{" "}
-          <strong className="text-foreground">Letterboxd</strong> or{" "}
-          <strong className="text-foreground">Trakt</strong> in one go. Drop your
-          export CSV and Slate matches each row on TMDB and saves it as
-          watched. Re-importing is safe — titles already in your library keep
-          their state.
-        </p>
+    <div className="max-w-2xl">
+      <div className="mb-10 flex items-end justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+            Import
+          </p>
+          <h1 className="mt-1 text-4xl font-semibold tracking-tight">
+            Bring your library
+          </h1>
+        </div>
       </div>
+
+      <p className="mb-8 text-sm text-muted-foreground">
+        Move over from{" "}
+        <strong className="text-foreground">Letterboxd</strong> or{" "}
+        <strong className="text-foreground">Trakt</strong> in one go. Drop your
+        export CSV and Slate matches each row on TMDB and saves it as watched.
+        Re-importing is safe — titles already in your library keep their state.
+      </p>
 
       <ImportWidget />
 
