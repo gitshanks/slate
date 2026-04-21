@@ -11,6 +11,7 @@ Built with **Next.js 16**, **React 19**, **Tailwind CSS v4**, **shadcn/ui**, **S
 - Half-star ratings + free-form notes per title
 - Custom lists (e.g. "Cozy winter", "A24 horror")
 - Cast pages, streaming provider lookup, TMDB reviews
+- Bulk watch-history import via `/import` (CSV / TSV / JSON / plain text) or the included Chrome extension for Netflix, Prime Video, Hulu, and Disney+
 - Optional passcode gate — deploy privately or leave open
 - Fully responsive, dark/light theme
 
@@ -54,27 +55,6 @@ npm install
 
 > **Tip — private + public deployments from one repo:** Import the same GitHub repo twice in Vercel. Set `APP_PASSCODE` on the private project for personal use. Leave it unset on the public project for a portfolio-friendly open version. Both stay in sync automatically on every push.
 
-## Demo mode (public portfolio deployment)
-
-Set `NEXT_PUBLIC_DEMO_MODE=1` on a second Vercel project pointing at the same repo. No Supabase project is needed — the app runs fully interactive using a synthetic library seeded at first load and a per-visitor cookie sandbox for mutations.
-
-**What demo mode does:**
-- Loads a pre-built library of 30 titles across Watchlist / Watching / Watched / Dropped
-- Lets visitors add titles, change statuses, rate, review, and manage lists — all state lives in their browser cookie
-- Each visitor's session is isolated; refreshing clears nothing (cookie persists 7 days); clearing cookies resets to seed
-- Renders a dismissible banner explaining it's a demo
-
-**Env vars for the public project:**
-
-| Variable | Value |
-|---|---|
-| `TMDB_API_KEY` | Your TMDB key (still needed — search, cast, providers are live) |
-| `NEXT_PUBLIC_DEMO_MODE` | `1` |
-
-Leave `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `APP_PASSCODE` **unset** on the public project.
-
-The private deployment is completely unaffected — `NEXT_PUBLIC_DEMO_MODE` is inlined at build time by Next.js and the demo code is eliminated as dead code when the flag is absent.
-
 ### 5. Run locally
 
 ```bash
@@ -82,6 +62,52 @@ npm run dev
 ```
 
 Open <http://localhost:3000>. Without `APP_PASSCODE` set, the unlock screen is skipped automatically.
+
+## Watch history import
+
+Slate ships two ways to seed your library without adding titles one at a time.
+
+### Web — any CSV / text file
+
+Go to `/import`. Drop a file or paste titles; Slate sniffs the format (CSV / TSV / JSON / plain lines), matches each row against TMDB, and shows a review table so you can uncheck bad matches before committing. Supported sources include Netflix's `NetflixViewingHistory.csv`, Letterboxd's diary export, IMDb lists, Trakt JSON, and one-title-per-line text. Series episodes collapse into one `tv` row with the earliest watched date, and re-imports are idempotent thanks to the `(tmdb_id, media_type)` unique constraint.
+
+### Chrome extension — Netflix, Prime Video, Hulu, Disney+
+
+For services without a CSV export, the `extension/` directory contains a Manifest V3 Chrome extension that reads your already-logged-in history pages in your own browser session and pushes the titles back to Slate over an authenticated API.
+
+**Build**
+
+```bash
+cd extension
+npm install
+npm run build
+```
+
+Output lands in `extension/dist/`.
+
+**Install**
+
+1. Open `chrome://extensions`.
+2. Toggle **Developer mode** on (top-right).
+3. Click **Load unpacked** and select `extension/dist/` (or drag the folder onto the page).
+4. Open the puzzle-piece menu in Chrome's toolbar and pin **Slate — Watch history sync**.
+
+**Pair**
+
+1. In Slate, visit `/settings` and copy the generated API token. (First visit to `/settings` seeds a token into the `app_settings` table.)
+2. Click the pinned Slate icon → paste your Slate URL (e.g. `https://slate.yourdomain.com`) and the token → **Save**.
+
+**Sync**
+
+1. Open one of the supported history pages in the active tab:
+   - Netflix — <https://www.netflix.com/viewingactivity>
+   - Prime Video — <https://www.amazon.com/gp/video/library>
+   - Hulu — <https://www.hulu.com/account/watch-history>
+   - Disney+ — <https://www.disneyplus.com/watchlist>
+2. Open the Slate popup → **Sync now** next to the matching service.
+3. The popup logs `N saved — M unmatched`. Unmatched titles appear back on `/import` so you can retry them manually.
+
+The extension is sideloaded only — no Chrome Web Store presence — so each code change requires rebuilding and clicking the refresh icon on the extension's card in `chrome://extensions`.
 
 ## Project layout
 
