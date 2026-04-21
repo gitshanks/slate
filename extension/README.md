@@ -55,8 +55,19 @@ extension/
     prime.ts            Prime Video watch-history scraper
     hulu.ts             Hulu /account/watch-history scraper
     disney.ts           Disney+ /watchlist scraper
-  vite.config.ts        Rollup entry-map + copy manifest/popup.html
+  build.mjs             esbuild per-entry IIFE bundler + static file copy
 ```
+
+## Why esbuild, not Vite
+
+MV3 content scripts declared in `manifest.json` are loaded as CLASSIC
+scripts — they can't resolve ES-module `import` statements. Vite's
+default multi-entry build extracts shared code into chunks imported at
+runtime, which silently breaks content scripts (the listener never
+registers and `chrome.tabs.sendMessage` fails with
+`"Receiving end does not exist"`). `esbuild` with per-entry `bundle:
+true, format: "iife"` inlines everything into each output file — no
+imports, no shared chunks, works as a classic script.
 
 ## When scrapers break
 

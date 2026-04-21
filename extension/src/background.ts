@@ -96,28 +96,55 @@ async function runSync(service: ServiceId): Promise<RuntimeMessage> {
 }
 
 /**
- * Ask the injected content script for its scraped rows. The content script
- * is declared in manifest.json for each service's URL, so it's already in
- * the tab — we just send it a SCRAPE message.
+ * Ask the tab's content script for its scraped rows. The manifest declares
+ * per-service content scripts so any tab the user NAVIGATED TO after install
+ * already has the listener registered. But a tab that was open BEFORE install
+ * has no listener — `sendMessage` then fails with "Receiving end does not
+ * exist". We detect that and fall back to programmatic injection via
+ * `chrome.scripting.executeScript`, which matches what the manifest would
+ * have done, then retry the message.
  */
 async function scrapeTab(tabId: number, service: ServiceId): Promise<SlateRow[]> {
+  try {
+    return await sendScrapeMessage(tabId, service);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!/Receiving end does not exist|Could not establish connection/i.test(msg)) {
+      throw err;
+    }
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: [`content/${service}.js`],
+    });
+    return await sendScrapeMessage(tabId, service);
+  }
+}
+
+function sendScrapeMessage(
+  tabId: number,
+  service: ServiceId
+): Promise<SlateRow[]> {
   return new Promise((resolve, reject) => {
     const message: RuntimeMessage = { type: "SCRAPE", service };
-    chrome.tabs.sendMessage(tabId, message, (response: RuntimeMessage) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message ?? "Tab unreachable"));
-        return;
+    chrome.tabs.sendMessage(
+      tabId,
+      message,
+      (response: RuntimeMessage | undefined) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message ?? "Tab unreachable"));
+          return;
+        }
+        if (!response || response.type !== "SCRAPE_RESULT") {
+          reject(new Error("Scraper returned unexpected message"));
+          return;
+        }
+        if (response.error) {
+          reject(new Error(response.error));
+          return;
+        }
+        resolve(response.rows);
       }
-      if (!response || response.type !== "SCRAPE_RESULT") {
-        reject(new Error("Scraper returned unexpected message"));
-        return;
-      }
-      if (response.error) {
-        reject(new Error(response.error));
-        return;
-      }
-      resolve(response.rows);
-    });
+    );
   });
 }
 
