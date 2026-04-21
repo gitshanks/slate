@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The browser extension is a sub-project with its own tsconfig and
+    // lint lifecycle — don't lint its bundled output here.
+    "extension/dist/**",
+    "extension/node_modules/**",
   ]),
 ]);
 

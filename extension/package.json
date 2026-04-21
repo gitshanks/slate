@@ -1,0 +1,17 @@
+{
+  "name": "slate-extension",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Chrome extension that pushes your streaming service watch history to a Slate watchlist instance.",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.8"
+  }
+}

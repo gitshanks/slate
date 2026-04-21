@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Slate sync</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0b0c0f;
+        --fg: #e8e8ea;
+        --muted: #8a8a8f;
+        --border: #1c1e23;
+        --card: #13151a;
+        --accent: #e8e8ea;
+        --ok: #9bd48b;
+        --warn: #f2b36a;
+        --err: #e88580;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #ffffff;
+          --fg: #09090b;
+          --muted: #71717a;
+          --border: #e4e4e7;
+          --card: #fafafa;
+          --accent: #09090b;
+          --ok: #15803d;
+          --warn: #ca8a04;
+          --err: #b91c1c;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        width: 340px;
+        min-height: 240px;
+        font-size: 13px;
+      }
+      header {
+        padding: 14px 16px 10px;
+        border-bottom: 1px solid var(--border);
+      }
+      h1 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .eyebrow {
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-family: ui-monospace, "SF Mono", monospace;
+      }
+      section {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      section:last-of-type { border-bottom: 0; }
+      label.small {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+        font-family: ui-monospace, "SF Mono", monospace;
+      }
+      input[type="text"], input[type="url"], input[type="password"] {
+        width: 100%;
+        padding: 7px 10px;
+        font-size: 12px;
+        background: var(--card);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        outline: none;
+        font-family: inherit;
+      }
+      input:focus { border-color: var(--accent); }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      button {
+        font: inherit;
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--fg);
+        cursor: pointer;
+        transition: opacity 0.15s, background 0.15s;
+      }
+      button.primary {
+        background: var(--accent);
+        color: var(--bg);
+        border-color: var(--accent);
+        font-weight: 500;
+      }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      button.ghost {
+        background: transparent;
+        border-color: transparent;
+        color: var(--muted);
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+      button.ghost:hover { color: var(--fg); }
+      .service {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .service:last-child { border-bottom: 0; }
+      .service-name { display: flex; flex-direction: column; gap: 2px; }
+      .service-name strong { font-weight: 500; font-size: 12px; }
+      .service-name span { font-size: 10px; color: var(--muted); font-family: ui-monospace, monospace; }
+      .status { font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; }
+      .status.ok { color: var(--ok); }
+      .status.warn { color: var(--warn); }
+      .status.err { color: var(--err); }
+      .empty {
+        padding: 14px 0;
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+      }
+      #log {
+        max-height: 80px;
+        overflow-y: auto;
+        font-family: ui-monospace, monospace;
+        font-size: 10px;
+        color: var(--muted);
+        padding-top: 6px;
+      }
+      #log div { padding: 2px 0; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="eyebrow">Slate sync</div>
+      <h1>Push your watch history</h1>
+    </header>
+
+    <section id="config-section">
+      <label class="small" for="slate-url">Slate URL</label>
+      <input id="slate-url" type="url" placeholder="https://slate.example.com" />
+      <label class="small" for="slate-token" style="margin-top:10px">Token</label>
+      <input id="slate-token" type="password" placeholder="Paste from /settings" />
+      <div class="row">
+        <button id="save-config" class="primary">Save</button>
+        <button id="clear-config" class="ghost">Clear</button>
+      </div>
+    </section>
+
+    <section id="services-section">
+      <label class="small">Services</label>
+      <div id="services"></div>
+    </section>
+
+    <section>
+      <label class="small">Activity</label>
+      <div id="log"></div>
+    </section>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

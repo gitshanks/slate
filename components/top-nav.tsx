@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/watching", label: "Watching" },
   { href: "/watched", label: "Watched" },
   { href: "/lists", label: "Lists" },
+  { href: "/import", label: "Import" },
 ];
 
 export function TopNav() {
@@ -87,6 +88,18 @@ export function TopNav() {
             <Search className="h-5 w-5" />
           </button>
           <PwaInstallButton />
+          <Link
+            href="/settings"
+            aria-label="Settings"
+            className={cn(
+              "inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-accent",
+              pathname.startsWith("/settings")
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
           <ThemeToggle />
         </div>
       </div>

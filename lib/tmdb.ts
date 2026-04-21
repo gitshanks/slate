@@ -84,6 +84,48 @@ export async function searchMulti(query: string) {
   });
 }
 
+/**
+ * `searchMulti` with a word-drop fuzzy retry. If the initial query returns
+ * zero movie/tv hits, progressively drops trailing words (up to 2 times) and
+ * retries. This is the fallback both `/api/tmdb/search` and the import
+ * pipeline use so a user's typo (`"Brakeng Bad"` → drop nothing helps,
+ * `"The Shawshank"` → drops `"Shawshank"` isn't useful either, but
+ * `"Breaking Bad (2008)"` → drops `"(2008)"` recovers).
+ */
+export async function searchMultiWithFallback(query: string): Promise<{
+  results: TmdbMediaResult[];
+  approximate: boolean;
+  approxQuery: string | null;
+}> {
+  const trimmed = query.trim();
+  if (!trimmed) return { results: [], approximate: false, approxQuery: null };
+
+  const first = await searchMulti(trimmed);
+  const results = filterMediaResults(first.results);
+  if (results.length > 0) return { results, approximate: false, approxQuery: null };
+
+  const words = trimmed.split(/\s+/);
+  for (let drop = 1; drop <= 2 && words.length - drop >= 1; drop++) {
+    const retryQuery = words.slice(0, words.length - drop).join(" ");
+    if (!retryQuery) break;
+    const retry = await searchMulti(retryQuery);
+    const retryResults = filterMediaResults(retry.results);
+    if (retryResults.length > 0) {
+      return { results: retryResults, approximate: true, approxQuery: retryQuery };
+    }
+  }
+  return { results: [], approximate: false, approxQuery: null };
+}
+
+/** TMDB `multi` search includes `person` results; narrow to movie|tv. */
+export type TmdbMediaResult = TmdbSearchResult & { media_type: "movie" | "tv" };
+
+function filterMediaResults(results: TmdbSearchResult[]): TmdbMediaResult[] {
+  return results.filter(
+    (r): r is TmdbMediaResult => r.media_type === "movie" || r.media_type === "tv"
+  );
+}
+
 export async function getMovie(id: number) {
   return tmdb<TmdbMovieDetail>(`/movie/${id}`, { language: "en-US" });
 }

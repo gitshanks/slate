@@ -47,3 +47,12 @@ create table if not exists list_titles (
 );
 
 create index if not exists list_titles_list_idx on list_titles (list_id, position);
+
+-- Single-row-per-key settings table. Today it stores the import token used by
+-- the Slate browser extension to authenticate when POSTing scraped rows to
+-- /api/import/submit. Uses upsert on `key` so rotating a value is one call.
+create table if not exists app_settings (
+  key        text primary key,
+  value      text not null,
+  updated_at timestamptz not null default now()
+);
