@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/watching", label: "Watching" },
   { href: "/watched", label: "Watched" },
   { href: "/lists", label: "Lists" },
+  { href: "/import", label: "Import" },
 ];
 
 export function TopNav() {
