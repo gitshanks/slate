@@ -142,6 +142,40 @@ export async function createList(formData: FormData) {
   redirect(`/lists/${slug}`);
 }
 
+/**
+ * Create a new list and add a title to it in one step. Used by the
+ * "Create new list" affordance inside the Add-to-list popover on the
+ * title detail page, where we want to stay on the title page rather
+ * than redirect away.
+ */
+export async function createListAndAddTitle(
+  name: string,
+  titleId: string
+): Promise<{ id: string; name: string }> {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Name required");
+
+  const slug = slugify(trimmed);
+  const { data, error } = await supabase
+    .from("lists")
+    .insert({ name: trimmed, slug, description: null })
+    .select("id, name")
+    .single();
+  if (error) throw new Error(error.message);
+  const list = data as { id: string; name: string };
+
+  const { error: linkErr } = await supabase.from("list_titles").insert({
+    list_id: list.id,
+    title_id: titleId,
+  });
+  if (linkErr && !linkErr.message.includes("duplicate")) {
+    throw new Error(linkErr.message);
+  }
+  revalidatePath("/lists");
+  revalidatePath(`/title/${titleId}`);
+  return list;
+}
+
 export async function addTitleToList(listId: string, titleId: string) {
   const { error } = await supabase.from("list_titles").insert({
     list_id: listId,
