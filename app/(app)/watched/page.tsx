@@ -1,11 +1,10 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { FilteredGrid } from "@/components/filtered-grid";
 import { WatchedStats } from "@/components/watched-stats";
-import { Eye, Download } from "lucide-react";
+import { Eye } from "lucide-react";
 import { fetchTitlesByStatus } from "@/lib/title-filters";
 import { formatTmdbScore } from "@/lib/utils";
 
@@ -45,20 +44,11 @@ export default async function WatchedPage() {
           </p>
           <h1 className="mt-1 text-4xl font-semibold tracking-tight">Watched</h1>
         </div>
-        <div className="flex items-end gap-4">
-          <Link
-            href="/import"
-            className="hidden items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
-          >
-            <Download className="h-3 w-3" />
-            Import watch history
-          </Link>
-          <div className="hidden text-right text-xs text-muted-foreground sm:block">
-            <div>
-              {allTitles.length} {allTitles.length === 1 ? "title" : "titles"}
-            </div>
-            {tmdbAvg && <div className="font-mono">avg {tmdbAvg} TMDB</div>}
+        <div className="hidden text-right text-xs text-muted-foreground sm:block">
+          <div>
+            {allTitles.length} {allTitles.length === 1 ? "title" : "titles"}
           </div>
+          {tmdbAvg && <div className="font-mono">avg {tmdbAvg} TMDB</div>}
         </div>
       </div>
 
