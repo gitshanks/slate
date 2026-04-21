@@ -14,6 +14,9 @@ Built with **Next.js 16**, **React 19**, **Tailwind CSS v4**, **shadcn/ui**, **S
 - Optional passcode gate — deploy privately or leave open
 - Fully responsive, dark/light theme
 
+
+<img width="1518" height="1328" alt="Screenshot 2026-04-21 at 9 39 06 AM" src="https://github.com/user-attachments/assets/003b1ef9-0ccb-45e1-80f7-529f9f358ccf" />
+
 ## Setup
 
 ### 1. Clone and install
@@ -62,6 +65,8 @@ npm run dev
 
 Open <http://localhost:3000>. Without `APP_PASSCODE` set, the unlock screen is skipped automatically.
 
+<img width="1493" height="1348" alt="Screenshot 2026-04-21 at 9 39 46 AM" src="https://github.com/user-attachments/assets/136629c4-b999-4e4c-82d6-56ddd8e6186f" />
+
 ## Project layout
 
 ```
@@ -96,6 +101,8 @@ lib/
 proxy.ts             # passcode gate (Next.js proxy middleware)
 supabase/schema.sql  # one-shot DB setup
 ```
+
+<img width="1492" height="1348" alt="Screenshot 2026-04-21 at 9 40 15 AM" src="https://github.com/user-attachments/assets/69aff80e-e5e4-4b9d-b1ae-e52665325458" />
 
 ## Security notes
 
