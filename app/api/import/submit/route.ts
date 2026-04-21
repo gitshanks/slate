@@ -21,6 +21,29 @@ export const dynamic = "force-dynamic";
 // history (every episode replay logs separately).
 const MAX_ROWS = 10_000;
 
+/**
+ * CORS headers for the Slate browser extension. The extension's MV3 service
+ * worker POSTs cross-origin from its chrome-extension:// origin, which
+ * triggers a preflight (because of `Authorization` + `Content-Type: json`).
+ * The bearer token is the real auth — CORS is only Chrome's same-origin
+ * gate, so we accept any origin.
+ */
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+  "Access-Control-Max-Age": "86400",
+} as const;
+
+export function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
+function withCors(res: NextResponse): NextResponse {
+  for (const [k, v] of Object.entries(CORS_HEADERS)) res.headers.set(k, v);
+  return res;
+}
+
 interface SubmitBody {
   service?: string;
   rows?: unknown;
@@ -55,16 +78,14 @@ export async function POST(request: Request) {
     ? authHeader.slice(7).trim()
     : "";
   if (!bearer) {
-    return NextResponse.json(
-      { error: "Missing bearer token" },
-      { status: 401 }
+    return withCors(
+      NextResponse.json({ error: "Missing bearer token" }, { status: 401 })
     );
   }
   const ok = await verifyImportToken(bearer);
   if (!ok) {
-    return NextResponse.json(
-      { error: "Invalid or expired token" },
-      { status: 401 }
+    return withCors(
+      NextResponse.json({ error: "Invalid or expired token" }, { status: 401 })
     );
   }
 
@@ -72,14 +93,15 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as SubmitBody;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return withCors(
+      NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+    );
   }
 
   const rows = sanitiseRows(body.rows);
   if (rows.length === 0) {
-    return NextResponse.json(
-      { error: "No importable rows in payload" },
-      { status: 400 }
+    return withCors(
+      NextResponse.json({ error: "No importable rows in payload" }, { status: 400 })
     );
   }
 
@@ -93,15 +115,17 @@ export async function POST(request: Request) {
       .filter((r) => r.tmdbId == null)
       .map((r) => r.sourceText)
       .slice(0, 100);
-    return NextResponse.json({
-      service: typeof body.service === "string" ? body.service : null,
-      inserted,
-      unmatchedCount,
-      unmatched,
-      received: rows.length,
-    });
+    return withCors(
+      NextResponse.json({
+        service: typeof body.service === "string" ? body.service : null,
+        inserted,
+        unmatchedCount,
+        unmatched,
+        received: rows.length,
+      })
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Import failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return withCors(NextResponse.json({ error: message }, { status: 500 }));
   }
 }
