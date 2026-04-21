@@ -102,8 +102,6 @@ proxy.ts             # passcode gate (Next.js proxy middleware)
 supabase/schema.sql  # one-shot DB setup
 ```
 
-<img width="1492" height="1348" alt="Screenshot 2026-04-21 at 9 40 15 AM" src="https://github.com/user-attachments/assets/69aff80e-e5e4-4b9d-b1ae-e52665325458" />
-
 ## Security notes
 
 - `SUPABASE_SERVICE_ROLE_KEY` lives only in `lib/supabase.ts`, which has `import "server-only"`. It can never reach a client bundle.
