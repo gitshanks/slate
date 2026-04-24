@@ -43,7 +43,7 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · shadcn/ui · Supabase 
 ### 1. Clone
 
 ```bash
-git clone https://github.com/your-username/slate.git
+git clone https://github.com/gitshanks/slate.git
 cd slate && npm install
 ```
 
