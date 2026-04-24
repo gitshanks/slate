@@ -18,7 +18,13 @@ import { CastRail } from "@/components/cast-rail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatRuntime, formatTmdbScore, formatYear } from "@/lib/utils";
 
-export const revalidate = 3600;
+// The public demo keeps per-visitor mutations in a cookie-backed sandbox,
+// which means the title row for a freshly-added ID only exists in the
+// adder's cookie. ISR would cache one visitor's render and serve it to
+// everyone else (who don't have that ID in their cookie → 404). Forcing
+// dynamic rendering keeps demo mode correct, and bot crawls of /title/*
+// are blocked by robots.txt so real CPU cost stays tiny.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(
   props: PageProps<"/title/[id]">
