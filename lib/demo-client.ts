@@ -378,7 +378,6 @@ async function execUpsert(
   state: DemoState
 ): Promise<{ data: unknown; error: unknown }> {
   const row = b.mutData as Record<string, unknown>;
-  const onConflict = b.upsertOpts.onConflict ?? "";
 
   if (b.table === "titles") {
     const tmdbId = Number(row.tmdb_id);

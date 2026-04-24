@@ -31,8 +31,8 @@ export default async function ListsPage() {
 
   // Per-list count of titles + first 4 poster paths, batched
   const ids = (lists ?? []).map((l) => l.id);
-  let counts: Record<string, number> = {};
-  let posters: Record<string, string[]> = {};
+  const counts: Record<string, number> = {};
+  const posters: Record<string, string[]> = {};
   if (ids.length > 0) {
     const { data: rows } = await supabase
       .from("list_titles")

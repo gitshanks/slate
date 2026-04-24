@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Star, ExternalLink } from "lucide-react";
 import { supabase, type TitleRow } from "@/lib/supabase";
 import { getTitleMeta } from "@/lib/tmdb";
-import type { TmdbDetailWithMeta } from "@/lib/tmdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import { BackdropHero } from "@/components/backdrop-hero";
 import { StatusPill } from "@/components/status-pill";
@@ -93,12 +92,10 @@ async function TitleTrailerAndProviders({
   type,
   tmdbId,
   titleName,
-  titleId,
 }: {
   type: "movie" | "tv";
   tmdbId: number;
   titleName: string;
-  titleId: string;
 }) {
   const meta = await getTitleMeta(type, tmdbId);
   if (!meta.trailerKey && !meta.watchProviders) return null;
@@ -286,7 +283,6 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                   type={title.media_type}
                   tmdbId={title.tmdb_id}
                   titleName={title.title}
-                  titleId={title.id}
                 />
               </Suspense>
               <AddTitleToListButton titleId={title.id} lists={userLists} />

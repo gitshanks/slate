@@ -1,23 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { X } from "lucide-react";
 
 const DISMISS_KEY = "slate-demo-banner-dismissed";
+const DISMISS_EVENT = "slate:demo-banner-dismiss";
+
+function subscribe(onChange: () => void) {
+  window.addEventListener(DISMISS_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(DISMISS_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+function getSnapshot() {
+  return localStorage.getItem(DISMISS_KEY);
+}
 
 export function DemoBanner() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (!localStorage.getItem(DISMISS_KEY)) setVisible(true);
-  }, []);
+  const dismissed = useSyncExternalStore(subscribe, getSnapshot, () => "1");
+  if (dismissed !== null) return null;
 
   function dismiss() {
     localStorage.setItem(DISMISS_KEY, "1");
-    setVisible(false);
+    window.dispatchEvent(new Event(DISMISS_EVENT));
   }
-
-  if (!visible) return null;
 
   return (
     <div className="relative z-50 w-full bg-muted/60 backdrop-blur-sm border-b border-border/60 px-4 py-2 text-center text-xs text-muted-foreground">

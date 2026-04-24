@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Download, Share, X } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -9,6 +9,20 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const DISMISS_KEY = "slate-ios-install-dismissed";
+const DISMISS_EVENT = "slate:ios-install-dismiss";
+
+function subscribeDismiss(onChange: () => void) {
+  window.addEventListener(DISMISS_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(DISMISS_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+function getDismissSnapshot() {
+  return localStorage.getItem(DISMISS_KEY);
+}
 
 function detectIOS() {
   return (
@@ -25,18 +39,17 @@ function isStandalone() {
 }
 
 export function PwaInstallButton() {
+  const dismissed = useSyncExternalStore(
+    subscribeDismiss,
+    getDismissSnapshot,
+    () => "1"
+  );
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showIOS, setShowIOS] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isStandalone()) return;
-
-    if (detectIOS()) {
-      if (!localStorage.getItem(DISMISS_KEY)) setShowIOS(true);
-      return;
-    }
+    if (isStandalone() || detectIOS()) return;
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
@@ -64,9 +77,15 @@ export function PwaInstallButton() {
     return () => document.removeEventListener("mousedown", handler);
   }, [hintOpen]);
 
+  const showIOS =
+    typeof window !== "undefined" &&
+    dismissed === null &&
+    !isStandalone() &&
+    detectIOS();
+
   function dismissIOS() {
     localStorage.setItem(DISMISS_KEY, "1");
-    setShowIOS(false);
+    window.dispatchEvent(new Event(DISMISS_EVENT));
     setHintOpen(false);
   }
 
