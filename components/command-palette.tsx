@@ -77,18 +77,20 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
 
   // Debounced search
   React.useEffect(() => {
-    if (!query.trim()) {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
       setResults([]);
       setLibrary([]);
       setApproximate(false);
       setApproxQuery(null);
+      setLoading(false);
       return;
     }
     setLoading(true);
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query)}`, {
+        const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(trimmed)}`, {
           signal: ctrl.signal,
         });
         const data = await res.json();
@@ -101,7 +103,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
       } finally {
         setLoading(false);
       }
-    }, 180);
+    }, 300);
     return () => {
       clearTimeout(t);
       ctrl.abort();

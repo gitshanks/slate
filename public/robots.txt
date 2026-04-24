@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /title/
+Disallow: /person/
+Disallow: /lists/
+Disallow: /watching
+Disallow: /watched
+Disallow: /import
+Disallow: /unlock
+Disallow: /api/
+Disallow: /share/
