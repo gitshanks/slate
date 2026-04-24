@@ -26,7 +26,7 @@ Letterboxd is great, but it's social. Slate is the opposite: a single-user watch
 ## Features
 
 - **⌘K command palette** — search TMDB and add anything to your library in one keystroke
-- **Three clean states** — Watchlist, Watching, Watched, with half-star ratings and private notes
+- **Three clean states** — Watchlist, Watching, Watched, with Love / Like / Dislike ratings and private notes
 - **Custom lists** — curate collections like _"Cozy winter"_ or _"A24 horror"_
 - **Rich title pages** — cast, streaming providers, TMDB reviews, trailers
 - **One-step import** from Letterboxd or Trakt CSV exports — [`/import`](#import)
