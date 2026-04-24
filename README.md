@@ -1,109 +1,133 @@
+<div align="center">
+
 # slate
 
-A sleek personal watchlist for movies and TV shows. Like Letterboxd, but yours.
+**Your personal Letterboxd.** A fast, private watchlist for everything you want to watch — and everything you've loved.
 
-Built with **Next.js 16**, **React 19**, **Tailwind CSS v4**, **shadcn/ui**, **Supabase Postgres**, and the **TMDB API**. Designed dark-first, minimal, responsive. Hosted on **Vercel**.
+<p>
+  <a href="#quick-start"><img alt="Deploy" src="https://img.shields.io/badge/deploy-vercel-000?style=flat-square"></a>
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-000?style=flat-square">
+  <img alt="React" src="https://img.shields.io/badge/React-19-149ECA?style=flat-square">
+  <img alt="Tailwind" src="https://img.shields.io/badge/Tailwind-v4-38BDF8?style=flat-square">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-green?style=flat-square">
+</p>
+
+<img width="1518" alt="slate — watchlist" src="https://github.com/user-attachments/assets/003b1ef9-0ccb-45e1-80f7-529f9f358ccf" />
+
+</div>
+
+---
+
+## Why slate
+
+Letterboxd is great, but it's social. Slate is the opposite: a single-user watchlist designed to feel like a personal app, not a network. Deploy it to your own Vercel in five minutes, point it at a free Supabase database, and it's yours — keyboard-first, dark by default, and entirely under your control.
 
 ## Features
 
-- Cmd+K command palette to search TMDB and add titles instantly
-- Watchlist / Watching / Watched states with sentiment ratings
-- Half-star ratings + free-form notes per title
-- Custom lists (e.g. "Cozy winter", "A24 horror")
-- Cast pages, streaming provider lookup, TMDB reviews
-- Optional passcode gate — deploy privately or leave open
-- Fully responsive, dark/light theme
+- **⌘K command palette** — search TMDB and add anything to your library in one keystroke
+- **Three clean states** — Watchlist, Watching, Watched, with half-star ratings and private notes
+- **Custom lists** — curate collections like _"Cozy winter"_ or _"A24 horror"_
+- **Rich title pages** — cast, streaming providers, TMDB reviews, trailers
+- **One-step import** from Letterboxd or Trakt CSV exports — [`/import`](#import)
+- **Passcode gate** — optional shared-cookie lock for private deployments
+- **Responsive, themeable** — looks good on every screen, dark or light
 
+## Stack
 
-<img width="1518" height="1328" alt="Screenshot 2026-04-21 at 9 39 06 AM" src="https://github.com/user-attachments/assets/003b1ef9-0ccb-45e1-80f7-529f9f358ccf" />
+Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · shadcn/ui · Supabase Postgres · TMDB API · Vercel
 
-## Setup
+<img width="1493" alt="slate — title detail" src="https://github.com/user-attachments/assets/136629c4-b999-4e4c-82d6-56ddd8e6186f" />
 
-### 1. Clone and install
+## Quick start
+
+### 1. Clone
 
 ```bash
 git clone https://github.com/your-username/slate.git
-cd slate
-npm install
+cd slate && npm install
 ```
 
-### 2. Get a TMDB API key
+### 2. Get your keys
 
-1. Sign up at <https://www.themoviedb.org/signup>
-2. Visit <https://www.themoviedb.org/settings/api> → request a key (Developer, instant and free)
+| Service | What you need | Where |
+|---|---|---|
+| **TMDB** | v3 API key (free, instant) | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
+| **Supabase** | Project URL + `service_role` key | [supabase.com/dashboard](https://supabase.com/dashboard) → **New project** |
 
-### 3. Create a Supabase project
+Then open the Supabase **SQL editor** and paste in [`supabase/schema.sql`](./supabase/schema.sql). That's the entire database.
 
-1. Go to <https://supabase.com/dashboard> → **New project**
-2. Open **SQL editor** and run [`supabase/schema.sql`](./supabase/schema.sql)
-3. Go to **Project Settings → API** and copy:
-   - **Project URL** → `SUPABASE_URL`
-   - **service_role** secret → `SUPABASE_SERVICE_ROLE_KEY`
+### 3. Deploy
 
-### 4. Deploy to Vercel
+Push to GitHub, import at [vercel.com/new](https://vercel.com/new), and add these environment variables:
 
-1. Push the repo to GitHub
-2. Import it at <https://vercel.com/new> — Vercel auto-detects Next.js
-3. In **Project Settings → Environment Variables**, add:
+| Variable | Required | Purpose |
+|---|---|---|
+| `TMDB_API_KEY` | ✓ | TMDB v3 key |
+| `SUPABASE_URL` | ✓ | Project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✓ | Server-only secret |
+| `APP_PASSCODE` | — | Lock the app behind a shared passcode. Omit for public. |
 
-   | Variable | Value |
-   |---|---|
-   | `TMDB_API_KEY` | Your TMDB v3 API key |
-   | `SUPABASE_URL` | Your Supabase project URL |
-   | `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase service role secret |
-   | `APP_PASSCODE` | A passcode to gate access *(omit for a public deployment)* |
-
-4. Deploy.
-
-> **Tip — private + public deployments from one repo:** Import the same GitHub repo twice in Vercel. Set `APP_PASSCODE` on the private project for personal use. Leave it unset on the public project for a portfolio-friendly open version. Both stay in sync automatically on every push.
-
-### 5. Run locally
+### 4. Run locally
 
 ```bash
 npm run dev
 ```
 
-Open <http://localhost:3000>. Without `APP_PASSCODE` set, the unlock screen is skipped automatically.
+Open <http://localhost:3000>. Without `APP_PASSCODE`, the unlock screen is skipped.
 
-<img width="1493" height="1348" alt="Screenshot 2026-04-21 at 9 39 46 AM" src="https://github.com/user-attachments/assets/136629c4-b999-4e4c-82d6-56ddd8e6186f" />
+> **Pro tip — public _and_ private from one repo.** Import the same GitHub repo twice in Vercel. Set `APP_PASSCODE` on one project for your personal copy; leave it unset on the other for a portfolio-friendly public demo. Both stay in sync on every push.
+
+## Import
+
+Coming from another tracker? Drop a CSV into `/import`:
+
+- **Letterboxd** — Settings → Data → Export your data. Import `watched.csv`, `ratings.csv`, or `watchlist.csv`.
+- **Trakt** — any movie/show CSV export.
+
+Rows are matched against TMDB, deduped against your library, and dropped into the right state with ratings preserved.
 
 ## Project layout
 
 ```
 app/
-  (app)/             # main app (requires unlock when passcode is set)
-    page.tsx         #   /           Watchlist
-    watching/        #   /watching
-    watched/         #   /watched
-    title/[id]/      #   /title/:id
-    lists/           #   /lists, /lists/:slug
-    layout.tsx       #   TopNav + CommandPalette
-  unlock/            # passcode screen
-  api/tmdb/search/   # server-side TMDB search proxy
-  layout.tsx         # root HTML shell + ThemeProvider + Sonner
-  globals.css        # design tokens (HSL → @theme inline)
+  (app)/              # main app — protected by passcode when set
+    page.tsx          #   /              Watchlist
+    watching/         #   /watching
+    watched/          #   /watched
+    title/[id]/       #   /title/:id
+    lists/            #   /lists, /lists/:slug
+    discover/         #   /discover
+    import/           #   /import
+    person/[id]/      #   /person/:id
+  unlock/             # passcode screen
+  api/tmdb/search/    # server-side TMDB proxy
+  layout.tsx          # root shell + ThemeProvider + Sonner
+  globals.css         # design tokens (HSL → @theme inline)
 components/
-  ui/                # shadcn/ui primitives
-  poster-card.tsx
-  media-grid.tsx
-  backdrop-hero.tsx
-  star-rating.tsx
-  status-pill.tsx
+  ui/                 # shadcn/ui primitives
   command-palette.tsx
+  poster-card.tsx
+  backdrop-hero.tsx
   review-sheet.tsx
-  top-nav.tsx
   ...
 lib/
-  supabase.ts        # server-only Supabase client + types
-  tmdb.ts            # TMDB fetch helpers
-  actions.ts         # Server Actions (all mutations)
-  utils.ts
-proxy.ts             # passcode gate (Next.js proxy middleware)
-supabase/schema.sql  # one-shot DB setup
+  supabase.ts         # server-only client + generated types
+  tmdb.ts             # TMDB fetch helpers
+  actions.ts          # Server Actions — all mutations
+proxy.ts              # passcode gate (Next.js proxy middleware)
+supabase/schema.sql   # one-shot DB setup
 ```
 
-## Security notes
+## Security
 
-- `SUPABASE_SERVICE_ROLE_KEY` lives only in `lib/supabase.ts`, which has `import "server-only"`. It can never reach a client bundle.
-- `TMDB_API_KEY` never reaches the client — the command palette routes through `/api/tmdb/search` on the server.
-- The passcode gate is a lightweight shared-cookie approach. For multi-user deployments, swap in Supabase Auth + RLS.
+- `SUPABASE_SERVICE_ROLE_KEY` is imported only from `lib/supabase.ts`, which carries `import "server-only"` — it can never leak into a client bundle.
+- `TMDB_API_KEY` never touches the browser. The command palette routes through `/api/tmdb/search`.
+- The passcode gate uses a signed shared cookie — fine for single-user deployments. For multi-user, swap in Supabase Auth + RLS.
+
+## Credits
+
+This product uses the TMDB API but is not endorsed or certified by TMDB. Poster and backdrop artwork is served from TMDB's CDN.
+
+## License
+
+MIT. Fork it, host it, make it yours.
