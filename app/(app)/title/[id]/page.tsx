@@ -19,7 +19,7 @@ import { CastRail } from "@/components/cast-rail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatRuntime, formatTmdbScore, formatYear } from "@/lib/utils";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export async function generateMetadata(
   props: PageProps<"/title/[id]">

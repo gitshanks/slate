@@ -6,6 +6,8 @@ import { TmdbRail } from "@/components/tmdb-rail";
 import { BackButton } from "@/components/back-button";
 import type { TmdbSearchResult } from "@/lib/tmdb";
 
+export const revalidate = 3600;
+
 export default async function PersonPage(props: PageProps<"/person/[id]">) {
   const { id } = await props.params;
   const personId = Number(id);
