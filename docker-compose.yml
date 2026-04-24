@@ -1,0 +1,84 @@
+# Slate — self-host stack.
+#
+#   postgres  — your data
+#   postgrest — REST API over the tables
+#   caddy     — maps /rest/v1/* to postgrest (Supabase URL compat)
+#   slate     — the Next.js app
+#
+#   Start:   docker compose up -d
+#   Stop:    docker compose down
+#   Reset:   docker compose down -v   # wipes the postgres volume
+#
+# Only slate is exposed to the host. Everything else lives on the
+# internal `slate_net` network.
+
+name: slate
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: slate
+      POSTGRES_USER: slate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-slate}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./supabase/schema.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slate -d slate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [slate_net]
+
+  postgrest:
+    image: postgrest/postgrest:v12.2.3
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://slate:${POSTGRES_PASSWORD:-slate}@postgres:5432/slate
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: slate
+      PGRST_OPENAPI_SERVER_PROXY_URI: http://localhost:3000/rest/v1
+    networks: [slate_net]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - postgrest
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks: [slate_net]
+
+  slate:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      caddy:
+        condition: service_started
+    environment:
+      # Inside the compose network, the app talks to caddy which proxies
+      # /rest/v1/* to postgrest.
+      SUPABASE_URL: http://caddy
+      # PostgREST ignores Authorization when PGRST_JWT_SECRET is unset,
+      # so any non-empty string works for the self-host setup. Rotate +
+      # add a JWT secret if you expose this beyond localhost.
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-local}
+      TMDB_API_KEY: ${TMDB_API_KEY:?TMDB_API_KEY is required — see .env.example}
+      APP_PASSCODE: ${APP_PASSCODE:-}
+      NODE_ENV: production
+    ports:
+      - "${SLATE_PORT:-3000}:3000"
+    networks: [slate_net]
+
+volumes:
+  postgres_data:
+
+networks:
+  slate_net:

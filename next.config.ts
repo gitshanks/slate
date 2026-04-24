@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
+  // Produce a minimal self-contained server bundle for docker-compose /
+  // self-host deploys. On Vercel this flag is a no-op.
+  output: "standalone",
   turbopack: {
     root: path.join(__dirname),
   },

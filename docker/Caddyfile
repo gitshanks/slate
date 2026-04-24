@@ -1,0 +1,13 @@
+# Caddy maps the Supabase-style `/rest/v1/*` URL convention onto PostgREST
+# so the slate Next.js app can talk to a local Postgres without any code
+# changes. The app sets SUPABASE_URL=http://caddy inside the compose
+# network; supabase-js appends /rest/v1/... and Caddy strips the prefix
+# before forwarding.
+
+:80 {
+	handle_path /rest/v1/* {
+		reverse_proxy postgrest:3000
+	}
+
+	respond "slate: only /rest/v1/* is routed here" 404
+}
