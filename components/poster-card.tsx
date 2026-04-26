@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Clock, Eye, Check, Heart, ThumbsUp, ThumbsDown } from "lucide-react";
 import { ViewTransition } from "@/components/view-transition";
 import { PosterCardActions } from "@/components/poster-card-actions";
 import { RatingPair } from "@/components/rating-pair";
@@ -12,7 +11,7 @@ import {
   formatYear,
 } from "@/lib/utils";
 import { posterUrl } from "@/lib/tmdb-image";
-import type { TitleRow, TitleStatus } from "@/lib/supabase";
+import type { TitleRow } from "@/lib/supabase";
 
 interface PosterCardProps {
   title: Pick<
@@ -26,33 +25,11 @@ interface PosterCardProps {
     | "imdb_rating"
     | "rt_score"
     | "metacritic_score"
-    | "rating"
   >;
   priority?: boolean;
-  /** Show sentiment (loved/liked/disliked) instead of status chip */
-  showSentiment?: boolean;
 }
 
-/** Map a status value → small icon element */
-function StatusChip({ status }: { status: TitleStatus }) {
-  if (status === "want") return <Clock className="h-3 w-3 text-white/90" />;
-  if (status === "watching") return <Eye className="h-3 w-3 text-sky-300" />;
-  if (status === "watched") return <Check className="h-3 w-3 text-emerald-300" />;
-  return null;
-}
-
-/** Map a sentiment rating → icon + color for card chip */
-function SentimentChip({ rating }: { rating: number | null }) {
-  if (rating === 3)
-    return <Heart className="h-3 w-3 fill-rose-400 text-rose-400" />;
-  if (rating === 2)
-    return <ThumbsUp className="h-3 w-3 fill-emerald-400 text-emerald-400" />;
-  if (rating === 1)
-    return <ThumbsDown className="h-3 w-3 fill-zinc-400 text-zinc-400" />;
-  return null;
-}
-
-export function PosterCard({ title, priority, showSentiment }: PosterCardProps) {
+export function PosterCard({ title, priority }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
   const imdb = formatImdbRating(title.imdb_rating);
@@ -104,15 +81,6 @@ export function PosterCard({ title, priority, showSentiment }: PosterCardProps) 
           </div>
         </div>
 
-        {/* Status / sentiment chip (top-right) */}
-        <div className="absolute right-2 top-2 flex items-center justify-center rounded-full bg-black/70 backdrop-blur p-1.5">
-          {showSentiment ? (
-            <SentimentChip rating={title.rating != null ? Number(title.rating) : null} />
-          ) : (
-            <StatusChip status={title.status} />
-          )}
-        </div>
-
         {/* IMDB rating + RT score chip (top-left) — hidden on hover */}
         {hasRating && (
           <div className="absolute left-2 top-2 rounded-full bg-black/60 backdrop-blur-sm px-2 py-1 text-[11px] font-medium text-white transition-opacity duration-200 hoverable:group-hover:opacity-0">
@@ -144,6 +112,7 @@ export function PosterCard({ title, priority, showSentiment }: PosterCardProps) 
               <RatingPair
                 imdb={title.imdb_rating}
                 rt={title.rt_score}
+                metacritic={title.metacritic_score}
                 variant="compact"
               />
             </>

@@ -8,14 +8,13 @@ import type { TitleRow, TitleStatus } from "@/lib/types";
 interface FilteredGridProps {
   allTitles: TitleRow[];
   status: TitleStatus;
-  showSentiment?: boolean;
 }
 
 /**
  * Client component — reads URL search params and filters/sorts the full title
  * list in memory. Filter changes are instant: no server roundtrip, no skeleton.
  */
-export function FilteredGrid({ allTitles, status, showSentiment }: FilteredGridProps) {
+export function FilteredGrid({ allTitles, status }: FilteredGridProps) {
   const sp = useSearchParams();
   const params = {
     type: sp.get("type") ?? undefined,
@@ -34,5 +33,5 @@ export function FilteredGrid({ allTitles, status, showSentiment }: FilteredGridP
     );
   }
 
-  return <MediaGrid titles={titles} showSentiment={showSentiment} />;
+  return <MediaGrid titles={titles} />;
 }

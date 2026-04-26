@@ -64,7 +64,7 @@ export default async function WatchedPage() {
         />
       ) : (
         <Suspense fallback={null}>
-          <FilteredGrid allTitles={allTitles} status="watched" showSentiment />
+          <FilteredGrid allTitles={allTitles} status="watched" />
         </Suspense>
       )}
     </div>
