@@ -69,8 +69,20 @@ export function filterAndSort(
   switch (sp.sort) {
     case "rating":
       sorted.sort((a, b) => {
-        const av = Number(a.tmdb_rating ?? -Infinity);
-        const bv = Number(b.tmdb_rating ?? -Infinity);
+        // IMDB primary, TMDB fallback for older rows that haven't been
+        // backfilled yet. Falls through both → -Infinity sinks to the bottom.
+        const av =
+          a.imdb_rating != null
+            ? Number(a.imdb_rating)
+            : a.tmdb_rating != null
+              ? Number(a.tmdb_rating)
+              : -Infinity;
+        const bv =
+          b.imdb_rating != null
+            ? Number(b.imdb_rating)
+            : b.tmdb_rating != null
+              ? Number(b.tmdb_rating)
+              : -Infinity;
         return bv - av;
       });
       break;

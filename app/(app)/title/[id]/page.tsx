@@ -16,7 +16,12 @@ import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatRuntime, formatTmdbScore, formatYear } from "@/lib/utils";
+import {
+  formatImdbRating,
+  formatRtScore,
+  formatRuntime,
+  formatYear,
+} from "@/lib/utils";
 
 // The public demo keeps per-visitor mutations in a cookie-backed sandbox,
 // which means the title row for a freshly-added ID only exists in the
@@ -62,34 +67,6 @@ async function TitleTaglineDirector({
           <span className="text-foreground">{meta.directedBy.join(", ")}</span>
         </p>
       )}
-    </>
-  );
-}
-
-async function TitleScore({
-  type,
-  tmdbId,
-  tmdbUrl,
-}: {
-  type: "movie" | "tv";
-  tmdbId: number;
-  tmdbUrl: string;
-}) {
-  const meta = await getTitleMeta(type, tmdbId);
-  const userScore = formatTmdbScore(meta.vote_average);
-  if (!userScore) return null;
-  return (
-    <>
-      <span aria-hidden>·</span>
-      <a
-        href={tmdbUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-      >
-        <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-        <span>{userScore} TMDB</span>
-      </a>
     </>
   );
 }
@@ -212,6 +189,9 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const runtime = formatRuntime(title.runtime);
   const ambientBg = rawPosterUrl(title.poster_path, "w342");
   const tmdbUrl = `https://www.themoviedb.org/${title.media_type}/${title.tmdb_id}`;
+  const imdbScore = formatImdbRating(title.imdb_rating);
+  const rtScore = formatRtScore(title.rt_score);
+  const imdbUrl = title.imdb_id ? `https://www.imdb.com/title/${title.imdb_id}/` : null;
 
   const { data: listsData } = await supabase
     .from("lists")
@@ -241,7 +221,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
 
           {/* Main content */}
           <div>
-            {/* Label row: type · year · runtime · genres · TMDB score */}
+            {/* Label row: type · year · runtime · genres · IMDB · RT */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
               <span>{title.media_type === "movie" ? "Film" : "Series"}</span>
               {year && <><span aria-hidden>·</span><span>{year}</span></>}
@@ -252,13 +232,33 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                   <span>{g.name}</span>
                 </Fragment>
               ))}
-              <Suspense fallback={null}>
-                <TitleScore
-                  type={title.media_type}
-                  tmdbId={title.tmdb_id}
-                  tmdbUrl={tmdbUrl}
-                />
-              </Suspense>
+              {imdbScore && (
+                <>
+                  <span aria-hidden>·</span>
+                  {imdbUrl ? (
+                    <a
+                      href={imdbUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+                    >
+                      <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                      <span>{imdbScore} IMDB</span>
+                    </a>
+                  ) : (
+                    <span className="inline-flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                      <span>{imdbScore} IMDB</span>
+                    </span>
+                  )}
+                </>
+              )}
+              {rtScore && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>{rtScore} RT</span>
+                </>
+              )}
             </div>
 
             {/* Title */}

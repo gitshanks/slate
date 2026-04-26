@@ -1,6 +1,6 @@
 import { Heart, ThumbsUp, ThumbsDown, Circle } from "lucide-react";
 import type { TitleRow } from "@/lib/supabase";
-import { formatTmdbScore } from "@/lib/utils";
+import { formatImdbRating } from "@/lib/utils";
 
 interface WatchedStatsProps {
   titles: TitleRow[];
@@ -27,8 +27,8 @@ export function WatchedStats({ titles }: WatchedStatsProps) {
   let liked = 0;
   let disliked = 0;
   let unrated = 0;
-  let tmdbSum = 0;
-  let tmdbCount = 0;
+  let imdbSum = 0;
+  let imdbCount = 0;
 
   for (const t of titles) {
     const d = dateOf(t);
@@ -43,19 +43,19 @@ export function WatchedStats({ titles }: WatchedStatsProps) {
     else if (r === 1) disliked += 1;
     else unrated += 1;
 
-    if (t.tmdb_rating != null && Number(t.tmdb_rating) > 0) {
-      tmdbSum += Number(t.tmdb_rating);
-      tmdbCount += 1;
+    if (t.imdb_rating != null && Number(t.imdb_rating) > 0) {
+      imdbSum += Number(t.imdb_rating);
+      imdbCount += 1;
     }
   }
 
-  const tmdbAvg = tmdbCount > 0 ? formatTmdbScore(tmdbSum / tmdbCount) : null;
+  const imdbAvg = imdbCount > 0 ? formatImdbRating(imdbSum / imdbCount) : null;
   const total = titles.length || 1;
 
   const stats: { label: string; value: string }[] = [
     { label: "This year", value: String(thisYear) },
     { label: "This month", value: String(thisMonth) },
-    { label: "Avg TMDB", value: tmdbAvg ?? "—" },
+    { label: "Avg IMDB", value: imdbAvg ?? "—" },
     { label: "Loved", value: String(loved) },
   ];
 

@@ -332,6 +332,11 @@ async function execInsert(
       watched_at: (row.watched_at as string | null) ?? null,
       tmdb_rating: (row.tmdb_rating as number | null) ?? null,
       tmdb_vote_count: (row.tmdb_vote_count as number | null) ?? null,
+      imdb_id: (row.imdb_id as string | null) ?? null,
+      imdb_rating: (row.imdb_rating as number | null) ?? null,
+      imdb_votes: (row.imdb_votes as number | null) ?? null,
+      rt_score: (row.rt_score as number | null) ?? null,
+      ratings_fetched_at: (row.ratings_fetched_at as string | null) ?? null,
     };
     next.addedTitles = [...state.addedTitles, newTitle];
     await writeState(next);
@@ -424,6 +429,11 @@ async function execUpsert(
         watched_at: (row.watched_at as string | null) ?? null,
         tmdb_rating: (row.tmdb_rating as number | null) ?? null,
         tmdb_vote_count: (row.tmdb_vote_count as number | null) ?? null,
+        imdb_id: (row.imdb_id as string | null) ?? null,
+        imdb_rating: (row.imdb_rating as number | null) ?? null,
+        imdb_votes: (row.imdb_votes as number | null) ?? null,
+        rt_score: (row.rt_score as number | null) ?? null,
+        ratings_fetched_at: (row.ratings_fetched_at as string | null) ?? null,
       };
       next.addedTitles = [...state.addedTitles, newTitle];
       // Un-delete if previously deleted

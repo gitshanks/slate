@@ -23,8 +23,24 @@ create table if not exists titles (
   favorite       boolean not null default false,
   added_at       timestamptz not null default now(),
   watched_at     timestamptz,
+  tmdb_rating       numeric(3,1),
+  tmdb_vote_count   integer,
+  imdb_id           text,
+  imdb_rating       numeric(3,1),
+  imdb_votes        integer,
+  rt_score          integer,
+  ratings_fetched_at timestamptz,
   unique (tmdb_id, media_type)
 );
+
+-- Idempotent column adds for existing deployments.
+alter table titles add column if not exists tmdb_rating       numeric(3,1);
+alter table titles add column if not exists tmdb_vote_count   integer;
+alter table titles add column if not exists imdb_id           text;
+alter table titles add column if not exists imdb_rating       numeric(3,1);
+alter table titles add column if not exists imdb_votes        integer;
+alter table titles add column if not exists rt_score          integer;
+alter table titles add column if not exists ratings_fetched_at timestamptz;
 
 create index if not exists titles_status_idx     on titles (status);
 create index if not exists titles_added_at_idx   on titles (added_at desc);

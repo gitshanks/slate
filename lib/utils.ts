@@ -40,3 +40,23 @@ export function formatTmdbScore(
   if (!Number.isFinite(n) || n <= 0) return null;
   return `${Math.round(n * 10)}%`;
 }
+
+/** Format an IMDB rating (0–10) as a one-decimal string: 8.234 → "8.2". */
+export function formatImdbRating(
+  value: number | string | null | undefined
+): string | null {
+  if (value == null) return null;
+  const n = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n.toFixed(1);
+}
+
+/** Format a Rotten Tomatoes Tomatometer (0–100) as a percentage string. */
+export function formatRtScore(
+  value: number | string | null | undefined
+): string | null {
+  if (value == null) return null;
+  const n = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(n) || n < 0) return null;
+  return `${Math.round(n)}%`;
+}

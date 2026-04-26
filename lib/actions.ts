@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabase, type TitleStatus } from "@/lib/supabase";
 import { getMovie, getTv, normalizeForStorage } from "@/lib/tmdb";
+import { getOmdbRatings } from "@/lib/omdb";
 import { slugify } from "@/lib/utils";
 
 /**
@@ -18,9 +19,20 @@ export async function addTitle(input: {
   const detail =
     input.mediaType === "movie" ? await getMovie(input.tmdbId) : await getTv(input.tmdbId);
   const normalized = normalizeForStorage(input.mediaType, detail);
+  const omdb = normalized.imdb_id
+    ? await getOmdbRatings(normalized.imdb_id)
+    : { imdb_rating: null, imdb_votes: null, rt_score: null };
 
   const status = input.status ?? "want";
-  const patch: Record<string, unknown> = { ...normalized, status };
+  const patch: Record<string, unknown> = {
+    ...normalized,
+    ...omdb,
+    ratings_fetched_at:
+      omdb.imdb_rating != null || omdb.rt_score != null
+        ? new Date().toISOString()
+        : null,
+    status,
+  };
   if (status === "watched") patch.watched_at = new Date().toISOString();
 
   const { data, error } = await supabase

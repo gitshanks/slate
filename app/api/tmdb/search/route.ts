@@ -11,7 +11,8 @@ type LibraryHit = Pick<
   | "title"
   | "poster_path"
   | "release_date"
-  | "tmdb_rating"
+  | "imdb_rating"
+  | "rt_score"
   | "status"
 >;
 
@@ -20,7 +21,7 @@ async function searchLibrary(q: string): Promise<LibraryHit[]> {
     const { data } = await supabase
       .from("titles")
       .select(
-        "id, tmdb_id, media_type, title, poster_path, release_date, tmdb_rating, status"
+        "id, tmdb_id, media_type, title, poster_path, release_date, imdb_rating, rt_score, status"
       )
       .ilike("title", `%${q}%`)
       .order("added_at", { ascending: false })

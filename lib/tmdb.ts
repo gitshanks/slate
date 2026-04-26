@@ -53,6 +53,7 @@ export interface TmdbMovieDetail {
   vote_average: number;
   vote_count: number;
   tagline: string | null;
+  imdb_id: string | null;
 }
 
 export interface TmdbTvDetail {
@@ -70,6 +71,7 @@ export interface TmdbTvDetail {
   vote_average: number;
   vote_count: number;
   tagline: string | null;
+  imdb_id: string | null;
 }
 
 // ─── API ────────────────────────────────────────────────────────────
@@ -130,8 +132,22 @@ export async function getMovie(id: number) {
   return tmdb<TmdbMovieDetail>(`/movie/${id}`, { language: "en-US" });
 }
 
+/**
+ * TV detail. TMDB doesn't return `imdb_id` on `/tv/{id}` like it does for
+ * movies — `append_to_response=external_ids` adds it inline so we don't
+ * need a separate request.
+ */
 export async function getTv(id: number) {
-  return tmdb<TmdbTvDetail>(`/tv/${id}`, { language: "en-US" });
+  const raw = await tmdb<
+    Omit<TmdbTvDetail, "imdb_id"> & {
+      external_ids?: { imdb_id: string | null };
+    }
+  >(`/tv/${id}`, {
+    language: "en-US",
+    append_to_response: "external_ids",
+  });
+  const imdb_id = raw.external_ids?.imdb_id ?? null;
+  return { ...raw, imdb_id } as TmdbTvDetail;
 }
 
 export interface TmdbReview {
@@ -538,6 +554,7 @@ export function normalizeForStorage(
       genres: m.genres ?? [],
       tmdb_rating: m.vote_average ?? null,
       tmdb_vote_count: m.vote_count ?? null,
+      imdb_id: m.imdb_id ?? null,
     };
   }
   const t = detail as TmdbTvDetail;
@@ -554,5 +571,6 @@ export function normalizeForStorage(
     genres: t.genres ?? [],
     tmdb_rating: t.vote_average ?? null,
     tmdb_vote_count: t.vote_count ?? null,
+    imdb_id: t.imdb_id ?? null,
   };
 }

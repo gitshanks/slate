@@ -3,7 +3,8 @@ import Image from "next/image";
 import { Clock, Eye, Check, Heart, ThumbsUp, ThumbsDown } from "lucide-react";
 import { ViewTransition } from "@/components/view-transition";
 import { PosterCardActions } from "@/components/poster-card-actions";
-import { cn, formatTmdbScore, formatYear } from "@/lib/utils";
+import { RatingPair } from "@/components/rating-pair";
+import { cn, formatImdbRating, formatRtScore, formatYear } from "@/lib/utils";
 import { posterUrl } from "@/lib/tmdb-image";
 import type { TitleRow, TitleStatus } from "@/lib/supabase";
 
@@ -16,7 +17,8 @@ interface PosterCardProps {
     | "release_date"
     | "media_type"
     | "status"
-    | "tmdb_rating"
+    | "imdb_rating"
+    | "rt_score"
     | "rating"
   >;
   priority?: boolean;
@@ -46,7 +48,9 @@ function SentimentChip({ rating }: { rating: number | null }) {
 export function PosterCard({ title, priority, showSentiment }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
-  const score = formatTmdbScore(title.tmdb_rating);
+  const imdb = formatImdbRating(title.imdb_rating);
+  const rt = formatRtScore(title.rt_score);
+  const hasRating = Boolean(imdb || rt);
 
   return (
     <Link
@@ -101,10 +105,14 @@ export function PosterCard({ title, priority, showSentiment }: PosterCardProps) 
           )}
         </div>
 
-        {/* TMDB user score chip (top-left) — hidden on hover */}
-        {score && (
-          <div className="absolute left-2 top-2 rounded-full bg-black/60 backdrop-blur-sm px-2 py-1 text-[11px] font-mono font-medium text-white transition-opacity duration-200 hoverable:group-hover:opacity-0">
-            {score}
+        {/* IMDB rating + RT score chip (top-left) — hidden on hover */}
+        {hasRating && (
+          <div className="absolute left-2 top-2 rounded-full bg-black/60 backdrop-blur-sm px-2 py-1 text-[11px] font-medium text-white transition-opacity duration-200 hoverable:group-hover:opacity-0">
+            <RatingPair
+              imdb={title.imdb_rating}
+              rt={title.rt_score}
+              variant="compact"
+            />
           </div>
         )}
 
@@ -121,10 +129,14 @@ export function PosterCard({ title, priority, showSentiment }: PosterCardProps) 
         <p className="text-xs font-medium text-foreground line-clamp-1">{title.title}</p>
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
           {year && <span>{year}</span>}
-          {score && (
+          {hasRating && (
             <>
               {year && <span>·</span>}
-              <span>{score}</span>
+              <RatingPair
+                imdb={title.imdb_rating}
+                rt={title.rt_score}
+                variant="compact"
+              />
             </>
           )}
         </div>

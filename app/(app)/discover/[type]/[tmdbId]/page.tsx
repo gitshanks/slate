@@ -9,6 +9,7 @@ import {
   type TmdbMovieDetail,
   type TmdbTvDetail,
 } from "@/lib/tmdb";
+import { getOmdbRatings } from "@/lib/omdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import { supabase } from "@/lib/supabase";
 import { BackdropHero } from "@/components/backdrop-hero";
@@ -17,7 +18,12 @@ import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
 import { AddStatusDropdown } from "@/components/add-status-dropdown";
-import { formatRuntime, formatTmdbScore, formatYear } from "@/lib/utils";
+import {
+  formatImdbRating,
+  formatRtScore,
+  formatRuntime,
+  formatYear,
+} from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -68,8 +74,14 @@ export default async function DiscoverTitlePage(
   const genres: { id: number; name: string }[] = detail.genres ?? [];
   const year = formatYear(releaseDate);
   const runtime = formatRuntime(runtimeMinutes);
-  const tmdbUrl = `https://www.themoviedb.org/${type}/${tmdbId}`;
-  const userScore = formatTmdbScore(meta.vote_average);
+  const imdbId = detail.imdb_id ?? null;
+  const imdbUrl = imdbId ? `https://www.imdb.com/title/${imdbId}/` : null;
+  // One title preview = one OMDB lookup. Cheap, and the user is about to add it.
+  const omdb = imdbId
+    ? await getOmdbRatings(imdbId)
+    : { imdb_rating: null, rt_score: null };
+  const imdbScore = formatImdbRating(omdb.imdb_rating);
+  const rtScore = formatRtScore(omdb.rt_score);
 
   return (
     <div className="relative -mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20">
@@ -103,18 +115,31 @@ export default async function DiscoverTitlePage(
                   <span>{g.name}</span>
                 </Fragment>
               ))}
-              {userScore && (
+              {imdbScore && (
                 <>
                   <span aria-hidden>·</span>
-                  <a
-                    href={tmdbUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-                  >
-                    <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                    <span>{userScore} TMDB</span>
-                  </a>
+                  {imdbUrl ? (
+                    <a
+                      href={imdbUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+                    >
+                      <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                      <span>{imdbScore} IMDB</span>
+                    </a>
+                  ) : (
+                    <span className="inline-flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
+                      <span>{imdbScore} IMDB</span>
+                    </span>
+                  )}
+                </>
+              )}
+              {rtScore && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>{rtScore} RT</span>
                 </>
               )}
             </div>

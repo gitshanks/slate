@@ -14,6 +14,7 @@ import {
 import { Loader2, Film, Tv, Star, Clock, Eye, Check, Library } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { addTitle } from "@/lib/actions";
+import { RatingPair } from "@/components/rating-pair";
 import type { TitleStatus } from "@/lib/supabase";
 
 interface SearchResult {
@@ -35,7 +36,8 @@ interface LibraryHit {
   title: string;
   poster_path: string | null;
   release_date: string | null;
-  tmdb_rating: number | null;
+  imdb_rating: number | null;
+  rt_score: number | null;
   status: "want" | "watching" | "watched" | "dropped";
 }
 
@@ -190,10 +192,9 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
               {library.map((hit) => {
                 const year = hit.release_date ? hit.release_date.slice(0, 4) : "";
                 const poster = posterUrl(hit.poster_path, "w92");
-                const vote =
-                  hit.tmdb_rating != null && Number(hit.tmdb_rating) > 0
-                    ? Number(hit.tmdb_rating)
-                    : null;
+                const hasRating =
+                  (hit.imdb_rating != null && Number(hit.imdb_rating) > 0) ||
+                  (hit.rt_score != null && Number(hit.rt_score) > 0);
                 return (
                   <CommandItem
                     key={`lib-${hit.id}`}
@@ -228,10 +229,13 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                         )}
                         {hit.media_type}
                         {year && <span>· {year}</span>}
-                        {vote && (
-                          <span className="ml-1 inline-flex items-center gap-0.5">
-                            <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                            {vote.toFixed(1)}
+                        {hasRating && (
+                          <span className="ml-1">
+                            <RatingPair
+                              imdb={hit.imdb_rating}
+                              rt={hit.rt_score}
+                              variant="compact"
+                            />
                           </span>
                         )}
                       </span>

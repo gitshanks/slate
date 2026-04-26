@@ -8,6 +8,7 @@ import {
   normalizeForStorage,
   type TmdbMediaResult,
 } from "@/lib/tmdb";
+import { getOmdbRatings } from "@/lib/omdb";
 import { supabase } from "@/lib/supabase";
 import { parseCsv, type ParsedRow } from "@/lib/import-parse";
 
@@ -100,6 +101,11 @@ interface UpsertRow {
   release_date: string | null;
   status: "watched";
   watched_at: string;
+  imdb_id: string | null;
+  imdb_rating: number | null;
+  imdb_votes: number | null;
+  rt_score: number | null;
+  ratings_fetched_at: string | null;
 }
 
 interface MatchOutcome {
@@ -110,6 +116,20 @@ interface MatchOutcome {
 async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
   const watchedAt = normaliseDate(row.date) ?? new Date().toISOString();
 
+  async function withOmdb(imdbId: string | null) {
+    const r = imdbId
+      ? await getOmdbRatings(imdbId)
+      : { imdb_rating: null, imdb_votes: null, rt_score: null };
+    return {
+      ...r,
+      imdb_id: imdbId,
+      ratings_fetched_at:
+        r.imdb_rating != null || r.rt_score != null
+          ? new Date().toISOString()
+          : null,
+    };
+  }
+
   // Fast path: Trakt rows carry a tmdb_id + type. Skip search, fetch detail.
   if (row.tmdbId != null && row.mediaHint) {
     try {
@@ -118,6 +138,7 @@ async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
           ? await getMovie(row.tmdbId)
           : await getTv(row.tmdbId);
       const norm = normalizeForStorage(row.mediaHint, detail);
+      const ratings = await withOmdb(norm.imdb_id);
       return {
         sourceText: row.sourceText,
         row: {
@@ -131,6 +152,7 @@ async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
           release_date: norm.release_date,
           status: "watched",
           watched_at: watchedAt,
+          ...ratings,
         },
       };
     } catch {
@@ -146,6 +168,19 @@ async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
     const { results } = await searchMultiWithFallback(row.title);
     const best = pickBest(results, row);
     if (!best) return { sourceText: row.sourceText, row: null };
+    // Search results don't carry imdb_id; fetch full detail to get it,
+    // then OMDB. A miss on either still produces a valid row.
+    let imdbId: string | null = null;
+    try {
+      const detail =
+        best.media_type === "movie"
+          ? await getMovie(best.id)
+          : await getTv(best.id);
+      imdbId = detail.imdb_id ?? null;
+    } catch {
+      // Ignore — proceed without ratings.
+    }
+    const ratings = await withOmdb(imdbId);
     return {
       sourceText: row.sourceText,
       row: {
@@ -161,6 +196,7 @@ async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
           null,
         status: "watched",
         watched_at: watchedAt,
+        ...ratings,
       },
     };
   } catch {

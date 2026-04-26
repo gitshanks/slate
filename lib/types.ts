@@ -23,6 +23,11 @@ export interface TitleRow {
   watched_at: string | null;
   tmdb_rating: number | null;
   tmdb_vote_count: number | null;
+  imdb_id: string | null;
+  imdb_rating: number | null;
+  imdb_votes: number | null;
+  rt_score: number | null;
+  ratings_fetched_at: string | null;
 }
 
 export interface ListRow {
