@@ -49,13 +49,16 @@ Slate is designed to be self-hosted. Everything runs on your machine and your da
 ```bash
 git clone https://github.com/gitshanks/slate.git
 cd slate
-cp .env.example .env          # fill in TMDB_API_KEY (and optionally OMDB_API_KEY)
+cp .env.example .env          # fill in TMDB_API_KEY + OMDB_API_KEY
 docker compose up -d
 ```
 
 Open <http://localhost:3000>. Done.
 
-> **About `OMDB_API_KEY`** — optional, but recommended. Without it, IMDb / Rotten Tomatoes / Metacritic chips stay blank on saved titles. Free key (1,000 lookups/day) at [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx). One add = one OMDB call, results cached for 24h.
+You'll want two free keys before you start:
+
+- **TMDB** ([themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)) — required. Drives metadata, posters, search, cast, providers, recommendations.
+- **OMDB** ([omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx)) — strongly recommended. Drives the IMDb / Rotten Tomatoes / Metacritic chips on saved titles. 1,000 lookups/day is plenty for a personal library; results are cached for 24h. Skip it and the app still runs, but every rating chip stays blank.
 
 ### What's inside
 
@@ -103,9 +106,9 @@ cd slate && npm install
 
 | Service | What you need | Where |
 |---|---|---|
-| **TMDB** | v3 API key (free, instant) | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
-| **OMDB** | API key (free, 1k lookups/day) | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) |
-| **Supabase** | Project URL + `service_role` key | [supabase.com/dashboard](https://supabase.com/dashboard) → **New project** |
+| **TMDB** | v3 API key (free, instant) — required | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
+| **OMDB** | API key (free, 1k lookups/day) — recommended; powers IMDb / RT / Metacritic chips | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) |
+| **Supabase** | Project URL + `service_role` key — required | [supabase.com/dashboard](https://supabase.com/dashboard) → **New project** |
 
 Then open the Supabase **SQL editor** and paste in [`supabase/schema.sql`](./supabase/schema.sql). That's the entire database.
 
@@ -113,13 +116,13 @@ Then open the Supabase **SQL editor** and paste in [`supabase/schema.sql`](./sup
 
 Push to GitHub, import at [vercel.com/new](https://vercel.com/new), and add these environment variables:
 
-| Variable | Required | Purpose |
+| Variable | | Purpose |
 |---|---|---|
-| `TMDB_API_KEY` | ✓ | TMDB v3 key |
-| `SUPABASE_URL` | ✓ | Project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✓ | Server-only secret |
-| `OMDB_API_KEY` | — | Powers IMDb / RT / Metacritic chips on saved titles. Without it, those stay blank but everything else still works. |
-| `APP_PASSCODE` | — | Lock the app behind a shared passcode. Omit for public. |
+| `TMDB_API_KEY` | required | TMDB v3 key |
+| `SUPABASE_URL` | required | Project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | required | Server-only secret |
+| `OMDB_API_KEY` | recommended | Powers IMDb / Rotten Tomatoes / Metacritic chips on saved titles. Without it, those stay blank — everything else still works. |
+| `APP_PASSCODE` | optional | Lock the app behind a shared passcode. Omit for public. |
 
 ### 4. Run locally
 
