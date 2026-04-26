@@ -49,14 +49,15 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="group/rail relative">
-      {/* Left arrow */}
+      {/* Left arrow — chevron in a soft pill so the fade doesn't bleed
+          a white block over the rail content in light mode. */}
       <button
         type="button"
         aria-label="Scroll left"
         onClick={() => scroll("left")}
         className={cn(
-          "absolute -left-1 top-0 z-10 hidden h-full w-10 items-center justify-center",
-          "bg-gradient-to-r from-background/90 to-transparent",
+          "absolute left-1 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center",
+          "h-9 w-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md ring-1 ring-border",
           "transition-opacity duration-200",
           "hoverable:flex",
           canScrollLeft
@@ -64,7 +65,7 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
             : "pointer-events-none opacity-0"
         )}
       >
-        <ChevronLeft className="h-6 w-6 text-foreground drop-shadow" />
+        <ChevronLeft className="h-5 w-5 text-foreground" />
       </button>
 
       {/* Scroll container */}
@@ -81,8 +82,8 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
         aria-label="Scroll right"
         onClick={() => scroll("right")}
         className={cn(
-          "absolute -right-1 top-0 z-10 hidden h-full w-10 items-center justify-center",
-          "bg-gradient-to-l from-background/90 to-transparent",
+          "absolute right-1 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center",
+          "h-9 w-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md ring-1 ring-border",
           "transition-opacity duration-200",
           "hoverable:flex",
           canScrollRight
@@ -90,7 +91,7 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
             : "pointer-events-none opacity-0"
         )}
       >
-        <ChevronRight className="h-6 w-6 text-foreground drop-shadow" />
+        <ChevronRight className="h-5 w-5 text-foreground" />
       </button>
     </div>
   );

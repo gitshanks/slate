@@ -233,12 +233,12 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
       {ambientBg && (
         <div
           aria-hidden
-          className="pointer-events-none fixed inset-0 -z-10 opacity-[0.07]"
+          className="pointer-events-none fixed inset-0 -z-10 opacity-[0.025] dark:opacity-[0.07]"
           style={{
             backgroundImage: `url(${ambientBg})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            filter: "blur(80px) saturate(3)",
+            filter: "blur(80px) saturate(2)",
           }}
         />
       )}
