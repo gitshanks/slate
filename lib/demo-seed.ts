@@ -9,7 +9,81 @@ function ts(daysAgo: number): string {
   return new Date(base - daysAgo * 86400_000).toISOString();
 }
 
+/**
+ * Seeded IMDb / RT / Metacritic for the demo deployment. Lookup by demo id
+ * so we don't have to thread these fields through every title literal.
+ *
+ * These mirror what an OMDB backfill would yield for the real titles — the
+ * synthetic library is meant to look like a real, populated one. Coverage
+ * is intentionally uneven (some entries have only IMDb, some lack RT) so
+ * the chip-fallback logic gets exercised in the demo.
+ */
+const RATINGS: Record<
+  string,
+  {
+    imdb_id?: string;
+    imdb_rating?: number;
+    rt_score?: number;
+    metacritic_score?: number;
+  }
+> = {
+  // ── Want ─────────────────────────────────────────────────────
+  "demo-want-1": { imdb_id: "tt15239678", imdb_rating: 8.5, rt_score: 92, metacritic_score: 79 },
+  "demo-want-2": { imdb_id: "tt11280740", imdb_rating: 8.7, rt_score: 95, metacritic_score: 84 },
+  "demo-want-3": { imdb_id: "tt17526714", imdb_rating: 7.3, rt_score: 89, metacritic_score: 78 },
+  "demo-want-4": { imdb_id: "tt2788316", imdb_rating: 8.6, rt_score: 99, metacritic_score: 89 },
+  "demo-want-5": { imdb_id: "tt3581920", imdb_rating: 8.7, rt_score: 96, metacritic_score: 84 },
+  "demo-want-6": { imdb_id: "tt13238346", imdb_rating: 7.8, rt_score: 95, metacritic_score: 94 },
+  "demo-want-7": { imdb_id: "tt12637874", imdb_rating: 8.3, rt_score: 93, metacritic_score: 73 },
+  "demo-want-8": { imdb_id: "tt14230388", imdb_rating: 7.8, rt_score: 92, metacritic_score: 87 },
+  "demo-want-9": { imdb_id: "tt2356777", imdb_rating: 8.9, rt_score: 91, metacritic_score: 87 },
+  "demo-want-10": { imdb_id: "tt15398776", imdb_rating: 8.3, rt_score: 93, metacritic_score: 88 },
+  "demo-want-11": { imdb_id: "tt20215234", imdb_rating: 7.4, rt_score: 92, metacritic_score: 79 },
+  "demo-want-12": { imdb_id: "tt0068646", imdb_rating: 9.2, rt_score: 97, metacritic_score: 100 },
+  "demo-want-13": { imdb_id: "tt13406094", imdb_rating: 7.9, metacritic_score: 80 },
+  "demo-want-14": { imdb_id: "tt8111088", imdb_rating: 8.5, metacritic_score: 73 },
+  "demo-want-15": { imdb_id: "tt5634664", imdb_rating: 8.3, metacritic_score: 80 },
+
+  // ── Watching ─────────────────────────────────────────────────
+  "demo-watching-1": { imdb_id: "tt7660850", imdb_rating: 8.9, rt_score: 94, metacritic_score: 88 },
+  "demo-watching-2": { imdb_id: "tt11126994", imdb_rating: 8.9, rt_score: 100, metacritic_score: 90 },
+  "demo-watching-3": { imdb_id: "tt3032476", imdb_rating: 9.0, rt_score: 98, metacritic_score: 79 },
+  "demo-watching-4": { imdb_id: "tt9253284", imdb_rating: 8.4, rt_score: 96, metacritic_score: 84 },
+  "demo-watching-5": { imdb_id: "tt7366338", imdb_rating: 9.4, rt_score: 95, metacritic_score: 83 },
+  "demo-watching-6": { imdb_id: "tt2560140", imdb_rating: 9.0, metacritic_score: 76 },
+  "demo-watching-7": { imdb_id: "tt14483458", imdb_rating: 7.9, rt_score: 98, metacritic_score: 86 },
+
+  // ── Watched ──────────────────────────────────────────────────
+  "demo-watched-1": { imdb_id: "tt6710474", imdb_rating: 7.8, rt_score: 94, metacritic_score: 81 },
+  "demo-watched-2": { imdb_id: "tt0903747", imdb_rating: 9.5, rt_score: 96, metacritic_score: 76 },
+  "demo-watched-3": { imdb_id: "tt14452776", imdb_rating: 8.6, rt_score: 100, metacritic_score: 89 },
+  "demo-watched-4": { imdb_id: "tt6751668", imdb_rating: 8.5, rt_score: 99, metacritic_score: 96 },
+  "demo-watched-5": { imdb_id: "tt5687612", imdb_rating: 8.7, rt_score: 100, metacritic_score: 89 },
+  "demo-watched-6": { imdb_id: "tt7784604", imdb_rating: 7.3, rt_score: 89, metacritic_score: 87 },
+  "demo-watched-7": { imdb_id: "tt2582802", imdb_rating: 8.5, rt_score: 94, metacritic_score: 88 },
+  "demo-watched-8": { imdb_id: "tt10048342", imdb_rating: 8.5, rt_score: 96, metacritic_score: 79 },
+  "demo-watched-9": { imdb_id: "tt4975722", imdb_rating: 7.4, rt_score: 98, metacritic_score: 99 },
+  "demo-watched-10": { imdb_id: "tt0804503", imdb_rating: 8.7, rt_score: 94, metacritic_score: 86 },
+  "demo-watched-11": { imdb_id: "tt3783958", imdb_rating: 8.0, rt_score: 91, metacritic_score: 94 },
+  "demo-watched-12": { imdb_id: "tt2543164", imdb_rating: 7.9, rt_score: 94, metacritic_score: 81 },
+  "demo-watched-13": { imdb_id: "tt1375666", imdb_rating: 8.8, rt_score: 87, metacritic_score: 74 },
+  "demo-watched-14": { imdb_id: "tt0110912", imdb_rating: 8.9, rt_score: 92, metacritic_score: 95 },
+  "demo-watched-15": { imdb_id: "tt0468569", imdb_rating: 9.0, rt_score: 94, metacritic_score: 84 },
+  "demo-watched-16": { imdb_id: "tt4154796", imdb_rating: 8.4, rt_score: 94, metacritic_score: 78 },
+
+  // ── Dropped ──────────────────────────────────────────────────
+  "demo-dropped-1": { imdb_id: "tt11198330", imdb_rating: 8.4, rt_score: 87, metacritic_score: 69 },
+  "demo-dropped-2": { imdb_id: "tt5180504", imdb_rating: 8.0, rt_score: 81, metacritic_score: 64 },
+  "demo-dropped-3": { imdb_id: "tt0475784", imdb_rating: 8.5, rt_score: 75, metacritic_score: 74 },
+  "demo-dropped-4": { imdb_id: "tt2861424", imdb_rating: 9.1, rt_score: 92 },
+};
+
 function title(partial: Partial<TitleRow> & Pick<TitleRow, "id" | "tmdb_id" | "media_type" | "title" | "status">): TitleRow {
+  const seeded = RATINGS[partial.id] ?? {};
+  const hasAnyRating =
+    seeded.imdb_rating != null ||
+    seeded.rt_score != null ||
+    seeded.metacritic_score != null;
   return {
     original_title: partial.title,
     overview: null,
@@ -25,12 +99,12 @@ function title(partial: Partial<TitleRow> & Pick<TitleRow, "id" | "tmdb_id" | "m
     watched_at: null,
     tmdb_rating: null,
     tmdb_vote_count: null,
-    imdb_id: null,
-    imdb_rating: null,
+    imdb_id: seeded.imdb_id ?? null,
+    imdb_rating: seeded.imdb_rating ?? null,
     imdb_votes: null,
-    rt_score: null,
-    metacritic_score: null,
-    ratings_fetched_at: null,
+    rt_score: seeded.rt_score ?? null,
+    metacritic_score: seeded.metacritic_score ?? null,
+    ratings_fetched_at: hasAnyRating ? ts(1) : null,
     ...partial,
   };
 }

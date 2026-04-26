@@ -27,6 +27,7 @@ Letterboxd is great, but it's social. Slate is the opposite: a single-user watch
 
 - **⌘K command palette** — search TMDB and add anything to your library in one keystroke
 - **Three clean states** — Watchlist, Watching, Watched, with Love / Like / Dislike ratings and private notes
+- **Critic scores you can trust** — IMDb rating + Rotten Tomatoes Tomatometer (with Metacritic fallback) on every saved title, fetched once via OMDB and cached
 - **Custom lists** — curate collections like _"Cozy winter"_ or _"A24 horror"_
 - **Rich title pages** — cast, streaming providers, TMDB reviews, trailers
 - **One-step import** from Letterboxd or Trakt CSV exports — [`/import`](#import)
@@ -48,11 +49,13 @@ Slate is designed to be self-hosted. Everything runs on your machine and your da
 ```bash
 git clone https://github.com/gitshanks/slate.git
 cd slate
-cp .env.example .env          # fill in TMDB_API_KEY
+cp .env.example .env          # fill in TMDB_API_KEY (and optionally OMDB_API_KEY)
 docker compose up -d
 ```
 
 Open <http://localhost:3000>. Done.
+
+> **About `OMDB_API_KEY`** — optional, but recommended. Without it, IMDb / Rotten Tomatoes / Metacritic chips stay blank on saved titles. Free key (1,000 lookups/day) at [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx). One add = one OMDB call, results cached for 24h.
 
 ### What's inside
 
@@ -101,6 +104,7 @@ cd slate && npm install
 | Service | What you need | Where |
 |---|---|---|
 | **TMDB** | v3 API key (free, instant) | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
+| **OMDB** | API key (free, 1k lookups/day) | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) |
 | **Supabase** | Project URL + `service_role` key | [supabase.com/dashboard](https://supabase.com/dashboard) → **New project** |
 
 Then open the Supabase **SQL editor** and paste in [`supabase/schema.sql`](./supabase/schema.sql). That's the entire database.
@@ -114,6 +118,7 @@ Push to GitHub, import at [vercel.com/new](https://vercel.com/new), and add thes
 | `TMDB_API_KEY` | ✓ | TMDB v3 key |
 | `SUPABASE_URL` | ✓ | Project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✓ | Server-only secret |
+| `OMDB_API_KEY` | — | Powers IMDb / RT / Metacritic chips on saved titles. Without it, those stay blank but everything else still works. |
 | `APP_PASSCODE` | — | Lock the app behind a shared passcode. Omit for public. |
 
 ### 4. Run locally
@@ -125,6 +130,16 @@ npm run dev
 Open <http://localhost:3000>. Without `APP_PASSCODE`, the unlock screen is skipped.
 
 > **Pro tip — public _and_ private from one repo.** Import the same GitHub repo twice in Vercel. Set `APP_PASSCODE` on one project for your personal copy; leave it unset on the other for a portfolio-friendly public demo. Both stay in sync on every push.
+
+## Backfilling ratings on an existing library
+
+If you set `OMDB_API_KEY` after already adding titles, run this once locally to fetch IMDb / Rotten Tomatoes / Metacritic for every existing row:
+
+```bash
+npx tsx scripts/backfill-ratings.ts
+```
+
+It reads `.env.local` / `.env` for `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TMDB_API_KEY`, and `OMDB_API_KEY`, then walks every saved title that's missing a rating. Throttled to ~3 calls/sec — comfortably inside the free tier — and re-runnable, since it skips rows that already have data.
 
 ## Import
 

@@ -89,3 +89,19 @@ export function metacriticBand(value: number | null | undefined): "good" | "mixe
   if (n >= 50) return "mixed";
   return "bad";
 }
+
+/**
+ * Build a Rotten Tomatoes search URL for a title. We don't store RT slugs,
+ * so the search page is the cleanest deep-link target — RT redirects you to
+ * the title page when there's an obvious single match.
+ */
+export function rottenTomatoesSearchUrl(title: string | null | undefined): string | null {
+  if (!title) return null;
+  return `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`;
+}
+
+/** Same idea for Metacritic — title search resolves to the page in one hop. */
+export function metacriticSearchUrl(title: string | null | undefined): string | null {
+  if (!title) return null;
+  return `https://www.metacritic.com/search/${encodeURIComponent(title)}/?page=1&category=0`;
+}

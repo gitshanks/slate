@@ -22,12 +22,15 @@ import {
   MetacriticBadge,
   RottenTomatoesBadge,
 } from "@/components/rating-icons";
+import { RatingChip } from "@/components/rating-chip";
 import {
   formatImdbRating,
   formatMetacriticScore,
   formatRtScore,
   formatRuntime,
   formatYear,
+  metacriticSearchUrl,
+  rottenTomatoesSearchUrl,
 } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +96,7 @@ export default async function DiscoverTitlePage(
         kind: "rt" as const,
         score: typeof omdb.rt_score === "number" ? omdb.rt_score : null,
         label: rtScore,
+        href: rottenTomatoesSearchUrl(titleName),
       })
     : mcScore
       ? ({
@@ -102,6 +106,7 @@ export default async function DiscoverTitlePage(
               ? omdb.metacritic_score
               : null,
           label: mcScore,
+          href: metacriticSearchUrl(titleName),
         })
       : null;
 
@@ -161,42 +166,26 @@ export default async function DiscoverTitlePage(
                     {g.name}
                   </span>
                 ))}
-                {imdbScore &&
-                  (imdbUrl ? (
-                    <a
-                      href={imdbUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px] transition-colors hover:bg-card/70"
-                    >
-                      <ImdbBadge className="h-3 w-auto" />
-                      <span className="font-mono tabular-nums text-foreground/90">
-                        {imdbScore}
-                      </span>
-                    </a>
-                  ) : (
-                    <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px]">
-                      <ImdbBadge className="h-3 w-auto" />
-                      <span className="font-mono tabular-nums text-foreground/90">
-                        {imdbScore}
-                      </span>
-                    </span>
-                  ))}
+                {imdbScore && (
+                  <RatingChip
+                    icon={<ImdbBadge className="h-3 w-auto" />}
+                    label={imdbScore}
+                    href={imdbUrl}
+                  />
+                )}
                 {criticChip?.kind === "rt" && (
-                  <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px]">
-                    <RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />
-                    <span className="font-mono tabular-nums text-foreground/90">
-                      {criticChip.label}
-                    </span>
-                  </span>
+                  <RatingChip
+                    icon={<RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />}
+                    label={criticChip.label}
+                    href={criticChip.href}
+                  />
                 )}
                 {criticChip?.kind === "mc" && (
-                  <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px]">
-                    <MetacriticBadge score={criticChip.score} className="h-3 w-auto" />
-                    <span className="font-mono tabular-nums text-foreground/90">
-                      {criticChip.label}
-                    </span>
-                  </span>
+                  <RatingChip
+                    icon={<MetacriticBadge score={criticChip.score} className="h-3 w-auto" />}
+                    label={criticChip.label}
+                    href={criticChip.href}
+                  />
                 )}
               </div>
             )}

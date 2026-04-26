@@ -21,12 +21,15 @@ import {
   MetacriticBadge,
   RottenTomatoesBadge,
 } from "@/components/rating-icons";
+import { RatingChip } from "@/components/rating-chip";
 import {
   formatImdbRating,
   formatMetacriticScore,
   formatRtScore,
   formatRuntime,
   formatYear,
+  metacriticSearchUrl,
+  rottenTomatoesSearchUrl,
 } from "@/lib/utils";
 
 // The public demo keeps per-visitor mutations in a cookie-backed sandbox,
@@ -199,12 +202,15 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const rtScore = formatRtScore(title.rt_score);
   const mcScore = formatMetacriticScore(title.metacritic_score);
   const imdbUrl = title.imdb_id ? `https://www.imdb.com/title/${title.imdb_id}/` : null;
-  // RT primary, Metacritic fallback — same shape (0–100), saves space.
+  // RT primary, Metacritic fallback — same shape (0–100), saves space. We
+  // don't store stable slugs for RT/MC so the chip points at their search
+  // page; both sites auto-redirect to the title when there's a clear hit.
   const criticChip = rtScore
     ? ({
         kind: "rt" as const,
         score: typeof title.rt_score === "number" ? title.rt_score : null,
         label: rtScore,
+        href: rottenTomatoesSearchUrl(title.title),
       })
     : mcScore
       ? ({
@@ -212,6 +218,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
           score:
             typeof title.metacritic_score === "number" ? title.metacritic_score : null,
           label: mcScore,
+          href: metacriticSearchUrl(title.title),
         })
       : null;
 
@@ -278,42 +285,26 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                     {g.name}
                   </span>
                 ))}
-                {imdbScore &&
-                  (imdbUrl ? (
-                    <a
-                      href={imdbUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px] transition-colors hover:bg-card/70"
-                    >
-                      <ImdbBadge className="h-3 w-auto" />
-                      <span className="font-mono tabular-nums text-foreground/90">
-                        {imdbScore}
-                      </span>
-                    </a>
-                  ) : (
-                    <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px]">
-                      <ImdbBadge className="h-3 w-auto" />
-                      <span className="font-mono tabular-nums text-foreground/90">
-                        {imdbScore}
-                      </span>
-                    </span>
-                  ))}
+                {imdbScore && (
+                  <RatingChip
+                    icon={<ImdbBadge className="h-3 w-auto" />}
+                    label={imdbScore}
+                    href={imdbUrl}
+                  />
+                )}
                 {criticChip?.kind === "rt" && (
-                  <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px]">
-                    <RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />
-                    <span className="font-mono tabular-nums text-foreground/90">
-                      {criticChip.label}
-                    </span>
-                  </span>
+                  <RatingChip
+                    icon={<RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />}
+                    label={criticChip.label}
+                    href={criticChip.href}
+                  />
                 )}
                 {criticChip?.kind === "mc" && (
-                  <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px]">
-                    <MetacriticBadge score={criticChip.score} className="h-3 w-auto" />
-                    <span className="font-mono tabular-nums text-foreground/90">
-                      {criticChip.label}
-                    </span>
-                  </span>
+                  <RatingChip
+                    icon={<MetacriticBadge score={criticChip.score} className="h-3 w-auto" />}
+                    label={criticChip.label}
+                    href={criticChip.href}
+                  />
                 )}
               </div>
             )}

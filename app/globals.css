@@ -7,45 +7,46 @@
 /* HSL triplets so we can use opacity modifiers like bg-primary/60   */
 
 :root {
-  /* Light is supported but the app ships dark-first */
-  --background: 0 0% 100%;
-  --foreground: 240 10% 4%;
+  /* Light mode — cool, paper-like. Cards lift off the background, type
+     reads as deep navy rather than flat black. */
+  --background: 220 30% 98.5%;     /* very subtle cool off-white */
+  --foreground: 222 28% 11%;        /* deep blue-black for sharper type */
 
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 4%;
+  --card: 0 0% 100%;                /* pure white — pops against tinted bg */
+  --card-foreground: 222 28% 11%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 4%;
+  --popover-foreground: 222 28% 11%;
 
-  --primary: 252 95% 68%;          /* electric violet #7C5CFF */
+  --primary: 252 88% 62%;          /* electric violet, anchored darker */
   --primary-foreground: 0 0% 100%;
-  --primary-hover: 252 88% 60%;
+  --primary-hover: 252 84% 54%;
 
-  --secondary: 240 5% 96%;
-  --secondary-foreground: 240 10% 4%;
+  --secondary: 220 14% 95%;
+  --secondary-foreground: 222 28% 11%;
 
-  --muted: 240 5% 96%;
-  --muted-foreground: 240 4% 46%;
+  --muted: 220 14% 95%;
+  --muted-foreground: 220 9% 40%;  /* darker for AA contrast on tinted bg */
 
-  --accent: 240 5% 96%;
-  --accent-foreground: 240 10% 4%;
+  --accent: 220 14% 95%;
+  --accent-foreground: 222 28% 11%;
 
-  --destructive: 0 84% 60%;
+  --destructive: 0 75% 52%;
   --destructive-foreground: 0 0% 100%;
 
-  --success: 152 72% 42%;
+  --success: 152 65% 38%;
   --success-foreground: 0 0% 100%;
 
-  --warning: 38 92% 50%;
+  --warning: 36 92% 48%;
   --warning-foreground: 0 0% 100%;
 
-  --border: 240 6% 90%;
-  --input: 240 6% 90%;
-  --ring: 252 95% 68%;
+  --border: 220 13% 90%;           /* cool hairline */
+  --input: 220 13% 90%;
+  --ring: 252 88% 62%;
 
   --radius: 0.625rem;
 
-  --star: 45 96% 56%;              /* warm gold for ratings */
+  --star: 42 92% 52%;              /* warm gold, slightly muted */
 }
 
 .dark {

@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Check } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
-import { formatTmdbScore, formatYear } from "@/lib/utils";
+import { formatYear } from "@/lib/utils";
 import type { TmdbSearchResult } from "@/lib/tmdb";
 
 interface TmdbTileProps {
@@ -13,7 +13,11 @@ interface TmdbTileProps {
 }
 
 /**
- * One TMDB result tile — poster, score chip, saved badge, title + year.
+ * One TMDB result tile — poster, saved badge, title + year. Discovery
+ * surfaces don't show a rating chip: the rails are about exploration, and
+ * stuffing a TMDB-only number into every tile crowds the layout. Real
+ * IMDb / RT / Metacritic numbers appear once the user opens the title.
+ *
  * Shared by the discover rail and the "You might like" expanded grid so
  * both surfaces match pixel-for-pixel.
  */
@@ -21,7 +25,6 @@ export function TmdbTile({ item, saved, variant = "rail" }: TmdbTileProps) {
   const name = item.title ?? item.name ?? "Untitled";
   const date = item.release_date ?? item.first_air_date;
   const year = formatYear(date);
-  const score = formatTmdbScore(item.vote_average);
   const poster = posterUrl(item.poster_path, "w342");
   const mediaType = item.media_type === "tv" ? "tv" : "movie";
 
@@ -44,12 +47,6 @@ export function TmdbTile({ item, saved, variant = "rail" }: TmdbTileProps) {
         ) : (
           <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted-foreground">
             {name}
-          </div>
-        )}
-
-        {score && (
-          <div className="absolute left-2 top-2 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-[11px] font-mono font-medium text-white">
-            {score}
           </div>
         )}
 
