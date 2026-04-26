@@ -3,7 +3,6 @@ import Image from "next/image";
 import { Check } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { formatTmdbScore, formatYear } from "@/lib/utils";
-import { TmdbBadge } from "@/components/rating-icons";
 import type { TmdbSearchResult } from "@/lib/tmdb";
 
 interface TmdbTileProps {
@@ -49,8 +48,7 @@ export function TmdbTile({ item, saved, variant = "rail" }: TmdbTileProps) {
         )}
 
         {score && (
-          <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-[11px] font-mono font-medium text-white">
-            <TmdbBadge className="h-2.5 w-auto" />
+          <div className="absolute left-2 top-2 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-[11px] font-mono font-medium text-white">
             {score}
           </div>
         )}

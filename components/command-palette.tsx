@@ -15,7 +15,6 @@ import { Loader2, Film, Tv, Clock, Eye, Check, Library } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { addTitle } from "@/lib/actions";
 import { RatingPair } from "@/components/rating-pair";
-import { TmdbBadge } from "@/components/rating-icons";
 import { formatTmdbScore } from "@/lib/utils";
 import type { TitleStatus } from "@/lib/supabase";
 
@@ -298,12 +297,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                         )}
                         {r.media_type}
                         {year && <span>· {year}</span>}
-                        {vote && (
-                          <span className="ml-1 inline-flex items-center gap-0.5">
-                            <TmdbBadge className="h-2.5 w-auto" />
-                            {vote}
-                          </span>
-                        )}
+                        {vote && <span className="ml-1">{vote}</span>}
                       </span>
                     </div>
                     {isSaved ? (

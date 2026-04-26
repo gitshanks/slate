@@ -19,12 +19,18 @@ interface RatingPairProps {
 }
 
 /**
- * IMDb rating + critic-aggregator score (RT preferred, Metacritic fallback)
- * with branded indicator icons. Renders nothing when nothing is available so
- * callers can drop it in unconditionally.
+ * IMDb rating + critic-aggregator score (RT preferred, Metacritic fallback).
+ * Renders nothing when nothing is available so callers can drop it in
+ * unconditionally.
  *
  * RT coverage in OMDB is sparse for TV / older / foreign titles, so falling
  * through to Metacritic catches most of the gap with a same-shape 0–100 score.
+ *
+ * - `compact` (poster cards): plain numbers only, no badges. The decimal-vs-
+ *   percent shape disambiguates the source ("8.8" = IMDb, "87%" = critics)
+ *   without crowding the tiny chip.
+ * - `inline` (title detail): branded badges next to each score, since the
+ *   surface has room and clarity matters more there.
  */
 export function RatingPair({
   imdb,
@@ -47,32 +53,10 @@ export function RatingPair({
 
   if (variant === "compact") {
     return (
-      <span className="inline-flex items-center gap-1.5 font-mono tabular-nums">
-        {i && (
-          <span className="inline-flex items-center gap-0.5">
-            <ImdbBadge className="h-2.5 w-auto" />
-            <span>{i}</span>
-          </span>
-        )}
-        {i && critic && <span aria-hidden className="opacity-50">·</span>}
-        {critic?.kind === "rt" && (
-          <span className="inline-flex items-center gap-0.5">
-            <RottenTomatoesBadge
-              score={typeof critic.raw === "number" ? critic.raw : null}
-              className="h-2.5 w-auto"
-            />
-            <span>{critic.label}</span>
-          </span>
-        )}
-        {critic?.kind === "mc" && (
-          <span className="inline-flex items-center gap-0.5">
-            <MetacriticBadge
-              score={typeof critic.raw === "number" ? critic.raw : null}
-              className="h-2.5 w-auto"
-            />
-            <span>{critic.label}</span>
-          </span>
-        )}
+      <span className="font-mono tabular-nums">
+        {i && <span>{i}</span>}
+        {i && critic && <span aria-hidden className="opacity-50"> · </span>}
+        {critic && <span>{critic.label}</span>}
       </span>
     );
   }
