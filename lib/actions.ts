@@ -21,14 +21,16 @@ export async function addTitle(input: {
   const normalized = normalizeForStorage(input.mediaType, detail);
   const omdb = normalized.imdb_id
     ? await getOmdbRatings(normalized.imdb_id)
-    : { imdb_rating: null, imdb_votes: null, rt_score: null };
+    : { imdb_rating: null, imdb_votes: null, rt_score: null, metacritic_score: null };
 
   const status = input.status ?? "want";
   const patch: Record<string, unknown> = {
     ...normalized,
     ...omdb,
     ratings_fetched_at:
-      omdb.imdb_rating != null || omdb.rt_score != null
+      omdb.imdb_rating != null ||
+      omdb.rt_score != null ||
+      omdb.metacritic_score != null
         ? new Date().toISOString()
         : null,
     status,

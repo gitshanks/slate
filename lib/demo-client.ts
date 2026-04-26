@@ -336,6 +336,7 @@ async function execInsert(
       imdb_rating: (row.imdb_rating as number | null) ?? null,
       imdb_votes: (row.imdb_votes as number | null) ?? null,
       rt_score: (row.rt_score as number | null) ?? null,
+      metacritic_score: (row.metacritic_score as number | null) ?? null,
       ratings_fetched_at: (row.ratings_fetched_at as string | null) ?? null,
     };
     next.addedTitles = [...state.addedTitles, newTitle];
@@ -433,6 +434,7 @@ async function execUpsert(
         imdb_rating: (row.imdb_rating as number | null) ?? null,
         imdb_votes: (row.imdb_votes as number | null) ?? null,
         rt_score: (row.rt_score as number | null) ?? null,
+        metacritic_score: (row.metacritic_score as number | null) ?? null,
         ratings_fetched_at: (row.ratings_fetched_at as string | null) ?? null,
       };
       next.addedTitles = [...state.addedTitles, newTitle];

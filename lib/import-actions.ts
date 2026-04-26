@@ -105,6 +105,7 @@ interface UpsertRow {
   imdb_rating: number | null;
   imdb_votes: number | null;
   rt_score: number | null;
+  metacritic_score: number | null;
   ratings_fetched_at: string | null;
 }
 
@@ -119,12 +120,12 @@ async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
   async function withOmdb(imdbId: string | null) {
     const r = imdbId
       ? await getOmdbRatings(imdbId)
-      : { imdb_rating: null, imdb_votes: null, rt_score: null };
+      : { imdb_rating: null, imdb_votes: null, rt_score: null, metacritic_score: null };
     return {
       ...r,
       imdb_id: imdbId,
       ratings_fetched_at:
-        r.imdb_rating != null || r.rt_score != null
+        r.imdb_rating != null || r.rt_score != null || r.metacritic_score != null
           ? new Date().toISOString()
           : null,
     };

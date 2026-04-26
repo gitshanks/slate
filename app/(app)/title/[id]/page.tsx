@@ -1,4 +1,4 @@
-import { Fragment, Suspense } from "react";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Star, ExternalLink } from "lucide-react";
@@ -17,7 +17,13 @@ import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  ImdbBadge,
+  MetacriticBadge,
+  RottenTomatoesBadge,
+} from "@/components/rating-icons";
+import {
   formatImdbRating,
+  formatMetacriticScore,
   formatRtScore,
   formatRuntime,
   formatYear,
@@ -191,7 +197,23 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const tmdbUrl = `https://www.themoviedb.org/${title.media_type}/${title.tmdb_id}`;
   const imdbScore = formatImdbRating(title.imdb_rating);
   const rtScore = formatRtScore(title.rt_score);
+  const mcScore = formatMetacriticScore(title.metacritic_score);
   const imdbUrl = title.imdb_id ? `https://www.imdb.com/title/${title.imdb_id}/` : null;
+  // RT primary, Metacritic fallback — same shape (0–100), saves space.
+  const criticChip = rtScore
+    ? ({
+        kind: "rt" as const,
+        score: typeof title.rt_score === "number" ? title.rt_score : null,
+        label: rtScore,
+      })
+    : mcScore
+      ? ({
+          kind: "mc" as const,
+          score:
+            typeof title.metacritic_score === "number" ? title.metacritic_score : null,
+          label: mcScore,
+        })
+      : null;
 
   const { data: listsData } = await supabase
     .from("lists")
@@ -221,42 +243,21 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
 
           {/* Main content */}
           <div>
-            {/* Label row: type · year · runtime · genres · IMDB · RT */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-              <span>{title.media_type === "movie" ? "Film" : "Series"}</span>
-              {year && <><span aria-hidden>·</span><span>{year}</span></>}
-              {runtime && <><span aria-hidden>·</span><span>{runtime}</span></>}
-              {(title.genres ?? []).map((g) => (
-                <Fragment key={g.id}>
-                  <span aria-hidden>·</span>
-                  <span>{g.name}</span>
-                </Fragment>
-              ))}
-              {imdbScore && (
+            {/* Primary meta — type · year · runtime, kept tight and readable */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-mono uppercase tracking-[0.08em] text-muted-foreground">
+              <span className="text-foreground/80">
+                {title.media_type === "movie" ? "Film" : "Series"}
+              </span>
+              {year && (
                 <>
-                  <span aria-hidden>·</span>
-                  {imdbUrl ? (
-                    <a
-                      href={imdbUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-                    >
-                      <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                      <span>{imdbScore} IMDB</span>
-                    </a>
-                  ) : (
-                    <span className="inline-flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                      <span>{imdbScore} IMDB</span>
-                    </span>
-                  )}
+                  <span aria-hidden className="opacity-40">·</span>
+                  <span>{year}</span>
                 </>
               )}
-              {rtScore && (
+              {runtime && (
                 <>
-                  <span aria-hidden>·</span>
-                  <span>{rtScore} RT</span>
+                  <span aria-hidden className="opacity-40">·</span>
+                  <span>{runtime}</span>
                 </>
               )}
             </div>
@@ -265,6 +266,57 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
             <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {title.title}
             </h1>
+
+            {/* Genre chips + rating chips — separate from title meta so they're scannable */}
+            {((title.genres && title.genres.length > 0) || imdbScore || criticChip) && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {(title.genres ?? []).map((g) => (
+                  <span
+                    key={g.id}
+                    className="inline-flex h-6 items-center rounded-full bg-muted/60 px-2.5 text-[11px] text-foreground/80"
+                  >
+                    {g.name}
+                  </span>
+                ))}
+                {imdbScore &&
+                  (imdbUrl ? (
+                    <a
+                      href={imdbUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px] transition-colors hover:bg-card/70"
+                    >
+                      <ImdbBadge className="h-3 w-auto" />
+                      <span className="font-mono tabular-nums text-foreground/90">
+                        {imdbScore}
+                      </span>
+                    </a>
+                  ) : (
+                    <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px]">
+                      <ImdbBadge className="h-3 w-auto" />
+                      <span className="font-mono tabular-nums text-foreground/90">
+                        {imdbScore}
+                      </span>
+                    </span>
+                  ))}
+                {criticChip?.kind === "rt" && (
+                  <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px]">
+                    <RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />
+                    <span className="font-mono tabular-nums text-foreground/90">
+                      {criticChip.label}
+                    </span>
+                  </span>
+                )}
+                {criticChip?.kind === "mc" && (
+                  <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px]">
+                    <MetacriticBadge score={criticChip.score} className="h-3 w-auto" />
+                    <span className="font-mono tabular-nums text-foreground/90">
+                      {criticChip.label}
+                    </span>
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Tagline + director stream in (fallback=null so title stays put) */}
             <Suspense fallback={null}>

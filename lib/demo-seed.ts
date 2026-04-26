@@ -29,6 +29,7 @@ function title(partial: Partial<TitleRow> & Pick<TitleRow, "id" | "tmdb_id" | "m
     imdb_rating: null,
     imdb_votes: null,
     rt_score: null,
+    metacritic_score: null,
     ratings_fetched_at: null,
     ...partial,
   };

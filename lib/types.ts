@@ -27,6 +27,7 @@ export interface TitleRow {
   imdb_rating: number | null;
   imdb_votes: number | null;
   rt_score: number | null;
+  metacritic_score: number | null;
   ratings_fetched_at: string | null;
 }
 

@@ -4,7 +4,13 @@ import { Clock, Eye, Check, Heart, ThumbsUp, ThumbsDown } from "lucide-react";
 import { ViewTransition } from "@/components/view-transition";
 import { PosterCardActions } from "@/components/poster-card-actions";
 import { RatingPair } from "@/components/rating-pair";
-import { cn, formatImdbRating, formatRtScore, formatYear } from "@/lib/utils";
+import {
+  cn,
+  formatImdbRating,
+  formatMetacriticScore,
+  formatRtScore,
+  formatYear,
+} from "@/lib/utils";
 import { posterUrl } from "@/lib/tmdb-image";
 import type { TitleRow, TitleStatus } from "@/lib/supabase";
 
@@ -19,6 +25,7 @@ interface PosterCardProps {
     | "status"
     | "imdb_rating"
     | "rt_score"
+    | "metacritic_score"
     | "rating"
   >;
   priority?: boolean;
@@ -50,7 +57,8 @@ export function PosterCard({ title, priority, showSentiment }: PosterCardProps) 
   const year = formatYear(title.release_date);
   const imdb = formatImdbRating(title.imdb_rating);
   const rt = formatRtScore(title.rt_score);
-  const hasRating = Boolean(imdb || rt);
+  const mc = formatMetacriticScore(title.metacritic_score);
+  const hasRating = Boolean(imdb || rt || mc);
 
   return (
     <Link
@@ -111,6 +119,7 @@ export function PosterCard({ title, priority, showSentiment }: PosterCardProps) 
             <RatingPair
               imdb={title.imdb_rating}
               rt={title.rt_score}
+              metacritic={title.metacritic_score}
               variant="compact"
             />
           </div>

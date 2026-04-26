@@ -74,6 +74,8 @@ interface Row {
   title: string;
   imdb_id: string | null;
   imdb_rating: number | null;
+  rt_score: number | null;
+  metacritic_score: number | null;
 }
 
 async function fetchTmdbImdbId(
@@ -101,6 +103,19 @@ interface OmdbRatings {
   imdb_rating: number | null;
   imdb_votes: number | null;
   rt_score: number | null;
+  metacritic_score: number | null;
+}
+
+const EMPTY_RATINGS: OmdbRatings = {
+  imdb_rating: null,
+  imdb_votes: null,
+  rt_score: null,
+  metacritic_score: null,
+};
+
+function toNum(v: string | undefined): number {
+  if (!v || v === "N/A") return NaN;
+  return Number(String(v).replace(/[%,/].*$/, "").replace(/,/g, ""));
 }
 
 async function fetchOmdb(imdbId: string): Promise<OmdbRatings> {
@@ -109,28 +124,31 @@ async function fetchOmdb(imdbId: string): Promise<OmdbRatings> {
   url.searchParams.set("i", imdbId);
   url.searchParams.set("tomatoes", "true");
   const res = await fetch(url);
-  if (!res.ok) return { imdb_rating: null, imdb_votes: null, rt_score: null };
+  if (!res.ok) return EMPTY_RATINGS;
   const json = (await res.json()) as {
     Response?: string;
     imdbRating?: string;
     imdbVotes?: string;
+    Metascore?: string;
     Ratings?: { Source: string; Value: string }[];
   };
-  if (json.Response === "False") {
-    return { imdb_rating: null, imdb_votes: null, rt_score: null };
+  if (json.Response === "False") return EMPTY_RATINGS;
+
+  const imdb_rating = toNum(json.imdbRating);
+  const imdb_votes = toNum(json.imdbVotes);
+  const rtEntry = json.Ratings?.find((r) => r.Source === "Rotten Tomatoes");
+  const rt_score = toNum(rtEntry?.Value);
+  let mc = toNum(json.Metascore);
+  if (!Number.isFinite(mc)) {
+    const mcEntry = json.Ratings?.find((r) => r.Source === "Metacritic");
+    mc = toNum(mcEntry?.Value);
   }
-  const imdb_rating =
-    json.imdbRating && json.imdbRating !== "N/A" ? Number(json.imdbRating) : NaN;
-  const imdb_votes =
-    json.imdbVotes && json.imdbVotes !== "N/A"
-      ? Number(String(json.imdbVotes).replace(/,/g, ""))
-      : NaN;
-  const rt = json.Ratings?.find((r) => r.Source === "Rotten Tomatoes");
-  const rt_score = rt?.Value ? Number(String(rt.Value).replace("%", "")) : NaN;
+
   return {
-    imdb_rating: Number.isFinite(imdb_rating) ? imdb_rating : null,
-    imdb_votes: Number.isFinite(imdb_votes) ? imdb_votes : null,
-    rt_score: Number.isFinite(rt_score) ? rt_score : null,
+    imdb_rating: Number.isFinite(imdb_rating) && imdb_rating > 0 ? imdb_rating : null,
+    imdb_votes: Number.isFinite(imdb_votes) && imdb_votes > 0 ? imdb_votes : null,
+    rt_score: Number.isFinite(rt_score) && rt_score >= 0 ? rt_score : null,
+    metacritic_score: Number.isFinite(mc) && mc >= 0 ? mc : null,
   };
 }
 
@@ -139,8 +157,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function main() {
   const { data, error } = await supabase
     .from("titles")
-    .select("id, tmdb_id, media_type, title, imdb_id, imdb_rating")
-    .or("imdb_rating.is.null,imdb_id.is.null");
+    .select("id, tmdb_id, media_type, title, imdb_id, imdb_rating, rt_score, metacritic_score")
+    .or(
+      "imdb_rating.is.null,imdb_id.is.null,rt_score.is.null,metacritic_score.is.null"
+    );
   if (error) {
     console.error("Failed to read titles:", error.message);
     process.exit(1);
@@ -163,7 +183,7 @@ async function main() {
       await sleep(150);
     }
 
-    let ratings: OmdbRatings = { imdb_rating: null, imdb_votes: null, rt_score: null };
+    let ratings: OmdbRatings = EMPTY_RATINGS;
     if (imdbId) {
       try {
         ratings = await fetchOmdb(imdbId);
@@ -173,15 +193,18 @@ async function main() {
       await sleep(350);
     }
 
+    const gotAny =
+      ratings.imdb_rating != null ||
+      ratings.rt_score != null ||
+      ratings.metacritic_score != null;
+
     const patch = {
       imdb_id: imdbId ?? null,
       imdb_rating: ratings.imdb_rating,
       imdb_votes: ratings.imdb_votes,
       rt_score: ratings.rt_score,
-      ratings_fetched_at:
-        ratings.imdb_rating != null || ratings.rt_score != null
-          ? new Date().toISOString()
-          : null,
+      metacritic_score: ratings.metacritic_score,
+      ratings_fetched_at: gotAny ? new Date().toISOString() : null,
     };
 
     const { error: updErr } = await supabase
@@ -194,10 +217,10 @@ async function main() {
       continue;
     }
     touched += 1;
-    if (ratings.imdb_rating != null || ratings.rt_score != null) {
+    if (gotAny) {
       rated += 1;
       console.log(
-        `  ✓ ${row.title} — IMDB ${ratings.imdb_rating ?? "—"}, RT ${ratings.rt_score ?? "—"}`
+        `  ✓ ${row.title} — IMDB ${ratings.imdb_rating ?? "—"}, RT ${ratings.rt_score ?? "—"}, MC ${ratings.metacritic_score ?? "—"}`
       );
     } else {
       missing += 1;

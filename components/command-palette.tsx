@@ -11,10 +11,12 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Loader2, Film, Tv, Star, Clock, Eye, Check, Library } from "lucide-react";
+import { Loader2, Film, Tv, Clock, Eye, Check, Library } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { addTitle } from "@/lib/actions";
 import { RatingPair } from "@/components/rating-pair";
+import { TmdbBadge } from "@/components/rating-icons";
+import { formatTmdbScore } from "@/lib/utils";
 import type { TitleStatus } from "@/lib/supabase";
 
 interface SearchResult {
@@ -38,6 +40,7 @@ interface LibraryHit {
   release_date: string | null;
   imdb_rating: number | null;
   rt_score: number | null;
+  metacritic_score: number | null;
   status: "want" | "watching" | "watched" | "dropped";
 }
 
@@ -194,7 +197,8 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                 const poster = posterUrl(hit.poster_path, "w92");
                 const hasRating =
                   (hit.imdb_rating != null && Number(hit.imdb_rating) > 0) ||
-                  (hit.rt_score != null && Number(hit.rt_score) > 0);
+                  (hit.rt_score != null && Number(hit.rt_score) > 0) ||
+                  (hit.metacritic_score != null && Number(hit.metacritic_score) > 0);
                 return (
                   <CommandItem
                     key={`lib-${hit.id}`}
@@ -234,6 +238,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                             <RatingPair
                               imdb={hit.imdb_rating}
                               rt={hit.rt_score}
+                              metacritic={hit.metacritic_score}
                               variant="compact"
                             />
                           </span>
@@ -263,7 +268,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                 const date = r.release_date || r.first_air_date || "";
                 const year = date ? date.slice(0, 4) : "";
                 const poster = posterUrl(r.poster_path, "w92");
-                const vote = r.vote_average && r.vote_average > 0 ? r.vote_average : null;
+                const vote = formatTmdbScore(r.vote_average);
                 const key = `${r.media_type}-${r.id}`;
                 const isSaved = savedTmdbIds.has(r.id) || justAdded.has(key);
                 const isAdding = adding.has(key);
@@ -295,8 +300,8 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                         {year && <span>· {year}</span>}
                         {vote && (
                           <span className="ml-1 inline-flex items-center gap-0.5">
-                            <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                            {vote.toFixed(1)}
+                            <TmdbBadge className="h-2.5 w-auto" />
+                            {vote}
                           </span>
                         )}
                       </span>

@@ -60,3 +60,32 @@ export function formatRtScore(
   if (!Number.isFinite(n) || n < 0) return null;
   return `${Math.round(n)}%`;
 }
+
+/**
+ * Format a Metacritic Metascore (0–100) as a plain number string.
+ * Metacritic conventionally renders bare numbers (not percent), with the
+ * background color carrying the 0–49 / 50–74 / 75–100 semantics.
+ */
+export function formatMetacriticScore(
+  value: number | string | null | undefined
+): string | null {
+  if (value == null) return null;
+  const n = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(n) || n < 0) return null;
+  return `${Math.round(n)}`;
+}
+
+/**
+ * Map a Metacritic score to its conventional badge color band:
+ *   75+  → green ("good")
+ *   50–74 → yellow ("mixed")
+ *   0–49  → red ("bad")
+ */
+export function metacriticBand(value: number | null | undefined): "good" | "mixed" | "bad" | null {
+  if (value == null) return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  if (n >= 75) return "good";
+  if (n >= 50) return "mixed";
+  return "bad";
+}

@@ -29,6 +29,7 @@ create table if not exists titles (
   imdb_rating       numeric(3,1),
   imdb_votes        integer,
   rt_score          integer,
+  metacritic_score  integer,
   ratings_fetched_at timestamptz,
   unique (tmdb_id, media_type)
 );
@@ -40,6 +41,7 @@ alter table titles add column if not exists imdb_id           text;
 alter table titles add column if not exists imdb_rating       numeric(3,1);
 alter table titles add column if not exists imdb_votes        integer;
 alter table titles add column if not exists rt_score          integer;
+alter table titles add column if not exists metacritic_score  integer;
 alter table titles add column if not exists ratings_fetched_at timestamptz;
 
 create index if not exists titles_status_idx     on titles (status);
