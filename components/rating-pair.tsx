@@ -26,11 +26,11 @@ interface RatingPairProps {
  * RT coverage in OMDB is sparse for TV / older / foreign titles, so falling
  * through to Metacritic catches most of the gap with a same-shape 0–100 score.
  *
- * - `compact` (poster cards): plain numbers only, no badges. The decimal-vs-
- *   percent shape disambiguates the source ("8.8" = IMDb, "87%" = critics)
- *   without crowding the tiny chip.
- * - `inline` (title detail): branded badges next to each score, since the
- *   surface has room and clarity matters more there.
+ * - `compact` (poster cards): tiny brand glyph + score, slightly dimmed so
+ *   the badges sit quietly next to the numbers instead of competing with
+ *   them. Just enough to disambiguate the source at a glance.
+ * - `inline` (title detail): full-size badges next to each score, since the
+ *   surface has room and the chips are interactive (link out).
  */
 export function RatingPair({
   imdb,
@@ -52,11 +52,35 @@ export function RatingPair({
   if (!i && !critic) return null;
 
   if (variant === "compact") {
+    // Slight opacity on each badge SVG (not the wrapping span) so the
+    // colored marks read quietly while the score stays at full strength.
     return (
-      <span className="font-mono tabular-nums">
-        {i && <span>{i}</span>}
-        {i && critic && <span aria-hidden className="opacity-50"> · </span>}
-        {critic && <span>{critic.label}</span>}
+      <span className="inline-flex items-center gap-1 font-mono tabular-nums">
+        {i && (
+          <span className="inline-flex items-center gap-1">
+            <ImdbBadge className="h-2 w-auto opacity-75" />
+            <span>{i}</span>
+          </span>
+        )}
+        {i && critic && <span aria-hidden className="opacity-40">·</span>}
+        {critic?.kind === "rt" && (
+          <span className="inline-flex items-center gap-1">
+            <RottenTomatoesBadge
+              score={typeof critic.raw === "number" ? critic.raw : null}
+              className="h-2 w-auto opacity-75"
+            />
+            <span>{critic.label}</span>
+          </span>
+        )}
+        {critic?.kind === "mc" && (
+          <span className="inline-flex items-center gap-1">
+            <MetacriticBadge
+              score={typeof critic.raw === "number" ? critic.raw : null}
+              className="h-2 w-auto opacity-75"
+            />
+            <span>{critic.label}</span>
+          </span>
+        )}
       </span>
     );
   }
