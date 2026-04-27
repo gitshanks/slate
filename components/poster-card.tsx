@@ -25,6 +25,7 @@ interface PosterCardProps {
     | "imdb_rating"
     | "rt_score"
     | "metacritic_score"
+    | "genres"
   >;
   priority?: boolean;
 }
@@ -36,6 +37,7 @@ export function PosterCard({ title, priority }: PosterCardProps) {
   const rt = formatRtScore(title.rt_score);
   const mc = formatMetacriticScore(title.metacritic_score);
   const hasRating = Boolean(imdb || rt || mc);
+  const genre = title.genres?.[0]?.name ?? null;
 
   return (
     <Link
@@ -106,15 +108,10 @@ export function PosterCard({ title, priority }: PosterCardProps) {
         <p className="text-xs font-medium text-foreground line-clamp-1">{title.title}</p>
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
           {year && <span>{year}</span>}
-          {hasRating && (
+          {genre && (
             <>
               {year && <span>·</span>}
-              <RatingPair
-                imdb={title.imdb_rating}
-                rt={title.rt_score}
-                metacritic={title.metacritic_score}
-                variant="compact"
-              />
+              <span className="line-clamp-1">{genre}</span>
             </>
           )}
         </div>
