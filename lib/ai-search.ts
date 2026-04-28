@@ -1,20 +1,60 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 
-const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
+// ─── Provider resolution ────────────────────────────────────────────
+//
+// Two backends are supported:
+//   - "openai":     any OpenAI-compatible endpoint. Defaults to Groq's
+//                   free-tier Llama 3.3 70B. Also works with OpenRouter,
+//                   Ollama, LM Studio, vLLM, llama.cpp server, etc.
+//   - "anthropic":  Claude via the official Anthropic SDK.
+//
+// Provider is auto-detected from whichever API key is set. When both are
+// present, OpenAI-compat wins (it's the recommended path); set AI_PROVIDER
+// to override.
+
+type Provider = "anthropic" | "openai";
+
+function resolveProvider(): Provider | null {
+  const explicit = process.env.AI_PROVIDER?.toLowerCase();
+  if (explicit === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";
+  if (explicit === "openai" && process.env.OPENAI_API_KEY) return "openai";
+  if (process.env.OPENAI_API_KEY) return "openai";
+  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
+  return null;
+}
+
+const PROVIDER = resolveProvider();
 
 /**
  * Whether AI search is wired up. The palette uses this to hide the toggle
- * entirely when the key is missing — no broken UX, no client-visible error.
+ * entirely when no provider is configured — no broken UX, no client error.
  */
-export const aiSearchEnabled = Boolean(ANTHROPIC_KEY);
+export const aiSearchEnabled = PROVIDER !== null;
 
-let client: Anthropic | null = null;
-function getClient(): Anthropic {
-  if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY is not set");
-  if (!client) client = new Anthropic({ apiKey: ANTHROPIC_KEY });
-  return client;
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "llama-3.3-70b-versatile";
+const OPENAI_BASE_URL =
+  process.env.OPENAI_BASE_URL || "https://api.groq.com/openai/v1";
+
+let anthropicClient: Anthropic | null = null;
+function getAnthropic(): Anthropic {
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return anthropicClient;
+}
+
+let openaiClient: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: OPENAI_BASE_URL,
+    });
+  }
+  return openaiClient;
 }
 
 // ─── TMDB genre tables ──────────────────────────────────────────────
@@ -108,20 +148,36 @@ const INTENT_SCHEMA = {
   ],
 } as const;
 
+// All TMDB genre names the model is allowed to emit, in one list.
+const ALL_GENRES = Array.from(
+  new Set([...Object.keys(MOVIE_GENRES), ...Object.keys(TV_GENRES)]),
+).join(", ");
+
+// Self-describing system prompt — works for both Anthropic's schema-enforced
+// `output_config.format` and OpenAI-compat `response_format: json_object`,
+// where the model has to follow the shape on its own.
 const INTENT_SYSTEM = `You translate a user's natural-language query about movies and TV shows into a structured search intent for TMDB.
 
-Rules:
-- media_type: "movie", "tv", or "both". Default to "both" unless the query implies one.
-- genres: zero or more lowercase genre names from this exact set: ${Object.keys(
-  MOVIE_GENRES,
-).join(", ")}, action & adventure, sci-fi & fantasy, war & politics, kids, reality, soap, talk. Pick at most 3.
-- year_min / year_max: integers when the query implies a time period ("90s" → 1990–1999, "recent" → last 5 years, "classic" → before 1980). Null otherwise.
-- query_text: the residual free-text keyword to send to TMDB search (a title fragment, person name, franchise, etc.). Null if the query is purely descriptive.
-- sort_by: "rating" for "best/top/highly rated", "recent" for "new/latest", "popularity" otherwise.
-- min_rating: 7+ when the user asks for "highly rated" / "great" / "best", null otherwise.
-- interpretation: one short sentence describing what you understood.
+Return ONLY a JSON object with this exact shape, no preamble or markdown:
+{
+  "media_type": "movie" | "tv" | "both",
+  "genres": string[],
+  "year_min": number | null,
+  "year_max": number | null,
+  "query_text": string | null,
+  "sort_by": "popularity" | "rating" | "recent" | null,
+  "min_rating": number | null,
+  "interpretation": string
+}
 
-Return JSON only — no preamble.`;
+Rules:
+- media_type: default "both" unless the query implies one.
+- genres: 0-3 lowercase names from this exact set: ${ALL_GENRES}.
+- year_min / year_max: integers when the query implies a time period ("90s" -> 1990 / 1999, "recent" -> last 5 years, "classic" -> before 1980). Null otherwise.
+- query_text: residual free-text keyword for TMDB search (a title fragment, person name, franchise). Null if the query is purely descriptive.
+- sort_by: "rating" for "best/top/highly rated", "recent" for "new/latest", "popularity" otherwise.
+- min_rating: 7 or higher when the user asks for "highly rated" / "great" / "best", null otherwise.
+- interpretation: one short sentence (under 12 words) describing what you understood.`;
 
 // ─── Suggestion schema ──────────────────────────────────────────────
 
@@ -140,49 +196,87 @@ const SUGGESTIONS_SCHEMA = {
 
 const SUGGESTIONS_SYSTEM = `You suggest 4 short, varied search-query completions for a movie/TV watchlist app.
 
+Return ONLY a JSON object with this exact shape, no preamble or markdown:
+{ "suggestions": string[] }
+
 Rules:
-- Each suggestion is a complete query a user might type (3-8 words).
+- Exactly 4 suggestions.
+- Each is a complete query a user might type (3-8 words).
 - Mix kinds: a specific title, a genre+era combo, a person/director, a mood/theme.
 - No duplicates, no quotes, no trailing punctuation.
-- If the partial input clearly points at a known title or person, surface that as the first suggestion.
+- If the partial input clearly points at a known title or person, put that first.`;
 
-Return JSON only.`;
+// ─── Provider call helpers ──────────────────────────────────────────
+//
+// Both helpers return parsed JSON. Anthropic uses schema enforcement;
+// OpenAI-compat relies on `json_object` mode + the schema described in
+// the system prompt. In practice Llama 3.3 70B / Qwen 72B / GPT-4 class
+// models follow a well-described shape reliably; the JSON.parse() catches
+// the rare miss.
+
+async function callAnthropicJSON<T>(
+  system: string,
+  user: string,
+  schema: Record<string, unknown>,
+  maxTokens: number,
+): Promise<T> {
+  const res = await getAnthropic().messages.create({
+    model: ANTHROPIC_MODEL,
+    max_tokens: maxTokens,
+    system,
+    output_config: {
+      format: { type: "json_schema", schema },
+    },
+    messages: [{ role: "user", content: user }],
+  });
+  const block = res.content.find((b) => b.type === "text");
+  if (!block || block.type !== "text") {
+    throw new Error("anthropic: no text content in response");
+  }
+  return JSON.parse(block.text) as T;
+}
+
+async function callOpenAIJSON<T>(
+  system: string,
+  user: string,
+  maxTokens: number,
+): Promise<T> {
+  const res = await getOpenAI().chat.completions.create({
+    model: OPENAI_MODEL,
+    max_tokens: maxTokens,
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+  });
+  const text = res.choices[0]?.message?.content;
+  if (!text) throw new Error("openai-compat: empty completion");
+  return JSON.parse(text) as T;
+}
 
 // ─── Public API ─────────────────────────────────────────────────────
 
 /**
  * Parse a natural-language query into a structured TMDB search intent.
- * Throws if `ANTHROPIC_API_KEY` is unset — callers should check `aiSearchEnabled` first.
+ * Throws if no provider is configured — callers should check `aiSearchEnabled` first.
  */
 export async function parseSearchIntent(query: string): Promise<SearchIntent> {
   const trimmed = query.trim();
-  if (!trimmed) {
-    throw new Error("query is empty");
-  }
-  const res = await getClient().messages.create({
-    model: MODEL,
-    max_tokens: 1024,
-    system: INTENT_SYSTEM,
-    output_config: {
-      format: {
-        type: "json_schema",
-        schema: INTENT_SCHEMA,
-      },
-    },
-    messages: [{ role: "user", content: trimmed }],
-  });
-  const text = res.content.find((b) => b.type === "text");
-  if (!text || text.type !== "text") {
-    throw new Error("no text content in AI response");
-  }
-  const parsed = JSON.parse(text.text) as SearchIntent;
-  // Normalise: clamp year window, lowercase genres.
-  parsed.genres = (parsed.genres ?? []).map((g) => g.toLowerCase().trim());
-  if (parsed.year_min && parsed.year_min < 1900) parsed.year_min = 1900;
-  if (parsed.year_max && parsed.year_max > new Date().getFullYear() + 5) {
-    parsed.year_max = new Date().getFullYear() + 5;
-  }
-  return parsed;
+  if (!trimmed) throw new Error("query is empty");
+  if (!PROVIDER) throw new Error("AI search is not configured");
+
+  const raw =
+    PROVIDER === "anthropic"
+      ? await callAnthropicJSON<SearchIntent>(
+          INTENT_SYSTEM,
+          trimmed,
+          INTENT_SCHEMA,
+          1024,
+        )
+      : await callOpenAIJSON<SearchIntent>(INTENT_SYSTEM, trimmed, 1024);
+
+  return normalizeIntent(raw);
 }
 
 /**
@@ -190,34 +284,79 @@ export async function parseSearchIntent(query: string): Promise<SearchIntent> {
  * if the model fails or AI isn't configured — never throws to the caller.
  */
 export async function suggestQueries(partial: string): Promise<string[]> {
-  if (!aiSearchEnabled) return [];
+  if (!PROVIDER) return [];
   const trimmed = partial.trim();
   if (trimmed.length < 2) return [];
   try {
-    const res = await getClient().messages.create({
-      model: MODEL,
-      max_tokens: 512,
-      system: SUGGESTIONS_SYSTEM,
-      output_config: {
-        format: {
-          type: "json_schema",
-          schema: SUGGESTIONS_SCHEMA,
-        },
-      },
-      messages: [
-        {
-          role: "user",
-          content: `Partial query: "${trimmed}"`,
-        },
-      ],
-    });
-    const text = res.content.find((b) => b.type === "text");
-    if (!text || text.type !== "text") return [];
-    const parsed = JSON.parse(text.text) as { suggestions: string[] };
-    return (parsed.suggestions ?? []).slice(0, 5);
+    const userMsg = `Partial query: "${trimmed}"`;
+    const raw =
+      PROVIDER === "anthropic"
+        ? await callAnthropicJSON<{ suggestions: string[] }>(
+            SUGGESTIONS_SYSTEM,
+            userMsg,
+            SUGGESTIONS_SCHEMA,
+            512,
+          )
+        : await callOpenAIJSON<{ suggestions: string[] }>(
+            SUGGESTIONS_SYSTEM,
+            userMsg,
+            512,
+          );
+    return Array.isArray(raw?.suggestions)
+      ? raw.suggestions
+          .filter((s): s is string => typeof s === "string" && s.length > 0)
+          .slice(0, 5)
+      : [];
   } catch {
     return [];
   }
+}
+
+/**
+ * Defensive normalization for the intent payload. With OpenAI-compat
+ * `json_object` mode there's no schema enforcement, so we coerce shape
+ * here rather than letting bad data hit TMDB.
+ */
+function normalizeIntent(raw: SearchIntent): SearchIntent {
+  const mediaType =
+    raw.media_type === "movie" || raw.media_type === "tv" ? raw.media_type : "both";
+  const genres = Array.isArray(raw.genres)
+    ? raw.genres
+        .filter((g): g is string => typeof g === "string")
+        .map((g) => g.toLowerCase().trim())
+    : [];
+  const yearNow = new Date().getFullYear();
+  const yearMin =
+    typeof raw.year_min === "number" ? Math.max(1900, raw.year_min) : null;
+  const yearMax =
+    typeof raw.year_max === "number"
+      ? Math.min(yearNow + 5, raw.year_max)
+      : null;
+  const sortBy =
+    raw.sort_by === "rating" || raw.sort_by === "recent" || raw.sort_by === "popularity"
+      ? raw.sort_by
+      : null;
+  const minRating =
+    typeof raw.min_rating === "number" && raw.min_rating > 0 && raw.min_rating <= 10
+      ? raw.min_rating
+      : null;
+  const queryText =
+    typeof raw.query_text === "string" && raw.query_text.trim().length > 0
+      ? raw.query_text.trim()
+      : null;
+  const interpretation =
+    typeof raw.interpretation === "string" ? raw.interpretation : "";
+
+  return {
+    media_type: mediaType,
+    genres,
+    year_min: yearMin,
+    year_max: yearMax,
+    query_text: queryText,
+    sort_by: sortBy,
+    min_rating: minRating,
+    interpretation,
+  };
 }
 
 // ─── Intent → TMDB filters ──────────────────────────────────────────

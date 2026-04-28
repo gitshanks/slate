@@ -26,7 +26,7 @@ Letterboxd is great, but it's social. Slate is the opposite: a single-user watch
 ## Features
 
 - **⌘K command palette** — search TMDB and add anything to your library in one keystroke
-- **AI search** — flip the "Ask AI" pill (or ⌘⇧K) and type plain English: _"cozy autumn mysteries"_, _"A24 horror after 2020"_, _"Nolan thrillers"_. Live query suggestions surface as you type. Optional — set `ANTHROPIC_API_KEY` to enable
+- **AI search** — flip the "Ask AI" pill (or ⌘⇧K) and type plain English: _"cozy autumn mysteries"_, _"A24 horror after 2020"_, _"Nolan thrillers"_. Live query suggestions surface as you type. Powered by any OpenAI-compatible endpoint (Groq's free tier by default — Llama 3.3 70B) or Claude. Optional — drop in one key to enable
 - **Three clean states** — Watchlist, Watching, Watched, with Love / Like / Dislike ratings and private notes
 - **Critic scores you can trust** — IMDb rating + Rotten Tomatoes Tomatometer (with Metacritic fallback) on every saved title, fetched once via OMDB and cached
 - **Custom lists** — curate collections like _"Cozy winter"_ or _"A24 horror"_
@@ -123,7 +123,8 @@ Push to GitHub, import at [vercel.com/new](https://vercel.com/new), and add thes
 | `SUPABASE_URL` | required | Project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | required | Server-only secret |
 | `OMDB_API_KEY` | recommended | Powers IMDb / Rotten Tomatoes / Metacritic chips on saved titles. Without it, those stay blank — everything else still works. |
-| `ANTHROPIC_API_KEY` | optional | Unlocks AI search in the ⌘K palette — natural-language queries and live suggestions. Without it the palette works exactly like before, just without the AI toggle. |
+| `OPENAI_API_KEY` | optional | Unlocks AI search in the ⌘K palette — natural-language queries and live suggestions. Defaults to [Groq](https://console.groq.com/keys)'s free tier running Llama 3.3 70B; works with any OpenAI-compatible endpoint (OpenRouter, Ollama, LM Studio, vLLM, llama.cpp). Override the endpoint with `OPENAI_BASE_URL` and the model with `OPENAI_MODEL`. |
+| `ANTHROPIC_API_KEY` | optional | Alternative AI backend — uses Claude instead of an open model. Set `AI_PROVIDER=anthropic` to prefer it when both keys are present. |
 | `APP_PASSCODE` | optional | Lock the app behind a shared passcode. Omit for public. |
 
 ### 4. Run locally
