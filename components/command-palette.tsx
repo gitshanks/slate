@@ -11,11 +11,21 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Loader2, Film, Tv, Clock, Eye, Check, Library } from "lucide-react";
+import {
+  Loader2,
+  Film,
+  Tv,
+  Clock,
+  Eye,
+  Check,
+  Library,
+  Sparkles,
+  Wand2,
+} from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { addTitle } from "@/lib/actions";
 import { RatingPair } from "@/components/rating-pair";
-import { formatTmdbScore } from "@/lib/utils";
+import { formatTmdbScore, cn } from "@/lib/utils";
 import type { TitleStatus } from "@/lib/supabase";
 
 interface SearchResult {
@@ -43,6 +53,17 @@ interface LibraryHit {
   status: "want" | "watching" | "watched" | "dropped";
 }
 
+interface SearchIntent {
+  media_type: "movie" | "tv" | "both";
+  genres: string[];
+  year_min: number | null;
+  year_max: number | null;
+  query_text: string | null;
+  sort_by: "popularity" | "rating" | "recent" | null;
+  min_rating: number | null;
+  interpretation: string;
+}
+
 interface CommandPaletteContextValue {
   open: () => void;
 }
@@ -55,36 +76,64 @@ export function useCommandPalette() {
   return v;
 }
 
-export function CommandPaletteProvider({ children }: { children: React.ReactNode }) {
+interface ProviderProps {
+  children: React.ReactNode;
+  /** Set server-side from `aiSearchEnabled`. When false the AI toggle is hidden. */
+  aiEnabled?: boolean;
+}
+
+export function CommandPaletteProvider({ children, aiEnabled = false }: ProviderProps) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
+  const [aiMode, setAiMode] = React.useState(false);
   const [results, setResults] = React.useState<SearchResult[]>([]);
   const [library, setLibrary] = React.useState<LibraryHit[]>([]);
+  const [intent, setIntent] = React.useState<SearchIntent | null>(null);
   const [approximate, setApproximate] = React.useState(false);
   const [approxQuery, setApproxQuery] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [suggestions, setSuggestions] = React.useState<string[]>([]);
   const [adding, setAdding] = React.useState<Set<string>>(new Set());
   const [justAdded, setJustAdded] = React.useState<Set<string>>(new Set());
   const router = useRouter();
 
-  // Cmd+K / Ctrl+K shortcut
+  // Cmd+K / Ctrl+K toggles open. Cmd+Shift+K opens straight into AI mode.
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen((o) => !o);
+        if (e.shiftKey && aiEnabled) {
+          setAiMode(true);
+          setOpen(true);
+        } else {
+          setOpen((o) => !o);
+        }
       }
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  }, [aiEnabled]);
 
-  // Debounced search
+  // Reset transient state when the palette closes — fresh open should feel fresh.
+  React.useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setResults([]);
+      setLibrary([]);
+      setIntent(null);
+      setSuggestions([]);
+      setApproximate(false);
+      setApproxQuery(null);
+    }
+  }, [open]);
+
+  // Debounced search. Routes to /api/ai-search in AI mode, /api/tmdb/search otherwise.
   React.useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < 2) {
       setResults([]);
       setLibrary([]);
+      setIntent(null);
       setApproximate(false);
       setApproxQuery(null);
       setLoading(false);
@@ -92,30 +141,77 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
     }
     setLoading(true);
     const ctrl = new AbortController();
+    // AI mode warrants a longer debounce — it's a slower call and users
+    // typing a long question shouldn't fire it on every keystroke.
+    const delay = aiMode ? 600 : 300;
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(trimmed)}`, {
-          signal: ctrl.signal,
-        });
-        const data = await res.json();
-        setLibrary(data.library ?? []);
-        setResults(data.results ?? []);
-        setApproximate(Boolean(data.approximate));
-        setApproxQuery(data.approxQuery ?? null);
+        if (aiMode) {
+          const res = await fetch("/api/ai-search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: trimmed }),
+            signal: ctrl.signal,
+          });
+          if (!res.ok) throw new Error("ai search failed");
+          const data = await res.json();
+          setLibrary(data.library ?? []);
+          setResults(data.results ?? []);
+          setIntent(data.intent ?? null);
+          setApproximate(false);
+          setApproxQuery(null);
+        } else {
+          const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(trimmed)}`, {
+            signal: ctrl.signal,
+          });
+          const data = await res.json();
+          setLibrary(data.library ?? []);
+          setResults(data.results ?? []);
+          setIntent(null);
+          setApproximate(Boolean(data.approximate));
+          setApproxQuery(data.approxQuery ?? null);
+        }
       } catch {
-        // ignore aborts
+        // Aborts and AI errors both land here; the empty state already
+        // explains a missing key, and aborts are expected on every keystroke.
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, delay);
     return () => {
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [query]);
+  }, [query, aiMode]);
 
-  // tmdb_ids already in the library — used to show a "Saved" badge in the
-  // TMDB section and dedupe between the two groups.
+  // Live suggestions — independent of search, so they keep ticking even
+  // while AI search results are loading. Only fires when AI is configured.
+  React.useEffect(() => {
+    if (!aiEnabled) return;
+    const trimmed = query.trim();
+    if (trimmed.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/ai-suggest?q=${encodeURIComponent(trimmed)}`, {
+          signal: ctrl.signal,
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+      } catch {
+        // Abort or fetch failure — just skip this round of suggestions.
+      }
+    }, 450);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [query, aiEnabled]);
+
   const savedTmdbIds = React.useMemo(
     () => new Set(library.map((l) => l.tmdb_id)),
     [library]
@@ -123,11 +219,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
 
   const handleSelect = React.useCallback(
     (item: SearchResult) => {
-      // Preview-before-add: navigate to the discover page where the user can
-      // review TMDB details and confirm the add. Closing the palette + the
-      // navigation itself is the feedback — no optimistic toast needed.
       setOpen(false);
-      setQuery("");
       router.push(`/discover/${item.media_type}/${item.id}`);
     },
     [router]
@@ -136,7 +228,6 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
   const handleLibrarySelect = React.useCallback(
     (hit: LibraryHit) => {
       setOpen(false);
-      setQuery("");
       router.push(`/title/${hit.id}`);
     },
     [router]
@@ -151,7 +242,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
         await addTitle({ tmdbId: item.id, mediaType: item.media_type, status });
         setJustAdded((s) => new Set(s).add(key));
       } catch {
-        // Swallow — the badge just won't flip. Next keystroke clears state.
+        // Swallow — badge just won't flip.
       } finally {
         setAdding((s) => {
           const next = new Set(s);
@@ -163,15 +254,71 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
     [adding, justAdded]
   );
 
+  const placeholder = aiMode
+    ? "Ask anything — \"feel-good 90s rom-coms\", \"Nolan thrillers\"…"
+    : "Search movies and TV shows…";
+  const heading = aiMode
+    ? approximate
+      ? `AI: results for "${approxQuery}"`
+      : intent
+        ? `AI: ${intent.interpretation}`
+        : "AI results"
+    : approximate
+      ? `Approximate results${approxQuery ? ` for "${approxQuery}"` : ""}`
+      : "Add from TMDB";
+
   return (
     <Ctx.Provider value={{ open: () => setOpen(true) }}>
       {children}
       <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
-        <CommandInput
-          placeholder="Search movies and TV shows…"
-          value={query}
-          onValueChange={setQuery}
-        />
+        <div className="relative">
+          <CommandInput
+            placeholder={placeholder}
+            value={query}
+            onValueChange={setQuery}
+          />
+          {aiEnabled && (
+            <button
+              type="button"
+              aria-label={aiMode ? "Switch to standard search" : "Switch to AI search"}
+              aria-pressed={aiMode}
+              onClick={() => setAiMode((m) => !m)}
+              className={cn(
+                "absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
+                aiMode
+                  ? "border-primary bg-primary/15 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+              )}
+            >
+              <Sparkles className="h-3 w-3" />
+              <span>{aiMode ? "AI on" : "Ask AI"}</span>
+            </button>
+          )}
+        </div>
+
+        {/* Suggestion chips — render between input and list when we have any. */}
+        {aiEnabled && suggestions.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 border-b border-border bg-muted/30 px-3 py-2">
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              <Wand2 className="h-3 w-3" />
+              Try
+            </span>
+            {suggestions.map((s, i) => (
+              <button
+                key={`${i}-${s}`}
+                type="button"
+                onClick={() => {
+                  setAiMode(true);
+                  setQuery(s);
+                }}
+                className="inline-flex items-center rounded-full border border-border bg-card px-2.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
         <CommandList className="max-h-[60vh]">
           {loading && (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
@@ -183,9 +330,30 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
           )}
           {!loading && !query && (
             <div className="px-4 py-10 text-center text-xs text-muted-foreground">
-              Search your library or add from TMDB.
-              <br />
-              Press <kbd className="font-mono">↵</kbd> to open or preview.
+              {aiMode ? (
+                <>
+                  Describe what you&rsquo;re in the mood for.
+                  <br />
+                  <span className="opacity-70">
+                    e.g. <em>&ldquo;cozy autumn mysteries&rdquo;</em>,{" "}
+                    <em>&ldquo;A24 horror after 2020&rdquo;</em>
+                  </span>
+                </>
+              ) : (
+                <>
+                  Search your library or add from TMDB.
+                  <br />
+                  Press <kbd className="font-mono">↵</kbd> to open or preview.
+                  {aiEnabled && (
+                    <>
+                      <br />
+                      <span className="mt-1 inline-block opacity-70">
+                        <kbd className="font-mono">⌘⇧K</kbd> for AI search
+                      </span>
+                    </>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -255,13 +423,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
           )}
 
           {results.length > 0 && (
-            <CommandGroup
-              heading={
-                approximate
-                  ? `Approximate results${approxQuery ? ` for "${approxQuery}"` : ""}`
-                  : "Add from TMDB"
-              }
-            >
+            <CommandGroup heading={heading}>
               {results.map((r) => {
                 const name = r.title || r.name || "Untitled";
                 const date = r.release_date || r.first_air_date || "";

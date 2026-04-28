@@ -87,6 +87,35 @@ export async function searchMulti(query: string) {
 }
 
 /**
+ * TMDB `/discover/{movie|tv}` with a free-text params bag. Used by the AI
+ * search route to convert a parsed intent (genres, year range, sort) into
+ * discoverable results — separate from `/search/multi`, which is keyword-only.
+ */
+export async function discover(
+  type: "movie" | "tv",
+  params: Record<string, string>,
+): Promise<TmdbMediaResult[]> {
+  try {
+    const merged = {
+      include_adult: "false",
+      language: "en-US",
+      page: "1",
+      ...params,
+    };
+    const res = await tmdb<{ results: TmdbSearchResult[] }>(
+      `/discover/${type}`,
+      merged,
+    );
+    return res.results.map((r) => ({
+      ...r,
+      media_type: type,
+    })) as TmdbMediaResult[];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * `searchMulti` with a word-drop fuzzy retry. If the initial query returns
  * zero movie/tv hits, progressively drops trailing words (up to 2 times) and
  * retries. This is the fallback both `/api/tmdb/search` and the import
