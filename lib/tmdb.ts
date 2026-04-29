@@ -455,6 +455,34 @@ export async function getPopularTv(): Promise<TmdbSearchResult[]> {
 }
 
 /**
+ * "Shows/movies like X" — fetches TMDB's curated recommendations for a
+ * specific title. Used by the AI chat's `find_similar` tool when the user
+ * asks for similarity ("shows like friends") rather than filter-style
+ * discovery ("90s rom-coms").
+ */
+export async function getRecommendationsFor(
+  type: "movie" | "tv",
+  tmdbId: number,
+): Promise<TmdbMediaResult[]> {
+  try {
+    const res = await tmdb<{ results: TmdbSearchResult[] }>(
+      `/${type}/${tmdbId}/recommendations`,
+      { language: "en-US", page: "1" },
+    );
+    return res.results
+      .map((r) => ({
+        ...r,
+        media_type: (r.media_type ?? type) as TmdbSearchResult["media_type"],
+      }))
+      .filter(
+        (r): r is TmdbMediaResult => r.media_type === "movie" || r.media_type === "tv",
+      );
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Personalised "You might like" pool. Picks the user's top watched titles
  * (by sentiment rating, then TMDB score) as seeds, fans out to TMDB's
  * /recommendations for each, merges by co-occurrence so titles surfaced

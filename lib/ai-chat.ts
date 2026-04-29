@@ -5,7 +5,12 @@ import {
   TV_GENRES,
   type SearchIntent,
 } from "@/lib/ai-search";
-import { discover, searchMulti, type TmdbMediaResult } from "@/lib/tmdb";
+import {
+  discover,
+  getRecommendationsFor,
+  searchMulti,
+  type TmdbMediaResult,
+} from "@/lib/tmdb";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 
@@ -129,22 +134,50 @@ const SEARCH_TOOL_PARAMETERS = {
   required: ["media_type", "genres"],
 };
 
+// Schema for `find_similar`. Tiny on purpose — the title is the only thing
+// the model has to provide, the recommendations come from TMDB's curated list.
+const SIMILAR_TOOL_PARAMETERS = {
+  type: "object" as const,
+  properties: {
+    title: {
+      type: "string",
+      description:
+        "The exact title the user wants similar shows or movies to. e.g. 'Friends', 'Inception', 'Studio Ghibli'.",
+    },
+    media_type: {
+      type: "string",
+      enum: ["movie", "tv", "both"],
+      description:
+        "What flavour of result the user wants. Omit for 'both' if unclear.",
+    },
+  },
+  required: ["title"],
+};
+
 const SEARCH_TOOL_NAME = "search_titles";
 const SEARCH_TOOL_DESCRIPTION =
-  "Search the catalogue for movies and TV shows by genre, year range, keyword, or sort preference. Returns up to 16 candidates. Call AT MOST ONCE per user message — use the result to ground your prose response.";
+  "Browse the catalogue by descriptive filters: genre, year range, sort preference, or a free-text keyword (a person, franchise, or general descriptor). Use this for filter-style discovery like 'feel-good 90s rom-coms', 'highly rated horror', 'Christopher Nolan thrillers'. Returns up to 16 candidates.";
+
+const SIMILAR_TOOL_NAME = "find_similar";
+const SIMILAR_TOOL_DESCRIPTION =
+  "Find titles similar to a SPECIFIC named show or movie. Use this whenever the user says 'like X', 'similar to X', 'something like X', 'more X', etc. Returns curated recommendations from the catalogue, NOT generic genre matches.";
 
 const CHAT_SYSTEM = `You are a warm, opinionated movie and TV recommendation assistant inside a personal watchlist app called slate. The user is browsing for something to watch.
 
 How a turn works:
 1. Read the user's message.
-2. If concrete titles would help, call ${SEARCH_TOOL_NAME} ONCE with your best guess of filters. Do not call it again in the same turn.
-3. After the tool returns, write a short prose response that highlights 1-2 standouts from the results with one-line takes ("Notting Hill is the comfort-watch champion", "FernGully is dated but the vibes hold up"). The UI shows the full list — do not enumerate every title.
+2. Pick exactly ONE tool and call it ONCE:
+   - ${SIMILAR_TOOL_NAME}({title}) — when the user names a specific show/movie they want more like ("shows like Friends", "similar to Inception", "more Studio Ghibli")
+   - ${SEARCH_TOOL_NAME}({...filters}) — for descriptive browsing ("feel-good 90s rom-coms", "best horror after 2020", "Nolan thrillers")
+3. After the tool returns, write a short prose response highlighting 1-2 standouts FROM THE RESULTS with one-line takes ("Notting Hill is the comfort-watch champion", "FernGully is dated but the vibes hold up").
 4. End with a follow-up question when natural ("seen these?", "want something darker?", "anything from the 70s instead?").
 
-Choosing sort_by:
-- "popularity" (default) — for "shows like X", general browsing, "what should I watch", mood requests. Almost always the right answer.
+CRITICAL grounding rule: The titles you mention in prose MUST come from the tool's result list. Never recommend titles from your training that the tool didn't return — the user can't add those from this app. If the tool returned nothing useful, say so honestly ("hmm, the catalogue's thin on that — try rephrasing?") instead of inventing titles.
+
+Choosing sort_by (only relevant for ${SEARCH_TOOL_NAME}):
+- "popularity" (default) — almost always the right answer.
 - "rating" — only when the user asks for "best", "highly rated", "top".
-- "recent" — only when the user explicitly asks for "new", "latest", "this year". Never for "shows like X" — that surfaces unreleased placeholders.
+- "recent" — only when the user explicitly asks for "new", "latest", "this year".
 
 Tone: conversational, opinionated, concise. Talk like a friend who knows movies. Avoid bullet lists. Never mention databases, searching, or how you find things.
 
@@ -175,11 +208,12 @@ export async function* streamChat(
   }
 }
 
-// ─── Search tool execution ──────────────────────────────────────────
+// ─── Tool execution ─────────────────────────────────────────────────
 //
-// Single source of truth for "given a parsed intent, return TMDB hits".
-// Used as the actual tool body; also returns the intent we got so the
-// client can render the model's interpretation alongside the results.
+// Both tools produce the same `ToolResult` shape so the calling code
+// can treat them uniformly. `intent` is rendered as the chip below the
+// model's prose; `results` becomes the inline poster rail; `summary`
+// is the compact textual list the model gets back as the tool result.
 
 interface ToolResult {
   intent: SearchIntent;
@@ -188,7 +222,85 @@ interface ToolResult {
   summary: string;
 }
 
-async function executeSearch(
+/** Dispatcher: pick the right executor for the tool name the model called. */
+async function executeTool(
+  name: string,
+  rawArgs: Record<string, unknown>,
+): Promise<ToolResult> {
+  if (name === SIMILAR_TOOL_NAME) return executeFindSimilar(rawArgs);
+  return executeSearchTitles(rawArgs);
+}
+
+/**
+ * `find_similar` — for "shows like X" queries. Resolves the user's named
+ * title to a TMDB ID via search, then asks TMDB for its curated
+ * /recommendations list. Way better than guessing genre filters.
+ */
+async function executeFindSimilar(
+  rawArgs: Record<string, unknown>,
+): Promise<ToolResult> {
+  const title = typeof rawArgs.title === "string" ? rawArgs.title.trim() : "";
+  const mt = rawArgs.media_type;
+  const wantedMediaType: "movie" | "tv" | "both" =
+    mt === "movie" || mt === "tv" ? mt : "both";
+
+  const intent: SearchIntent = {
+    media_type: wantedMediaType,
+    genres: [],
+    year_min: null,
+    year_max: null,
+    query_text: title,
+    sort_by: null,
+    min_rating: null,
+    interpretation: title ? `similar to ${title}` : "",
+  };
+
+  if (!title) return { intent, results: [], summary: "(no title provided)" };
+
+  // Find the seed title. Prefer a media-type match if one was specified;
+  // otherwise take the most relevant hit.
+  const search = await searchMulti(title);
+  const candidates = search.results.filter(
+    (r): r is TmdbMediaResult => r.media_type === "movie" || r.media_type === "tv",
+  );
+  const seed =
+    wantedMediaType !== "both"
+      ? candidates.find((r) => r.media_type === wantedMediaType) ?? candidates[0]
+      : candidates[0];
+
+  if (!seed) {
+    return {
+      intent,
+      results: [],
+      summary: `(no titles found matching "${title}")`,
+    };
+  }
+
+  const recs = await getRecommendationsFor(seed.media_type, seed.id);
+  // Drop the seed itself from the recommendations if TMDB included it.
+  const filtered = recs.filter((r) => r.id !== seed.id).slice(0, 16);
+
+  const seedName = seed.title || seed.name || title;
+  const summary =
+    filtered.length === 0
+      ? `(no recommendations available for "${seedName}")`
+      : filtered
+          .map((r) => {
+            const name = r.title || r.name || "Untitled";
+            const date = r.release_date || r.first_air_date || "";
+            const year = date ? date.slice(0, 4) : "";
+            return year ? `${name} (${year})` : name;
+          })
+          .join(", ");
+
+  return {
+    intent: { ...intent, interpretation: `similar to ${seedName}` },
+    results: filtered,
+    summary,
+  };
+}
+
+async function executeSearchTitles(
   rawIntent: Record<string, unknown>,
 ): Promise<ToolResult> {
   const intent = normalizeIntent(rawIntent);
@@ -332,6 +444,14 @@ async function* streamOpenAIChat(
                     parameters: SEARCH_TOOL_PARAMETERS,
                   },
                 },
+                {
+                  type: "function",
+                  function: {
+                    name: SIMILAR_TOOL_NAME,
+                    description: SIMILAR_TOOL_DESCRIPTION,
+                    parameters: SIMILAR_TOOL_PARAMETERS,
+                  },
+                },
               ],
             }),
         stream: true,
@@ -408,7 +528,7 @@ async function* streamOpenAIChat(
 
     // Execute each tool call and append its result.
     for (const call of calls) {
-      if (call.name !== SEARCH_TOOL_NAME) {
+      if (call.name !== SEARCH_TOOL_NAME && call.name !== SIMILAR_TOOL_NAME) {
         wireMessages.push({
           role: "tool",
           tool_call_id: call.id,
@@ -423,7 +543,7 @@ async function* streamOpenAIChat(
       } catch {
         // Malformed JSON from the model — feed back an empty intent.
       }
-      const { intent, results, summary } = await executeSearch(parsed);
+      const { intent, results, summary } = await executeTool(call.name, parsed);
       yield { type: "search_result", intent, results };
       wireMessages.push({
         role: "tool",
@@ -447,7 +567,8 @@ async function* streamAnthropicChat(
     content: m.content,
   }));
 
-  const MAX_HOPS = 4;
+  // Same shape as the OpenAI side: one tool call, one prose response.
+  const MAX_HOPS = 2;
   for (let hop = 0; hop < MAX_HOPS; hop++) {
     const stream = getAnthropic().messages.stream({
       model: ANTHROPIC_MODEL,
@@ -458,6 +579,11 @@ async function* streamAnthropicChat(
           name: SEARCH_TOOL_NAME,
           description: SEARCH_TOOL_DESCRIPTION,
           input_schema: SEARCH_TOOL_PARAMETERS,
+        },
+        {
+          name: SIMILAR_TOOL_NAME,
+          description: SIMILAR_TOOL_DESCRIPTION,
+          input_schema: SIMILAR_TOOL_PARAMETERS,
         },
       ],
       messages: wireMessages,
@@ -485,7 +611,7 @@ async function* streamAnthropicChat(
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     for (const tu of toolUses) {
       if (tu.type !== "tool_use") continue;
-      if (tu.name !== SEARCH_TOOL_NAME) {
+      if (tu.name !== SEARCH_TOOL_NAME && tu.name !== SIMILAR_TOOL_NAME) {
         toolResults.push({
           type: "tool_result",
           tool_use_id: tu.id,
@@ -495,7 +621,8 @@ async function* streamAnthropicChat(
         continue;
       }
       yield { type: "search_start" };
-      const { intent, results, summary } = await executeSearch(
+      const { intent, results, summary } = await executeTool(
+        tu.name,
         tu.input as Record<string, unknown>,
       );
       yield { type: "search_result", intent, results };
