@@ -462,13 +462,21 @@ async function* streamOpenAIChat(
         stream: true,
       });
 
+      // Hop 0 with tool_choice="required" should produce ONLY a tool call,
+      // no prose. If the model writes prose anyway it's defying the
+      // constraint and the prose is ungrounded — suppress it here so the
+      // user never sees hallucinated text on screen.
+      const shouldYieldText = hop > 0 || triedFallback;
+
       for await (const chunk of stream) {
         const choice = chunk.choices[0];
         if (!choice) continue;
         const delta = choice.delta;
         if (delta?.content) {
           proseAcc += delta.content;
-          yield { type: "text", delta: delta.content };
+          if (shouldYieldText) {
+            yield { type: "text", delta: delta.content };
+          }
         }
         if (delta?.tool_calls) {
           for (const tc of delta.tool_calls) {
@@ -560,6 +568,20 @@ async function* streamOpenAIChat(
       // Restart this hop without tools. The continue jumps to the loop
       // condition, which is fine — `triedFallback` is now true so the next
       // create() call omits the tools array.
+      continue;
+    }
+
+    // Defiance check: hop 0 was supposed to emit a tool call (we set
+    // tool_choice="required"). If it didn't, Llama ignored the constraint
+    // and any prose it produced is ungrounded — we already suppressed the
+    // text deltas above, so just trigger the fallback retry.
+    if (
+      hop === 0 &&
+      !triedFallback &&
+      (finishReason !== "tool_calls" || pendingCalls.size === 0)
+    ) {
+      triedFallback = true;
+      proseAcc = "";
       continue;
     }
 
