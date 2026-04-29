@@ -486,7 +486,56 @@ async function* streamOpenAIChat(
       }
     } catch (err) {
       const raw = err instanceof Error ? err.message : "chat error";
-      const isToolFailure = /failed to call a function|tool_use_failed|failed_generation/i.test(raw);
+      const isToolFailure =
+        /failed to call a function|tool_use_failed|failed_generation|tool call validation|not in request\.tools|invalid tool/i.test(
+          raw,
+        );
+
+      // Recovery for a known Groq parser bug: when Llama 3.3 emits a tool
+      // call in a non-canonical format, Groq sometimes glues the JSON args
+      // into the tool name and rejects it as "not in request.tools". The
+      // error message contains the original shape verbatim — we can pluck
+      // it out, execute the tool ourselves, and synthesize the assistant
+      // turn so the next hop responds with proper grounding.
+      const malformed = raw.match(
+        /'(search_titles|find_similar)\s+(\{[^']*?\})'/,
+      );
+      if (malformed && hop < MAX_HOPS - 1) {
+        try {
+          const [, toolName, jsonArgs] = malformed;
+          const parsedArgs = JSON.parse(jsonArgs) as Record<string, unknown>;
+          yield { type: "search_start" };
+          const { intent, results, summary } = await executeTool(
+            toolName,
+            parsedArgs,
+          );
+          yield { type: "search_result", intent, results };
+          // Synthesize the missing assistant turn + tool result so the loop
+          // can continue with the model writing prose grounded in real data.
+          const fakeId = `recovered_${hop}_${Date.now()}`;
+          wireMessages.push({
+            role: "assistant",
+            content: null,
+            tool_calls: [
+              {
+                id: fakeId,
+                type: "function" as const,
+                function: { name: toolName, arguments: jsonArgs },
+              },
+            ],
+          });
+          wireMessages.push({
+            role: "tool",
+            tool_call_id: fakeId,
+            content: summary || "(no results found)",
+          });
+          continue; // next hop: model writes prose with the synthesized result in context
+        } catch {
+          // Recovery itself failed (probably JSON.parse) — fall through
+          // to the existing fallback path below.
+        }
+      }
+
       if (isToolFailure && !triedFallback) {
         // One-shot retry without tools so the user gets *some* response. The
         // model can't ground its answer in the catalogue this turn but at
