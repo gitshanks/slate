@@ -84,10 +84,11 @@ const ALL_GENRES = Array.from(
 //   sometimes fail Groq's tool-call validator).
 // - nullable fields are simply optional (omitted from `required`).
 // - no `enum` containing `null`.
-// `normalizeIntent()` below treats missing fields as "no constraint".
+// - no `additionalProperties: false` (overly strict — Llama occasionally
+//   emits an extra commentary field and Groq rejects the whole call).
+// `normalizeIntent()` below treats missing or extra fields as "no constraint".
 const SEARCH_TOOL_PARAMETERS = {
   type: "object" as const,
-  additionalProperties: false,
   properties: {
     media_type: {
       type: "string",
@@ -299,71 +300,96 @@ async function* streamOpenAIChat(
   // Anything beyond that is the model second-guessing itself with redundant
   // searches whose results overwrite the previous rail in the UI.
   const MAX_HOPS = 2;
-  for (let hop = 0; hop < MAX_HOPS; hop++) {
-    let stream: Awaited<ReturnType<ReturnType<typeof getOpenAI>["chat"]["completions"]["create"]>>;
-    try {
-      stream = await getOpenAI().chat.completions.create({
-        model: OPENAI_MODEL,
-        messages: wireMessages,
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: SEARCH_TOOL_NAME,
-              description: SEARCH_TOOL_DESCRIPTION,
-              parameters: SEARCH_TOOL_PARAMETERS,
-            },
-          },
-        ],
-        stream: true,
-      });
-    } catch (err) {
-      // Groq's "Failed to call a function. Please adjust your prompt" lands here
-      // when the model emits a tool call its validator rejects. Surface a
-      // friendlier message instead of leaking provider jargon.
-      const raw = err instanceof Error ? err.message : "chat error";
-      const friendly = /failed to call a function|tool_use_failed|failed_generation/i.test(raw)
-        ? "Couldn't run the search for that — try rephrasing?"
-        : raw;
-      yield { type: "error", message: friendly };
-      return;
-    }
 
+  // Whether we've already retried with tools disabled. The retry is the
+  // graceful-degradation path when Groq rejects a tool call: drop the tools
+  // parameter and let the model respond conversationally.
+  let triedFallback = false;
+
+  for (let hop = 0; hop < MAX_HOPS; hop++) {
     // Accumulate tool calls and prose across the stream.
     type PendingCall = { id: string; name: string; args: string };
     const pendingCalls = new Map<number, PendingCall>();
     let proseAcc = "";
     let finishReason: string | null = null;
+    let toolFailureSeen = false;
 
-    for await (const chunk of stream) {
-      const choice = chunk.choices[0];
-      if (!choice) continue;
-      const delta = choice.delta;
-      if (delta?.content) {
-        proseAcc += delta.content;
-        yield { type: "text", delta: delta.content };
-      }
-      if (delta?.tool_calls) {
-        for (const tc of delta.tool_calls) {
-          const idx = tc.index;
-          const existing = pendingCalls.get(idx);
-          if (!existing) {
-            pendingCalls.set(idx, {
-              id: tc.id ?? "",
-              name: tc.function?.name ?? "",
-              args: tc.function?.arguments ?? "",
-            });
-          } else {
-            if (tc.id) existing.id = tc.id;
-            if (tc.function?.name) existing.name = tc.function.name;
-            if (tc.function?.arguments) existing.args += tc.function.arguments;
+    try {
+      const stream = await getOpenAI().chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: wireMessages,
+        // Skip tools on the fallback retry — this is what avoids the
+        // `failed_generation` loop when Groq dislikes whatever Llama emits.
+        ...(triedFallback
+          ? {}
+          : {
+              tools: [
+                {
+                  type: "function",
+                  function: {
+                    name: SEARCH_TOOL_NAME,
+                    description: SEARCH_TOOL_DESCRIPTION,
+                    parameters: SEARCH_TOOL_PARAMETERS,
+                  },
+                },
+              ],
+            }),
+        stream: true,
+      });
+
+      for await (const chunk of stream) {
+        const choice = chunk.choices[0];
+        if (!choice) continue;
+        const delta = choice.delta;
+        if (delta?.content) {
+          proseAcc += delta.content;
+          yield { type: "text", delta: delta.content };
+        }
+        if (delta?.tool_calls) {
+          for (const tc of delta.tool_calls) {
+            const idx = tc.index;
+            const existing = pendingCalls.get(idx);
+            if (!existing) {
+              pendingCalls.set(idx, {
+                id: tc.id ?? "",
+                name: tc.function?.name ?? "",
+                args: tc.function?.arguments ?? "",
+              });
+            } else {
+              if (tc.id) existing.id = tc.id;
+              if (tc.function?.name) existing.name = tc.function.name;
+              if (tc.function?.arguments) existing.args += tc.function.arguments;
+            }
           }
         }
+        if (choice.finish_reason) finishReason = choice.finish_reason;
       }
-      if (choice.finish_reason) finishReason = choice.finish_reason;
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "chat error";
+      const isToolFailure = /failed to call a function|tool_use_failed|failed_generation/i.test(raw);
+      if (isToolFailure && !triedFallback) {
+        // One-shot retry without tools so the user gets *some* response. The
+        // model can't ground its answer in the catalogue this turn but at
+        // least the conversation doesn't dead-end.
+        triedFallback = true;
+        toolFailureSeen = true;
+      } else {
+        const friendly = isToolFailure
+          ? "Couldn't run the search for that — try rephrasing?"
+          : raw;
+        yield { type: "error", message: friendly };
+        return;
+      }
     }
 
-    // No tool call → done. Model's final answer.
+    if (toolFailureSeen) {
+      // Restart this hop without tools. The continue jumps to the loop
+      // condition, which is fine — `triedFallback` is now true so the next
+      // create() call omits the tools array.
+      continue;
+    }
+
+    // No tool call → model's final answer. Done.
     if (finishReason !== "tool_calls" || pendingCalls.size === 0) {
       return;
     }

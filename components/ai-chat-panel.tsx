@@ -307,10 +307,13 @@ function AssistantBubble({
           {turn.content ? (
             <span className="whitespace-pre-wrap">
               {turn.content}
-              {!turn.done && (
+              {!turn.done && !turn.error && (
                 <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-foreground/40 align-middle" />
               )}
             </span>
+          ) : turn.error ? (
+            // Error replaces the loading state — no "Thinking…" stacked on top.
+            <span className="text-destructive">{turn.error}</span>
           ) : turn.searching ? (
             <span className="inline-flex items-center gap-2 text-muted-foreground">
               <Search className="h-3.5 w-3.5 animate-pulse" />
@@ -345,7 +348,9 @@ function AssistantBubble({
         <ResultRail items={turn.results} onClick={onResultClick} />
       )}
 
-      {turn.error && (
+      {/* Inline error rendered separately only if we already have prose
+          (so the user keeps seeing the partial response above). */}
+      {turn.error && turn.content && (
         <div className="ml-8 text-xs text-destructive">{turn.error}</div>
       )}
     </div>
