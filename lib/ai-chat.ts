@@ -130,19 +130,24 @@ const SEARCH_TOOL_PARAMETERS = {
 
 const SEARCH_TOOL_NAME = "search_titles";
 const SEARCH_TOOL_DESCRIPTION =
-  "Search TMDB for movies and TV shows by genre, year range, keyword, or sort preference. Returns up to 16 candidates. Call this whenever you need to surface concrete titles to the user.";
+  "Search the catalogue for movies and TV shows by genre, year range, keyword, or sort preference. Returns up to 16 candidates. Call AT MOST ONCE per user message — use the result to ground your prose response.";
 
 const CHAT_SYSTEM = `You are a warm, opinionated movie and TV recommendation assistant inside a personal watchlist app called slate. The user is browsing for something to watch.
 
-Your job:
-- Have a brief, natural conversation about what they're in the mood for.
-- Call the ${SEARCH_TOOL_NAME} tool when concrete titles would help.
-- The UI displays the search results below your message — do NOT enumerate every title back to the user. Pick 1-3 standouts to highlight in prose, with one-line takes ("Notting Hill is the comfort-watch champion", "FernGully is dated but the vibes hold up").
-- Invite a follow-up when natural ("seen these?", "want something darker?", "anything from the 70s instead?").
+How a turn works:
+1. Read the user's message.
+2. If concrete titles would help, call ${SEARCH_TOOL_NAME} ONCE with your best guess of filters. Do not call it again in the same turn.
+3. After the tool returns, write a short prose response that highlights 1-2 standouts from the results with one-line takes ("Notting Hill is the comfort-watch champion", "FernGully is dated but the vibes hold up"). The UI shows the full list — do not enumerate every title.
+4. End with a follow-up question when natural ("seen these?", "want something darker?", "anything from the 70s instead?").
 
-Tone: conversational, witty, concise. Talk like a friend who knows movies. Avoid bullet lists. Don't mention TMDB or that you're searching a database.
+Choosing sort_by:
+- "popularity" (default) — for "shows like X", general browsing, "what should I watch", mood requests. Almost always the right answer.
+- "rating" — only when the user asks for "best", "highly rated", "top".
+- "recent" — only when the user explicitly asks for "new", "latest", "this year". Never for "shows like X" — that surfaces unreleased placeholders.
 
-Length: 2-4 sentences per turn. Never longer.`;
+Tone: conversational, opinionated, concise. Talk like a friend who knows movies. Avoid bullet lists. Never mention databases, searching, or how you find things.
+
+Length: 1-3 sentences. Never longer.`;
 
 // ─── Public entry point ─────────────────────────────────────────────
 
@@ -288,8 +293,12 @@ async function* streamOpenAIChat(
     ...messages.map((m): Msg => ({ role: m.role, content: m.content })),
   ];
 
-  // Hop limit guards against runaway tool-call loops on a misbehaving model.
-  const MAX_HOPS = 4;
+  // Hop limit. The expected shape per user turn is exactly 2 hops:
+  //   1. model emits a search_titles call (no prose, finish_reason="tool_calls")
+  //   2. model writes its prose response with the tool result in context
+  // Anything beyond that is the model second-guessing itself with redundant
+  // searches whose results overwrite the previous rail in the UI.
+  const MAX_HOPS = 2;
   for (let hop = 0; hop < MAX_HOPS; hop++) {
     let stream: Awaited<ReturnType<ReturnType<typeof getOpenAI>["chat"]["completions"]["create"]>>;
     try {

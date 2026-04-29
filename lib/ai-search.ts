@@ -393,8 +393,19 @@ export function intentToDiscoverParams(
       mediaType === "movie"
         ? "primary_release_date.desc"
         : "first_air_date.desc";
+    // Cap "recent" at *released* titles — TMDB happily ranks future-dated
+    // placeholders ("(Not)Normal Family 2029") above real shows otherwise.
+    // Also require some traction (vote_count) to drop unknown-but-released
+    // direct-to-streaming filler the model can't usefully comment on.
+    const today = new Date().toISOString().slice(0, 10);
+    if (!intent.year_max || intent.year_max >= new Date().getFullYear()) {
+      params[dateLteKey] = today;
+    }
+    params["vote_count.gte"] = "30";
   } else {
     params.sort_by = "popularity.desc";
+    // Even popularity sort can pull in unreleased hype — gate it lightly.
+    params["vote_count.gte"] = "10";
   }
 
   if (intent.min_rating) params["vote_average.gte"] = String(intent.min_rating);
