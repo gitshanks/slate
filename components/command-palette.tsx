@@ -20,7 +20,6 @@ import {
   Check,
   Library,
   Sparkles,
-  Wand2,
 } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { addTitle } from "@/lib/actions";
@@ -280,27 +279,32 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
           {aiEnabled && (
             <button
               type="button"
-              aria-label={aiMode ? "Switch to standard search" : "Switch to AI search"}
+              aria-label={aiMode ? "Turn off AI search" : "Turn on AI search"}
               aria-pressed={aiMode}
+              title={aiMode ? "AI search · ⌘⇧K" : "Ask AI · ⌘⇧K"}
               onClick={() => setAiMode((m) => !m)}
+              // Ghost icon-only button. Sits clear of the dialog's close-X
+              // (which lives at right-4 top-4) so the two don't visually merge.
               className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors",
+                "absolute right-12 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",
                 aiMode
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                  ? "text-primary bg-primary/10 hover:bg-primary/15"
+                  : "text-muted-foreground/60 hover:text-foreground hover:bg-accent"
               )}
             >
-              <Sparkles className="h-3 w-3" />
-              <span>{aiMode ? "AI on" : "Ask AI"}</span>
+              <Sparkles className="h-4 w-4" />
+              <span className="sr-only">
+                {aiMode ? "AI search on" : "Ask AI"}
+              </span>
             </button>
           )}
         </div>
 
-        {/* Suggestion chips — render between input and list when we have any. */}
+        {/* Suggestion strip — minimal: a hairline, no panel chrome, chips
+            blend into the surface. Only shows when we actually have hits. */}
         {aiEnabled && suggestions.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 border-b border-border bg-muted/30 px-3 py-2">
-            <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-              <Wand2 className="h-3 w-3" />
+          <div className="flex flex-wrap items-center gap-1.5 border-b border-border/50 px-3 py-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
               Try
             </span>
             {suggestions.map((s, i) => (
@@ -311,7 +315,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                   setAiMode(true);
                   setQuery(s);
                 }}
-                className="inline-flex items-center rounded-full border border-border bg-card px-2.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 {s}
               </button>
