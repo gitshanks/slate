@@ -78,6 +78,13 @@ const ALL_GENRES = Array.from(
 
 // One JSON schema, reused for both providers' tool-definition shapes.
 // Mirrors `SearchIntent` minus `interpretation` (the chat prose replaces it).
+//
+// Designed conservatively for Llama-3.3-70B function calling on Groq:
+// - no `type: ["X", "null"]` unions (Llama generates `null` literals that
+//   sometimes fail Groq's tool-call validator).
+// - nullable fields are simply optional (omitted from `required`).
+// - no `enum` containing `null`.
+// `normalizeIntent()` below treats missing fields as "no constraint".
 const SEARCH_TOOL_PARAMETERS = {
   type: "object" as const,
   additionalProperties: false,
@@ -90,40 +97,35 @@ const SEARCH_TOOL_PARAMETERS = {
     genres: {
       type: "array",
       items: { type: "string" },
-      description: `0-3 lowercase genre names from this set: ${ALL_GENRES}.`,
+      description: `0-3 lowercase genre names from this set: ${ALL_GENRES}. Empty array if no genre constraint.`,
     },
     year_min: {
-      type: ["integer", "null"],
-      description: "Earliest release year, or null. e.g. '90s' -> 1990.",
+      type: "integer",
+      description: "Earliest release year. Omit if no lower bound. e.g. '90s' -> 1990.",
     },
     year_max: {
-      type: ["integer", "null"],
-      description: "Latest release year, or null. e.g. '90s' -> 1999.",
+      type: "integer",
+      description: "Latest release year. Omit if no upper bound. e.g. '90s' -> 1999.",
     },
     query_text: {
-      type: ["string", "null"],
+      type: "string",
       description:
-        "Residual free-text keyword (title fragment, person, franchise). Null if purely descriptive.",
+        "Residual free-text keyword (title fragment, person, franchise). Omit if the query is purely descriptive.",
     },
     sort_by: {
-      type: ["string", "null"],
-      enum: ["popularity", "rating", "recent", null],
-      description: "'rating' for best-of, 'recent' for new, 'popularity' otherwise.",
+      type: "string",
+      enum: ["popularity", "rating", "recent"],
+      description:
+        "'rating' for best-of / highly rated, 'recent' for new / latest, 'popularity' otherwise. Omit for default popularity.",
     },
     min_rating: {
-      type: ["number", "null"],
-      description: "TMDB user rating floor (0-10), or null.",
+      type: "number",
+      description: "TMDB user rating floor (0-10). Omit for no floor.",
     },
   },
-  required: [
-    "media_type",
-    "genres",
-    "year_min",
-    "year_max",
-    "query_text",
-    "sort_by",
-    "min_rating",
-  ],
+  // Keep required minimal — anything Llama can sensibly omit shouldn't be
+  // mandatory, since Groq's validator is strict about presence.
+  required: ["media_type", "genres"],
 };
 
 const SEARCH_TOOL_NAME = "search_titles";
@@ -289,21 +291,34 @@ async function* streamOpenAIChat(
   // Hop limit guards against runaway tool-call loops on a misbehaving model.
   const MAX_HOPS = 4;
   for (let hop = 0; hop < MAX_HOPS; hop++) {
-    const stream = await getOpenAI().chat.completions.create({
-      model: OPENAI_MODEL,
-      messages: wireMessages,
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: SEARCH_TOOL_NAME,
-            description: SEARCH_TOOL_DESCRIPTION,
-            parameters: SEARCH_TOOL_PARAMETERS,
+    let stream: Awaited<ReturnType<ReturnType<typeof getOpenAI>["chat"]["completions"]["create"]>>;
+    try {
+      stream = await getOpenAI().chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: wireMessages,
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: SEARCH_TOOL_NAME,
+              description: SEARCH_TOOL_DESCRIPTION,
+              parameters: SEARCH_TOOL_PARAMETERS,
+            },
           },
-        },
-      ],
-      stream: true,
-    });
+        ],
+        stream: true,
+      });
+    } catch (err) {
+      // Groq's "Failed to call a function. Please adjust your prompt" lands here
+      // when the model emits a tool call its validator rejects. Surface a
+      // friendlier message instead of leaking provider jargon.
+      const raw = err instanceof Error ? err.message : "chat error";
+      const friendly = /failed to call a function|tool_use_failed|failed_generation/i.test(raw)
+        ? "Couldn't run the search for that — try rephrasing?"
+        : raw;
+      yield { type: "error", message: friendly };
+      return;
+    }
 
     // Accumulate tool calls and prose across the stream.
     type PendingCall = { id: string; name: string; args: string };
