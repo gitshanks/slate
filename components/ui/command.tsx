@@ -22,12 +22,19 @@ Command.displayName = CommandPrimitive.displayName
 
 interface CommandDialogProps extends DialogProps {
   shouldFilter?: boolean
+  /** Override the dialog max-width / sizing — e.g. wider when in chat mode. */
+  contentClassName?: string
 }
 
-const CommandDialog = ({ children, shouldFilter, ...props }: CommandDialogProps) => {
+const CommandDialog = ({ children, shouldFilter, contentClassName, ...props }: CommandDialogProps) => {
   return (
     <Dialog {...props}>
-      <DialogContent className="overflow-hidden p-0 shadow-lg rounded-t-none rounded-b-2xl sm:top-4 sm:translate-y-0 sm:max-w-xl sm:rounded-2xl">
+      <DialogContent
+        className={cn(
+          "overflow-hidden p-0 shadow-lg rounded-t-none rounded-b-2xl sm:top-4 sm:translate-y-0 sm:max-w-xl sm:rounded-2xl",
+          contentClassName
+        )}
+      >
         <Command shouldFilter={shouldFilter} className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
           {children}
         </Command>

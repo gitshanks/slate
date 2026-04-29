@@ -1,0 +1,461 @@
+import "server-only";
+import {
+  intentToDiscoverParams,
+  MOVIE_GENRES,
+  TV_GENRES,
+  type SearchIntent,
+} from "@/lib/ai-search";
+import { discover, searchMulti, type TmdbMediaResult } from "@/lib/tmdb";
+import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
+
+// ─── Provider resolution ────────────────────────────────────────────
+//
+// Mirrors lib/ai-search.ts so both modules stay in lockstep on which
+// backend wins when both keys are set.
+
+type Provider = "anthropic" | "openai";
+
+function resolveProvider(): Provider | null {
+  const explicit = process.env.AI_PROVIDER?.toLowerCase();
+  if (explicit === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";
+  if (explicit === "openai" && process.env.OPENAI_API_KEY) return "openai";
+  if (process.env.OPENAI_API_KEY) return "openai";
+  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
+  return null;
+}
+
+const PROVIDER = resolveProvider();
+export const aiChatEnabled = PROVIDER !== null;
+
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "llama-3.3-70b-versatile";
+const OPENAI_BASE_URL =
+  process.env.OPENAI_BASE_URL || "https://api.groq.com/openai/v1";
+
+let anthropicClient: Anthropic | null = null;
+function getAnthropic(): Anthropic {
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return anthropicClient;
+}
+
+let openaiClient: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: OPENAI_BASE_URL,
+    });
+  }
+  return openaiClient;
+}
+
+// ─── Wire types ─────────────────────────────────────────────────────
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export type ChatEvent =
+  | { type: "text"; delta: string }
+  | { type: "search_start" }
+  | {
+      type: "search_result";
+      intent: SearchIntent;
+      results: TmdbMediaResult[];
+    }
+  | { type: "done" }
+  | { type: "error"; message: string };
+
+// ─── Tool definition ────────────────────────────────────────────────
+
+const ALL_GENRES = Array.from(
+  new Set([...Object.keys(MOVIE_GENRES), ...Object.keys(TV_GENRES)]),
+).join(", ");
+
+// One JSON schema, reused for both providers' tool-definition shapes.
+// Mirrors `SearchIntent` minus `interpretation` (the chat prose replaces it).
+const SEARCH_TOOL_PARAMETERS = {
+  type: "object" as const,
+  additionalProperties: false,
+  properties: {
+    media_type: {
+      type: "string",
+      enum: ["movie", "tv", "both"],
+      description: "What flavour of result the user wants. Default 'both' unless implied.",
+    },
+    genres: {
+      type: "array",
+      items: { type: "string" },
+      description: `0-3 lowercase genre names from this set: ${ALL_GENRES}.`,
+    },
+    year_min: {
+      type: ["integer", "null"],
+      description: "Earliest release year, or null. e.g. '90s' -> 1990.",
+    },
+    year_max: {
+      type: ["integer", "null"],
+      description: "Latest release year, or null. e.g. '90s' -> 1999.",
+    },
+    query_text: {
+      type: ["string", "null"],
+      description:
+        "Residual free-text keyword (title fragment, person, franchise). Null if purely descriptive.",
+    },
+    sort_by: {
+      type: ["string", "null"],
+      enum: ["popularity", "rating", "recent", null],
+      description: "'rating' for best-of, 'recent' for new, 'popularity' otherwise.",
+    },
+    min_rating: {
+      type: ["number", "null"],
+      description: "TMDB user rating floor (0-10), or null.",
+    },
+  },
+  required: [
+    "media_type",
+    "genres",
+    "year_min",
+    "year_max",
+    "query_text",
+    "sort_by",
+    "min_rating",
+  ],
+};
+
+const SEARCH_TOOL_NAME = "search_titles";
+const SEARCH_TOOL_DESCRIPTION =
+  "Search TMDB for movies and TV shows by genre, year range, keyword, or sort preference. Returns up to 16 candidates. Call this whenever you need to surface concrete titles to the user.";
+
+const CHAT_SYSTEM = `You are a warm, opinionated movie and TV recommendation assistant inside a personal watchlist app called slate. The user is browsing for something to watch.
+
+Your job:
+- Have a brief, natural conversation about what they're in the mood for.
+- Call the ${SEARCH_TOOL_NAME} tool when concrete titles would help.
+- The UI displays the search results below your message — do NOT enumerate every title back to the user. Pick 1-3 standouts to highlight in prose, with one-line takes ("Notting Hill is the comfort-watch champion", "FernGully is dated but the vibes hold up").
+- Invite a follow-up when natural ("seen these?", "want something darker?", "anything from the 70s instead?").
+
+Tone: conversational, witty, concise. Talk like a friend who knows movies. Avoid bullet lists. Don't mention TMDB or that you're searching a database.
+
+Length: 2-4 sentences per turn. Never longer.`;
+
+// ─── Public entry point ─────────────────────────────────────────────
+
+/**
+ * Stream a multi-turn chat with tool use over an async iterator.
+ * Caller (the route handler) serialises events to the wire.
+ */
+export async function* streamChat(
+  messages: ChatMessage[],
+): AsyncIterableIterator<ChatEvent> {
+  if (!PROVIDER) {
+    yield { type: "error", message: "AI chat is not configured" };
+    return;
+  }
+  try {
+    if (PROVIDER === "openai") {
+      yield* streamOpenAIChat(messages);
+    } else {
+      yield* streamAnthropicChat(messages);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "chat failed";
+    yield { type: "error", message };
+  }
+}
+
+// ─── Search tool execution ──────────────────────────────────────────
+//
+// Single source of truth for "given a parsed intent, return TMDB hits".
+// Used as the actual tool body; also returns the intent we got so the
+// client can render the model's interpretation alongside the results.
+
+interface ToolResult {
+  intent: SearchIntent;
+  results: TmdbMediaResult[];
+  /** Compact string the model gets back as the tool result. */
+  summary: string;
+}
+
+async function executeSearch(
+  rawIntent: Record<string, unknown>,
+): Promise<ToolResult> {
+  const intent = normalizeIntent(rawIntent);
+  const wantMovie = intent.media_type !== "tv";
+  const wantTv = intent.media_type !== "movie";
+
+  let results: TmdbMediaResult[];
+  if (intent.query_text && intent.query_text.length >= 2) {
+    const search = await searchMulti(intent.query_text);
+    results = search.results.filter(
+      (r): r is TmdbMediaResult =>
+        (r.media_type === "movie" && wantMovie) ||
+        (r.media_type === "tv" && wantTv),
+    );
+  } else {
+    const [movieHits, tvHits] = await Promise.all([
+      wantMovie ? discover("movie", intentToDiscoverParams(intent, "movie")) : Promise.resolve([]),
+      wantTv ? discover("tv", intentToDiscoverParams(intent, "tv")) : Promise.resolve([]),
+    ]);
+    if (intent.media_type === "movie") {
+      results = movieHits;
+    } else if (intent.media_type === "tv") {
+      results = tvHits;
+    } else {
+      // Interleave so both media types are visible.
+      results = [];
+      const max = Math.max(movieHits.length, tvHits.length);
+      for (let i = 0; i < max; i++) {
+        if (movieHits[i]) results.push(movieHits[i]);
+        if (tvHits[i]) results.push(tvHits[i]);
+      }
+    }
+  }
+
+  results = results.slice(0, 16);
+
+  // Compact textual summary for the model — title + year, no posters.
+  // Keeps the tool-result token count modest while letting the model
+  // reference specific titles in its prose response.
+  const summary = results
+    .map((r) => {
+      const name = r.title || r.name || "Untitled";
+      const date = r.release_date || r.first_air_date || "";
+      const year = date ? date.slice(0, 4) : "";
+      return year ? `${name} (${year})` : name;
+    })
+    .join(", ");
+
+  return { intent, results, summary };
+}
+
+function normalizeIntent(raw: Record<string, unknown>): SearchIntent {
+  const mt = raw.media_type;
+  const mediaType: SearchIntent["media_type"] =
+    mt === "movie" || mt === "tv" ? mt : "both";
+  const genres = Array.isArray(raw.genres)
+    ? (raw.genres as unknown[])
+        .filter((g): g is string => typeof g === "string")
+        .map((g) => g.toLowerCase().trim())
+    : [];
+  const yearNow = new Date().getFullYear();
+  const yearMin =
+    typeof raw.year_min === "number" ? Math.max(1900, raw.year_min as number) : null;
+  const yearMax =
+    typeof raw.year_max === "number"
+      ? Math.min(yearNow + 5, raw.year_max as number)
+      : null;
+  const sb = raw.sort_by;
+  const sortBy: SearchIntent["sort_by"] =
+    sb === "rating" || sb === "recent" || sb === "popularity" ? sb : null;
+  const minRating =
+    typeof raw.min_rating === "number" &&
+    (raw.min_rating as number) > 0 &&
+    (raw.min_rating as number) <= 10
+      ? (raw.min_rating as number)
+      : null;
+  const queryText =
+    typeof raw.query_text === "string" && raw.query_text.trim().length > 0
+      ? raw.query_text.trim()
+      : null;
+
+  return {
+    media_type: mediaType,
+    genres,
+    year_min: yearMin,
+    year_max: yearMax,
+    query_text: queryText,
+    sort_by: sortBy,
+    min_rating: minRating,
+    interpretation: "",
+  };
+}
+
+// ─── OpenAI-compat streaming with tool use ──────────────────────────
+
+async function* streamOpenAIChat(
+  messages: ChatMessage[],
+): AsyncIterableIterator<ChatEvent> {
+  type Msg = OpenAI.Chat.Completions.ChatCompletionMessageParam;
+
+  const wireMessages: Msg[] = [
+    { role: "system", content: CHAT_SYSTEM },
+    ...messages.map((m): Msg => ({ role: m.role, content: m.content })),
+  ];
+
+  // Hop limit guards against runaway tool-call loops on a misbehaving model.
+  const MAX_HOPS = 4;
+  for (let hop = 0; hop < MAX_HOPS; hop++) {
+    const stream = await getOpenAI().chat.completions.create({
+      model: OPENAI_MODEL,
+      messages: wireMessages,
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: SEARCH_TOOL_NAME,
+            description: SEARCH_TOOL_DESCRIPTION,
+            parameters: SEARCH_TOOL_PARAMETERS,
+          },
+        },
+      ],
+      stream: true,
+    });
+
+    // Accumulate tool calls and prose across the stream.
+    type PendingCall = { id: string; name: string; args: string };
+    const pendingCalls = new Map<number, PendingCall>();
+    let proseAcc = "";
+    let finishReason: string | null = null;
+
+    for await (const chunk of stream) {
+      const choice = chunk.choices[0];
+      if (!choice) continue;
+      const delta = choice.delta;
+      if (delta?.content) {
+        proseAcc += delta.content;
+        yield { type: "text", delta: delta.content };
+      }
+      if (delta?.tool_calls) {
+        for (const tc of delta.tool_calls) {
+          const idx = tc.index;
+          const existing = pendingCalls.get(idx);
+          if (!existing) {
+            pendingCalls.set(idx, {
+              id: tc.id ?? "",
+              name: tc.function?.name ?? "",
+              args: tc.function?.arguments ?? "",
+            });
+          } else {
+            if (tc.id) existing.id = tc.id;
+            if (tc.function?.name) existing.name = tc.function.name;
+            if (tc.function?.arguments) existing.args += tc.function.arguments;
+          }
+        }
+      }
+      if (choice.finish_reason) finishReason = choice.finish_reason;
+    }
+
+    // No tool call → done. Model's final answer.
+    if (finishReason !== "tool_calls" || pendingCalls.size === 0) {
+      return;
+    }
+
+    // Append the assistant turn (with tool_calls) to the running history.
+    const calls = Array.from(pendingCalls.values());
+    wireMessages.push({
+      role: "assistant",
+      content: proseAcc || null,
+      tool_calls: calls.map((c) => ({
+        id: c.id,
+        type: "function" as const,
+        function: { name: c.name, arguments: c.args },
+      })),
+    });
+
+    // Execute each tool call and append its result.
+    for (const call of calls) {
+      if (call.name !== SEARCH_TOOL_NAME) {
+        wireMessages.push({
+          role: "tool",
+          tool_call_id: call.id,
+          content: `unknown tool: ${call.name}`,
+        });
+        continue;
+      }
+      yield { type: "search_start" };
+      let parsed: Record<string, unknown> = {};
+      try {
+        parsed = JSON.parse(call.args || "{}");
+      } catch {
+        // Malformed JSON from the model — feed back an empty intent.
+      }
+      const { intent, results, summary } = await executeSearch(parsed);
+      yield { type: "search_result", intent, results };
+      wireMessages.push({
+        role: "tool",
+        tool_call_id: call.id,
+        content: summary || "(no results found)",
+      });
+    }
+
+    // Loop: re-invoke the model with the tool results in context.
+  }
+}
+
+// ─── Anthropic streaming with tool use ──────────────────────────────
+
+async function* streamAnthropicChat(
+  messages: ChatMessage[],
+): AsyncIterableIterator<ChatEvent> {
+  type AMsg = Anthropic.MessageParam;
+  const wireMessages: AMsg[] = messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
+
+  const MAX_HOPS = 4;
+  for (let hop = 0; hop < MAX_HOPS; hop++) {
+    const stream = getAnthropic().messages.stream({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2048,
+      system: CHAT_SYSTEM,
+      tools: [
+        {
+          name: SEARCH_TOOL_NAME,
+          description: SEARCH_TOOL_DESCRIPTION,
+          input_schema: SEARCH_TOOL_PARAMETERS,
+        },
+      ],
+      messages: wireMessages,
+    });
+
+    for await (const event of stream) {
+      if (
+        event.type === "content_block_delta" &&
+        event.delta.type === "text_delta"
+      ) {
+        yield { type: "text", delta: event.delta.text };
+      }
+    }
+
+    const final = await stream.finalMessage();
+
+    if (final.stop_reason !== "tool_use") {
+      // Plain end_turn / max_tokens / refusal — nothing more to do.
+      return;
+    }
+
+    const toolUses = final.content.filter((b) => b.type === "tool_use");
+    wireMessages.push({ role: "assistant", content: final.content });
+
+    const toolResults: Anthropic.ToolResultBlockParam[] = [];
+    for (const tu of toolUses) {
+      if (tu.type !== "tool_use") continue;
+      if (tu.name !== SEARCH_TOOL_NAME) {
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: tu.id,
+          content: `unknown tool: ${tu.name}`,
+          is_error: true,
+        });
+        continue;
+      }
+      yield { type: "search_start" };
+      const { intent, results, summary } = await executeSearch(
+        tu.input as Record<string, unknown>,
+      );
+      yield { type: "search_result", intent, results };
+      toolResults.push({
+        type: "tool_result",
+        tool_use_id: tu.id,
+        content: summary || "(no results found)",
+      });
+    }
+
+    wireMessages.push({ role: "user", content: toolResults });
+  }
+}
