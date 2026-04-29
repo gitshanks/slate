@@ -273,23 +273,35 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
           {aiEnabled && (
             <button
               type="button"
-              aria-label={aiMode ? "Turn off AI search" : "Turn on AI search"}
+              aria-label={aiMode ? "Turn off AI mode" : "Turn on AI mode"}
               aria-pressed={aiMode}
-              title={aiMode ? "AI search · ⌘⇧K" : "Ask AI · ⌘⇧K"}
-              onClick={() => setAiMode((m) => !m)}
-              // Ghost icon-only button. Sits clear of the dialog's close-X
-              // (which lives at right-4 top-4) so the two don't visually merge.
+              title={aiMode ? "AI mode on · ⌘⇧K" : "AI mode · ⌘⇧K"}
+              onClick={() => {
+                if (aiMode) {
+                  // Already on — toggle off.
+                  setAiMode(false);
+                  return;
+                }
+                // Turning on. If there's text in the input already, submit it
+                // as the first chat turn in the same gesture so the user
+                // doesn't have to also press Enter. Empty input → just enter
+                // AI mode and wait.
+                setAiMode(true);
+                if (query.trim()) {
+                  setSubmitTick((t) => t + 1);
+                }
+              }}
+              // Sits clear of the dialog's close-X (right-4 top-4) so the
+              // two don't visually merge. Pill-shaped with icon + label.
               className={cn(
-                "absolute right-12 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+                "absolute right-12 top-1/2 -translate-y-1/2 inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium transition-colors",
                 aiMode
                   ? "text-primary bg-primary/10 hover:bg-primary/15"
-                  : "text-muted-foreground/60 hover:text-foreground hover:bg-accent"
+                  : "text-muted-foreground/70 hover:text-foreground hover:bg-accent"
               )}
             >
-              <Sparkles className="h-4 w-4" />
-              <span className="sr-only">
-                {aiMode ? "AI search on" : "Ask AI"}
-              </span>
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>AI Mode</span>
             </button>
           )}
         </div>

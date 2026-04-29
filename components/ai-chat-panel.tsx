@@ -191,9 +191,12 @@ export function AiChatPanel({
     [turns, streaming, setQuery, applyEvent],
   );
 
-  // Parent flips `submitTick` when the user hits Enter in the input.
-  // We use a ref guard to dedupe a stale tick after we've already processed it.
-  const lastTickRef = React.useRef(submitTick);
+  // Parent bumps `submitTick` whenever it wants us to submit the current
+  // query — Enter on the input, or clicking the AI Mode toggle while
+  // there's text. We initialise the ref to 0 (not the current submitTick)
+  // so that a *non-zero* submitTick at mount time triggers the auto-submit;
+  // that's the path used when the user clicks AI Mode with text in the box.
+  const lastTickRef = React.useRef(0);
   React.useEffect(() => {
     if (submitTick === lastTickRef.current) return;
     lastTickRef.current = submitTick;
