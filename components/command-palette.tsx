@@ -318,15 +318,18 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
             autoCorrect="off"
             spellCheck={false}
             // Reserve space at the right so the AI Mode pill and (in AI
-            // mode) the Send arrow button don't overlap typed text. The
-            // numbers below are calibrated to clear both buttons fully:
-            //   - in AI mode: AI pill (icon-only on mobile, ~28px) at right-12
-            //     + Send arrow (28px) — but they sit next to each other, so
-            //     reserve enough for both. Mobile: ~80px = pr-20. Desktop
-            //     shows the longer "AI Mode" label — pr-32.
-            //   - non-AI mode: just the AI pill (icon-only on mobile)
+            // mode) the Send arrow button don't overlap typed text. Values
+            // are calibrated against actual button geometry — AI pill on
+            // mobile is icon-only (~28px) at right-[5.25rem]; on desktop
+            // it's labelled (~96px) at right-24. Send arrow adds another
+            // 28px at right-12. Includes a 16px breathing-room buffer so
+            // the cursor never visually touches the button edge.
             className={cn(
-              aiMode ? "pr-20 sm:pr-32" : aiEnabled ? "pr-12 sm:pr-24" : "pr-10",
+              aiMode
+                ? "pr-32 sm:pr-52"
+                : aiEnabled
+                  ? "pr-20 sm:pr-40"
+                  : "pr-10",
             )}
           />
           {aiEnabled && (
