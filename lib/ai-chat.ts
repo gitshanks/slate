@@ -7,6 +7,7 @@ import {
 } from "@/lib/ai-search";
 import {
   discover,
+  getPersonCredits,
   getRecommendationsFor,
   searchMulti,
   type TmdbMediaResult,
@@ -166,21 +167,23 @@ const CHAT_SYSTEM = `You are a warm, witty, opinionated movie and TV recommendat
 
 For every user message you MUST:
 1. Use one of the available tools to find concrete titles that match what they're describing.
-2. After the tool returns, ALWAYS name 2-3 specific titles from the result list, each with a one-line take ("Notting Hill is the comfort-watch champion", "FernGully is dated but the vibes hold up"). Title-first prose — the user came here for things to watch.
+2. After the tool returns, ALWAYS name 2-3 specific titles taken DIRECTLY from the tool's result list. Each gets a brief one-line take describing why it fits.
 3. End with a natural follow-up question when it fits ("seen these?", "want something darker?", "anything from the 70s instead?").
 
-CRITICAL grounding rule:
-- Every title you mention in prose MUST come from the tool's result list. Never invent titles from your own training — the user can't add those from this app.
-- The tool ALWAYS returns at least a few results (it relaxes filters automatically when nothing exact matches). Even if the results don't perfectly match what the user asked for, name 2-3 of the closest options with honest framing — e.g. "not exactly what you described, but [Title] gets close because…", "the closest we have is [Title] — different vibe but similar themes".
-- NEVER respond with apologies like "the catalogue's thin on that", "no results", or "try rephrasing" while there are titles in the result list. If results exist, recommend them.
-- Only if the result list is genuinely empty (zero items) may you ask the user to rephrase — but always offer one fallback genre suggestion they could try ("nothing came back — want me to try '90s thrillers' or 'crime mysteries' instead?").
+ABSOLUTE GROUNDING RULE — read carefully:
+- Every title you mention in prose MUST appear, verbatim, in the tool's result list for THIS turn. You are not allowed to recall titles from your training, even if you "know" the user wants Fight Club or Inception. If it isn't in the result list, you cannot name it.
+- Before writing your prose, scan the tool's result list. Pick 2-3 titles from THAT list. Then write about THOSE titles. If the list contains "Snatch (2000), Fight Club (1999), Spy Game (2001)…" you talk about those — even if the user asked for "secret society movies".
+- The tool's results may not perfectly match the user's prompt — the system relaxes filters automatically when nothing exact matches. When the match is loose, frame honestly: "not quite a secret-society film, but [Title from list] is the closest in vibe…", "the catalogue doesn't have that exact thing, but [Title from list] gets close because…".
+- NEVER respond with "the catalogue's thin on that", "no results", or "try rephrasing" if titles exist in the result list. Recommend whatever is there.
+- Only if the result list is genuinely empty (zero items) may you ask the user to rephrase — and offer one concrete fallback genre they could try.
 
 Voice rules — strict:
 - Never mention tool names, function calls, JSON, "searching", "databases", or how you find things. Just talk about the shows directly.
 - Don't write prose like "I'll search for…" or "let me find…" — just respond with the answer.
 - No bullet lists. Conversational, like a friend with great taste.
+- Do not reuse stock phrases like "comfort-watch champion" or "the vibes hold up" from these instructions. Write fresh one-liners specific to each title.
 
-Length: 2-4 sentences. Always include at least 2 title names.`;
+Length: 2-4 sentences. Always include at least 2 title names from the result list.`;
 
 // ─── Public entry point ─────────────────────────────────────────────
 
@@ -303,10 +306,17 @@ async function executeFindSimilar(
 }
 
 /**
- * Last-ditch keyword search: hits TMDB /search/multi with the raw text,
+ * Last-ditch keyword search. Hits TMDB /search/multi with the raw text,
  * dropping trailing words progressively until something comes back. Used
  * whenever the structured search paths return zero results so the chat
  * panel never shows an empty rail.
+ *
+ * Critically, this also handles the "person + descriptor" case: if the
+ * search returns a `person` hit (e.g. "Brad Pitt secret society" surfaces
+ * Brad Pitt the person before any matching titles), we pivot to that
+ * person's filmography. Without this, the rail dead-ends on documentaries
+ * *about* the actor and the model is forced to either hallucinate real
+ * titles from training (ungrounded) or recommend the docs (irrelevant).
  */
 async function fallbackKeywordSearch(
   text: string,
@@ -315,28 +325,64 @@ async function fallbackKeywordSearch(
   const trimmed = text.trim();
   if (!trimmed) return [];
 
-  const tryQuery = async (q: string): Promise<TmdbMediaResult[]> => {
-    const r = await searchMulti(q);
-    return r.results
+  const filterMedia = (results: { media_type?: string }[]) =>
+    (results as TmdbMediaResult[])
       .filter(
-        (x): x is TmdbMediaResult =>
-          x.media_type === "movie" || x.media_type === "tv",
+        (x) =>
+          x.media_type === "movie" ||
+          x.media_type === "tv",
       )
       .filter(
         (x) =>
           wantedMediaType === "both" ||
           x.media_type === wantedMediaType,
-      )
-      .slice(0, 16);
-  };
+      );
 
-  // Try the full phrase first, then drop trailing words.
+  // Try the full phrase first, then drop trailing words. On every iteration
+  // also peek at person hits — if the user named an actor or director,
+  // their filmography is much more relevant than partial-title matches.
   const words = trimmed.split(/\s+/);
   for (let drop = 0; drop <= 2 && words.length - drop >= 1; drop++) {
     const q = words.slice(0, words.length - drop).join(" ");
     if (!q) break;
-    const hits = await tryQuery(q);
-    if (hits.length > 0) return hits;
+    const r = await searchMulti(q);
+    const mediaHits = filterMedia(r.results).slice(0, 16);
+
+    // Person detection: take the most-popular person hit (TMDB's `multi`
+    // search returns persons, movies and tv interleaved; the highest-ranked
+    // person is usually the right one for a query like "Brad Pitt").
+    type PersonHit = { id: number; popularity?: number; media_type: "person" };
+    const personHits = (r.results as { media_type?: string; id: number; popularity?: number }[])
+      .filter((x): x is PersonHit => x.media_type === "person")
+      .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
+
+    if (personHits.length > 0) {
+      try {
+        const credits = await getPersonCredits(personHits[0].id);
+        const filmography = credits
+          .filter(
+            (c) =>
+              wantedMediaType === "both" || c.media_type === wantedMediaType,
+          )
+          .map<TmdbMediaResult>((c) => ({
+            id: c.id,
+            media_type: c.media_type,
+            title: c.title,
+            name: c.name,
+            poster_path: c.poster_path,
+            backdrop_path: c.backdrop_path,
+            release_date: c.release_date,
+            first_air_date: c.first_air_date,
+            vote_average: c.vote_average,
+          }))
+          .slice(0, 16);
+        if (filmography.length > 0) return filmography;
+      } catch {
+        // Person credits fetch failed — fall through to media hits below.
+      }
+    }
+
+    if (mediaHits.length > 0) return mediaHits;
   }
   return [];
 }

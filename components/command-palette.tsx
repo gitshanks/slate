@@ -260,9 +260,26 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     [aiMode, query]
   );
 
+  // Mobile screens are narrow; long placeholders get clipped under the
+  // AI Mode pill + Send arrow buttons. Use a tight placeholder under the
+  // sm breakpoint and the descriptive one above it. We pick which on the
+  // client based on a media query to avoid hydration mismatch.
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   const placeholder = aiMode
-    ? "Ask anything — \"feel-good 90s rom-coms\", \"Nolan thrillers\"…"
-    : "Search movies and TV shows…";
+    ? isMobile
+      ? "Ask AI…"
+      : "Ask anything — \"feel-good 90s rom-coms\", \"Nolan thrillers\"…"
+    : isMobile
+      ? "Search…"
+      : "Search movies and TV shows…";
   const heading = approximate
     ? `Approximate results${approxQuery ? ` for "${approxQuery}"` : ""}`
     : "Add from TMDB";
