@@ -317,16 +317,16 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}
-            // Reserve space at the right so the AI Mode pill and (in AI
-            // mode) the Send arrow button don't overlap typed text. Values
-            // are calibrated against actual button geometry — AI pill on
-            // mobile is icon-only (~28px) at right-[5.25rem]; on desktop
-            // it's labelled (~96px) at right-24. Send arrow adds another
-            // 28px at right-12. Includes a 16px breathing-room buffer so
-            // the cursor never visually touches the button edge.
+            // Reserve space for the trailing buttons so they never overlap
+            // typed text. Mobile only ever shows one icon pill (~28px) at
+            // right-12 → left edge ~76px → pr-20 (80px) clears it with
+            // 4px buffer. Desktop in AI mode shows the labelled AI pill
+            // at right-24 (~96px wide → left edge ~192px) plus the Send
+            // arrow → pr-52 (208px). Desktop in search mode shows just
+            // the labelled pill at right-12 (left ~144px) → pr-40 (160px).
             className={cn(
               aiMode
-                ? "pr-32 sm:pr-52"
+                ? "pr-20 sm:pr-52"
                 : aiEnabled
                   ? "pr-20 sm:pr-40"
                   : "pr-10",
@@ -366,10 +366,11 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                 "absolute top-1/2 -translate-y-1/2 inline-flex h-7 items-center justify-center rounded-md transition-colors",
                 // Mobile: icon-only square. Desktop: full pill with label.
                 "w-7 sm:w-auto sm:gap-1.5 sm:px-2 sm:text-[11px] sm:font-medium",
-                // Position: AI mode -> sit just left of the Send arrow
-                // (which is at right-12). Non-AI mode -> sit at right-12
-                // alone.
-                aiMode ? "right-[5.25rem] sm:right-24" : "right-12",
+                // Position: on mobile the Send arrow is hidden (the iOS
+                // keyboard's "go" key handles submit), so the AI Mode pill
+                // can sit at right-12 in both modes. On desktop in AI mode
+                // we shift left to leave room for the Send arrow.
+                aiMode ? "right-12 sm:right-24" : "right-12",
                 aiMode
                   ? "text-primary bg-primary/10 hover:bg-primary/15"
                   : "text-muted-foreground/70 hover:text-foreground hover:bg-accent"
@@ -380,10 +381,11 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
             </button>
           )}
           {aiMode && (
-            // Mobile-first Send button. Without it, users on phones (no
-            // physical Enter key) had no way to submit — the soft keyboard's
-            // return key technically works but iOS's "Done" doesn't make it
-            // obvious. A visible arrow makes the affordance unambiguous.
+            // Desktop-only Send button. On mobile the iOS soft keyboard's
+            // "go" key (we set inputMode="search") already submits, so the
+            // arrow would just crowd the input. We hide it under the sm:
+            // breakpoint and shift the AI Mode pill back to its natural
+            // right-12 position there.
             <button
               type="button"
               aria-label="Send"
@@ -398,7 +400,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                 inputRef.current?.blur();
               }}
               className={cn(
-                "absolute right-12 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+                "absolute right-12 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",
                 query.trim()
                   ? "bg-primary text-primary-foreground hover:bg-primary/90"
                   : "bg-muted text-muted-foreground/50 cursor-not-allowed"
