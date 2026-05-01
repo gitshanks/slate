@@ -20,6 +20,7 @@ import {
   Check,
   Library,
   Sparkles,
+  ArrowUp,
 } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { addTitle } from "@/lib/actions";
@@ -87,7 +88,20 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   // to fire the next chat turn.
   const [submitTick, setSubmitTick] = React.useState(0);
   const chatResetRef = React.useRef<(() => void) | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Mobile keyboard reliability: when the dialog opens (or AI mode toggles
+  // on), iOS sometimes doesn't surface the soft keyboard because cmdk's
+  // auto-focus runs after the user gesture. Explicitly focus the input on
+  // open so the keyboard pops up reliably on phones.
+  React.useEffect(() => {
+    if (!open) return;
+    const id = window.setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
+    return () => window.clearTimeout(id);
+  }, [open, aiMode]);
 
   // Cmd+K / Ctrl+K toggles open. Cmd+Shift+K opens straight into AI mode.
   React.useEffect(() => {
@@ -265,10 +279,25 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       >
         <div className="relative">
           <CommandInput
+            ref={inputRef}
             placeholder={placeholder}
             value={query}
             onValueChange={setQuery}
             onKeyDown={handleInputKeyDown}
+            // iOS uses inputMode to choose the soft keyboard's action key.
+            // "search" surfaces a return key labelled "go"/"search" on most
+            // keyboards — better affordance than the default "return" when
+            // the user clearly typed a query they want to send.
+            inputMode="search"
+            // Avoid the iOS Safari "smart" autocaps/autocorrect which mangles
+            // titles like "Brad Pitt" → "Brad Pitt." or capitalises the
+            // first letter of every chip suggestion.
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            // Reserve space at the right so the AI Mode pill and (in AI
+            // mode) the Send arrow button don't overlap typed text.
+            className={cn(aiMode ? "pr-24 sm:pr-28" : aiEnabled ? "pr-24" : "pr-10")}
           />
           {aiEnabled && (
             <button
@@ -290,18 +319,49 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                 if (query.trim()) {
                   setSubmitTick((t) => t + 1);
                 }
+                // Refocus the input synchronously so iOS keeps the keyboard
+                // up after the AI Mode tap.
+                inputRef.current?.focus();
               }}
               // Sits clear of the dialog's close-X (right-4 top-4) so the
               // two don't visually merge. Pill-shaped with icon + label.
               className={cn(
-                "absolute right-12 top-1/2 -translate-y-1/2 inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium transition-colors",
+                "absolute top-1/2 -translate-y-1/2 inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium transition-colors",
+                // Slide left to make room for the Send arrow when in AI mode.
+                aiMode ? "right-20 sm:right-24" : "right-12",
                 aiMode
                   ? "text-primary bg-primary/10 hover:bg-primary/15"
                   : "text-muted-foreground/70 hover:text-foreground hover:bg-accent"
               )}
             >
               <Sparkles className="h-3.5 w-3.5" />
-              <span>AI Mode</span>
+              <span className="hidden sm:inline">AI Mode</span>
+              <span className="sm:hidden">AI</span>
+            </button>
+          )}
+          {aiMode && (
+            // Mobile-first Send button. Without it, users on phones (no
+            // physical Enter key) had no way to submit — the soft keyboard's
+            // return key technically works but iOS's "Done" doesn't make it
+            // obvious. A visible arrow makes the affordance unambiguous.
+            <button
+              type="button"
+              aria-label="Send"
+              title="Send (↵)"
+              disabled={!query.trim()}
+              onClick={() => {
+                if (!query.trim()) return;
+                setSubmitTick((t) => t + 1);
+                inputRef.current?.focus();
+              }}
+              className={cn(
+                "absolute right-12 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+                query.trim()
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground/50 cursor-not-allowed"
+              )}
+            >
+              <ArrowUp className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
@@ -335,9 +395,21 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                 {aiEnabled && (
                   <>
                     <br />
-                    <span className="mt-1 inline-block opacity-70">
+                    <span className="mt-1 hidden sm:inline-block opacity-70">
                       <kbd className="font-mono">⌘⇧K</kbd> for AI search
                     </span>
+                    {/* Mobile: kbd shortcut isn't reachable, so surface a tap target. */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAiMode(true);
+                        inputRef.current?.focus();
+                      }}
+                      className="mt-2 inline-flex sm:hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-[11px] text-muted-foreground"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      Try AI search
+                    </button>
                   </>
                 )}
               </div>

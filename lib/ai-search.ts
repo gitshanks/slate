@@ -223,6 +223,10 @@ async function callAnthropicJSON<T>(
   const res = await getAnthropic().messages.create({
     model: ANTHROPIC_MODEL,
     max_tokens: maxTokens,
+    // Pin temperature so the same query produces the same intent/suggestions
+    // across devices. Without this, "Brad Pitt secret society" parses to a
+    // different `query_text` / genre combo on each call.
+    temperature: 0,
     system,
     output_config: {
       format: { type: "json_schema", schema },
@@ -244,6 +248,10 @@ async function callOpenAIJSON<T>(
   const res = await getOpenAI().chat.completions.create({
     model: OPENAI_MODEL,
     max_tokens: maxTokens,
+    // See callAnthropicJSON for rationale — pin sampling so the same query
+    // produces the same parsed intent/suggestions across devices.
+    temperature: 0,
+    top_p: 1,
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: system },

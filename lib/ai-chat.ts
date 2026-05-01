@@ -166,19 +166,21 @@ const CHAT_SYSTEM = `You are a warm, witty, opinionated movie and TV recommendat
 
 For every user message you MUST:
 1. Use one of the available tools to find concrete titles that match what they're describing.
-2. After the tool returns, write 1-3 sentences highlighting 1-2 standouts from the tool's result list, with specific one-line takes ("Notting Hill is the comfort-watch champion", "FernGully is dated but the vibes hold up").
+2. After the tool returns, ALWAYS name 2-3 specific titles from the result list, each with a one-line take ("Notting Hill is the comfort-watch champion", "FernGully is dated but the vibes hold up"). Title-first prose — the user came here for things to watch.
 3. End with a natural follow-up question when it fits ("seen these?", "want something darker?", "anything from the 70s instead?").
 
 CRITICAL grounding rule:
 - Every title you mention in prose MUST come from the tool's result list. Never invent titles from your own training — the user can't add those from this app.
-- If the tool returned nothing useful, say so honestly ("hmm, the catalogue's thin on that — try rephrasing?") instead of making up titles.
+- The tool ALWAYS returns at least a few results (it relaxes filters automatically when nothing exact matches). Even if the results don't perfectly match what the user asked for, name 2-3 of the closest options with honest framing — e.g. "not exactly what you described, but [Title] gets close because…", "the closest we have is [Title] — different vibe but similar themes".
+- NEVER respond with apologies like "the catalogue's thin on that", "no results", or "try rephrasing" while there are titles in the result list. If results exist, recommend them.
+- Only if the result list is genuinely empty (zero items) may you ask the user to rephrase — but always offer one fallback genre suggestion they could try ("nothing came back — want me to try '90s thrillers' or 'crime mysteries' instead?").
 
 Voice rules — strict:
 - Never mention tool names, function calls, JSON, "searching", "databases", or how you find things. Just talk about the shows directly.
 - Don't write prose like "I'll search for…" or "let me find…" — just respond with the answer.
 - No bullet lists. Conversational, like a friend with great taste.
 
-Length: 1-3 sentences. Never longer.`;
+Length: 2-4 sentences. Always include at least 2 title names.`;
 
 // ─── Public entry point ─────────────────────────────────────────────
 
@@ -265,79 +267,83 @@ async function executeFindSimilar(
       ? candidates.find((r) => r.media_type === wantedMediaType) ?? candidates[0]
       : candidates[0];
 
+  // No seed found — the named title doesn't exist in TMDB (often because the
+  // user described a vibe rather than a real title, e.g. "Brad Pitt secret
+  // society"). Fall back to keyword discovery so we ALWAYS return *some*
+  // closest titles instead of dead-ending on "no results".
   if (!seed) {
+    const fallback = await fallbackKeywordSearch(title, wantedMediaType);
     return {
-      intent,
-      results: [],
-      summary: `(no titles found matching "${title}")`,
+      intent: { ...intent, interpretation: `closest to "${title}"` },
+      results: fallback,
+      summary: summarizeResults(fallback),
     };
   }
 
   const recs = await getRecommendationsFor(seed.media_type, seed.id);
   // Drop the seed itself from the recommendations if TMDB included it.
-  const filtered = recs.filter((r) => r.id !== seed.id).slice(0, 16);
+  let filtered = recs.filter((r) => r.id !== seed.id).slice(0, 16);
+
+  // Even after seeding, TMDB sometimes has zero curated recommendations
+  // (obscure or international titles). Fall back to a keyword search rather
+  // than giving the user nothing.
+  if (filtered.length === 0) {
+    filtered = await fallbackKeywordSearch(
+      seed.title || seed.name || title,
+      wantedMediaType,
+    );
+  }
 
   const seedName = seed.title || seed.name || title;
-  const summary =
-    filtered.length === 0
-      ? `(no recommendations available for "${seedName}")`
-      : filtered
-          .map((r) => {
-            const name = r.title || r.name || "Untitled";
-            const date = r.release_date || r.first_air_date || "";
-            const year = date ? date.slice(0, 4) : "";
-            return year ? `${name} (${year})` : name;
-          })
-          .join(", ");
-
   return {
     intent: { ...intent, interpretation: `similar to ${seedName}` },
     results: filtered,
-    summary,
+    summary: summarizeResults(filtered),
   };
 }
 
-async function executeSearchTitles(
-  rawIntent: Record<string, unknown>,
-): Promise<ToolResult> {
-  const intent = normalizeIntent(rawIntent);
-  const wantMovie = intent.media_type !== "tv";
-  const wantTv = intent.media_type !== "movie";
+/**
+ * Last-ditch keyword search: hits TMDB /search/multi with the raw text,
+ * dropping trailing words progressively until something comes back. Used
+ * whenever the structured search paths return zero results so the chat
+ * panel never shows an empty rail.
+ */
+async function fallbackKeywordSearch(
+  text: string,
+  wantedMediaType: "movie" | "tv" | "both",
+): Promise<TmdbMediaResult[]> {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
 
-  let results: TmdbMediaResult[];
-  if (intent.query_text && intent.query_text.length >= 2) {
-    const search = await searchMulti(intent.query_text);
-    results = search.results.filter(
-      (r): r is TmdbMediaResult =>
-        (r.media_type === "movie" && wantMovie) ||
-        (r.media_type === "tv" && wantTv),
-    );
-  } else {
-    const [movieHits, tvHits] = await Promise.all([
-      wantMovie ? discover("movie", intentToDiscoverParams(intent, "movie")) : Promise.resolve([]),
-      wantTv ? discover("tv", intentToDiscoverParams(intent, "tv")) : Promise.resolve([]),
-    ]);
-    if (intent.media_type === "movie") {
-      results = movieHits;
-    } else if (intent.media_type === "tv") {
-      results = tvHits;
-    } else {
-      // Interleave so both media types are visible.
-      results = [];
-      const max = Math.max(movieHits.length, tvHits.length);
-      for (let i = 0; i < max; i++) {
-        if (movieHits[i]) results.push(movieHits[i]);
-        if (tvHits[i]) results.push(tvHits[i]);
-      }
-    }
+  const tryQuery = async (q: string): Promise<TmdbMediaResult[]> => {
+    const r = await searchMulti(q);
+    return r.results
+      .filter(
+        (x): x is TmdbMediaResult =>
+          x.media_type === "movie" || x.media_type === "tv",
+      )
+      .filter(
+        (x) =>
+          wantedMediaType === "both" ||
+          x.media_type === wantedMediaType,
+      )
+      .slice(0, 16);
+  };
+
+  // Try the full phrase first, then drop trailing words.
+  const words = trimmed.split(/\s+/);
+  for (let drop = 0; drop <= 2 && words.length - drop >= 1; drop++) {
+    const q = words.slice(0, words.length - drop).join(" ");
+    if (!q) break;
+    const hits = await tryQuery(q);
+    if (hits.length > 0) return hits;
   }
+  return [];
+}
 
-  results = results.slice(0, 16);
-
-  // Compact textual summary for the model — title + year, no posters.
-  // Keeps the tool-result token count modest while letting the model
-  // reference specific titles in its prose response.
-  const summary = results
+function summarizeResults(results: TmdbMediaResult[]): string {
+  if (results.length === 0) return "(no results found)";
+  return results
     .map((r) => {
       const name = r.title || r.name || "Untitled";
       const date = r.release_date || r.first_air_date || "";
@@ -345,8 +351,76 @@ async function executeSearchTitles(
       return year ? `${name} (${year})` : name;
     })
     .join(", ");
+}
 
-  return { intent, results, summary };
+async function executeSearchTitles(
+  rawIntent: Record<string, unknown>,
+): Promise<ToolResult> {
+  const intent = normalizeIntent(rawIntent);
+  let results = await runDiscoverForIntent(intent);
+
+  // Progressive relaxation: if the strict filters returned nothing, drop
+  // them step-by-step until something comes back. Users get *closer*
+  // matches instead of an empty rail. The model is told (via the system
+  // prompt) to frame loosely-matching results honestly.
+  if (results.length === 0 && (intent.year_min || intent.year_max)) {
+    const relaxed = { ...intent, year_min: null, year_max: null };
+    results = await runDiscoverForIntent(relaxed);
+  }
+  if (results.length === 0 && intent.genres.length > 0) {
+    const relaxed = {
+      ...intent,
+      genres: [],
+      year_min: null,
+      year_max: null,
+    };
+    results = await runDiscoverForIntent(relaxed);
+  }
+  // Nothing matched any structured discover filter — fall back to raw
+  // keyword search so the user always sees something.
+  if (results.length === 0 && intent.query_text) {
+    results = await fallbackKeywordSearch(intent.query_text, intent.media_type);
+  }
+
+  results = results.slice(0, 16);
+  return { intent, results, summary: summarizeResults(results) };
+}
+
+/**
+ * Run the appropriate TMDB endpoint for the intent — keyword search if a
+ * `query_text` is present, otherwise /discover with the genre/year/sort
+ * filters applied. Split out so the relaxation fallbacks above can call
+ * it repeatedly with different intent variants.
+ */
+async function runDiscoverForIntent(
+  intent: SearchIntent,
+): Promise<TmdbMediaResult[]> {
+  const wantMovie = intent.media_type !== "tv";
+  const wantTv = intent.media_type !== "movie";
+
+  if (intent.query_text && intent.query_text.length >= 2) {
+    const search = await searchMulti(intent.query_text);
+    return search.results.filter(
+      (r): r is TmdbMediaResult =>
+        (r.media_type === "movie" && wantMovie) ||
+        (r.media_type === "tv" && wantTv),
+    );
+  }
+
+  const [movieHits, tvHits] = await Promise.all([
+    wantMovie ? discover("movie", intentToDiscoverParams(intent, "movie")) : Promise.resolve([]),
+    wantTv ? discover("tv", intentToDiscoverParams(intent, "tv")) : Promise.resolve([]),
+  ]);
+  if (intent.media_type === "movie") return movieHits;
+  if (intent.media_type === "tv") return tvHits;
+  // Interleave so both media types are visible.
+  const interleaved: TmdbMediaResult[] = [];
+  const max = Math.max(movieHits.length, tvHits.length);
+  for (let i = 0; i < max; i++) {
+    if (movieHits[i]) interleaved.push(movieHits[i]);
+    if (tvHits[i]) interleaved.push(tvHits[i]);
+  }
+  return interleaved;
 }
 
 function normalizeIntent(raw: Record<string, unknown>): SearchIntent {
@@ -427,6 +501,14 @@ async function* streamOpenAIChat(
       const stream = await getOpenAI().chat.completions.create({
         model: OPENAI_MODEL,
         messages: wireMessages,
+        // Pin temperature/top_p so identical queries from different devices
+        // get the same tool args (and thus the same results). The previous
+        // implementation used the provider default (~0.7) which made the
+        // same query return wildly different rails on each device. This
+        // doesn't make TMDB results deterministic — it just stops Llama
+        // from emitting a fresh `query_text` each time.
+        temperature: 0,
+        top_p: 1,
         // Skip tools on the fallback retry — this is what avoids the
         // `failed_generation` loop when Groq dislikes whatever Llama emits.
         ...(triedFallback
@@ -649,6 +731,9 @@ async function* streamAnthropicChat(
     const stream = getAnthropic().messages.stream({
       model: ANTHROPIC_MODEL,
       max_tokens: 2048,
+      // Pin temperature so identical queries from different devices land on
+      // the same tool args. See OpenAI side above for full rationale.
+      temperature: 0,
       system: CHAT_SYSTEM,
       tools: [
         {
