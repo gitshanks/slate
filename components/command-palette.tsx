@@ -249,12 +249,17 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
 
   // Enter in AI mode submits the input as a chat turn instead of letting
   // cmdk navigate (which is moot anyway — there's no list to select from).
+  // Blurring after submit dismisses the iOS soft keyboard so the user can
+  // see the streaming response without manually tapping outside the input.
+  // Desktop browsers don't show a soft keyboard so the blur is harmless
+  // there — users can re-click to type a follow-up.
   const handleInputKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (aiMode && e.key === "Enter" && query.trim()) {
         e.preventDefault();
         e.stopPropagation();
         setSubmitTick((t) => t + 1);
+        e.currentTarget.blur();
       }
     },
     [aiMode, query]
@@ -313,8 +318,16 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
             autoCorrect="off"
             spellCheck={false}
             // Reserve space at the right so the AI Mode pill and (in AI
-            // mode) the Send arrow button don't overlap typed text.
-            className={cn(aiMode ? "pr-24 sm:pr-28" : aiEnabled ? "pr-24" : "pr-10")}
+            // mode) the Send arrow button don't overlap typed text. The
+            // numbers below are calibrated to clear both buttons fully:
+            //   - in AI mode: AI pill (icon-only on mobile, ~28px) at right-12
+            //     + Send arrow (28px) — but they sit next to each other, so
+            //     reserve enough for both. Mobile: ~80px = pr-20. Desktop
+            //     shows the longer "AI Mode" label — pr-32.
+            //   - non-AI mode: just the AI pill (icon-only on mobile)
+            className={cn(
+              aiMode ? "pr-20 sm:pr-32" : aiEnabled ? "pr-12 sm:pr-24" : "pr-10",
+            )}
           />
           {aiEnabled && (
             <button
@@ -335,17 +348,25 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                 setAiMode(true);
                 if (query.trim()) {
                   setSubmitTick((t) => t + 1);
+                  // Submitted via toggle — also dismiss the iOS keyboard.
+                  inputRef.current?.blur();
+                } else {
+                  // Empty input → keep focus so the user can type their
+                  // first chat message immediately.
+                  inputRef.current?.focus();
                 }
-                // Refocus the input synchronously so iOS keeps the keyboard
-                // up after the AI Mode tap.
-                inputRef.current?.focus();
               }}
-              // Sits clear of the dialog's close-X (right-4 top-4) so the
-              // two don't visually merge. Pill-shaped with icon + label.
+              // Sits clear of the dialog's close-X (right-4 top-4). On mobile
+              // the pill collapses to an icon-only square so it doesn't crowd
+              // the typed text + Send arrow. Desktop keeps the labelled pill.
               className={cn(
-                "absolute top-1/2 -translate-y-1/2 inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium transition-colors",
-                // Slide left to make room for the Send arrow when in AI mode.
-                aiMode ? "right-20 sm:right-24" : "right-12",
+                "absolute top-1/2 -translate-y-1/2 inline-flex h-7 items-center justify-center rounded-md transition-colors",
+                // Mobile: icon-only square. Desktop: full pill with label.
+                "w-7 sm:w-auto sm:gap-1.5 sm:px-2 sm:text-[11px] sm:font-medium",
+                // Position: AI mode -> sit just left of the Send arrow
+                // (which is at right-12). Non-AI mode -> sit at right-12
+                // alone.
+                aiMode ? "right-[5.25rem] sm:right-24" : "right-12",
                 aiMode
                   ? "text-primary bg-primary/10 hover:bg-primary/15"
                   : "text-muted-foreground/70 hover:text-foreground hover:bg-accent"
@@ -353,7 +374,6 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
             >
               <Sparkles className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">AI Mode</span>
-              <span className="sm:hidden">AI</span>
             </button>
           )}
           {aiMode && (
@@ -369,7 +389,10 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
               onClick={() => {
                 if (!query.trim()) return;
                 setSubmitTick((t) => t + 1);
-                inputRef.current?.focus();
+                // Drop focus → iOS soft keyboard dismisses, the conversation
+                // panel takes the full screen instead of being squeezed
+                // above the keyboard.
+                inputRef.current?.blur();
               }}
               className={cn(
                 "absolute right-12 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",

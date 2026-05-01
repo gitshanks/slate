@@ -9,6 +9,7 @@ import {
   discover,
   getPersonCredits,
   getRecommendationsFor,
+  getRecommendedFromWatched,
   searchMulti,
   type TmdbMediaResult,
 } from "@/lib/tmdb";
@@ -163,10 +164,33 @@ const SIMILAR_TOOL_NAME = "find_similar";
 const SIMILAR_TOOL_DESCRIPTION =
   "Find titles similar to a SPECIFIC named show or movie. Use this whenever the user says 'like X', 'similar to X', 'something like X', 'more X', etc. Returns curated recommendations from the catalogue, NOT generic genre matches.";
 
+const LIBRARY_TOOL_NAME = "recommend_from_library";
+const LIBRARY_TOOL_DESCRIPTION =
+  "Recommend titles personalised to the user's existing watchlist. Use this WHENEVER the user mentions 'my library', 'based on what I've watched', 'something I'd like', 'recommend me a show', 'what should I watch', or any personalised request. The tool reads the user's actual watched titles in slate and surfaces TMDB-curated recommendations linked to those, ranked by co-occurrence so titles surfaced by multiple of their favourites float to the top.";
+
+// Schema for `recommend_from_library` — no required args, just an optional
+// media type filter. The whole point of this tool is that it works WITHOUT
+// the model having to guess what the user has watched.
+const LIBRARY_TOOL_PARAMETERS = {
+  type: "object" as const,
+  properties: {
+    media_type: {
+      type: "string",
+      enum: ["movie", "tv", "both"],
+      description:
+        "Restrict to movies or TV. Default 'both' unless the user specifies one.",
+    },
+  },
+  required: [],
+};
+
 const CHAT_SYSTEM = `You are a warm, witty, opinionated movie and TV recommendation assistant inside a personal watchlist app called slate. The user is browsing for something to watch.
 
 For every user message you MUST:
-1. Use one of the available tools to find concrete titles that match what they're describing.
+1. Pick the right tool:
+   - "based on my library", "what should I watch", "recommend me something", "something I'd like" → use \`recommend_from_library\`. This reads the user's actual watched titles.
+   - "like X", "similar to X", "more X" (a specific named title) → use \`find_similar\`.
+   - everything else (genre/era/mood/keyword discovery) → use \`search_titles\`.
 2. After the tool returns, ALWAYS name 2-3 specific titles taken DIRECTLY from the tool's result list. Each gets a brief one-line take describing why it fits.
 3. End with a natural follow-up question when it fits ("seen these?", "want something darker?", "anything from the 70s instead?").
 
@@ -230,7 +254,65 @@ async function executeTool(
   rawArgs: Record<string, unknown>,
 ): Promise<ToolResult> {
   if (name === SIMILAR_TOOL_NAME) return executeFindSimilar(rawArgs);
+  if (name === LIBRARY_TOOL_NAME) return executeRecommendFromLibrary(rawArgs);
   return executeSearchTitles(rawArgs);
+}
+
+/**
+ * `recommend_from_library` — reads the user's watched titles from supabase
+ * and asks TMDB for curated recommendations linked to each. This is the
+ * personalised path; without it the model used to fall back to generic
+ * popular TV (Law & Order, The Rookie…) for "what should I watch".
+ *
+ * Falls back to discover('popular') if the user has no watched titles, so
+ * the rail is never empty.
+ */
+async function executeRecommendFromLibrary(
+  rawArgs: Record<string, unknown>,
+): Promise<ToolResult> {
+  const mt = rawArgs.media_type;
+  const wantedMediaType: "movie" | "tv" | "both" =
+    mt === "movie" || mt === "tv" ? mt : "both";
+
+  const intent: SearchIntent = {
+    media_type: wantedMediaType,
+    genres: [],
+    year_min: null,
+    year_max: null,
+    query_text: null,
+    sort_by: null,
+    min_rating: null,
+    interpretation: "based on your library",
+  };
+
+  let recs = await getRecommendedFromWatched();
+  // getRecommendedFromWatched returns the broader TmdbSearchResult shape.
+  // Filter to media + media_type. The function already strips persons.
+  const filtered = recs
+    .filter(
+      (r): r is TmdbMediaResult =>
+        (r.media_type === "movie" || r.media_type === "tv") &&
+        (wantedMediaType === "both" || r.media_type === wantedMediaType),
+    )
+    .slice(0, 16);
+
+  if (filtered.length > 0) {
+    return { intent, results: filtered, summary: summarizeResults(filtered) };
+  }
+
+  // Empty library or no usable recs — fall back to popular discovery so
+  // the user still sees something. We pick a popularity sort with a vote
+  // floor; that mirrors how the rest of the app surfaces "what's hot".
+  const fallback = await runDiscoverForIntent({
+    ...intent,
+    sort_by: "popularity",
+  });
+  recs = fallback;
+  return {
+    intent: { ...intent, interpretation: "popular picks (your library is empty)" },
+    results: fallback.slice(0, 16),
+    summary: summarizeResults(fallback.slice(0, 16)),
+  };
 }
 
 /**
@@ -577,6 +659,14 @@ async function* streamOpenAIChat(
                     parameters: SIMILAR_TOOL_PARAMETERS,
                   },
                 },
+                {
+                  type: "function",
+                  function: {
+                    name: LIBRARY_TOOL_NAME,
+                    description: LIBRARY_TOOL_DESCRIPTION,
+                    parameters: LIBRARY_TOOL_PARAMETERS,
+                  },
+                },
               ],
               // Force a real tool call on the first hop. Without this, Llama
               // 3.3 sometimes "narrates" tool usage in prose ("I just got
@@ -639,7 +729,7 @@ async function* streamOpenAIChat(
       // it out, execute the tool ourselves, and synthesize the assistant
       // turn so the next hop responds with proper grounding.
       const malformed = raw.match(
-        /'(search_titles|find_similar)\s+(\{[^']*?\})'/,
+        /'(search_titles|find_similar|recommend_from_library)\s+(\{[^']*?\})'/,
       );
       if (malformed && hop < MAX_HOPS - 1) {
         try {
@@ -732,7 +822,11 @@ async function* streamOpenAIChat(
 
     // Execute each tool call and append its result.
     for (const call of calls) {
-      if (call.name !== SEARCH_TOOL_NAME && call.name !== SIMILAR_TOOL_NAME) {
+      if (
+        call.name !== SEARCH_TOOL_NAME &&
+        call.name !== SIMILAR_TOOL_NAME &&
+        call.name !== LIBRARY_TOOL_NAME
+      ) {
         wireMessages.push({
           role: "tool",
           tool_call_id: call.id,
@@ -792,6 +886,11 @@ async function* streamAnthropicChat(
           description: SIMILAR_TOOL_DESCRIPTION,
           input_schema: SIMILAR_TOOL_PARAMETERS,
         },
+        {
+          name: LIBRARY_TOOL_NAME,
+          description: LIBRARY_TOOL_DESCRIPTION,
+          input_schema: LIBRARY_TOOL_PARAMETERS,
+        },
       ],
       messages: wireMessages,
     });
@@ -818,7 +917,11 @@ async function* streamAnthropicChat(
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     for (const tu of toolUses) {
       if (tu.type !== "tool_use") continue;
-      if (tu.name !== SEARCH_TOOL_NAME && tu.name !== SIMILAR_TOOL_NAME) {
+      if (
+        tu.name !== SEARCH_TOOL_NAME &&
+        tu.name !== SIMILAR_TOOL_NAME &&
+        tu.name !== LIBRARY_TOOL_NAME
+      ) {
         toolResults.push({
           type: "tool_result",
           tool_use_id: tu.id,
