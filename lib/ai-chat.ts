@@ -421,49 +421,18 @@ async function fallbackKeywordSearch(
       );
 
   // Try the full phrase first, then drop trailing words. On every iteration
-  // also peek at person hits — if the user named an actor or director,
-  // their filmography is much more relevant than partial-title matches.
+  // also peek at person hits via the shared helper so an actor/director
+  // query returns their filmography rather than partial-title matches.
   const words = trimmed.split(/\s+/);
   for (let drop = 0; drop <= 2 && words.length - drop >= 1; drop++) {
     const q = words.slice(0, words.length - drop).join(" ");
     if (!q) break;
     const r = await searchMulti(q);
+
+    const filmography = await tryPersonFilmography(r.results, wantedMediaType);
+    if (filmography && filmography.length > 0) return filmography;
+
     const mediaHits = filterMedia(r.results).slice(0, 16);
-
-    // Person detection: take the most-popular person hit (TMDB's `multi`
-    // search returns persons, movies and tv interleaved; the highest-ranked
-    // person is usually the right one for a query like "Brad Pitt").
-    type PersonHit = { id: number; popularity?: number; media_type: "person" };
-    const personHits = (r.results as { media_type?: string; id: number; popularity?: number }[])
-      .filter((x): x is PersonHit => x.media_type === "person")
-      .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
-
-    if (personHits.length > 0) {
-      try {
-        const credits = await getPersonCredits(personHits[0].id);
-        const filmography = credits
-          .filter(
-            (c) =>
-              wantedMediaType === "both" || c.media_type === wantedMediaType,
-          )
-          .map<TmdbMediaResult>((c) => ({
-            id: c.id,
-            media_type: c.media_type,
-            title: c.title,
-            name: c.name,
-            poster_path: c.poster_path,
-            backdrop_path: c.backdrop_path,
-            release_date: c.release_date,
-            first_air_date: c.first_air_date,
-            vote_average: c.vote_average,
-          }))
-          .slice(0, 16);
-        if (filmography.length > 0) return filmography;
-      } catch {
-        // Person credits fetch failed — fall through to media hits below.
-      }
-    }
-
     if (mediaHits.length > 0) return mediaHits;
   }
   return [];
@@ -519,6 +488,11 @@ async function executeSearchTitles(
  * `query_text` is present, otherwise /discover with the genre/year/sort
  * filters applied. Split out so the relaxation fallbacks above can call
  * it repeatedly with different intent variants.
+ *
+ * For keyword paths: if the top TMDB hit is a person (popular actor or
+ * director — e.g. "Tom Cruise"), pivot to that person's filmography. This
+ * is the difference between the rail showing 16 documentaries *about* the
+ * actor and showing the actor's actual movies.
  */
 async function runDiscoverForIntent(
   intent: SearchIntent,
@@ -528,6 +502,20 @@ async function runDiscoverForIntent(
 
   if (intent.query_text && intent.query_text.length >= 2) {
     const search = await searchMulti(intent.query_text);
+
+    // Person detection: TMDB's /search/multi returns persons, movies, and
+    // tv interleaved by relevance. For an actor query the person hit is
+    // typically rank-1 with high popularity; we pivot to their filmography
+    // BEFORE returning any media hits because docs about an actor would
+    // otherwise outrank their actual films.
+    const filmography = await tryPersonFilmography(
+      search.results,
+      intent.media_type,
+    );
+    if (filmography && filmography.length > 0) {
+      return filmography;
+    }
+
     return search.results.filter(
       (r): r is TmdbMediaResult =>
         (r.media_type === "movie" && wantMovie) ||
@@ -549,6 +537,59 @@ async function runDiscoverForIntent(
     if (tvHits[i]) interleaved.push(tvHits[i]);
   }
   return interleaved;
+}
+
+/**
+ * Helper: given a TMDB /search/multi result list, if the top-popularity
+ * person hit is meaningfully popular (we use 5 as a threshold — TMDB
+ * popularity >5 is broadly recognised), fetch their credits and convert
+ * them into the rail's media shape. Returns null if no usable person.
+ *
+ * Used by both `runDiscoverForIntent` (keyword path) and
+ * `fallbackKeywordSearch` (zero-results fallback) so the behaviour is
+ * identical regardless of which path got us here.
+ */
+async function tryPersonFilmography(
+  searchResults: { id: number; popularity?: number; media_type?: string }[],
+  wantedMediaType: "movie" | "tv" | "both",
+): Promise<TmdbMediaResult[] | null> {
+  const personHits = searchResults
+    .filter(
+      (x): x is { id: number; popularity?: number; media_type: "person" } =>
+        x.media_type === "person",
+    )
+    .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
+
+  // Popularity floor: low-popularity persons are usually false positives —
+  // someone listed as a writer/producer but who shares the query string
+  // accidentally. Tom Cruise's TMDB popularity sits in the dozens; bit
+  // players sit below 1. The threshold filters out the noise.
+  if (personHits.length === 0 || (personHits[0].popularity ?? 0) < 5) {
+    return null;
+  }
+
+  try {
+    const credits = await getPersonCredits(personHits[0].id);
+    return credits
+      .filter(
+        (c) =>
+          wantedMediaType === "both" || c.media_type === wantedMediaType,
+      )
+      .map<TmdbMediaResult>((c) => ({
+        id: c.id,
+        media_type: c.media_type,
+        title: c.title,
+        name: c.name,
+        poster_path: c.poster_path,
+        backdrop_path: c.backdrop_path,
+        release_date: c.release_date,
+        first_air_date: c.first_air_date,
+        vote_average: c.vote_average,
+      }))
+      .slice(0, 16);
+  } catch {
+    return null;
+  }
 }
 
 function normalizeIntent(raw: Record<string, unknown>): SearchIntent {
