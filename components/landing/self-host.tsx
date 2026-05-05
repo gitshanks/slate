@@ -14,7 +14,7 @@ export function SelfHost() {
             </h2>
             <p className="mt-4 text-pretty text-muted-foreground sm:text-lg">
               Slate is built to be self-hosted. One docker-compose file spins up
-              the entire stack on your box — Postgres, PostgREST, the app — and
+              the whole stack on your box (Postgres, PostgREST, the app) and
               keeps every byte of your library under your roof.
             </p>
 
@@ -46,7 +46,7 @@ const POINTS = [
   {
     icon: Server,
     title: "One docker-compose, three services.",
-    body: "Postgres, PostgREST, and the Next.js app — wired through Caddy so the Supabase client works unchanged.",
+    body: "Postgres, PostgREST, and the Next.js app, wired through Caddy so the Supabase client works unchanged.",
   },
   {
     icon: Database,
@@ -61,7 +61,7 @@ const POINTS = [
   {
     icon: Zap,
     title: "Or one-click on Vercel.",
-    body: "Same repo. Vercel + Supabase deployment in five minutes — the schema is a single SQL file.",
+    body: "Same repo. Vercel + Supabase deployment in five minutes. The schema is a single SQL file.",
   },
 ];
 
@@ -106,7 +106,7 @@ function TerminalMock() {
             <span className="text-emerald-400"> ✔</span>{" "}
             <span className="text-white/80">slate      Started</span>
             {"\n\n"}
-            <span className="text-white/40"># http://localhost:3000 — done.</span>
+            <span className="text-white/40"># http://localhost:3000, done.</span>
           </code>
         </pre>
       </div>

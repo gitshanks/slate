@@ -20,7 +20,7 @@ const FEATURES: Feature[] = [
     eyebrow: "Command palette",
     title: "Add anything in one keystroke.",
     body:
-      "Press ⌘K, search the entire TMDB catalog, hit enter. Films, shows, episodes — all in your library before the keystroke fades.",
+      "Press ⌘K, search the entire TMDB catalog, hit enter. Films, shows, episodes, all in your library before the keystroke fades.",
   },
   {
     icon: Sparkles,
@@ -34,7 +34,7 @@ const FEATURES: Feature[] = [
     eyebrow: "Critic scores",
     title: "IMDb and Rotten Tomatoes, baked in.",
     body:
-      "Every saved title carries an IMDb rating and a Tomatometer (with a Metacritic fallback) — fetched once, cached, surfaced everywhere.",
+      "Every saved title carries an IMDb rating and a Tomatometer (with a Metacritic fallback). Fetched once, cached, surfaced everywhere.",
   },
   {
     icon: ListChecks,
@@ -68,7 +68,7 @@ export function FeatureGrid() {
             Why slate
           </p>
           <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Everything Letterboxd does well — without anything social.
+            Everything Letterboxd does well, without the social part.
           </h2>
           <p className="mt-4 text-pretty text-muted-foreground">
             Slate is a single-user app. It optimizes for one thing: helping you

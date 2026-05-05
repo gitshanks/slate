@@ -29,9 +29,9 @@ export function Hero() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
-            Track everything you want to watch, are watching, and have loved —
-            in a single, fast app. No social network, no algorithm. Just your
-            shelf, on your machine.
+            Track everything you want to watch, are watching, and have loved.
+            One fast app. No social network, no algorithm. Just your shelf,
+            on your machine.
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">

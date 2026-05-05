@@ -17,9 +17,9 @@ export function Showcase() {
             </h2>
             <p className="mt-4 text-pretty text-muted-foreground sm:text-lg">
               Flip the “Ask AI” pill in the command palette and type the way you
-              actually think. Slate turns vibes into a real shortlist — drawn
-              from TMDB, scored on critic data, and de-duplicated against what
-              you've already seen.
+              actually think. Slate turns vibes into a real shortlist. Pulled
+              from TMDB, scored on critic data, deduped against what you've
+              already seen.
             </p>
             <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
               {AI_BULLETS.map((b) => (
@@ -53,8 +53,8 @@ export function Showcase() {
             </h2>
             <p className="mt-4 text-pretty text-muted-foreground sm:text-lg">
               Move titles between shelves with a click. Add a private note. Mark
-              it Loved, Liked, or Disliked. There's nothing public to maintain
-              and nothing to follow — slate is the opposite of a feed.
+              it Loved, Liked, or Disliked. Nothing public to maintain, no one
+              to follow. Slate is the opposite of a feed.
             </p>
             <div className="mt-6 grid grid-cols-3 gap-3 text-xs">
               {STATE_CHIPS.map((c) => (
@@ -80,7 +80,7 @@ export function Showcase() {
 const AI_BULLETS = [
   {
     label: "Live suggestions",
-    body: "Real titles surface as you type — no waiting for a full response.",
+    body: "Real titles surface as you type. No waiting for a full response.",
   },
   {
     label: "Library-aware",
@@ -101,7 +101,7 @@ const STATE_CHIPS = [
   {
     icon: Eye,
     label: "Watching",
-    body: "In progress — episodic shows, slow-burn series.",
+    body: "In progress. Episodic shows, slow-burn series.",
   },
   {
     icon: Heart,
