@@ -1,8 +1,10 @@
+import Image from "next/image";
 import { Search, Sparkles, Heart, ThumbsUp, Eye, BookmarkPlus } from "lucide-react";
+import { posterUrl } from "@/lib/tmdb-image";
 
-// A self-contained, fake-but-faithful slate window. Nothing here makes a
-// network call: posters are rendered as gradient placeholders so this works
-// in any deploy without TMDB credentials.
+// A self-contained, fake-but-faithful slate window. Posters resolve straight
+// from TMDB's CDN (image.tmdb.org) — no API key required at runtime, since
+// the paths are baked in below.
 export function HeroMock() {
   return (
     <div className="relative">
@@ -83,21 +85,28 @@ const STATUS = {
 type StatusKey = keyof typeof STATUS;
 
 interface MockPosterProps {
-  gradient: string;
+  posterPath: string;
   title: string;
   meta: string;
   status?: StatusKey;
 }
 
-function MockPoster({ gradient, title, meta, status }: MockPosterProps) {
+function MockPoster({ posterPath, title, meta, status }: MockPosterProps) {
   const badge = status ? STATUS[status] : null;
+  const src = posterUrl(posterPath, "w342");
   return (
     <div className="group">
-      <div
-        className="relative aspect-[2/3] overflow-hidden rounded-md ring-1 ring-foreground/5"
-        style={{ backgroundImage: gradient }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+      <div className="relative aspect-[2/3] overflow-hidden rounded-md bg-card ring-1 ring-foreground/5">
+        {src ? (
+          <Image
+            src={src}
+            alt={title}
+            fill
+            sizes="(max-width: 640px) 33vw, 120px"
+            className="object-cover"
+          />
+        ) : null}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
         {badge ? (
           <span className="absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-background/90 px-1.5 py-0.5 text-[9px] font-medium text-foreground/90 ring-1 ring-foreground/10">
             <badge.Icon className="h-2.5 w-2.5" />
@@ -115,72 +124,64 @@ function MockPoster({ gradient, title, meta, status }: MockPosterProps) {
   );
 }
 
-// Hand-tuned gradients standing in for posters — keeps the hero offline-safe.
+// Real TMDB poster paths — resolved at design-time so the page stays free of
+// runtime API calls. If TMDB swaps a canonical poster the asset 404s and the
+// card falls back to the empty card background until we re-pick.
 const POSTERS: MockPosterProps[] = [
   {
-    gradient:
-      "linear-gradient(135deg, hsl(252 88% 62%) 0%, hsl(282 75% 30%) 60%, hsl(220 50% 12%) 100%)",
+    posterPath: "/pThyQovXQrw2m0s9x82twj48Jq4.jpg",
     title: "Knives Out",
     meta: "2019 · Mystery",
     status: "want",
   },
   {
-    gradient:
-      "linear-gradient(140deg, hsl(220 50% 18%) 0%, hsl(195 60% 30%) 50%, hsl(160 50% 22%) 100%)",
+    posterPath: "/eKfVzzEazSIjJMrw9ADa2x8ksLz.jpg",
     title: "The Bear",
     meta: "FX · Drama",
     status: "watching",
   },
   {
-    gradient:
-      "linear-gradient(160deg, hsl(20 75% 35%) 0%, hsl(0 70% 22%) 60%, hsl(280 30% 18%) 100%)",
+    posterPath: "/hjlZSXM86wJrfCv5VKfR5DI2VeU.jpg",
     title: "Hereditary",
     meta: "2018 · Horror",
     status: "loved",
   },
   {
-    gradient:
-      "linear-gradient(135deg, hsl(45 90% 55%) 0%, hsl(20 75% 40%) 55%, hsl(340 60% 30%) 100%)",
+    posterPath: "/uDO8zWDhfWwoFdKS4fzkUJt0Rf0.jpg",
     title: "La La Land",
     meta: "2016 · Musical",
   },
   {
-    gradient:
-      "linear-gradient(160deg, hsl(160 60% 30%) 0%, hsl(195 70% 22%) 60%, hsl(240 40% 12%) 100%)",
+    posterPath: "/pPHpeI2X1qEd1CS1SeyrdhZ4qnT.jpg",
     title: "Severance",
     meta: "Apple TV+ · SciFi",
     status: "watching",
   },
   {
-    gradient:
-      "linear-gradient(140deg, hsl(282 60% 35%) 0%, hsl(220 70% 18%) 60%, hsl(180 40% 18%) 100%)",
+    posterPath: "/pEzNVQfdzYDzVK0XqxERIw2x2se.jpg",
     title: "Arrival",
     meta: "2016 · SciFi",
     status: "liked",
   },
   {
-    gradient:
-      "linear-gradient(160deg, hsl(0 0% 12%) 0%, hsl(45 30% 20%) 60%, hsl(40 60% 35%) 100%)",
+    posterPath: "/VHSzNBTwxV8vh7wylo7O9CLdac.jpg",
     title: "The Holdovers",
     meta: "2023 · Drama",
     status: "want",
   },
   {
-    gradient:
-      "linear-gradient(135deg, hsl(330 70% 40%) 0%, hsl(280 60% 25%) 60%, hsl(220 50% 15%) 100%)",
+    posterPath: "/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg",
     title: "Past Lives",
     meta: "2023 · Romance",
     status: "loved",
   },
   {
-    gradient:
-      "linear-gradient(160deg, hsl(195 60% 25%) 0%, hsl(220 50% 18%) 50%, hsl(0 0% 8%) 100%)",
+    posterPath: "/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
     title: "Oppenheimer",
     meta: "2023 · Biography",
   },
   {
-    gradient:
-      "linear-gradient(135deg, hsl(20 80% 50%) 0%, hsl(340 65% 30%) 60%, hsl(240 50% 15%) 100%)",
+    posterPath: "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
     title: "Dune: Part Two",
     meta: "2024 · SciFi",
     status: "want",

@@ -1,4 +1,6 @@
+import Image from "next/image";
 import { Sparkles, Search, BookmarkPlus, Eye, Heart, ThumbsUp } from "lucide-react";
+import { posterUrl } from "@/lib/tmdb-image";
 
 export function Showcase() {
   return (
@@ -128,10 +130,17 @@ function AiPaletteMock() {
                 (i === 0 ? "bg-foreground/[0.03]" : "")
               }
             >
-              <span
-                className="h-10 w-7 shrink-0 rounded-sm ring-1 ring-foreground/10"
-                style={{ backgroundImage: r.gradient }}
-              />
+              <span className="relative h-10 w-7 shrink-0 overflow-hidden rounded-sm bg-card ring-1 ring-foreground/10">
+                {posterUrl(r.posterPath, "w185") ? (
+                  <Image
+                    src={posterUrl(r.posterPath, "w185")!}
+                    alt={r.title}
+                    fill
+                    sizes="28px"
+                    className="object-cover"
+                  />
+                ) : null}
+              </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">
                   {r.title}
@@ -170,36 +179,31 @@ const AI_RESULTS = [
   {
     title: "Pearl (2022)",
     meta: "Slasher · Ti West",
-    gradient:
-      "linear-gradient(160deg, hsl(0 70% 35%) 0%, hsl(20 80% 30%) 70%, hsl(40 80% 25%) 100%)",
+    posterPath: "/z5uIG81pXyHKg7cUFIu84Wjn4NS.jpg",
     score: "RT 91%",
   },
   {
     title: "Talk to Me (2023)",
     meta: "Supernatural · Philippou",
-    gradient:
-      "linear-gradient(160deg, hsl(280 60% 25%) 0%, hsl(320 60% 30%) 70%, hsl(0 0% 8%) 100%)",
+    posterPath: "/kdPMUMJzyYAc4roD52qavX0nLIC.jpg",
     score: "RT 94%",
   },
   {
     title: "Men (2022)",
     meta: "Folk horror · Garland",
-    gradient:
-      "linear-gradient(160deg, hsl(120 30% 30%) 0%, hsl(80 35% 22%) 70%, hsl(40 30% 15%) 100%)",
+    posterPath: "/jo1Kv3P3UgDVk7JnUFr2Cl8WWUM.jpg",
     score: "RT 68%",
   },
   {
     title: "X (2022)",
     meta: "Slasher · Ti West",
-    gradient:
-      "linear-gradient(160deg, hsl(40 90% 40%) 0%, hsl(20 75% 30%) 70%, hsl(0 0% 8%) 100%)",
+    posterPath: "/lopZSVtXzhFY603E9OqF7O1YKsh.jpg",
     score: "RT 94%",
   },
   {
     title: "I Saw the TV Glow (2024)",
     meta: "Surreal · Schoenbrun",
-    gradient:
-      "linear-gradient(160deg, hsl(280 80% 50%) 0%, hsl(320 70% 35%) 70%, hsl(220 50% 12%) 100%)",
+    posterPath: "/hS4GYkYpN1rfl4GIxyc02sCyfAj.jpg",
     score: "RT 95%",
   },
 ];
@@ -224,10 +228,17 @@ function ThreeStatesMock() {
                 key={it.title}
                 className="overflow-hidden rounded-md ring-1 ring-foreground/5"
               >
-                <div
-                  className="aspect-[2/3] w-full"
-                  style={{ backgroundImage: it.gradient }}
-                />
+                <div className="relative aspect-[2/3] w-full bg-card">
+                  {posterUrl(it.posterPath, "w185") ? (
+                    <Image
+                      src={posterUrl(it.posterPath, "w185")!}
+                      alt={it.title}
+                      fill
+                      sizes="(max-width: 640px) 30vw, 110px"
+                      className="object-cover"
+                    />
+                  ) : null}
+                </div>
                 <div className="px-2 py-1.5">
                   <p className="line-clamp-1 text-[11px] font-medium text-foreground">
                     {it.title}
@@ -251,14 +262,12 @@ const STATE_COLUMNS = [
       {
         title: "Anora",
         meta: "2024",
-        gradient:
-          "linear-gradient(160deg, hsl(330 70% 35%) 0%, hsl(280 60% 25%) 100%)",
+        posterPath: "/oN0o3owobFjePDc5vMdLRAd0jkd.jpg",
       },
       {
         title: "Conclave",
         meta: "2024",
-        gradient:
-          "linear-gradient(160deg, hsl(0 60% 25%) 0%, hsl(40 60% 28%) 100%)",
+        posterPath: "/vYEyxF1UT779RiEalpMjUT6kfdf.jpg",
       },
     ],
   },
@@ -269,14 +278,12 @@ const STATE_COLUMNS = [
       {
         title: "Severance",
         meta: "S2 · E5",
-        gradient:
-          "linear-gradient(160deg, hsl(220 50% 18%) 0%, hsl(195 60% 30%) 100%)",
+        posterPath: "/pPHpeI2X1qEd1CS1SeyrdhZ4qnT.jpg",
       },
       {
         title: "Slow Horses",
         meta: "S4 · E1",
-        gradient:
-          "linear-gradient(160deg, hsl(40 30% 22%) 0%, hsl(20 50% 18%) 100%)",
+        posterPath: "/dnpatlJrEPiDSn5fzgzvxtiSnMo.jpg",
       },
     ],
   },
@@ -287,14 +294,12 @@ const STATE_COLUMNS = [
       {
         title: "The Holdovers",
         meta: "Loved",
-        gradient:
-          "linear-gradient(160deg, hsl(0 0% 12%) 0%, hsl(45 30% 22%) 100%)",
+        posterPath: "/VHSzNBTwxV8vh7wylo7O9CLdac.jpg",
       },
       {
         title: "Past Lives",
         meta: "Liked",
-        gradient:
-          "linear-gradient(160deg, hsl(330 70% 35%) 0%, hsl(220 50% 18%) 100%)",
+        posterPath: "/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg",
       },
     ],
   },

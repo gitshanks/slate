@@ -16,19 +16,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Public-portfolio mode: the landing page must always be reachable.
-  // Middleware runs before rewrites, so the user-facing "/" is what we see
-  // here — not the internal "/landing" destination. Allow "/" itself (the
-  // marketing page), the rewrite destination "/landing" (in case it's hit
-  // directly), and brand assets used by the page.
-  if (
-    process.env.NEXT_PUBLIC_SLATE_PUBLIC === "true" &&
-    (pathname === "/" || pathname === "/landing" || pathname.startsWith("/brand"))
-  ) {
-    return NextResponse.next();
-  }
-
-  // Demo mode is always open — no passcode gate.
+  // Demo mode is always open — no passcode gate. The public-portfolio
+  // landing page rides on the same flag (see next.config.ts), so this single
+  // check also keeps "/" and "/landing" reachable on the public deploy.
   if (process.env.NEXT_PUBLIC_DEMO_MODE === "1") return NextResponse.next();
 
   const passcode = process.env.APP_PASSCODE;

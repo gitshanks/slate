@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
-// Public-portfolio mode: marketing page at /, app moved to /app. Self-host
-// default (flag unset) keeps the app at /, so existing bookmarks and PWA
-// installs are unaffected.
-const PUBLIC_MODE = process.env.NEXT_PUBLIC_SLATE_PUBLIC === "true";
+// Public-portfolio mode: marketing page at /, app moved to /app. Piggybacks
+// on NEXT_PUBLIC_DEMO_MODE — the same flag that opens the passcode gate and
+// switches Supabase to the live read-only path — so the public deploy is
+// configured by a single env var. Self-host default (flag unset) keeps the
+// app at /, so existing bookmarks and PWA installs are unaffected.
+const PUBLIC_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
 
 const nextConfig: NextConfig = {
   // Produce a minimal self-contained server bundle for docker-compose /
@@ -18,14 +20,26 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     if (!PUBLIC_MODE) return [];
-    return [
-      // Landing page at the root URL; the file lives at /landing so it
-      // doesn't collide with the watchlist route.
-      { source: "/", destination: "/landing" },
-      // Watchlist at /app — points at the existing app/(app)/page.tsx, which
-      // continues to live at the route group's "/" internally.
-      { source: "/app", destination: "/" },
-    ];
+    // beforeFiles is required for the "/" rewrite — array-form rewrites run
+    // *after* the filesystem, and app/(app)/page.tsx already resolves at "/",
+    // so an afterFiles rewrite would never fire. The "/app" rewrite has no
+    // real file collision and can stay in afterFiles.
+    return {
+      beforeFiles: [
+        { source: "/", destination: "/landing" },
+      ],
+      afterFiles: [
+        { source: "/app", destination: "/" },
+      ],
+      fallback: [],
+    };
+  },
+  async redirects() {
+    if (!PUBLIC_MODE) return [];
+    // /landing is an implementation detail of the rewrite above — bounce any
+    // direct hits to the canonical "/" so we don't leak two URLs for the same
+    // page (and avoid duplicate-content issues with crawlers).
+    return [{ source: "/landing", destination: "/", permanent: false }];
   },
   images: {
     // TMDB already serves pre-built sizes (w92, w185, w500, w1280…) which we
