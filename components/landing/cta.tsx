@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, Github } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { GithubMark } from "@/components/landing/icons";
 
 export function FinalCta() {
   return (
@@ -34,7 +35,7 @@ export function FinalCta() {
               rel="noreferrer"
               className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card/60 px-5 text-sm font-medium text-foreground backdrop-blur transition-colors hover:bg-card"
             >
-              <Github className="h-4 w-4" />
+              <GithubMark className="h-4 w-4" />
               Star on GitHub
             </a>
           </div>

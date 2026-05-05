@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Github } from "lucide-react";
+import { GithubMark } from "@/components/landing/icons";
 
 export function LandingNav() {
   return (
@@ -32,7 +32,7 @@ export function LandingNav() {
             rel="noreferrer"
             className="inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <Github className="h-4 w-4" />
+            <GithubMark className="h-4 w-4" />
             <span className="hidden sm:inline">GitHub</span>
           </a>
           <Link
