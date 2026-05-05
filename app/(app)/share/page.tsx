@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { addTitle } from "@/lib/actions";
+import { APP_ROOT } from "@/lib/public-mode";
 import { EmptyState } from "@/components/empty-state";
 import { Share2 } from "lucide-react";
 
@@ -66,7 +67,7 @@ export default async function SharePage(props: PageProps<"/share">) {
         }
         action={
           <Button asChild variant="outline">
-            <Link href="/">Back to slate</Link>
+            <Link href={APP_ROOT}>Back to slate</Link>
           </Button>
         }
       />

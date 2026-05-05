@@ -5,12 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { APP_ROOT } from "@/lib/public-mode";
 import { useCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PwaInstallButton } from "@/components/pwa-install-button";
 
 const LINKS = [
-  { href: "/", label: "Watchlist" },
+  { href: APP_ROOT, label: "Watchlist" },
   { href: "/watching", label: "Watching" },
   { href: "/watched", label: "Watched" },
   { href: "/lists", label: "Lists" },
@@ -25,7 +26,7 @@ export function TopNav() {
     <header className="sticky top-0 z-40 w-full glass border-b border-border/60">
       <div className="mx-auto flex h-14 max-w-[1480px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
         <div className="flex items-center gap-3">
-          <Link href="/" prefetch className="group flex items-center pt-1 pb-2" aria-label="Slate home">
+          <Link href={APP_ROOT} prefetch className="group flex items-center pt-1 pb-2" aria-label="Slate home">
             <Image
               src="/brand/logo-light.svg"
               alt="Slate"
@@ -47,7 +48,7 @@ export function TopNav() {
           <nav className="hidden items-center gap-0.5 md:flex">
             {LINKS.map((l) => {
               const active =
-                l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+                l.href === APP_ROOT ? pathname === APP_ROOT : pathname.startsWith(l.href);
               return (
                 <Link
                   key={l.href}

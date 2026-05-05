@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { removeTitle } from "@/lib/actions";
+import { APP_ROOT } from "@/lib/public-mode";
 import { toast } from "sonner";
 
 export function RemoveButton({
@@ -25,7 +26,7 @@ export function RemoveButton({
       try {
         await removeTitle(titleId);
         toast.success("Removed");
-        router.push("/");
+        router.push(APP_ROOT);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Failed");
       }

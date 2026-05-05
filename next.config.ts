@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
+// Public-portfolio mode: marketing page at /, app moved to /app. Self-host
+// default (flag unset) keeps the app at /, so existing bookmarks and PWA
+// installs are unaffected.
+const PUBLIC_MODE = process.env.NEXT_PUBLIC_SLATE_PUBLIC === "true";
+
 const nextConfig: NextConfig = {
   // Produce a minimal self-contained server bundle for docker-compose /
   // self-host deploys. On Vercel this flag is a no-op.
@@ -10,6 +15,17 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     viewTransition: true,
+  },
+  async rewrites() {
+    if (!PUBLIC_MODE) return [];
+    return [
+      // Landing page at the root URL; the file lives at /landing so it
+      // doesn't collide with the watchlist route.
+      { source: "/", destination: "/landing" },
+      // Watchlist at /app — points at the existing app/(app)/page.tsx, which
+      // continues to live at the route group's "/" internally.
+      { source: "/app", destination: "/" },
+    ];
   },
   images: {
     // TMDB already serves pre-built sizes (w92, w185, w500, w1280…) which we

@@ -126,6 +126,7 @@ Push to GitHub, import at [vercel.com/new](https://vercel.com/new), and add thes
 | `OPENAI_API_KEY` | optional | Unlocks AI search in the ⌘K palette — natural-language queries and live suggestions. Defaults to [Groq](https://console.groq.com/keys)'s free tier running Llama 3.3 70B; works with any OpenAI-compatible endpoint (OpenRouter, Ollama, LM Studio, vLLM, llama.cpp). Override the endpoint with `OPENAI_BASE_URL` and the model with `OPENAI_MODEL`. |
 | `ANTHROPIC_API_KEY` | optional | Alternative AI backend — uses Claude instead of an open model. Set `AI_PROVIDER=anthropic` to prefer it when both keys are present. |
 | `APP_PASSCODE` | optional | Lock the app behind a shared passcode. Omit for public. |
+| `NEXT_PUBLIC_SLATE_PUBLIC` | optional | Set to `true` on a portfolio / public-demo deploy to mount a marketing landing page at `/` and move the watchlist to `/app`. Self-host default (unset) keeps the app at `/` so existing bookmarks and PWA installs are unaffected. |
 
 ### 4. Run locally
 
@@ -135,7 +136,7 @@ npm run dev
 
 Open <http://localhost:3000>. Without `APP_PASSCODE`, the unlock screen is skipped.
 
-> **Pro tip — public _and_ private from one repo.** Import the same GitHub repo twice in Vercel. Set `APP_PASSCODE` on one project for your personal copy; leave it unset on the other for a portfolio-friendly public demo. Both stay in sync on every push.
+> **Pro tip — public _and_ private from one repo.** Import the same GitHub repo twice in Vercel. Set `APP_PASSCODE` on one project for your personal copy; on the public copy leave the passcode unset and add `NEXT_PUBLIC_SLATE_PUBLIC=true` to mount a marketing landing page at `/`. Both stay in sync on every push.
 
 ## Backfilling ratings on an existing library
 
