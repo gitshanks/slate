@@ -139,15 +139,18 @@ Open <http://localhost:3000>. Without `APP_PASSCODE`, the unlock screen is skipp
 
 > **Pro tip — public _and_ private from one repo.** Import the same GitHub repo twice in Vercel. Set `APP_PASSCODE` on one project for your personal copy; on the public copy add `NEXT_PUBLIC_DEMO_MODE=1` to skip the passcode and mount a marketing landing page at `/`. Both stay in sync on every push.
 
-## Backfilling ratings on an existing library
+## Backfilling an existing library
 
-If you set `OMDB_API_KEY` after already adding titles, run this once locally to fetch IMDb / Rotten Tomatoes / Metacritic for every existing row:
+Two one-shot scripts cover the cases where a feature shipped after some titles were already in your database. Both read `.env.local` / `.env`, throttle to stay polite on the free TMDB / OMDB tiers, and skip rows that already have data — safe to re-run.
 
 ```bash
+# IMDb / Rotten Tomatoes / Metacritic for every saved title
 npx tsx scripts/backfill-ratings.ts
-```
 
-It reads `.env.local` / `.env` for `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TMDB_API_KEY`, and `OMDB_API_KEY`, then walks every saved title that's missing a rating. Throttled to ~3 calls/sec — comfortably inside the free tier — and re-runnable, since it skips rows that already have data.
+# Per-season episode counts for every TV title — needed for the
+# +1 chip and the season picker on title pages
+npx tsx scripts/backfill-seasons.ts
+```
 
 ## Import
 
