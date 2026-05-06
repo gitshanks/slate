@@ -8,10 +8,23 @@ import path from "node:path";
 // app at /, so existing bookmarks and PWA installs are unaffected.
 const PUBLIC_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
 
+// Stable per-deploy identifier surfaced to the client and to /api/version.
+// On Vercel we get the commit SHA for free; everywhere else we fall back to
+// the build's wall-clock timestamp so a fresh `next build` always produces a
+// new id. The running server process and the client bundle disagree iff the
+// user is on a stale tab — that's the trigger for the refresh banner.
+const BUILD_ID =
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  process.env.NEXT_PUBLIC_BUILD_ID ||
+  String(Date.now());
+
 const nextConfig: NextConfig = {
   // Produce a minimal self-contained server bundle for docker-compose /
   // self-host deploys. On Vercel this flag is a no-op.
   output: "standalone",
+  env: {
+    NEXT_PUBLIC_BUILD_ID: BUILD_ID,
+  },
   turbopack: {
     root: path.join(__dirname),
   },
