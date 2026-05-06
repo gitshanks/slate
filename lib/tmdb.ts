@@ -72,6 +72,9 @@ export interface TmdbTvDetail {
   vote_count: number;
   tagline: string | null;
   imdb_id: string | null;
+  // TMDB returns one entry per season including the special "Season 0" specials
+  // bucket — caller filters as needed.
+  seasons: { season_number: number; episode_count: number; name: string }[];
 }
 
 // ─── API ────────────────────────────────────────────────────────────
@@ -615,6 +618,13 @@ export function normalizeForStorage(
     };
   }
   const t = detail as TmdbTvDetail;
+  // Strip TMDB's "Season 0" specials bucket and any zero-episode placeholders
+  // so the +1 button doesn't roll into ghost seasons. Keep the regular run
+  // numbered season_number → episode_count, in canonical order.
+  const seasons = (t.seasons ?? [])
+    .filter((s) => s.season_number > 0 && s.episode_count > 0)
+    .map((s) => ({ n: s.season_number, c: s.episode_count }))
+    .sort((a, b) => a.n - b.n);
   return {
     tmdb_id: t.id,
     media_type: "tv" as const,
@@ -629,5 +639,6 @@ export function normalizeForStorage(
     tmdb_rating: t.vote_average ?? null,
     tmdb_vote_count: t.vote_count ?? null,
     imdb_id: t.imdb_id ?? null,
+    seasons: seasons.length > 0 ? seasons : null,
   };
 }

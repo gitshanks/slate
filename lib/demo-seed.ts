@@ -105,6 +105,9 @@ function title(partial: Partial<TitleRow> & Pick<TitleRow, "id" | "tmdb_id" | "m
     rt_score: seeded.rt_score ?? null,
     metacritic_score: seeded.metacritic_score ?? null,
     ratings_fetched_at: hasAnyRating ? ts(1) : null,
+    current_season: null,
+    current_episode: null,
+    seasons: null,
     ...partial,
   };
 }
@@ -353,6 +356,9 @@ export const DEMO_TITLES: TitleRow[] = [
     status: "watching",
     added_at: ts(16),
     watched_at: null,
+    seasons: [{n:1,c:10},{n:2,c:10},{n:3,c:9},{n:4,c:10}],
+    current_season: 2,
+    current_episode: 5,
   }),
   title({
     id: "demo-watching-2",
@@ -368,6 +374,9 @@ export const DEMO_TITLES: TitleRow[] = [
     status: "watching",
     added_at: ts(17),
     watched_at: null,
+    seasons: [{n:1,c:9},{n:2,c:9}],
+    current_season: 1,
+    current_episode: 4,
   }),
   title({
     id: "demo-watching-3",
@@ -383,6 +392,9 @@ export const DEMO_TITLES: TitleRow[] = [
     status: "watching",
     added_at: ts(18),
     watched_at: null,
+    seasons: [{n:1,c:10},{n:2,c:10},{n:3,c:10},{n:4,c:10},{n:5,c:10},{n:6,c:13}],
+    current_season: 3,
+    current_episode: 7,
   }),
   title({
     id: "demo-watching-4",
@@ -398,6 +410,9 @@ export const DEMO_TITLES: TitleRow[] = [
     status: "watching",
     added_at: ts(19),
     watched_at: null,
+    seasons: [{n:1,c:12},{n:2,c:12}],
+    current_season: 1,
+    current_episode: 12,
   }),
   title({
     id: "demo-watching-5",
@@ -408,6 +423,7 @@ export const DEMO_TITLES: TitleRow[] = [
     poster_path: "/hlLXt2tOPT6RRnjiUmoxyG1LTFi.jpg",
     backdrop_path: "/3URK0z9PzpVNJrGE7XOuyy6KFzk.jpg",
     release_date: "2019-05-06",
+    seasons: [{n:1,c:5}],
     runtime: null,
     genres: [{"id":18,"name":"Drama"}],
     status: "watching",

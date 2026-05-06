@@ -338,6 +338,9 @@ async function execInsert(
       rt_score: (row.rt_score as number | null) ?? null,
       metacritic_score: (row.metacritic_score as number | null) ?? null,
       ratings_fetched_at: (row.ratings_fetched_at as string | null) ?? null,
+      current_season: (row.current_season as number | null) ?? null,
+      current_episode: (row.current_episode as number | null) ?? null,
+      seasons: (row.seasons as TitleRow["seasons"]) ?? null,
     };
     next.addedTitles = [...state.addedTitles, newTitle];
     await writeState(next);
@@ -436,6 +439,9 @@ async function execUpsert(
         rt_score: (row.rt_score as number | null) ?? null,
         metacritic_score: (row.metacritic_score as number | null) ?? null,
         ratings_fetched_at: (row.ratings_fetched_at as string | null) ?? null,
+        current_season: (row.current_season as number | null) ?? null,
+        current_episode: (row.current_episode as number | null) ?? null,
+        seasons: (row.seasons as TitleRow["seasons"]) ?? null,
       };
       next.addedTitles = [...state.addedTitles, newTitle];
       // Un-delete if previously deleted

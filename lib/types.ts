@@ -29,6 +29,9 @@ export interface TitleRow {
   rt_score: number | null;
   metacritic_score: number | null;
   ratings_fetched_at: string | null;
+  current_season: number | null;
+  current_episode: number | null;
+  seasons: { n: number; c: number }[] | null;
 }
 
 export interface ListRow {

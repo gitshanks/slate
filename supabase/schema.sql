@@ -31,6 +31,12 @@ create table if not exists titles (
   rt_score          integer,
   metacritic_score  integer,
   ratings_fetched_at timestamptz,
+  -- Episode-position tracking for TV shows (null on movies and TV the user
+  -- hasn't started yet). seasons mirrors TMDB's per-season episode counts so
+  -- the +1 button can roll over to the next season without a TMDB round-trip.
+  current_season  integer,
+  current_episode integer,
+  seasons         jsonb,
   unique (tmdb_id, media_type)
 );
 
@@ -43,6 +49,9 @@ alter table titles add column if not exists imdb_votes        integer;
 alter table titles add column if not exists rt_score          integer;
 alter table titles add column if not exists metacritic_score  integer;
 alter table titles add column if not exists ratings_fetched_at timestamptz;
+alter table titles add column if not exists current_season  integer;
+alter table titles add column if not exists current_episode integer;
+alter table titles add column if not exists seasons         jsonb;
 
 create index if not exists titles_status_idx     on titles (status);
 create index if not exists titles_added_at_idx   on titles (added_at desc);
