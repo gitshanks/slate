@@ -1,4 +1,4 @@
-import { Heart, ThumbsUp, ThumbsDown, Circle } from "lucide-react";
+import { Heart, ThumbsUp, ThumbsDown } from "lucide-react";
 import type { TitleRow } from "@/lib/supabase";
 import { formatImdbRating } from "@/lib/utils";
 
@@ -56,43 +56,44 @@ export function WatchedStats({ titles }: WatchedStatsProps) {
     { label: "This year", value: String(thisYear) },
     { label: "This month", value: String(thisMonth) },
     { label: "Avg IMDB", value: imdbAvg ?? "—" },
-    { label: "Loved", value: String(loved) },
+    { label: "Watched", value: String(titles.length) },
   ];
 
-  const segments: {
+  const pills: {
     key: string;
     count: number;
     label: string;
     icon: React.ReactNode;
-    color: string;
+    borderColor: string;
+    bgTint: string;
+    textColor: string;
   }[] = [
     {
       key: "loved",
       count: loved,
       label: "Loved",
-      icon: <Heart className="h-3 w-3" />,
-      color: "bg-rose-500/80",
+      icon: <Heart className="h-3 w-3 fill-current" aria-hidden />,
+      borderColor: "border-l-rose-500",
+      bgTint: "bg-rose-500/5",
+      textColor: "text-rose-500",
     },
     {
       key: "liked",
       count: liked,
       label: "Liked",
-      icon: <ThumbsUp className="h-3 w-3" />,
-      color: "bg-emerald-500/70",
+      icon: <ThumbsUp className="h-3 w-3" aria-hidden />,
+      borderColor: "border-l-emerald-500",
+      bgTint: "bg-emerald-500/5",
+      textColor: "text-emerald-500",
     },
     {
       key: "disliked",
       count: disliked,
       label: "Disliked",
-      icon: <ThumbsDown className="h-3 w-3" />,
-      color: "bg-amber-500/70",
-    },
-    {
-      key: "unrated",
-      count: unrated,
-      label: "Unrated",
-      icon: <Circle className="h-3 w-3" />,
-      color: "bg-muted-foreground/30",
+      icon: <ThumbsDown className="h-3 w-3" aria-hidden />,
+      borderColor: "border-l-amber-500",
+      bgTint: "bg-amber-500/5",
+      textColor: "text-amber-500",
     },
   ];
 
@@ -115,37 +116,34 @@ export function WatchedStats({ titles }: WatchedStatsProps) {
       </div>
 
       {titles.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card/60 px-5 py-5 backdrop-blur">
+        <div>
           <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Sentiment
+            Your taste
           </p>
-          <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted/40">
-            {segments.map((seg) =>
-              seg.count > 0 ? (
-                <div
-                  key={seg.key}
-                  className={seg.color}
-                  style={{ width: `${(seg.count / total) * 100}%` }}
-                  aria-label={`${seg.label}: ${seg.count}`}
-                />
-              ) : null
-            )}
-          </div>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-[11px] text-muted-foreground">
-            {segments.map((seg) => (
-              <div key={seg.key} className="flex items-center gap-1.5">
-                <span
-                  className={`inline-block h-2.5 w-2.5 rounded-full ${seg.color}`}
-                  aria-hidden
-                />
-                {seg.icon}
-                <span>
-                  {seg.label} · <span className="text-foreground">{seg.count}</span>
-                  <span className="text-muted-foreground/60"> ({Math.round((seg.count / total) * 100)}%)</span>
-                </span>
+          <div className="grid grid-cols-3 gap-2">
+            {pills.map((pill) => (
+              <div
+                key={pill.key}
+                className={`rounded-2xl border border-border border-l-4 ${pill.borderColor} ${pill.bgTint} px-3 py-3 backdrop-blur sm:px-4 sm:py-4`}
+              >
+                <div className={`flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] font-mono ${pill.textColor}`}>
+                  {pill.icon}
+                  <span className="text-muted-foreground">{pill.label}</span>
+                </div>
+                <p className="mt-2 font-mono text-2xl font-semibold tabular-nums sm:text-3xl">
+                  {pill.count}
+                </p>
+                <p className="font-mono text-[11px] text-muted-foreground">
+                  {Math.round((pill.count / total) * 100)}%
+                </p>
               </div>
             ))}
           </div>
+          {unrated > 0 && (
+            <p className="mt-2 font-mono text-[11px] text-muted-foreground/60">
+              · {unrated} unrated
+            </p>
+          )}
         </div>
       )}
     </section>

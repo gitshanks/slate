@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Heart, ThumbsUp, ThumbsDown } from "lucide-react";
 import { ViewTransition } from "@/components/view-transition";
 import { PosterCardActions } from "@/components/poster-card-actions";
 import { EpisodeChip } from "@/components/episode-chip";
@@ -30,6 +31,7 @@ interface PosterCardProps {
     | "current_season"
     | "current_episode"
     | "seasons"
+    | "rating"
   >;
   priority?: boolean;
 }
@@ -107,6 +109,26 @@ export function PosterCard({ title, priority }: PosterCardProps) {
             currentEpisode={title.current_episode}
             seasons={title.seasons}
           />
+        )}
+
+        {/* Sentiment badge (bottom-right) — only when the title has a user rating */}
+        {title.rating != null && (
+          <div
+            className="absolute bottom-2 right-2 rounded-full bg-black/55 backdrop-blur-sm p-1.5"
+            aria-label={
+              title.rating === 3 ? "Loved" : title.rating === 2 ? "Liked" : "Disliked"
+            }
+          >
+            {title.rating === 3 && (
+              <Heart className="h-3.5 w-3.5 fill-current text-rose-400" aria-hidden />
+            )}
+            {title.rating === 2 && (
+              <ThumbsUp className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+            )}
+            {title.rating === 1 && (
+              <ThumbsDown className="h-3.5 w-3.5 text-amber-400" aria-hidden />
+            )}
+          </div>
         )}
 
         {/* Quick-action strip: status + delete */}
