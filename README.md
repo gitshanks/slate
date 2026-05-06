@@ -28,6 +28,7 @@ Letterboxd is great, but it's social. Slate is the opposite: a single-user watch
 - **⌘K command palette** — search TMDB and add anything to your library in one keystroke
 - **AI search** — flip the "Ask AI" pill (or ⌘⇧K) and type plain English: _"cozy autumn mysteries"_, _"A24 horror after 2020"_, _"Nolan thrillers"_. Live query suggestions surface as you type. Powered by any OpenAI-compatible endpoint (Groq's free tier by default — Llama 3.3 70B) or Claude. Optional — drop in one key to enable
 - **Three clean states** — Watchlist, Watching, Watched, with Love / Like / Dislike ratings and private notes
+- **Episode tracking without the chore** — for the shows you're watching, slate stores *where you are* (S2·E5), not every episode you've ticked off. Tap the chip on the card to advance one episode; on the title page, tap any episode in the season grid to set "I'm caught up to here." Two clicks to recover after a binge
 - **Critic scores you can trust** — IMDb rating + Rotten Tomatoes Tomatometer (with Metacritic fallback) on every saved title, fetched once via OMDB and cached
 - **Custom lists** — curate collections like _"Cozy winter"_ or _"A24 horror"_
 - **Rich title pages** — cast, streaming providers, TMDB reviews, trailers
@@ -111,7 +112,7 @@ cd slate && npm install
 | **OMDB** | API key (free, 1k lookups/day) — recommended; powers IMDb / RT / Metacritic chips | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) |
 | **Supabase** | Project URL + `service_role` key — required | [supabase.com/dashboard](https://supabase.com/dashboard) → **New project** |
 
-Then open the Supabase **SQL editor** and paste in [`supabase/schema.sql`](./supabase/schema.sql). That's the entire database.
+Then open the Supabase **SQL editor** and paste in [`supabase/schema.sql`](./supabase/schema.sql). That's the entire database. Already running an older slate? Re-running it is safe: every `create` and `alter` uses `if not exists`, so it picks up new columns without touching your data.
 
 ### 3. Deploy
 
