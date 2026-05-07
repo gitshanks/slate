@@ -34,13 +34,13 @@ export function BottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 glass border-t border-border/60 md:hidden"
       aria-label="Primary"
       style={{
-        // Lift the inner row above the iOS home indicator. Floor at 0.5rem
-        // so Android / desktop browsers (no safe-area) still get breathing
-        // room between the labels and the bar's bottom edge.
-        paddingBottom: "max(env(safe-area-inset-bottom), 0.5rem)",
+        // Lift the inner row above the iOS home indicator. Floor at 1rem
+        // so Android / desktop browsers (no safe-area) still get a clear
+        // gap between the labels and the bar's bottom edge — Teams-style.
+        paddingBottom: "max(env(safe-area-inset-bottom), 1rem)",
       }}
     >
-      <ul className="mx-auto flex max-w-[1480px] items-stretch px-1 pt-2">
+      <ul className="mx-auto flex max-w-[1480px] items-stretch px-1 pt-3">
         {TABS.map((t) => {
           const active =
             t.href === APP_ROOT ? pathname === APP_ROOT : pathname.startsWith(t.href);
@@ -52,7 +52,7 @@ export function BottomNav() {
                 prefetch
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 rounded-md px-1 py-2 text-[10px] font-medium tracking-tight transition-colors",
+                  "flex flex-col items-center gap-1.5 rounded-md px-1 py-1 text-[11px] font-medium tracking-tight transition-colors",
                   active
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground",
@@ -60,7 +60,7 @@ export function BottomNav() {
               >
                 <Icon
                   className={cn(
-                    "h-5 w-5 transition-transform",
+                    "h-[22px] w-[22px] transition-transform",
                     active && "scale-[1.05]",
                   )}
                   aria-hidden
