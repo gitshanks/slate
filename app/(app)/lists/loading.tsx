@@ -3,16 +3,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function ListsLoading() {
   return (
     <div>
-      {/* Header */}
-      <div className="mb-6 flex items-end justify-between sm:mb-10">
+      {/* Header — eyebrow + h1 on the left, New-list trigger on the right */}
+      <div className="mb-8 flex items-end justify-between gap-4 sm:mb-10">
         <div>
           <Skeleton shape="text" className="h-3 w-24" />
           <Skeleton className="mt-3 h-9 w-24 rounded-md" />
         </div>
-      </div>
-
-      {/* CreateListForm trigger */}
-      <div className="mb-6 sm:mb-8">
         <Skeleton className="h-10 w-28 rounded-md" />
       </div>
 

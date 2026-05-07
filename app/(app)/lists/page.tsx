@@ -53,16 +53,16 @@ export default async function ListsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-end justify-between sm:mb-10">
+      <div className="mb-8 flex items-end justify-between gap-4 sm:mb-10">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
             Collections
           </p>
           <h1 className="mt-1 text-4xl font-semibold tracking-tight">Lists</h1>
         </div>
-      </div>
-
-      <div className="mb-6 sm:mb-8">
+        {/* Trigger sits in the header's top-right at every breakpoint —
+            saves the standalone row that used to live below the header
+            and makes the spacing read consistently on mobile. */}
         <CreateListForm />
       </div>
 
