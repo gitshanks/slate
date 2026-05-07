@@ -1,45 +1,70 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
 
 const LOADED_BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? "dev";
-const POLL_INTERVAL_MS = 60_000;
+// Slightly tighter than the original 60s. The cost of a JSON ping is
+// negligible compared to the user staring at a stale UI.
+const POLL_INTERVAL_MS = 45_000;
 
 export function UpdateBanner() {
   const [stale, setStale] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
+  // Hoisted so the effect below can call it from multiple event handlers.
+  const check = useCallback(async () => {
+    try {
+      // Cache-busting query param defeats any intermediate CDN that
+      // ignores the no-store header (rare but possible). Headers also
+      // belt-and-suspenders disable browser cache.
+      const res = await fetch(`/api/version?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "cache-control": "no-cache" },
+      });
+      if (!res.ok) return;
+      const { buildId } = (await res.json()) as { buildId?: string };
+      if (buildId && buildId !== LOADED_BUILD_ID) setStale(true);
+    } catch {
+      // Network blip — try again next tick.
+    }
+  }, []);
+
   useEffect(() => {
     if (LOADED_BUILD_ID === "dev") return;
 
-    let cancelled = false;
-
-    async function check() {
-      try {
-        const res = await fetch("/api/version", { cache: "no-store" });
-        if (!res.ok || cancelled) return;
-        const { buildId } = (await res.json()) as { buildId?: string };
-        if (cancelled) return;
-        if (buildId && buildId !== LOADED_BUILD_ID) setStale(true);
-      } catch {
-        // network blip — try again next tick
-      }
-    }
-
+    // Initial check + steady polling.
     check();
     const interval = window.setInterval(check, POLL_INTERVAL_MS);
-    function onVisibility() {
+
+    // Re-check on every "user came back to the page" signal we can find:
+    //   - visibilitychange: tab focus on desktop
+    //   - pageshow w/ persisted: page restored from bfcache (Safari, FF)
+    //   - focus: window regained focus
+    //   - online: network reconnected after a flap
+    // iOS PWA tabs in particular get suspended aggressively, so the more
+    // wake-up signals we listen for, the more likely we catch an update
+    // the moment the user returns.
+    const onVisibility = () => {
       if (document.visibilityState === "visible") check();
-    }
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) check();
+    };
+
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("focus", check);
+    window.addEventListener("online", check);
 
     return () => {
-      cancelled = true;
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("focus", check);
+      window.removeEventListener("online", check);
     };
-  }, []);
+  }, [check]);
 
   if (!stale || dismissed) return null;
 
@@ -48,6 +73,11 @@ export function UpdateBanner() {
       role="status"
       aria-live="polite"
       className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4 sm:bottom-6"
+      style={{
+        // Lift above the iOS home-indicator so the banner isn't half-hidden
+        // when slate is launched as a PWA.
+        paddingBottom: "max(env(safe-area-inset-bottom), 0px)",
+      }}
     >
       <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-border bg-popover/95 py-1.5 pl-4 pr-1.5 shadow-lg shadow-black/10 ring-1 ring-foreground/5 backdrop-blur">
         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
