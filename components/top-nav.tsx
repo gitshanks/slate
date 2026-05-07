@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,6 +18,13 @@ const LINKS = [
   { href: "/import", label: "Import" },
 ];
 
+/**
+ * Top navigation. On desktop (md+) it's a single bar with the logo, the
+ * route pills, and the trailing search/theme/PWA cluster. On mobile the
+ * route pills move to a fixed bottom tab bar (see <BottomNav>) and this
+ * header keeps just the logo + the actions cluster, so the whole thing
+ * reads as a native-app shell rather than a stacked toolbar.
+ */
 export function TopNav() {
   const pathname = usePathname();
   const { open } = useCommandPalette();
@@ -93,102 +99,6 @@ export function TopNav() {
           <ThemeToggle />
         </div>
       </div>
-
-      {/* Mobile nav row — see MobileNavRow for the sliding-underline detail. */}
-      <MobileNavRow pathname={pathname} />
     </header>
-  );
-}
-
-interface IndicatorPos {
-  left: number;
-  width: number;
-  top: number;
-}
-
-/**
- * Mobile-only nav row with a single sliding underline shared across pills.
- *
- * The pill row owns one absolute-positioned indicator that measures the
- * active <Link>'s offsetLeft / offsetWidth / offsetTop and animates between
- * positions via CSS `transition-[left,width,top]`. That gives a continuous
- * slide between tabs instead of the old fade-die-rebirth (each pill rendered
- * its own underline that was destroyed and recreated on navigation).
- *
- * The first pill keeps `-ml-3.5` so the pill *text* lines up with the
- * content edge below (logo, FilterBar, tile grid). The indicator measures
- * the pill geometry and inset by 14px (the pill's px-3.5 internal padding)
- * so the underline tracks the text width, not the box width.
- */
-function MobileNavRow({ pathname }: { pathname: string }) {
-  const navRef = React.useRef<HTMLElement | null>(null);
-  const [indicator, setIndicator] = React.useState<IndicatorPos | null>(null);
-
-  React.useLayoutEffect(() => {
-    const nav = navRef.current;
-    if (!nav) return;
-    const measure = () => {
-      const active = nav.querySelector<HTMLElement>('[data-active="true"]');
-      if (!active) {
-        setIndicator(null);
-        return;
-      }
-      // Pill has px-3.5 internal padding; underline tracks the text, not
-      // the pill box, so subtract 14px from each side.
-      const PAD = 14;
-      // Underline sits 4px above the pill bottom (inside the pill) for a
-      // tight, descender-clearing gap. The bar itself is 2px tall, so
-      // its top edge is at pill_bottom - 6.
-      setIndicator({
-        left: active.offsetLeft + PAD,
-        width: Math.max(0, active.offsetWidth - PAD * 2),
-        top: active.offsetTop + active.offsetHeight - 6,
-      });
-    };
-    measure();
-    // Re-measure on resize so the indicator tracks the active pill if
-    // viewport width / font metrics change.
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [pathname]);
-
-  return (
-    <nav
-      ref={navRef}
-      className="relative flex items-center gap-1 px-4 pb-2 sm:px-6 md:hidden"
-    >
-      {LINKS.map((l, i) => {
-        const active =
-          l.href === APP_ROOT ? pathname === APP_ROOT : pathname.startsWith(l.href);
-        return (
-          <Link
-            key={l.href}
-            href={l.href}
-            prefetch
-            data-active={active ? "true" : undefined}
-            className={cn(
-              "rounded-full px-3.5 py-1.5 text-sm transition-colors",
-              i === 0 && "-ml-3.5",
-              active
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {l.label}
-          </Link>
-        );
-      })}
-
-      <span
-        aria-hidden
-        className="pointer-events-none absolute h-[2px] rounded-full bg-primary transition-[left,width,top,opacity] duration-300 ease-out"
-        style={{
-          left: indicator?.left ?? 0,
-          width: indicator?.width ?? 0,
-          top: indicator?.top ?? 0,
-          opacity: indicator ? 1 : 0,
-        }}
-      />
-    </nav>
   );
 }

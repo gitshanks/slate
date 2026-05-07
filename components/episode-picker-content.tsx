@@ -89,6 +89,11 @@ export function EpisodePickerContent({
           arrangement; cuts ~50px of vertical space and surfaces the
           season-done action prominently. */}
       <div className="mb-3 flex items-center gap-2">
+        {nextInActive && (
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            Up next
+          </span>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
