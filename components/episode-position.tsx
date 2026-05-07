@@ -52,11 +52,14 @@ export function EpisodePosition({
           // second header.
           headerRight={
             next ? (
-              <span className="font-mono text-[11px]">
-                <span className="uppercase tracking-[0.18em] text-muted-foreground">
+              // h-8 + px-1 puts this pin on the same baseline as the season
+              // dropdown and Mark-season-done button (both h-8). Borderless
+              // so it reads as a label, not a third tappable control.
+              <span className="inline-flex h-8 items-center gap-1.5 px-1">
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                   Up next
                 </span>
-                <span className="ml-1.5 tabular-nums text-foreground">
+                <span className="font-mono text-sm font-medium tabular-nums text-foreground">
                   S{next.season}·E{next.episode}
                 </span>
               </span>
