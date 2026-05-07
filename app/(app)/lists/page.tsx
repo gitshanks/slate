@@ -53,16 +53,7 @@ export default async function ListsPage() {
 
   return (
     <div>
-      <div className="mb-10 flex items-end justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-            Collections
-          </p>
-          <h1 className="mt-1 text-4xl font-semibold tracking-tight">Lists</h1>
-        </div>
-      </div>
-
-      <div className="mb-12">
+      <div className="mb-6 sm:mb-8">
         <CreateListForm />
       </div>
 
@@ -73,14 +64,18 @@ export default async function ListsPage() {
           description="Group titles into themed collections — Cozy winter, A24 horror, Long flights…"
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {(lists as ListRow[]).map((list) => (
             // Wrapper div so we can absolutely position the delete button
             // without nesting interactive elements inside <Link>
             <div key={list.id} className="relative group/card">
               <Link
                 href={`/lists/${list.slug}`}
-                className="flex h-[176px] flex-col rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)]"
+                // Auto-height on mobile (single column, no row alignment to
+                // preserve) so short descriptions don't leave dead space;
+                // fixed height on sm+ where multi-column rows need to line
+                // up. Tighter padding on mobile.
+                className="flex min-h-[140px] flex-col rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)] sm:h-[176px] sm:p-6"
               >
                 <div className="flex-1 pr-20">
                   <h3 className="text-lg font-semibold tracking-tight">{list.name}</h3>
@@ -90,7 +85,7 @@ export default async function ListsPage() {
                     </p>
                   )}
                 </div>
-                <div className="mt-4 flex items-end justify-between gap-3">
+                <div className="mt-3 flex items-end justify-between gap-3 sm:mt-4">
                   <p className="text-xs text-muted-foreground font-mono">
                     {counts[list.id] ?? 0}{" "}
                     {(counts[list.id] ?? 0) === 1 ? "title" : "titles"}

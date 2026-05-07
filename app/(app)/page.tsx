@@ -44,20 +44,6 @@ export default async function WatchlistPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-            Your watchlist
-          </p>
-          <h1 className="mt-1 text-4xl font-semibold tracking-tight">
-            Up next
-          </h1>
-        </div>
-        <p className="hidden text-xs text-muted-foreground sm:block">
-          {allTitles.length} {allTitles.length === 1 ? "title" : "titles"}
-        </p>
-      </div>
-
       <FilterBar genres={allGenres} />
 
       {allTitles.length === 0 ? (
