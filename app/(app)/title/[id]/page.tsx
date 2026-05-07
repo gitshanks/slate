@@ -15,7 +15,7 @@ import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
-import { SeasonEpisodePicker } from "@/components/season-episode-picker";
+import { EpisodePosition } from "@/components/episode-position";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ImdbBadge,
@@ -349,7 +349,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               title.seasons &&
               title.seasons.length > 0 && (
                 <div className="mt-6 max-w-2xl">
-                  <SeasonEpisodePicker
+                  <EpisodePosition
                     titleId={title.id}
                     currentSeason={title.current_season}
                     currentEpisode={title.current_episode}
