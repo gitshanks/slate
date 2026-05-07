@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Clock, Eye, Check, Layers, Upload } from "lucide-react";
@@ -17,17 +18,51 @@ const TABS = [
   { href: "/import", label: "Import", icon: Upload },
 ] as const;
 
+const STORAGE_KEY = "slate:lastBottomNavTab";
+
+function matchesTab(pathname: string, href: string): boolean {
+  return href === APP_ROOT ? pathname === APP_ROOT : pathname.startsWith(href);
+}
+
+function findCurrentTab(pathname: string): string | null {
+  const tab = TABS.find((t) => matchesTab(pathname, t.href));
+  return tab?.href ?? null;
+}
+
 /**
  * Mobile-only bottom tab bar. Native-app convention: route nav lives at
  * the thumb-reachable bottom of the screen, the top header keeps just the
  * logo + actions. Hidden on md+ where the desktop top-nav already shows
  * the full pill row.
  *
- * The bar respects iOS safe-area-inset-bottom so home-indicator phones
- * don't crowd the labels.
+ * Persists the last visited primary tab in sessionStorage so detail
+ * routes (e.g. /title/:id, /person/:id) that aren't a tab themselves
+ * still highlight the tab the user came from — the user keeps a sense
+ * of "where am I" instead of seeing every tab go inactive.
  */
 export function BottomNav() {
   const pathname = usePathname();
+  const [rememberedTab, setRememberedTab] = React.useState<string | null>(null);
+
+  // Hydrate from sessionStorage on mount so a hard reload on a detail
+  // route still highlights the last tab from the previous session.
+  React.useEffect(() => {
+    setRememberedTab(sessionStorage.getItem(STORAGE_KEY));
+  }, []);
+
+  // Whenever we land on an actual tab route, store it. Detail routes
+  // pass through unchanged so the previously-stored value sticks.
+  React.useEffect(() => {
+    const onTab = findCurrentTab(pathname);
+    if (onTab) {
+      sessionStorage.setItem(STORAGE_KEY, onTab);
+      setRememberedTab(onTab);
+    }
+  }, [pathname]);
+
+  // If the user is on a tab, the URL wins. Otherwise fall back to the
+  // remembered tab so the bar shows their origin.
+  const activeHref = findCurrentTab(pathname) ?? rememberedTab;
 
   return (
     <nav
@@ -43,8 +78,7 @@ export function BottomNav() {
     >
       <ul className="mx-auto flex max-w-[1480px] items-stretch px-1 pt-3">
         {TABS.map((t) => {
-          const active =
-            t.href === APP_ROOT ? pathname === APP_ROOT : pathname.startsWith(t.href);
+          const active = t.href === activeHref;
           const Icon = t.icon;
           return (
             <li key={t.href} className="flex-1">
