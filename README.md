@@ -2,7 +2,7 @@
 
 # slate
 
-**Your personal Letterboxd.** A fast, private watchlist for everything you want to watch — and everything you've loved.
+**Your personal Letterboxd.** A fast, private watchlist for everything you want to watch and everything you've loved.
 
 <p>
   <a href="#self-host"><img alt="Self-host" src="https://img.shields.io/badge/self--host-docker-2496ED?style=flat-square"></a>
@@ -21,20 +21,21 @@
 
 ## Why slate
 
-Letterboxd is great, but it's social. Slate is the opposite: a single-user watchlist designed to feel like a personal app, not a network. Run it in Docker on your own box, or deploy it to Vercel in five minutes — either way, the data is yours.
+Letterboxd is great, but it's social. Slate is the opposite: a single-user watchlist that feels like a personal app, not a network. Run it in Docker on your own box, or deploy it to Vercel in five minutes. Either way, the data is yours.
 
 ## Features
 
-- **⌘K command palette** — search TMDB and add anything to your library in one keystroke
-- **AI search** — flip the "Ask AI" pill (or ⌘⇧K) and type plain English: _"cozy autumn mysteries"_, _"A24 horror after 2020"_, _"Nolan thrillers"_. Live query suggestions surface as you type. Powered by any OpenAI-compatible endpoint (Groq's free tier by default — Llama 3.3 70B) or Claude. Optional — drop in one key to enable
-- **Three clean states** — Watchlist, Watching, Watched, with Love / Like / Dislike ratings and private notes
-- **Episode tracking without the chore** — for the shows you're watching, slate stores *where you are* (S2·E5), not every episode you've ticked off. Tap the chip on the card to advance one episode; on the title page, tap any episode in the season grid to set "I'm caught up to here." Two clicks to recover after a binge
-- **Critic scores you can trust** — IMDb rating + Rotten Tomatoes Tomatometer (with Metacritic fallback) on every saved title, fetched once via OMDB and cached
-- **Custom lists** — curate collections like _"Cozy winter"_ or _"A24 horror"_
-- **Rich title pages** — cast, streaming providers, TMDB reviews, trailers
+- **⌘K command palette:** search TMDB and add anything to your library in one keystroke
+- **AI search:** flip the "Ask AI" pill (or ⌘⇧K) and type plain English like _"cozy autumn mysteries"_, _"A24 horror after 2020"_, or _"Nolan thrillers"_. Live query suggestions surface as you type. Powered by any OpenAI-compatible endpoint (Groq's free tier running Llama 3.3 70B by default) or Claude. Optional; drop in one key to enable
+- **Three clean states:** Watchlist, Watching, Watched, with Love / Like / Dislike ratings and private notes
+- **Episode tracking without the chore:** for the shows you're watching, slate stores where you are (S2·E5), not every episode you've ticked off. Tap the chip on the card to advance one episode; on the title page, tap any episode in the season grid to set "I'm caught up to here." Two clicks to recover after a binge
+- **Critic scores you can trust:** IMDb rating + Rotten Tomatoes Tomatometer (with Metacritic fallback) on every saved title, fetched once via OMDB and cached
+- **Custom lists:** curate collections like _"Cozy winter"_ or _"A24 horror"_
+- **Rich title pages:** cast, streaming providers, TMDB reviews, trailers
 - **One-step import** from Letterboxd or Trakt CSV exports — [`/import`](#import)
-- **Passcode gate** — optional shared-cookie lock for private deployments
-- **Responsive, themeable** — looks good on every screen, dark or light
+- **Passcode gate:** optional shared-cookie lock for private deployments
+- **Themeable:** System, Light, or Dark mode via the three-way toggle; six accent color palettes to pick from (violet, indigo, sky, emerald, rose, amber)
+- **Responsive:** looks good on every screen size
 
 ## Stack
 
@@ -44,7 +45,7 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · shadcn/ui · Postgres 
 
 ## Self-host
 
-Slate is designed to be self-hosted. Everything runs on your machine and your data never leaves it — the only outbound calls are to TMDB for metadata.
+Slate is designed to be self-hosted. Everything runs on your machine and your data never leaves it. The only outbound calls are to TMDB for metadata.
 
 ### One command
 
@@ -68,7 +69,7 @@ You'll want two free keys before you start:
 |---|---|---|
 | `postgres` | `postgres:16-alpine` | Your database. One named volume. |
 | `postgrest` | `postgrest/postgrest` | REST API over the tables. |
-| `caddy` | `caddy:2-alpine` | Maps `/rest/v1/*` → PostgREST so the Supabase client works unchanged. |
+| `caddy` | `caddy:2-alpine` | Maps `/rest/v1/*` to PostgREST so the Supabase client works unchanged. |
 | `slate` | built from `./Dockerfile` | The Next.js app. The only service exposed to the host. |
 
 ### Data ownership
@@ -91,7 +92,7 @@ docker compose down -v
 - Put Caddy or Traefik in front of the `slate` container for TLS and a real domain.
 - Set `APP_PASSCODE` in `.env` to gate access behind a shared code.
 - The stack is single-user by design. If you want to expose it publicly, keep the passcode on.
-- PostgREST runs without JWT auth inside the compose network — don't expose port 3001 to the internet.
+- PostgREST runs without JWT auth inside the compose network, so don't expose port 3001 to the internet.
 
 ## Deploy to Vercel
 
@@ -110,7 +111,7 @@ cd slate && npm install
 |---|---|---|
 | **TMDB** | v3 API key (free, instant) — required | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
 | **OMDB** | API key (free, 1k lookups/day) — recommended; powers IMDb / RT / Metacritic chips | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) |
-| **Supabase** | Project URL + `service_role` key — required | [supabase.com/dashboard](https://supabase.com/dashboard) → **New project** |
+| **Supabase** | Project URL + `service_role` key — required | [supabase.com/dashboard](https://supabase.com/dashboard) -> **New project** |
 
 Then open the Supabase **SQL editor** and paste in [`supabase/schema.sql`](./supabase/schema.sql). That's the entire database. Already running an older slate? Re-running it is safe: every `create` and `alter` uses `if not exists`, so it picks up new columns without touching your data.
 
@@ -123,11 +124,11 @@ Push to GitHub, import at [vercel.com/new](https://vercel.com/new), and add thes
 | `TMDB_API_KEY` | required | TMDB v3 key |
 | `SUPABASE_URL` | required | Project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | required | Server-only secret |
-| `OMDB_API_KEY` | recommended | Powers IMDb / Rotten Tomatoes / Metacritic chips on saved titles. Without it, those stay blank — everything else still works. |
-| `OPENAI_API_KEY` | optional | Unlocks AI search in the ⌘K palette — natural-language queries and live suggestions. Defaults to [Groq](https://console.groq.com/keys)'s free tier running Llama 3.3 70B; works with any OpenAI-compatible endpoint (OpenRouter, Ollama, LM Studio, vLLM, llama.cpp). Override the endpoint with `OPENAI_BASE_URL` and the model with `OPENAI_MODEL`. |
-| `ANTHROPIC_API_KEY` | optional | Alternative AI backend — uses Claude instead of an open model. Set `AI_PROVIDER=anthropic` to prefer it when both keys are present. |
+| `OMDB_API_KEY` | recommended | Powers IMDb / Rotten Tomatoes / Metacritic chips on saved titles. Without it, those stay blank but everything else still works. |
+| `OPENAI_API_KEY` | optional | Unlocks AI search in the ⌘K palette for natural-language queries and live suggestions. Defaults to [Groq](https://console.groq.com/keys)'s free tier running Llama 3.3 70B; works with any OpenAI-compatible endpoint (OpenRouter, Ollama, LM Studio, vLLM, llama.cpp). Override the endpoint with `OPENAI_BASE_URL` and the model with `OPENAI_MODEL`. |
+| `ANTHROPIC_API_KEY` | optional | Alternative AI backend; uses Claude instead of an open model. Set `AI_PROVIDER=anthropic` to prefer it when both keys are present. |
 | `APP_PASSCODE` | optional | Lock the app behind a shared passcode. Omit for public. |
-| `NEXT_PUBLIC_DEMO_MODE` | optional | Set to `1` on a portfolio / public-demo deploy. Skips the `APP_PASSCODE` gate, shows a demo banner, mounts a marketing landing page at `/`, and moves the watchlist to `/app`. Self-host default (unset) keeps the app at `/` so existing bookmarks and PWA installs are unaffected. |
+| `NEXT_PUBLIC_DEMO_MODE` | optional | Set to `1` on a portfolio or public-demo deploy. Skips the `APP_PASSCODE` gate, shows a demo banner, mounts a marketing landing page at `/`, and moves the watchlist to `/app`. Self-host default (unset) keeps the app at `/` so existing bookmarks and PWA installs are unaffected. |
 
 ### 4. Run locally
 
@@ -137,11 +138,11 @@ npm run dev
 
 Open <http://localhost:3000>. Without `APP_PASSCODE`, the unlock screen is skipped.
 
-> **Pro tip — public _and_ private from one repo.** Import the same GitHub repo twice in Vercel. Set `APP_PASSCODE` on one project for your personal copy; on the public copy add `NEXT_PUBLIC_DEMO_MODE=1` to skip the passcode and mount a marketing landing page at `/`. Both stay in sync on every push.
+> **Pro tip:** import the same GitHub repo twice in Vercel to get a public and private copy from one codebase. Set `APP_PASSCODE` on one project for your personal copy; on the public copy add `NEXT_PUBLIC_DEMO_MODE=1` to skip the passcode and mount a marketing landing page at `/`. Both stay in sync on every push.
 
 ## Backfilling an existing library
 
-Two one-shot scripts cover the cases where a feature shipped after some titles were already in your database. Both read `.env.local` / `.env`, throttle to stay polite on the free TMDB / OMDB tiers, and skip rows that already have data — safe to re-run.
+Two one-shot scripts cover the cases where a feature shipped after some titles were already in your database. Both read `.env.local` / `.env`, throttle to stay polite on the free TMDB / OMDB tiers, and skip rows that already have data, so they're safe to re-run.
 
 ```bash
 # IMDb / Rotten Tomatoes / Metacritic for every saved title
@@ -156,8 +157,8 @@ npx tsx scripts/backfill-seasons.ts
 
 Coming from another tracker? Drop a CSV into `/import`:
 
-- **Letterboxd** — Settings → Data → Export your data. Import `watched.csv`, `ratings.csv`, or `watchlist.csv`.
-- **Trakt** — any movie/show CSV export.
+- **Letterboxd:** Settings -> Data -> Export your data. Import `watched.csv`, `ratings.csv`, or `watchlist.csv`.
+- **Trakt:** any movie/show CSV export.
 
 Rows are matched against TMDB, deduped against your library, and dropped into the right state with ratings preserved.
 
@@ -177,7 +178,7 @@ app/
   unlock/             # passcode screen
   api/tmdb/search/    # server-side TMDB proxy
   layout.tsx          # root shell + ThemeProvider + Sonner
-  globals.css         # design tokens (HSL → @theme inline)
+  globals.css         # design tokens (HSL -> @theme inline)
 components/
   ui/                 # shadcn/ui primitives
   command-palette.tsx
@@ -189,6 +190,7 @@ lib/
   supabase.ts         # server-only client + generated types
   tmdb.ts             # TMDB fetch helpers
   actions.ts          # Server Actions — all mutations
+  accent-theme.ts     # accent color palette config
 proxy.ts              # passcode gate (Next.js proxy)
 supabase/schema.sql   # one-shot DB setup
 docker-compose.yml    # self-host stack
@@ -197,9 +199,9 @@ Dockerfile            # Next.js standalone runner image
 
 ## Security
 
-- `SUPABASE_SERVICE_ROLE_KEY` is imported only from `lib/supabase.ts`, which carries `import "server-only"` — it can never leak into a client bundle.
+- `SUPABASE_SERVICE_ROLE_KEY` is imported only from `lib/supabase.ts`, which carries `import "server-only"` so it can never leak into a client bundle.
 - `TMDB_API_KEY` never touches the browser. The command palette routes through `/api/tmdb/search`.
-- The passcode gate uses a signed shared cookie — fine for single-user deployments. For multi-user, swap in Supabase Auth + RLS.
+- The passcode gate uses a signed shared cookie, which is fine for single-user deployments. For multi-user, swap in Supabase Auth + RLS.
 
 ## Credits
 
@@ -207,15 +209,15 @@ This product uses the TMDB API but is not endorsed or certified by TMDB. Poster 
 
 ## Roadmap
 
-- **Jellyfin library integration** — show what you already own in slate, matched via TMDB IDs. Coming soon.
+- **Jellyfin library integration:** show what you already own in slate, matched via TMDB IDs. Coming soon.
 
 ## What slate doesn't do (yet)
 
-- **Multi-user accounts** — slate is single-user by design. A passcode is the only access control.
+- **Multi-user accounts:** slate is single-user by design. A passcode is the only access control.
 - **Plex library integration.**
-- **Trakt / MyAnimeList sync** — CSV one-shot import only.
-- **Native mobile apps** — PWA install is supported on iOS Safari and Chromium.
-- **Library export** — you can import a library but can't yet dump one out.
+- **Trakt / MyAnimeList sync:** CSV one-shot import only.
+- **Native mobile apps:** PWA install is supported on iOS Safari and Chromium.
+- **Library export:** you can import a library but can't yet dump one out.
 
 ## License
 
