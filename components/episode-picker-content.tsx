@@ -95,7 +95,6 @@ export function EpisodePickerContent({
             <DropdownMenuContent align="start" className="min-w-[12rem]">
               {seasons.map((s) => {
                 const sw = watchedInSeason(s);
-                const isPicked = s.n === activeSeason;
                 const isCurrent = s.n === currentSeason;
                 return (
                   <DropdownMenuItem
@@ -108,14 +107,14 @@ export function EpisodePickerContent({
                         Season {s.n}
                       </span>
                       {isCurrent && (
-                        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span
+                          className="h-1.5 w-1.5 rounded-full bg-primary"
+                          aria-label="current season"
+                        />
                       )}
                     </span>
-                    <span className="flex items-center gap-2 text-[11px] font-mono tabular-nums text-muted-foreground">
+                    <span className="text-[11px] font-mono tabular-nums text-muted-foreground">
                       {sw}/{s.c}
-                      {isPicked && (
-                        <Check className="h-3.5 w-3.5 text-foreground" aria-hidden />
-                      )}
                     </span>
                   </DropdownMenuItem>
                 );

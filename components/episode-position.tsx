@@ -7,10 +7,26 @@ interface EpisodePositionProps {
   seasons: { n: number; c: number }[];
 }
 
-function watchedCount(
-  pos: { season: number | null; episode: number | null },
+type Pos = { season: number | null; episode: number | null };
+
+function nextEpisode(
+  pos: Pos,
   seasons: { n: number; c: number }[],
-): number {
+): { season: number; episode: number } | null {
+  if (seasons.length === 0) return null;
+  if (pos.season == null || pos.episode == null) {
+    return { season: seasons[0].n, episode: 1 };
+  }
+  const current = seasons.find((s) => s.n === pos.season);
+  if (!current) return { season: seasons[0].n, episode: 1 };
+  if (pos.episode < current.c) return { season: pos.season, episode: pos.episode + 1 };
+  const idx = seasons.indexOf(current);
+  const upcoming = seasons[idx + 1];
+  if (upcoming) return { season: upcoming.n, episode: 1 };
+  return null;
+}
+
+function watchedCount(pos: Pos, seasons: { n: number; c: number }[]): number {
   if (pos.season == null || pos.episode == null) return 0;
   let count = 0;
   for (const s of seasons) {
@@ -28,14 +44,33 @@ export function EpisodePosition({
 }: EpisodePositionProps) {
   if (seasons.length === 0) return null;
 
+  const pos: Pos = { season: currentSeason, episode: currentEpisode };
   const totalEpisodes = seasons.reduce((a, s) => a + s.c, 0);
-  const watched = watchedCount({ season: currentSeason, episode: currentEpisode }, seasons);
+  const watched = watchedCount(pos, seasons);
   const pct = totalEpisodes === 0 ? 0 : Math.round((watched / totalEpisodes) * 100);
+  const next = nextEpisode(pos, seasons);
   const started = currentSeason != null && currentEpisode != null;
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="px-4 py-3">
+        {/* Top-right "Up next" pin — tiny, sits above the picker so it
+            doesn't compete with the season dropdown / Mark-season-done
+            controls. Keeps the user oriented without re-introducing the
+            heavier summary block we just removed. */}
+        {next && (
+          <div className="mb-2 flex justify-end">
+            <span className="font-mono text-[11px]">
+              <span className="uppercase tracking-[0.18em] text-muted-foreground">
+                Up next
+              </span>
+              <span className="ml-1.5 tabular-nums text-foreground">
+                S{next.season}·E{next.episode}
+              </span>
+            </span>
+          </div>
+        )}
+
         <EpisodePickerContent
           titleId={titleId}
           currentSeason={currentSeason}
@@ -43,10 +78,6 @@ export function EpisodePosition({
           seasons={seasons}
         />
 
-        {/* Slim overall-progress bar at the bottom of the picker. The
-            position label and Mark-watched button used to sit above the
-            picker; the +1 chip on poster cards covers advance everywhere
-            else, and the picker itself shows where you are visually. */}
         {started && (
           <div className="mt-3 h-1 overflow-hidden rounded-full bg-foreground/8">
             <div
