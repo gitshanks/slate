@@ -191,7 +191,7 @@ export function SeasonEpisodePicker({
 
       {/* ── Season strip: tabs with mini progress fills ─────────────────── */}
       <div className="border-t border-border/70 bg-background/40">
-        <div className="flex gap-1.5 overflow-x-auto px-3 py-3 sm:px-5 [scrollbar-width:thin]">
+        <div className="flex gap-1.5 overflow-x-auto px-5 py-3 sm:px-6 [scrollbar-width:thin]">
           {seasons.map((s) => {
             const isActive = s.n === activeSeason;
             const isCurrent = s.n === currentSeason;
@@ -251,7 +251,7 @@ export function SeasonEpisodePicker({
       </div>
 
       {/* ── Episode grid for the active season ──────────────────────────── */}
-      <div className="px-4 pb-5 pt-4 sm:px-6 sm:pb-6">
+      <div className="px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
         <div className="grid grid-cols-[repeat(auto-fill,minmax(2.25rem,1fr))] gap-1.5">
           {Array.from({ length: active.c }, (_, i) => {
             const ep = i + 1;
