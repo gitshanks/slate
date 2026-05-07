@@ -8,29 +8,29 @@ export const metadata: Metadata = {
 export default function ImportPage() {
   return (
     <div className="max-w-2xl">
-      <div className="mb-10 flex items-end justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-            Import
-          </p>
-          <h1 className="mt-1 text-4xl font-semibold tracking-tight">
-            Bring your library
-          </h1>
-        </div>
+      {/* Header */}
+      <div className="mb-6 sm:mb-10">
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+          Import
+        </p>
+        <h1 className="mt-1 text-4xl font-semibold tracking-tight">
+          Bring your library
+        </h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Drop a Letterboxd or Trakt CSV. Slate matches each row on TMDB and
+          saves it as watched. Safe to re-import — already-saved titles keep
+          their state.
+        </p>
       </div>
-
-      <p className="mb-8 text-sm text-muted-foreground">
-        Move over from{" "}
-        <strong className="text-foreground">Letterboxd</strong> or{" "}
-        <strong className="text-foreground">Trakt</strong> in one go. Drop your
-        export CSV and Slate matches each row on TMDB and saves it as watched.
-        Re-importing is safe — titles already in your library keep their state.
-      </p>
 
       <ImportWidget />
 
-      <div className="mt-10 space-y-4 text-xs text-muted-foreground">
-        <p className="font-mono uppercase tracking-[0.15em]">How to export</p>
+      {/* Where to find your CSV — primary helper, not a footnote, so it sits
+          right under the widget at the same visual weight. */}
+      <section className="mt-10 sm:mt-12">
+        <p className="mb-3 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+          Exporting from
+        </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <ExportHint
             service="Letterboxd"
@@ -43,7 +43,7 @@ export default function ImportPage() {
             steps="Settings → Exports → request a CSV of your watched history"
           />
         </div>
-      </div>
+      </section>
     </div>
   );
 }
@@ -58,16 +58,18 @@ function ExportHint({
   steps: string;
 }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card/40 px-4 py-3">
-      <a
-        href={href}
-        target="_blank"
-        rel="noreferrer noopener"
-        className="text-sm font-medium text-foreground transition-colors hover:text-primary"
-      >
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="block rounded-xl border border-border/60 bg-card/40 px-4 py-3 transition-colors hover:border-primary/40 hover:bg-card"
+    >
+      <span className="text-sm font-medium text-foreground">
         {service} →
-      </a>
-      <p className="mt-1 leading-relaxed">{steps}</p>
-    </div>
+      </span>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        {steps}
+      </p>
+    </a>
   );
 }

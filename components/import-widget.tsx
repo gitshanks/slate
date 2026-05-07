@@ -106,11 +106,20 @@ export function ImportWidget() {
         />
       </label>
 
-      <div className="flex items-center justify-end gap-3">
-        <Button type="submit" disabled={pending || !fileName}>
-          {pending ? "Matching on TMDB…" : "Import"}
-        </Button>
-      </div>
+      {/* Submit only shows once a file is staged — no orphan disabled button
+          floating in its own row before the user picks anything. Full-width
+          on mobile, auto-width on sm+ aligned to the right of the form. */}
+      {fileName && (
+        <div className="sm:flex sm:justify-end">
+          <Button
+            type="submit"
+            loading={pending}
+            className="w-full sm:w-auto"
+          >
+            {pending ? "Matching on TMDB…" : "Import to library"}
+          </Button>
+        </div>
+      )}
 
       {state?.error && (
         <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
