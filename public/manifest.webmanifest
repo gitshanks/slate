@@ -7,6 +7,14 @@
   "display": "standalone",
   "background_color": "#0a0a0b",
   "theme_color": "#0a0a0b",
+  "icons": [
+    {
+      "src": "/apple-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
   "share_target": {
     "action": "/share",
     "method": "GET",
