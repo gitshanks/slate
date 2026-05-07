@@ -21,11 +21,6 @@ interface EpisodePickerContentProps {
   // Called after a successful position change so the parent (popover/sheet)
   // can close itself. Optional — the picker still works without it.
   onPicked?: () => void;
-  // Optional content rendered at the right end of the season-header row
-  // (after the season dropdown and Mark-season-done button). Used by
-  // EpisodePosition to slot in the "Up next: S2·E5" pin without spawning
-  // a second header row.
-  headerRight?: React.ReactNode;
 }
 
 // The "set my position" inner UI: a single header row (season dropdown +
@@ -38,7 +33,6 @@ export function EpisodePickerContent({
   currentEpisode,
   seasons,
   onPicked,
-  headerRight,
 }: EpisodePickerContentProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -54,6 +48,18 @@ export function EpisodePickerContent({
     currentEpisode != null &&
     (currentSeason > activeSeason ||
       (currentSeason === activeSeason && currentEpisode >= active.c));
+
+  // When the user's current position is inside the season they're viewing
+  // *and* there's a next episode in that same season, append it to the
+  // trigger label ("Season 1·E2") so the dropdown does double duty as the
+  // up-next indicator. Other cases (different season, finished season,
+  // never started) just show "Season N".
+  const nextInActive =
+    currentSeason === activeSeason &&
+    currentEpisode != null &&
+    currentEpisode < active.c
+      ? currentEpisode + 1
+      : null;
 
   function watchedInSeason(s: { n: number; c: number }): number {
     if (currentSeason == null || currentEpisode == null) return 0;
@@ -92,6 +98,9 @@ export function EpisodePickerContent({
           >
             <span className="font-mono uppercase tracking-wider">
               Season {active.n}
+              {nextInActive && (
+                <span className="text-muted-foreground">·E{nextInActive}</span>
+              )}
             </span>
             {seasons.length > 1 && (
               <ChevronDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
@@ -158,7 +167,6 @@ export function EpisodePickerContent({
           )}
         </button>
 
-        {headerRight && <div className="ml-auto">{headerRight}</div>}
       </div>
 
       {/* Episode grid for active season — 2.25rem min so cells stay
