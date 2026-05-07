@@ -34,10 +34,11 @@ export function BottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 glass border-t border-border/60 md:hidden"
       aria-label="Primary"
       style={{
-        // Lift the inner row above the iOS home indicator. Floor at 1rem
-        // so Android / desktop browsers (no safe-area) still get a clear
-        // gap between the labels and the bar's bottom edge — Teams-style.
-        paddingBottom: "max(env(safe-area-inset-bottom), 1rem)",
+        // Lift the inner row above the iOS home indicator AND add a notch
+        // of breathing on top of it. Floor at 1.5rem so Android / desktop
+        // browsers (no safe-area) still get the same generous gap from
+        // the bar's bottom edge to the labels.
+        paddingBottom: "max(calc(env(safe-area-inset-bottom) + 0.5rem), 1.5rem)",
       }}
     >
       <ul className="mx-auto flex max-w-[1480px] items-stretch px-1 pt-3">
