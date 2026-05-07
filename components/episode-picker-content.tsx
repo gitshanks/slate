@@ -43,7 +43,6 @@ export function EpisodePickerContent({
   if (seasons.length === 0) return null;
 
   const active = seasons.find((s) => s.n === activeSeason) ?? seasons[0];
-  const watchedHere = watchedInSeason(active);
   const isSeasonDone =
     currentSeason != null &&
     currentEpisode != null &&
@@ -125,16 +124,12 @@ export function EpisodePickerContent({
           )}
         </DropdownMenu>
 
-        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-          {watchedHere}/{active.c}
-        </span>
-
         <button
           type="button"
           disabled={pending || isSeasonDone}
           onClick={() => !isSeasonDone && handlePick(activeSeason, active.c)}
           className={cn(
-            "ml-auto inline-flex h-8 shrink-0 items-center gap-1 rounded-md border px-2.5 text-[11px] font-medium transition-colors",
+            "inline-flex h-8 shrink-0 items-center gap-1 rounded-md border px-2.5 text-[11px] font-medium transition-colors",
             isSeasonDone
               ? "cursor-default border-primary/30 bg-primary/10 text-primary"
               : "border-border bg-background text-muted-foreground hover:border-foreground/30 hover:bg-accent hover:text-foreground",
