@@ -276,22 +276,42 @@ body[data-scroll-locked] {
 /* Snappier default; the browser's 300ms feels sluggish here.       */
 ::view-transition-old(*),
 ::view-transition-new(*) {
-  animation-duration: 280ms;
+  animation-duration: 240ms;
   animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* Crossfade root pages a little faster than the morphing poster. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 200ms;
+  animation-duration: 220ms;
 }
 
-/* Disable view transitions on mobile — too choppy on iOS Safari */
+/* Mobile keeps the shared-element FLIP transitions off (the morphing
+   poster is choppy on iOS Safari) but still gets a lightweight root
+   crossfade — that's pure opacity work, runs smoothly on iOS, and is the
+   difference between a tab swap feeling like a hard cut and feeling
+   continuous. */
+@keyframes slate-vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes slate-vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
 @media (max-width: 767px) {
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation: none !important;
+  }
+  ::view-transition-old(root) {
+    animation: slate-vt-fade-out 220ms cubic-bezier(0.32, 0.72, 0, 1) both !important;
+  }
+  ::view-transition-new(root) {
+    animation: slate-vt-fade-in 220ms cubic-bezier(0.32, 0.72, 0, 1) both !important;
   }
 }
 
