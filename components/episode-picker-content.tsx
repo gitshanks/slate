@@ -21,6 +21,11 @@ interface EpisodePickerContentProps {
   // Called after a successful position change so the parent (popover/sheet)
   // can close itself. Optional — the picker still works without it.
   onPicked?: () => void;
+  // Optional content rendered at the right end of the season-header row
+  // (after the season dropdown and Mark-season-done button). Used by
+  // EpisodePosition to slot in the "Up next: S2·E5" pin without spawning
+  // a second header row.
+  headerRight?: React.ReactNode;
 }
 
 // The "set my position" inner UI: a single header row (season dropdown +
@@ -33,6 +38,7 @@ export function EpisodePickerContent({
   currentEpisode,
   seasons,
   onPicked,
+  headerRight,
 }: EpisodePickerContentProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -151,6 +157,8 @@ export function EpisodePickerContent({
             </>
           )}
         </button>
+
+        {headerRight && <div className="ml-auto">{headerRight}</div>}
       </div>
 
       {/* Episode grid for active season — 2.25rem min so cells stay
