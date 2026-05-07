@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AccentProvider } from "@/components/accent-provider";
 import { SonnerToaster } from "@/components/ui/sonner";
 import { UpdateBanner } from "@/components/update-banner";
+import { ACCENT_STORAGE_KEY, DEFAULT_ACCENT } from "@/lib/accent-theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,17 +43,27 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-dvh">
+        {/* Apply saved accent class before React hydrates to avoid FOUC */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var a=localStorage.getItem(${JSON.stringify(ACCENT_STORAGE_KEY)});if(a&&a!==${JSON.stringify(DEFAULT_ACCENT)})document.documentElement.classList.add("accent-"+a);}catch(e){}})()`,
+          }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <SonnerToaster />
-          <UpdateBanner />
+          <AccentProvider>
+            {children}
+            <SonnerToaster />
+            <UpdateBanner />
+          </AccentProvider>
         </ThemeProvider>
+        <Script src="https://mcp.figma.com/mcp/html-to-design/capture.js" strategy="lazyOnload" />
       </body>
     </html>
+
   );
 }

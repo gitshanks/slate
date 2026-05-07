@@ -190,6 +190,68 @@
   }
 }
 
+/* ─── Accent themes ─────────────────────────────────────────────── */
+/* Violet (252) is the CSS default — no class needed.               */
+/* Each class overrides primary, primary-hover, ring.               */
+/* Amber swaps in a dark foreground for legibility.                 */
+
+html.accent-indigo {
+  --primary: 231 48% 52%;
+  --primary-hover: 231 48% 44%;
+  --ring: 231 48% 52%;
+}
+html.accent-indigo.dark {
+  --primary: 231 70% 70%;
+  --primary-hover: 231 70% 75%;
+  --ring: 231 70% 70%;
+}
+
+html.accent-sky {
+  --primary: 199 89% 42%;
+  --primary-hover: 199 89% 36%;
+  --ring: 199 89% 42%;
+}
+html.accent-sky.dark {
+  --primary: 199 89% 62%;
+  --primary-hover: 199 89% 68%;
+  --ring: 199 89% 62%;
+}
+
+html.accent-emerald {
+  --primary: 160 84% 34%;
+  --primary-hover: 160 84% 28%;
+  --ring: 160 84% 34%;
+}
+html.accent-emerald.dark {
+  --primary: 160 84% 50%;
+  --primary-hover: 160 84% 56%;
+  --ring: 160 84% 50%;
+}
+
+html.accent-rose {
+  --primary: 347 77% 52%;
+  --primary-hover: 347 77% 45%;
+  --ring: 347 77% 52%;
+}
+html.accent-rose.dark {
+  --primary: 347 77% 65%;
+  --primary-hover: 347 77% 70%;
+  --ring: 347 77% 65%;
+}
+
+html.accent-amber {
+  --primary: 38 96% 50%;
+  --primary-hover: 38 96% 44%;
+  --primary-foreground: 30 15% 10%;
+  --ring: 38 96% 50%;
+}
+html.accent-amber.dark {
+  --primary: 38 96% 58%;
+  --primary-hover: 38 96% 63%;
+  --primary-foreground: 30 15% 8%;
+  --ring: 38 96% 58%;
+}
+
 /* ─── Radix scroll-lock fix ──────────────────────────────────── */
 /* Radix Dialog adds padding-right to body to compensate for the   */
 /* scrollbar it hides. Since we already use scrollbar-gutter:      */

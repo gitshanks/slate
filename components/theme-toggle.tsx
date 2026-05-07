@@ -8,16 +8,20 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAccent } from "@/components/accent-provider";
+import { ACCENTS } from "@/lib/accent-theme";
 
-const THEMES = [
+const MODES = [
   { value: "system", label: "System", icon: Monitor },
   { value: "light",  label: "Light",  icon: Sun },
   { value: "dark",   label: "Dark",   icon: Moon },
 ] as const;
 
-function currentIcon(theme: string | undefined) {
+function modeIcon(theme: string | undefined) {
   if (theme === "light") return Sun;
   if (theme === "dark") return Moon;
   return Monitor;
@@ -25,17 +29,18 @@ function currentIcon(theme: string | undefined) {
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
+  const { accent, setAccent } = useAccent();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  const Icon = mounted ? currentIcon(theme) : Moon;
+  const Icon = mounted ? modeIcon(theme) : Moon;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          aria-label="Change theme"
+          aria-label="Customize appearance"
           className={cn(
             "inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground hover:bg-accent",
             className
@@ -44,8 +49,13 @@ export function ThemeToggle({ className }: { className?: string }) {
           <Icon className="h-4 w-4" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[8rem]">
-        {THEMES.map(({ value, label, icon: ItemIcon }) => (
+
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+          Appearance
+        </DropdownMenuLabel>
+
+        {MODES.map(({ value, label, icon: ItemIcon }) => (
           <DropdownMenuItem
             key={value}
             onClick={() => setTheme(value)}
@@ -58,6 +68,32 @@ export function ThemeToggle({ className }: { className?: string }) {
             )}
           </DropdownMenuItem>
         ))}
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+          Color
+        </DropdownMenuLabel>
+
+        {/* Color swatches — plain buttons so clicking doesn't close the menu */}
+        <div className="flex gap-1.5 px-2 pb-2 pt-0.5">
+          {ACCENTS.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              title={a.label}
+              aria-label={a.label}
+              onClick={() => mounted && setAccent(a.id)}
+              className={cn(
+                "h-5 w-5 rounded-full ring-offset-2 ring-offset-popover transition-all",
+                mounted && accent === a.id
+                  ? "ring-2 ring-foreground scale-110"
+                  : "hover:scale-110 hover:ring-2 hover:ring-foreground/30"
+              )}
+              style={{ background: a.swatch }}
+            />
+          ))}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
