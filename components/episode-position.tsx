@@ -12,6 +12,7 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { EpisodePickerContent } from "@/components/episode-picker-content";
@@ -122,8 +123,9 @@ export function EpisodePosition({
           )}
         </div>
 
-        {/* Inline actions push to the end of the row */}
-        <div className="ml-auto flex items-center gap-1.5">
+        {/* Actions: left-aligned with the row on mobile (so they sit under
+            the position label when the row wraps), pushed right on sm+. */}
+        <div className="flex items-center gap-1.5 sm:ml-auto">
           {!finished && next && (
             <button
               type="button"
@@ -186,15 +188,41 @@ export function EpisodePosition({
             </SheetTrigger>
             <SheetContent
               side="bottom"
-              className="rounded-t-xl border-t pb-6 pt-5"
+              className="flex max-h-[88dvh] flex-col gap-0 rounded-t-2xl border-t p-0 pb-[max(env(safe-area-inset-bottom),1.25rem)]"
             >
-              <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono">
-                Jump to episode
-              </p>
-              <EpisodePickerContent
-                {...pickerProps}
-                onPicked={() => setSheetOpen(false)}
-              />
+              {/* Drag handle — purely visual, signals "this is a sheet". */}
+              <div className="flex justify-center pt-2">
+                <span
+                  aria-hidden
+                  className="h-1 w-9 rounded-full bg-foreground/20"
+                />
+              </div>
+
+              {/* Header: title on the left, position context on the right.
+                  Right-padded to clear the auto-rendered close button. */}
+              <div className="flex items-baseline justify-between gap-3 px-5 pb-3 pr-12 pt-3">
+                <SheetTitle className="text-base font-semibold tracking-tight">
+                  Jump to episode
+                </SheetTitle>
+                {started && (
+                  <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+                    {finished
+                      ? `Finished · S${currentSeason}·E${currentEpisode}`
+                      : `From S${currentSeason}·E${currentEpisode} · ${pct}%`}
+                  </span>
+                )}
+              </div>
+
+              <div className="border-t border-border/60" />
+
+              {/* Picker — scrolls inside the sheet if a season has many
+                  episodes, so the header and footer stay anchored. */}
+              <div className="flex-1 overflow-y-auto px-5 pb-5 pt-4">
+                <EpisodePickerContent
+                  {...pickerProps}
+                  onPicked={() => setSheetOpen(false)}
+                />
+              </div>
             </SheetContent>
           </Sheet>
         </div>

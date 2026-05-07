@@ -67,7 +67,7 @@ export function EpisodePickerContent({
       className={cn("flex flex-col", pending && "pointer-events-none opacity-95")}
     >
       {/* Season strip */}
-      <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-3 [scrollbar-width:thin]">
+      <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-4 [scrollbar-width:thin]">
         {seasons.map((s) => {
           const isActive = s.n === activeSeason;
           const isCurrent = s.n === currentSeason;
@@ -110,8 +110,10 @@ export function EpisodePickerContent({
         })}
       </div>
 
-      {/* Episode grid for active season */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(2rem,1fr))] gap-1">
+      {/* Episode grid for active season — 2.25rem min so cells stay
+          finger-sized on mobile while still fitting ~9 columns at popover
+          width on desktop. */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(2.25rem,1fr))] gap-1.5">
         {Array.from({ length: active.c }, (_, i) => {
           const ep = i + 1;
           const isWatched =
@@ -149,7 +151,7 @@ export function EpisodePickerContent({
         disabled={pending || isSeasonDone}
         onClick={() => !isSeasonDone && handlePick(activeSeason, active.c)}
         className={cn(
-          "mt-3 inline-flex items-center justify-center gap-1.5 self-start rounded-md px-2 py-1 text-[11px] transition-colors",
+          "mt-4 inline-flex items-center justify-center gap-1.5 self-start rounded-md px-2 py-1 text-[11px] transition-colors",
           isSeasonDone
             ? "cursor-default text-primary/70"
             : "text-muted-foreground hover:bg-accent hover:text-foreground",
