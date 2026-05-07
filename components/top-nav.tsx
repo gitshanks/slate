@@ -93,11 +93,15 @@ export function TopNav() {
         </div>
       </div>
 
-      {/* Mobile nav row — padding matches the top row so the first pill's
-          box sits at the same content edge as the logo and the FilterBar /
-          tile grid below. */}
+      {/* Mobile nav row — pulls the first pill's text to the content edge
+          via -ml-3.5 (compensating for the pill's px-3.5 internal padding)
+          so 'Watchlist' visually lines up with the logo above and the
+          FilterBar / tile grid below. The active state is an underline
+          sitting *under the text*, not a filled background — the underline
+          can't overflow the content edge the way a wider bg-accent box
+          would when the first pill is the active one. */}
       <nav className="flex items-center gap-1 px-4 pb-2 sm:px-6 md:hidden">
-        {LINKS.map((l) => {
+        {LINKS.map((l, i) => {
           const active =
             l.href === APP_ROOT ? pathname === APP_ROOT : pathname.startsWith(l.href);
           return (
@@ -106,13 +110,20 @@ export function TopNav() {
               href={l.href}
               prefetch
               className={cn(
-                "rounded-full px-3.5 py-1.5 text-sm transition-colors",
+                "relative rounded-full px-3.5 py-1.5 text-sm transition-colors",
+                i === 0 && "-ml-3.5",
                 active
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {l.label}
+              {active && (
+                <span
+                  aria-hidden
+                  className="absolute inset-x-3.5 -bottom-0.5 h-[2px] rounded-full bg-primary"
+                />
+              )}
             </Link>
           );
         })}
