@@ -152,11 +152,15 @@ function AiPaletteMock() {
               <span className="hidden shrink-0 rounded-md bg-foreground/[0.04] px-2 py-1 font-mono text-[10px] text-muted-foreground sm:inline">
                 {r.score}
               </span>
-              {i === 0 ? (
-                <kbd className="hidden rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
-                  ↵
-                </kbd>
-              ) : null}
+              <kbd
+                className={
+                  "hidden shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline " +
+                  (i === 0 ? "" : "invisible")
+                }
+                aria-hidden={i !== 0}
+              >
+                ↵
+              </kbd>
             </li>
           ))}
         </ul>
