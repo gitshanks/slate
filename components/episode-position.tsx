@@ -198,19 +198,14 @@ export function EpisodePosition({
                 />
               </div>
 
-              {/* Header: title on the left, position context on the right.
-                  Right-padded to clear the auto-rendered close button. */}
-              <div className="flex items-baseline justify-between gap-3 px-5 pb-3 pr-12 pt-3">
+              {/* Header: just a title. The trigger that opened this sheet
+                  already showed the position summary, so a second label here
+                  was redundant. Right-padded to clear the auto-rendered
+                  close button. */}
+              <div className="px-5 pb-3 pr-12 pt-3">
                 <SheetTitle className="text-base font-semibold tracking-tight">
                   Jump to episode
                 </SheetTitle>
-                {started && (
-                  <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
-                    {finished
-                      ? `Finished · S${currentSeason}·E${currentEpisode}`
-                      : `From S${currentSeason}·E${currentEpisode} · ${pct}%`}
-                  </span>
-                )}
               </div>
 
               <div className="border-t border-border/60" />
