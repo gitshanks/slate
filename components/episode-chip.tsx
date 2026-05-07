@@ -51,9 +51,13 @@ export function EpisodeChip({
 
   if (!seasons || seasons.length === 0) return null;
 
+  const currentSeasonData = seasons.find((s) => s.n === optimistic.season);
+
   const label =
     optimistic.season != null && optimistic.episode != null
-      ? `S${optimistic.season}·E${optimistic.episode}`
+      ? currentSeasonData != null
+        ? `S${optimistic.season}·E${optimistic.episode}/${currentSeasonData.c}`
+        : `S${optimistic.season}·E${optimistic.episode}`
       : "Start";
 
   function handleAdvance(e: React.MouseEvent) {

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, CheckCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +28,6 @@ export function SeasonEpisodePicker({
 }: SeasonEpisodePickerProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  // Tab defaults to the season the user is on, else the first season.
   const [activeSeason, setActiveSeason] = useState<number>(
     currentSeason ?? seasons[0]?.n ?? 1,
   );
@@ -36,10 +35,30 @@ export function SeasonEpisodePicker({
   if (seasons.length === 0) return null;
 
   const active = seasons.find((s) => s.n === activeSeason) ?? seasons[0];
+
+  // Overall progress
+  const totalEpisodes = seasons.reduce((sum, s) => sum + s.c, 0);
+  const watchedEpisodes =
+    currentSeason == null || currentEpisode == null
+      ? 0
+      : seasons.filter((s) => s.n < currentSeason).reduce((sum, s) => sum + s.c, 0) +
+        currentEpisode;
+  const progressPct = totalEpisodes > 0 ? (watchedEpisodes / totalEpisodes) * 100 : 0;
+
   const positionLabel =
     currentSeason != null && currentEpisode != null
       ? `S${currentSeason}·E${currentEpisode}`
-      : "Not started";
+      : null;
+
+  // Is the currently-viewed season fully watched?
+  const isSeasonDone =
+    currentSeason != null &&
+    currentEpisode != null &&
+    (currentSeason > activeSeason ||
+      (currentSeason === activeSeason && currentEpisode >= active.c));
+
+  // Inline tabs for ≤6 seasons; dropdown for 7+
+  const useTabs = seasons.length <= 6;
 
   function handlePick(season: number, episode: number) {
     startTransition(async () => {
@@ -54,14 +73,48 @@ export function SeasonEpisodePicker({
 
   return (
     <div className="rounded-xl border border-border bg-card/50 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Watched up to</span>
-          <span className="font-mono font-medium tabular-nums text-foreground">
-            {positionLabel}
-          </span>
+      {/* Header: progress summary + season navigation */}
+      <div className="flex items-start justify-between gap-4">
+        {/* Progress summary */}
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+              {watchedEpisodes}
+            </span>
+            <span className="font-mono text-sm text-muted-foreground tabular-nums">
+              / {totalEpisodes}
+            </span>
+            <span className="text-xs text-muted-foreground">episodes</span>
+          </div>
+          {positionLabel ? (
+            <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
+              up to {positionLabel}
+            </p>
+          ) : (
+            <p className="mt-0.5 text-[11px] text-muted-foreground">not started</p>
+          )}
         </div>
-        {seasons.length > 1 ? (
+
+        {/* Season navigation */}
+        {useTabs ? (
+          <div className="flex flex-wrap justify-end gap-1">
+            {seasons.map((s) => (
+              <button
+                key={s.n}
+                type="button"
+                onClick={() => setActiveSeason(s.n)}
+                className={cn(
+                  "h-7 min-w-[2rem] rounded-md px-2 text-xs font-mono transition-colors",
+                  s.n === activeSeason
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                S{s.n}
+              </button>
+            ))}
+          </div>
+        ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -87,14 +140,18 @@ export function SeasonEpisodePicker({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : (
-          <span className="text-xs text-muted-foreground font-mono">
-            {active.c} episodes
-          </span>
         )}
       </div>
 
-      {/* Episode grid: tap an episode to mark it as the latest one watched. */}
+      {/* Overall progress bar */}
+      <div className="mt-3 h-1 overflow-hidden rounded-full bg-border">
+        <div
+          className="h-full rounded-full bg-primary/60 transition-all duration-300"
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+
+      {/* Episode grid */}
       <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(2.5rem,1fr))] gap-1.5">
         {Array.from({ length: active.c }, (_, i) => {
           const ep = i + 1;
@@ -103,8 +160,7 @@ export function SeasonEpisodePicker({
             currentEpisode != null &&
             (active.n < currentSeason ||
               (active.n === currentSeason && ep <= currentEpisode));
-          const isCurrent =
-            active.n === currentSeason && ep === currentEpisode;
+          const isCurrent = active.n === currentSeason && ep === currentEpisode;
 
           return (
             <button
@@ -134,9 +190,32 @@ export function SeasonEpisodePicker({
         })}
       </div>
 
-      <p className="mt-3 text-[11px] text-muted-foreground">
-        Tap an episode to set it as the last one you watched.
-      </p>
+      {/* Mark season done shortcut */}
+      <div className="mt-3 flex items-center justify-end">
+        <button
+          type="button"
+          disabled={pending || isSeasonDone}
+          onClick={() => !isSeasonDone && handlePick(activeSeason, active.c)}
+          className={cn(
+            "inline-flex items-center gap-1.5 text-[11px] transition-colors",
+            isSeasonDone
+              ? "cursor-default text-primary/60"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {isSeasonDone ? (
+            <>
+              <CheckCheck className="h-3.5 w-3.5" aria-hidden />
+              Season {activeSeason} complete
+            </>
+          ) : (
+            <>
+              <Check className="h-3.5 w-3.5" aria-hidden />
+              Mark season {activeSeason} watched
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
