@@ -53,6 +53,15 @@ export default async function ListsPage() {
 
   return (
     <div>
+      <div className="mb-6 flex items-end justify-between sm:mb-10">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+            Collections
+          </p>
+          <h1 className="mt-1 text-4xl font-semibold tracking-tight">Lists</h1>
+        </div>
+      </div>
+
       <div className="mb-6 sm:mb-8">
         <CreateListForm />
       </div>

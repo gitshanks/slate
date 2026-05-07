@@ -93,11 +93,13 @@ export function TopNav() {
         </div>
       </div>
 
-      {/* Mobile nav row — padding matches the top row so tabs align with logo/content below */}
+      {/* Mobile nav row — padding matches the top row so the first pill's
+          box sits at the same content edge as the logo and the FilterBar /
+          tile grid below. */}
       <nav className="flex items-center gap-1 px-4 pb-2 sm:px-6 md:hidden">
-        {LINKS.map((l, i) => {
+        {LINKS.map((l) => {
           const active =
-            l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+            l.href === APP_ROOT ? pathname === APP_ROOT : pathname.startsWith(l.href);
           return (
             <Link
               key={l.href}
@@ -105,7 +107,6 @@ export function TopNav() {
               prefetch
               className={cn(
                 "rounded-full px-3.5 py-1.5 text-sm transition-colors",
-                i === 0 && "-ml-3.5",
                 active
                   ? "bg-accent text-foreground"
                   : "text-muted-foreground hover:text-foreground"
