@@ -4,9 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
 
 const LOADED_BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? "dev";
-// Slightly tighter than the original 60s. The cost of a JSON ping is
-// negligible compared to the user staring at a stale UI.
-const POLL_INTERVAL_MS = 45_000;
 
 export function UpdateBanner() {
   const [stale, setStale] = useState(false);
@@ -15,36 +12,30 @@ export function UpdateBanner() {
   // Hoisted so the effect below can call it from multiple event handlers.
   const check = useCallback(async () => {
     try {
-      // Cache-busting query param defeats any intermediate CDN that
-      // ignores the no-store header (rare but possible). Headers also
-      // belt-and-suspenders disable browser cache.
-      const res = await fetch(`/api/version?t=${Date.now()}`, {
-        cache: "no-store",
-        headers: { "cache-control": "no-cache" },
-      });
+      // /api/version is now a build-time static file served from the
+      // CDN edge — the browser handles freshness via its own cache
+      // semantics, and the response is the same JSON for the lifetime
+      // of the deploy. No cache-busting needed.
+      const res = await fetch("/api/version");
       if (!res.ok) return;
       const { buildId } = (await res.json()) as { buildId?: string };
       if (buildId && buildId !== LOADED_BUILD_ID) setStale(true);
     } catch {
-      // Network blip — try again next tick.
+      // Network blip — the next user-activity event will retry.
     }
   }, []);
 
   useEffect(() => {
     if (LOADED_BUILD_ID === "dev") return;
 
-    // Initial check + steady polling.
+    // No timer — we only check on user-activity signals. A user who keeps
+    // the tab open forever and never leaves it won't see the banner until
+    // they switch tabs / focus the window / come back online / bfcache-
+    // restores the page, which covers every realistic "I'm back" moment.
+    // Dropping the 45s interval is the biggest reduction in function /
+    // edge-request load by an order of magnitude.
     check();
-    const interval = window.setInterval(check, POLL_INTERVAL_MS);
 
-    // Re-check on every "user came back to the page" signal we can find:
-    //   - visibilitychange: tab focus on desktop
-    //   - pageshow w/ persisted: page restored from bfcache (Safari, FF)
-    //   - focus: window regained focus
-    //   - online: network reconnected after a flap
-    // iOS PWA tabs in particular get suspended aggressively, so the more
-    // wake-up signals we listen for, the more likely we catch an update
-    // the moment the user returns.
     const onVisibility = () => {
       if (document.visibilityState === "visible") check();
     };
@@ -58,7 +49,6 @@ export function UpdateBanner() {
     window.addEventListener("online", check);
 
     return () => {
-      window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pageshow", onPageShow);
       window.removeEventListener("focus", check);
