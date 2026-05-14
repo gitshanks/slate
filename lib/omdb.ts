@@ -57,9 +57,15 @@ export async function getOmdbRatings(imdbId: string): Promise<OmdbRatings> {
   try {
     const res = await fetch(url, { next: { revalidate: 60 * 60 * 24 } });
     if (!res.ok) {
-      console.warn(
-        `[omdb] HTTP ${res.status} for ${imdbId} — likely rate limit (1000/day on free tier) or invalid key`,
-      );
+      const hint =
+        res.status === 401
+          ? "invalid or unverified key (OMDB emails an activation link on signup — until that link is clicked, the key returns 401 on every call)"
+          : res.status === 402
+            ? "daily 1000-call free-tier limit exhausted; resets at midnight UTC"
+            : res.status === 429
+              ? "rate-limited (sustained calls/sec too high)"
+              : `unexpected status — check OMDB_API_KEY value`;
+      console.warn(`[omdb] HTTP ${res.status} for ${imdbId} — ${hint}`);
       return EMPTY;
     }
     json = (await res.json()) as OmdbResponse & { Error?: string };
