@@ -35,24 +35,44 @@ function parseNumber(value: string | undefined): number {
  * Returns nulls (never throws) so callers can store partial data.
  *
  * Cached for 24h — these scores barely move and OMDB's free tier is 1k/day.
+ *
+ * Failure modes are logged (server-side only) so it's possible to tell why
+ * a title has no ratings: missing key, rate-limit, OMDB doesn't know the
+ * IMDB id, network blip, etc. The function still resolves to nulls so the
+ * write path keeps working — addTitle never throws over a missing rating.
  */
 export async function getOmdbRatings(imdbId: string): Promise<OmdbRatings> {
-  if (!KEY || !imdbId) return EMPTY;
+  if (!KEY) {
+    console.warn("[omdb] OMDB_API_KEY not set — skipping ratings fetch");
+    return EMPTY;
+  }
+  if (!imdbId) return EMPTY;
 
   const url = new URL(OMDB_BASE);
   url.searchParams.set("apikey", KEY);
   url.searchParams.set("i", imdbId);
   url.searchParams.set("tomatoes", "true");
 
-  let json: OmdbResponse;
+  let json: OmdbResponse & { Error?: string };
   try {
     const res = await fetch(url, { next: { revalidate: 60 * 60 * 24 } });
-    if (!res.ok) return EMPTY;
-    json = (await res.json()) as OmdbResponse;
-  } catch {
+    if (!res.ok) {
+      console.warn(
+        `[omdb] HTTP ${res.status} for ${imdbId} — likely rate limit (1000/day on free tier) or invalid key`,
+      );
+      return EMPTY;
+    }
+    json = (await res.json()) as OmdbResponse & { Error?: string };
+  } catch (err) {
+    console.warn(`[omdb] fetch failed for ${imdbId}:`, err);
     return EMPTY;
   }
-  if (json.Response === "False") return EMPTY;
+  if (json.Response === "False") {
+    console.warn(
+      `[omdb] no record for ${imdbId}: ${json.Error ?? "(unknown reason)"}`,
+    );
+    return EMPTY;
+  }
 
   const imdb_rating = parseNumber(json.imdbRating);
   const imdb_votes = parseNumber(json.imdbVotes);
