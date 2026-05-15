@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
 
 const LOADED_BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? "dev";
+const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
 
 export function UpdateBanner() {
   const [stale, setStale] = useState(false);
@@ -26,7 +27,10 @@ export function UpdateBanner() {
   }, []);
 
   useEffect(() => {
-    if (LOADED_BUILD_ID === "dev") return;
+    // Anonymous visitors on the public-portfolio deploy can't act on a
+    // version-update nag and shouldn't fund the per-visit edge requests
+    // it generates from focus / visibility / pageshow / online events.
+    if (LOADED_BUILD_ID === "dev" || IS_DEMO) return;
 
     // No timer — we only check on user-activity signals. A user who keeps
     // the tab open forever and never leaves it won't see the banner until
