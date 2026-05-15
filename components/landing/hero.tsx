@@ -56,6 +56,18 @@ export function Hero() {
           <p className="mt-5 text-xs text-muted-foreground">
             MIT licensed · Docker or Vercel · Your data never leaves your box.
           </p>
+
+          <p className="mt-3 text-xs text-muted-foreground">
+            <a
+              href="https://www.nishh.dev/slate"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 underline decoration-dotted underline-offset-4 hover:text-foreground"
+            >
+              Read the case study
+              <ArrowRight className="h-3 w-3" />
+            </a>
+          </p>
         </div>
 
         <div className="relative mt-14 sm:mt-20">
