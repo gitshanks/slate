@@ -35,6 +35,9 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Run on every path except static assets and image optimizer
-  matcher: ["/((?!_next/static|_next/image|.*\\..*).*)"],
+  // Run on every path except static assets, image optimizer, and the
+  // build-id endpoint (non-sensitive; the UpdateBanner hits it from every
+  // active tab on focus/visibility/pageshow, and proxy fires per request
+  // even when the route resolves to a static CDN asset).
+  matcher: ["/((?!_next/static|_next/image|api/version|.*\\..*).*)"],
 };
