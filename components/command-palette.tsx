@@ -234,6 +234,14 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       try {
         await addTitle({ tmdbId: item.id, mediaType: item.media_type, status });
         setJustAdded((s) => new Set(s).add(key));
+        // addTitle calls revalidateTag('titles', {}) on the server, but
+        // that only invalidates the cache — it doesn't push fresh data
+        // to the page the user is currently looking at. router.refresh()
+        // re-fetches the current route's RSC payload, which now reads
+        // the freshly-revalidated cache and shows the new tile without
+        // requiring a hard reload. Critical on PWA where pull-to-refresh
+        // is missing or unreliable.
+        router.refresh();
       } catch {
         // Swallow — badge just won't flip.
       } finally {
@@ -244,7 +252,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
         });
       }
     },
-    [adding, justAdded]
+    [adding, justAdded, router]
   );
 
   // Enter in AI mode submits the input as a chat turn instead of letting
