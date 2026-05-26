@@ -44,6 +44,7 @@ export async function addTitle(input: {
     .single();
 
   if (error) throw new Error(error.message);
+  revalidatePath("/", "layout");
   return data;
 }
 
@@ -92,7 +93,7 @@ export async function setStatus(titleId: string, status: TitleStatus) {
   const { error } = await supabase.from("titles").update(patch).eq("id", titleId);
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/title/${titleId}`);
+  revalidatePath("/", "layout");
 }
 
 export async function setRating(titleId: string, rating: number | null) {
@@ -203,7 +204,7 @@ export async function advanceEpisode(titleId: string) {
   const { error } = await supabase.from("titles").update(patch).eq("id", titleId);
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/title/${titleId}`);
+  revalidatePath("/", "layout");
 }
 
 export async function setEpisodePosition(
@@ -224,6 +225,7 @@ export async function setEpisodePosition(
 export async function removeTitle(titleId: string) {
   const { error } = await supabase.from("titles").delete().eq("id", titleId);
   if (error) throw new Error(error.message);
+  revalidatePath("/", "layout");
 }
 
 // ─── Lists ────────────────────────────────────────────────────────
