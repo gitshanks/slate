@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import {
   searchMultiWithFallback,
   getMovie,
@@ -76,7 +76,7 @@ export async function runImport(
     if (error) {
       return { ...EMPTY, error: `Database error: ${error.message}` };
     }
-    revalidateTag("titles", {});
+    updateTag("titles");
   }
 
   return {
