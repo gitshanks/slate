@@ -130,6 +130,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       setSuggestions([]);
       setApproximate(false);
       setApproxQuery(null);
+      setJustAdded(new Set());
       chatResetRef.current?.();
     }
   }, [open]);

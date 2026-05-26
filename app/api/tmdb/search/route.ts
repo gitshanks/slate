@@ -45,20 +45,12 @@ export async function GET(request: Request) {
       searchMultiWithFallback(q),
     ]);
 
-    return NextResponse.json(
-      {
-        library,
-        results: search.results.slice(0, 12),
-        approximate: search.approximate,
-        approxQuery: search.approxQuery,
-      },
-      {
-        headers: {
-          "Cache-Control":
-            "public, s-maxage=600, stale-while-revalidate=86400",
-        },
-      }
-    );
+    return NextResponse.json({
+      library,
+      results: search.results.slice(0, 12),
+      approximate: search.approximate,
+      approxQuery: search.approxQuery,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "TMDB error";
     return NextResponse.json({ error: message }, { status: 500 });
