@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { APP_ROOT } from "@/lib/public-mode";
 import { useCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AccentPicker } from "@/components/accent-picker";
 import { PwaInstallButton } from "@/components/pwa-install-button";
 
 const LINKS = [
@@ -103,6 +104,7 @@ export function TopNav() {
             <Search className="h-5 w-5" />
           </button>
           <PwaInstallButton />
+          <AccentPicker className="hidden md:inline-flex" />
           <ThemeToggle />
         </div>
       </div>

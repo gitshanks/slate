@@ -17,7 +17,7 @@ export function Hero() {
         <h1 className="mt-7 max-w-[1100px] text-balance text-[44px] font-extrabold leading-[1.02] tracking-[-0.04em] text-white sm:text-6xl lg:text-[72px] xl:text-[80px]">
           The watchlist that's
           <br className="hidden sm:block" />{" "}
-          <span className="bg-gradient-to-br from-primary via-fuchsia-400 to-sky-400 bg-clip-text text-transparent">
+          <span className="text-primary">
             actually yours.
           </span>
         </h1>
