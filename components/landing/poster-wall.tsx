@@ -193,15 +193,14 @@ export function PosterWall() {
         </div>
       </div>
 
-      {/* Top + bottom fade so columns dissolve into the background.
-          Uses the theme background variable so the fade matches whichever
-          page background sits behind the hero. */}
-      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-background to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background to-transparent" />
+      {/* Top + bottom fade so columns dissolve into the hero surface.
+          Uses the dedicated --hero-bg token so the fade matches the
+          band's tinted background in both light and dark modes. */}
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[hsl(var(--hero-bg))] to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[hsl(var(--hero-bg))] to-transparent" />
 
-      {/* Center vignette to push focus toward the headline. The gradient
-          uses hsl(var(--background)) so the wash adapts to light vs dark. */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--background)/0.55)_0%,hsl(var(--background)/0.85)_55%,hsl(var(--background))_100%)]" />
+      {/* Center vignette to push focus toward the headline. */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--hero-bg)/0.55)_0%,hsl(var(--hero-bg)/0.85)_55%,hsl(var(--hero-bg))_100%)]" />
     </div>
   );
 }

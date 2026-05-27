@@ -5,7 +5,7 @@ import { PosterWall } from "@/components/landing/poster-wall";
 
 export function Hero() {
   return (
-    <section className="relative isolate overflow-hidden bg-background text-foreground">
+    <section className="relative isolate overflow-hidden bg-[hsl(var(--hero-bg))] text-foreground">
       <PosterWall />
 
       <div className="relative mx-auto flex max-w-[1200px] flex-col items-center px-5 pt-28 pb-32 text-center sm:px-8 sm:pt-40 sm:pb-44 lg:pt-48 lg:pb-52">

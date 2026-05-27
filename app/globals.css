@@ -47,6 +47,11 @@
   --radius: 0.625rem;
 
   --star: 42 92% 52%;              /* warm gold, slightly muted */
+
+  /* Hero band background. Deliberately darker than the page background
+     so the landing hero reads as a distinct cinematic surface rather
+     than blending into the watchlist sections below. */
+  --hero-bg: 220 16% 92%;
 }
 
 .dark {
@@ -87,6 +92,9 @@
   --ring: 252 100% 75%;
 
   --star: 45 96% 62%;
+
+  /* Hero band slightly deeper than the page bg in dark mode too. */
+  --hero-bg: 240 8% 3%;
 }
 
 @theme inline {
