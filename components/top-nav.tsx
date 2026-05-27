@@ -104,7 +104,7 @@ export function TopNav() {
             <Search className="h-5 w-5" />
           </button>
           <PwaInstallButton />
-          <AccentPicker className="hidden md:inline-flex" />
+          <AccentPicker />
           <ThemeToggle />
         </div>
       </div>

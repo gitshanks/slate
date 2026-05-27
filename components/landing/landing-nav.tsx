@@ -28,7 +28,7 @@ export function LandingNav() {
         </Link>
 
         <nav className="flex items-center gap-1 sm:gap-2">
-          <AccentPicker className="hidden sm:inline-flex" />
+          <AccentPicker />
           <ThemeToggle />
           <a
             href="https://github.com/gitshanks/slate"
