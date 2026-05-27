@@ -84,10 +84,13 @@ export function TopNav() {
         </div>
 
         <div className="flex items-center gap-1">
+          <PwaInstallButton />
+          <AccentPicker />
+          <ThemeToggle />
           <button
             type="button"
             onClick={open}
-            className="hidden items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+            className="ml-1 hidden items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
           >
             <Search className="h-3.5 w-3.5" />
             <span>Search & add…</span>
@@ -103,9 +106,6 @@ export function TopNav() {
           >
             <Search className="h-5 w-5" />
           </button>
-          <PwaInstallButton />
-          <AccentPicker />
-          <ThemeToggle />
         </div>
       </div>
       </header>
