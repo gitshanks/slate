@@ -4,6 +4,10 @@ import { posterUrl } from "@/lib/tmdb-image";
 // Minivoid-style hero backdrop: vertical poster columns that scroll past
 // each other in alternating directions. The wall sits behind the headline
 // and fades into the background at the top and bottom.
+//
+// Poster paths are sourced from TMDB's popular/top-rated endpoints and
+// verified as 200 on image.tmdb.org. Re-verify when refreshing the set —
+// TMDB occasionally swaps the canonical path for a film.
 
 type ColumnDef = {
   posters: string[];
@@ -16,88 +20,120 @@ const COLUMNS: ColumnDef[] = [
     duration: 90,
     direction: "up",
     posters: [
-      "/pThyQovXQrw2m0s9x82twj48Jq4.jpg", // Knives Out
-      "/eKfVzzEazSIjJMrw9ADa2x8ksLz.jpg", // The Bear
-      "/hjlZSXM86wJrfCv5VKfR5DI2VeU.jpg", // Hereditary
-      "/uDO8zWDhfWwoFdKS4fzkUJt0Rf0.jpg", // La La Land
-      "/pPHpeI2X1qEd1CS1SeyrdhZ4qnT.jpg", // Severance
+      "/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg", // The Shawshank Redemption
+      "/3bhkrj58Vtu7enYsRolD1fZdja1.jpg", // The Godfather
+      "/qJ2tW6WMUDux911r6m7haRef0WH.jpg", // The Dark Knight
+      "/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg", // Parasite
+      "/yQvGrMoipbRoddT0ZR8tPoR7NfX.jpg", // Interstellar
+      "/jSziioSwPVrOy9Yow3XhWIBDjq1.jpg", // Fight Club
     ],
   },
   {
     duration: 110,
     direction: "down",
     posters: [
-      "/pEzNVQfdzYDzVK0XqxERIw2x2se.jpg", // Arrival
-      "/VHSzNBTwxV8vh7wylo7O9CLdac.jpg", // The Holdovers
-      "/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg", // Past Lives
+      "/vQWk5YBFWF4bZaofAbv0tShwBvQ.jpg", // Pulp Fiction
+      "/Cw4hIUIAmSYfK9QfaUW5igp9La.jpg",  // Forrest Gump
+      "/q719jXXEzOoYaps6babgKnONONX.jpg", // Your Name.
+      "/sF1U4EUQS8YHUYjNl3pMGNIQyr0.jpg", // Schindler's List
+      "/aabwWZWx6z1aYP4PX2ADvbDKktd.jpg", // Avatar: Fire and Ash
       "/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg", // Oppenheimer
-      "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg", // Dune: Part Two
     ],
   },
   {
     duration: 80,
     direction: "up",
     posters: [
-      "/jUkbsCxQS77Yi4Gy8RZHfQYUTPP.jpg", // The Godfather
-      "/2pjBjMRiebFqK0ZBlW7P53zNDp7.jpg", // Pulp Fiction
-      "/zjnZaNI8jWPiJG2KH8XLZAuthED.jpg", // Anatomy of a Fall
-      "/9Z4DH7HbDxg34mAEJjANI53OAad.jpg", // Killers of the Flower Moon
-      "/qNBAXBIQlnOThrVvA6mA2B5ggV6.jpg", // Inception
+      "/pThyQovXQrw2m0s9x82twj48Jq4.jpg", // Knives Out
+      "/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg", // Past Lives
+      "/8VG8fDNiy50H4FedGwdSVUPoaJe.jpg", // The Green Mile
+      "/9OkCLM73MIU2CrKZbqiT8Ln1wY2.jpg", // GoodFellas
+      "/k9tv1rXZbOhH7eiCk378x61kNQ1.jpg", // Grave of the Fireflies
+      "/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg", // Spirited Away
     ],
   },
   {
     duration: 100,
     direction: "down",
     posters: [
+      "/hjlZSXM86wJrfCv5VKfR5DI2VeU.jpg", // Hereditary
+      "/uDO8zWDhfWwoFdKS4fzkUJt0Rf0.jpg", // La La Land
+      "/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg", // LotR: The Return of the King
+      "/6oom5QYQ2yQTMJIbnvbkBL9cHo6.jpg", // LotR: The Fellowship of the Ring
+      "/pEzNVQfdzYDzVK0XqxERIw2x2se.jpg", // Arrival
       "/u3bZgnGQ9T01sWNhyveQz0wH0Hl.jpg", // The Batman
-      "/yF1eOkaYvwiORauRCPWznV9xVvi.jpg", // The Dark Knight
-      "/74xTEgt7R36Fpooo50r9T25onhq.jpg", // Bullet Train
-      "/qmDpIHrmpJINaRKAfWQfftjCdyi.jpg", // Spider-Man: No Way Home
-      "/mDfJG3LB3l9OcTGYJp3rqkkAuDC.jpg", // The Whale
     ],
   },
   {
     duration: 95,
     direction: "up",
     posters: [
-      "/iuFNMS8U5cb6xfzi51Dbkovj7vM.jpg", // Avengers: Endgame
-      "/iJQIbOPm81fNZsAdvE0gFcfHIeY.jpg", // Saltburn
-      "/bcM2Tl5HlsvPBnL8DKP9Ie6vU4r.jpg", // Marriage Story
-      "/MoEKaPFHABtA1xKoOteirGaHl1.jpg",  // Parasite
-      "/2cYjr7AVeS6KuLgmkmwWMzc15c8.jpg", // Whiplash (fallback)
+      "/eKfVzzEazSIjJMrw9ADa2x8ksLz.jpg", // The Bear
+      "/pPHpeI2X1qEd1CS1SeyrdhZ4qnT.jpg", // Severance
+      "/in1R2dDc421JxsoRWaIIAqVI2KE.jpg", // The Boys
+      "/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg", // Breaking Bad
+      "/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg", // Game of Thrones
+      "/8iixmfGx5EIFPdpNvB2JvI3VIqX.jpg", // Supernatural
     ],
   },
   {
     duration: 115,
     direction: "down",
     posters: [
-      "/A7EByudX0eOzlkQ2FIbogzyazm2.jpg", // Forrest Gump
-      "/9w7MMNuUDmJqVreqWQlt0KbqCfp.jpg", // Drive (2011)
-      "/d5NXSklXo0qyIYkgV94XAgMIckC.jpg", // Avengers: Infinity War
-      "/8s4h9friP6Ci3adRGahHARVd76E.jpg", // Top Gun: Maverick
-      "/q719jXXEzOoYaps6babgKnONONX.jpg", // Heat
+      "/zhG3vKWyDRaZYoaww1UVAi29T9h.jpg", // 12 Angry Men
+      "/hek3koDUyRQk7FIhPXsa6mT2Zc3.jpg", // The Godfather Part II
+      "/bX2xnavhMYjWDoZp1VM6VnU1xwe.jpg", // The Good, the Bad and the Ugly
+      "/lOMGc8bnSwQhS4XyE1S99uH8NXf.jpg", // Seven Samurai
+      "/k7eYdWvhYQyRQoU2TB2A2Xu2TfD.jpg", // City of God
+      "/gCI2AeMV4IHSewhJkzsur5MEp6R.jpg", // Cinema Paradiso
     ],
   },
   {
     duration: 85,
     direction: "up",
     posters: [
-      "/uHmpDgI8aIVfZc9KdmK7MTQYNGY.jpg", // Lost in Translation
-      "/9Pb3hI8wt6CIVKkB8YEhMlpqdRR.jpg", // The Shining
-      "/d4XfPxOKWO2VHipsxn1cnzbnYME.jpg", // Mad Max: Fury Road
-      "/aDYSnJAK0BTVeE8osOy22Kz3SXY.jpg", // Past Lives alt
-      "/4tlNFhEowwgN9Vc9pCxc741S6oR.jpg", // Mickey 17
+      "/VHSzNBTwxV8vh7wylo7O9CLdac.jpg", // The Holdovers
+      "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg", // Dune: Part Two
+      "/6tEJnof1DKWPnl5lzkjf0FVv7oB.jpg", // Life Is Beautiful
+      "/fWVSwgjpT2D78VUh6X8UBd2rorW.jpg", // Demon Slayer: Infinity Castle
+      "/yihdXomYb5kTeSivtFndMy5iDmf.jpg", // Project Hail Mary
+      "/3nPwMd3KviJWaHzG9fZCqlwWMas.jpg", // Harakiri
     ],
   },
   {
     duration: 105,
     direction: "down",
     posters: [
-      "/sw7mordbZxgITU877yTpZCud90M.jpg",  // Oppenheimer alt
-      "/qhb1qOilapbapxWQn9jtRCMwXJF.jpg", // Civil War
-      "/dC0E0vEvKAm91ZQpKDmaaRoq2vw.jpg", // The Boy and the Heron
-      "/wuMc08IPKEatf9rnMNXvIDxqP4W.jpg", // No Country for Old Men
-      "/9JtdsRijZi9HRJ1jITZhuU3Y9PV.jpg", // Wicked
+      "/8912AsVuS7Sj915apArUFbv6F9L.jpg", // The Devil Wears Prada
+      "/ybrX94xQm8lXYpZAPRmwD9iIbWP.jpg", // Mortal Kombat
+      "/lIsMeDbwntNXSUVHmWMMRXEZOVc.jpg", // Mortal Kombat II
+      "/5Vi8dSauVwH1HOsiZceDMbRr1Ca.jpg", // The Mandalorian and Grogu
+      "/eJGWx219ZcEMVQJhAgMiqo8tYY.jpg", // The Super Mario Galaxy Movie
+      "/tFbfCkS7q6g96wVoAu8kyr93iPm.jpg", // Dilwale Dulhania Le Jayenge
+    ],
+  },
+  {
+    duration: 92,
+    direction: "up",
+    posters: [
+      "/uWpG7GqfKGQqX4YMAo3nv5OrglV.jpg", // The Simpsons
+      "/3PFsEuAiyLkWsP4GG6dIV37Q6gu.jpg", // Family Guy
+      "/aJrG7OkoTMPWG5c8opz8a93AZPY.jpg", // Euphoria
+      "/hjJkrLXhWvGHpLeLBDFznpBTY1S.jpg", // Grey's Anatomy
+      "/acYXu4KaDj1NIkMgObnhe4C4a0T.jpg", // The Mentalist
+      "/gigxjNnACiXAfrwoMox5WJFgc0I.jpg", // Criminal Minds
+    ],
+  },
+  {
+    duration: 108,
+    direction: "down",
+    posters: [
+      "/pRtJagIxpfODzzb0T0NAvZSzErC.jpg", // FROM
+      "/e3ojpANrFnmJCyeBNTinYwyBCIN.jpg", // The Apothecary Diaries
+      "/iofokHZoUB4Qhik4PflvJl8TT6a.jpg", // Law & Order: SVU
+      "/70kTz0OmjjZe7zHvIDrq2iKW7PJ.jpg", // The Rookie
+      "/9HcEqn3D4J6b2Z0jK54id9nA0fr.jpg", // Remarkably Bright Creatures
+      "/mBcu8d6x6zB1el3MPNl7cZQEQ31.jpg", // NCIS
     ],
   },
 ];
@@ -131,7 +167,7 @@ function PosterColumn({ posters, duration, direction }: ColumnDef) {
   // lands on an identical frame.
   const loop = [...posters, ...posters];
   return (
-    <div className="relative h-full w-[22vw] shrink-0 sm:w-[18vw] md:w-[15vw] lg:w-[12vw] xl:w-[10vw]">
+    <div className="relative h-full w-[26vw] shrink-0 sm:w-[18vw] md:w-[14vw] lg:w-[11vw] xl:w-[9vw]">
       <div
         className="absolute inset-0 flex flex-col gap-3 sm:gap-4 will-change-transform [animation-timing-function:linear] [animation-iteration-count:infinite]"
         style={{ animationName, animationDuration: `${duration}s` }}
@@ -158,7 +194,7 @@ function PosterTile({ path, idx }: { path: string; idx: number }) {
           src={src}
           alt=""
           fill
-          sizes="(max-width: 640px) 22vw, (max-width: 1024px) 15vw, 10vw"
+          sizes="(max-width: 640px) 26vw, (max-width: 1024px) 14vw, 9vw"
           className="object-cover"
         />
       ) : null}
