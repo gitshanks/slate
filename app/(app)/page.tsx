@@ -73,11 +73,23 @@ export default async function WatchlistPage() {
         </Suspense>
       )}
 
-      <RecommendationsSection title="You might like" savedTmdbIds={savedTmdbIds} />
-      <TmdbRailAsync title="Trending this week" fetcher={getTrending} savedTmdbIds={savedTmdbIds} />
-      <TmdbRailAsync title="Popular films" fetcher={getPopularMovies} savedTmdbIds={savedTmdbIds} />
-      <TmdbRailAsync title="Now playing" fetcher={getNowPlaying} savedTmdbIds={savedTmdbIds} />
-      <TmdbRailAsync title="Popular TV shows" fetcher={getPopularTv} savedTmdbIds={savedTmdbIds} />
+      {/* Visual break between the user's library and the discovery rails. */}
+      <div className="relative mt-20 border-t border-border/60 pt-12 sm:mt-24 sm:pt-16">
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+          Discover
+        </p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+          Find what's next
+        </h2>
+
+        <RecommendationsSection title="You might like" savedTmdbIds={savedTmdbIds} />
+        <TmdbRailAsync title="Trending this week" fetcher={getTrending} savedTmdbIds={savedTmdbIds} />
+        <TmdbRailAsync title="Popular films" fetcher={getPopularMovies} savedTmdbIds={savedTmdbIds} />
+        <TmdbRailAsync title="Now playing" fetcher={getNowPlaying} savedTmdbIds={savedTmdbIds} />
+        <TmdbRailAsync title="Popular TV shows" fetcher={getPopularTv} savedTmdbIds={savedTmdbIds} />
+      </div>
     </div>
   );
 }
