@@ -1,8 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { GithubMark } from "@/components/landing/icons";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { AccentPicker } from "@/components/accent-picker";
 
 export function LandingNav() {
   return (
@@ -28,8 +26,6 @@ export function LandingNav() {
         </Link>
 
         <nav className="flex items-center gap-1 sm:gap-2">
-          <AccentPicker />
-          <ThemeToggle />
           <a
             href="https://github.com/gitshanks/slate"
             target="_blank"
