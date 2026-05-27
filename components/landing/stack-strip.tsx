@@ -1,4 +1,4 @@
-// A muted strip naming what slate is built with — calms the page after the
+// A muted strip naming what slate is built with. Calms the page after the
 // dense feature/showcase rows and earns trust before the final CTA.
 const STACK = [
   "Next.js 16",

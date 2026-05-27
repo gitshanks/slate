@@ -190,6 +190,24 @@
   }
 }
 
+/* Hero poster-wall columns: vertical infinite scroll. The list inside each
+   column is rendered twice; translating by -50% lands on an identical frame
+   so the loop seams disappear. */
+@keyframes col-scroll-up {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+@keyframes col-scroll-down {
+  from { transform: translateY(-50%); }
+  to   { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="col-scroll-up"],
+  [style*="col-scroll-down"] {
+    animation: none !important;
+  }
+}
+
 /* ─── Accent themes ─────────────────────────────────────────────── */
 /* Violet (252) is the CSS default — no class needed.               */
 /* Each class overrides primary, primary-hover, ring.               */
