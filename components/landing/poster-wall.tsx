@@ -18,7 +18,7 @@ type ColumnDef = {
 
 const COLUMNS: ColumnDef[] = [
   {
-    duration: 110,
+    duration: 330,
     direction: "up",
     posters: [
       "/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg", // The Shawshank Redemption
@@ -34,7 +34,7 @@ const COLUMNS: ColumnDef[] = [
     ],
   },
   {
-    duration: 130,
+    duration: 380,
     direction: "down",
     posters: [
       "/vQWk5YBFWF4bZaofAbv0tShwBvQ.jpg", // Pulp Fiction
@@ -50,7 +50,7 @@ const COLUMNS: ColumnDef[] = [
     ],
   },
   {
-    duration: 95,
+    duration: 280,
     direction: "up",
     posters: [
       "/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg", // Past Lives
@@ -66,7 +66,7 @@ const COLUMNS: ColumnDef[] = [
     ],
   },
   {
-    duration: 120,
+    duration: 350,
     direction: "down",
     posters: [
       "/hjlZSXM86wJrfCv5VKfR5DI2VeU.jpg", // Hereditary
@@ -82,7 +82,7 @@ const COLUMNS: ColumnDef[] = [
     ],
   },
   {
-    duration: 105,
+    duration: 310,
     direction: "up",
     posters: [
       "/eKfVzzEazSIjJMrw9ADa2x8ksLz.jpg", // The Bear
@@ -98,7 +98,7 @@ const COLUMNS: ColumnDef[] = [
     ],
   },
   {
-    duration: 135,
+    duration: 400,
     direction: "down",
     posters: [
       "/zhG3vKWyDRaZYoaww1UVAi29T9h.jpg", // 12 Angry Men
@@ -114,7 +114,7 @@ const COLUMNS: ColumnDef[] = [
     ],
   },
   {
-    duration: 100,
+    duration: 300,
     direction: "up",
     posters: [
       "/VHSzNBTwxV8vh7wylo7O9CLdac.jpg", // The Holdovers
@@ -130,7 +130,7 @@ const COLUMNS: ColumnDef[] = [
     ],
   },
   {
-    duration: 125,
+    duration: 360,
     direction: "down",
     posters: [
       "/8912AsVuS7Sj915apArUFbv6F9L.jpg", // The Devil Wears Prada
@@ -146,7 +146,7 @@ const COLUMNS: ColumnDef[] = [
     ],
   },
   {
-    duration: 115,
+    duration: 340,
     direction: "up",
     posters: [
       "/uWpG7GqfKGQqX4YMAo3nv5OrglV.jpg", // The Simpsons
@@ -162,7 +162,7 @@ const COLUMNS: ColumnDef[] = [
     ],
   },
   {
-    duration: 140,
+    duration: 410,
     direction: "down",
     posters: [
       "/pRtJagIxpfODzzb0T0NAvZSzErC.jpg", // FROM
