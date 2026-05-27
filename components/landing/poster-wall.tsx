@@ -193,12 +193,15 @@ export function PosterWall() {
         </div>
       </div>
 
-      {/* Top + bottom fade so columns dissolve into the background. */}
-      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#08080a] to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#08080a] to-transparent" />
+      {/* Top + bottom fade so columns dissolve into the background.
+          Uses the theme background variable so the fade matches whichever
+          page background sits behind the hero. */}
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-background to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background to-transparent" />
 
-      {/* Center vignette to push focus toward the headline. */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(8,8,10,0.55)_0%,rgba(8,8,10,0.85)_55%,#08080a_100%)]" />
+      {/* Center vignette to push focus toward the headline. The gradient
+          uses hsl(var(--background)) so the wash adapts to light vs dark. */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--background)/0.55)_0%,hsl(var(--background)/0.85)_55%,hsl(var(--background))_100%)]" />
     </div>
   );
 }
@@ -229,7 +232,7 @@ function PosterTile({ path, idx }: { path: string; idx: number }) {
   const tilt = idx % 3 === 0 ? "-0.4deg" : idx % 3 === 1 ? "0.3deg" : "0deg";
   return (
     <div
-      className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-white/[0.04] ring-1 ring-white/5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]"
+      className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-muted ring-1 ring-foreground/5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.35)] dark:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]"
       style={{ transform: `rotate(${tilt})` }}
     >
       {src ? (
