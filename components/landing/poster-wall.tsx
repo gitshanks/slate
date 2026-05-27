@@ -142,9 +142,10 @@ export function PosterWall() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden select-none">
       {/* Tilted, oversized container so the columns extend past the edges
-          even after the rotation. */}
+          even after the rotation. Columns flex-fill the container so no
+          dead space appears on either side once the wall is scaled up. */}
       <div className="absolute -inset-[12%] origin-center [transform:rotate(-7deg)_scale(1.25)]">
-        <div className="flex h-full w-full justify-center gap-2 sm:gap-3">
+        <div className="flex h-full w-full gap-2 sm:gap-3">
           {COLUMNS.map((col, i) => (
             <PosterColumn key={i} {...col} />
           ))}
@@ -167,7 +168,7 @@ function PosterColumn({ posters, duration, direction }: ColumnDef) {
   // lands on an identical frame.
   const loop = [...posters, ...posters];
   return (
-    <div className="relative h-full w-[26vw] shrink-0 sm:w-[18vw] md:w-[14vw] lg:w-[11vw] xl:w-[9vw]">
+    <div className="relative h-full min-w-0 flex-1">
       <div
         className="absolute inset-0 flex flex-col gap-3 sm:gap-4 will-change-transform [animation-timing-function:linear] [animation-iteration-count:infinite]"
         style={{ animationName, animationDuration: `${duration}s` }}
