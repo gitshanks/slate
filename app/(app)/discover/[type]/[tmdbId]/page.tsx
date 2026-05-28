@@ -237,12 +237,6 @@ export default async function DiscoverTitlePage(
               </div>
             )}
 
-            {meta.tagline && (
-              <p className="mt-2 text-sm italic text-muted-foreground">
-                {meta.tagline}
-              </p>
-            )}
-
             {/* Action row: Add or Already saved · trailer · providers */}
             <div className="mt-6 flex flex-wrap items-center gap-2">
               {existing ? (
