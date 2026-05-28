@@ -79,7 +79,11 @@ export default async function WatchlistPage() {
           Find what's next
         </h2>
 
-        <RecommendationsSection title="You might like" savedTmdbIds={savedTmdbIds} />
+        <RecommendationsSection
+          title="You might like"
+          subtitle="Based on the titles you've watched"
+          savedTmdbIds={savedTmdbIds}
+        />
         <TmdbRailAsync title="Trending this week" fetcher={getTrending} savedTmdbIds={savedTmdbIds} />
         <TmdbRailAsync title="Now playing" fetcher={getNowPlaying} savedTmdbIds={savedTmdbIds} />
       </div>

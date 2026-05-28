@@ -10,6 +10,8 @@ const COLLAPSED_COUNT = 12;
 
 interface RecommendationsExpandableProps {
   title: string;
+  /** Short explanation of how these picks were generated. */
+  subtitle?: string;
   items: TmdbSearchResult[];
   savedTmdbIds?: number[];
 }
@@ -23,6 +25,7 @@ interface RecommendationsExpandableProps {
  */
 export function RecommendationsExpandable({
   title,
+  subtitle,
   items,
   savedTmdbIds,
 }: RecommendationsExpandableProps) {
@@ -37,16 +40,21 @@ export function RecommendationsExpandable({
 
   return (
     <section className="mt-14">
-      <div className="mb-4 flex items-baseline justify-between gap-3">
-        <h2 className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-          {title}
-        </h2>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+          )}
+        </div>
         {canExpand && (
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
-            className="hidden sm:inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-mono transition-colors hover:text-foreground"
+            className="hidden shrink-0 sm:inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-mono transition-colors hover:text-foreground"
           >
             {expanded ? "Show less" : `See more (${hiddenCount})`}
             <ChevronDown

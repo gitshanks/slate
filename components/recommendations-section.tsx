@@ -3,13 +3,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getRecommendedFromWatched } from "@/lib/tmdb";
 import { RecommendationsExpandable } from "@/components/recommendations-expandable";
 
-function RecommendationsSkeleton({ title }: { title: string }) {
+function RecommendationsSkeleton({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
   return (
     <section className="mt-14">
-      <p className="mb-4 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
         {title}
       </p>
-      <div className="flex gap-3 overflow-hidden pb-2">
+      {subtitle && (
+        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+      )}
+      <div className="mt-4 flex gap-3 overflow-hidden pb-2">
         {Array.from({ length: 10 }).map((_, i) => (
           <div key={i} className="w-[140px] shrink-0 sm:w-[160px]">
             <Skeleton className="aspect-[2/3] w-full rounded-xl" />
@@ -24,15 +33,18 @@ function RecommendationsSkeleton({ title }: { title: string }) {
 
 async function RecommendationsLoader({
   title,
+  subtitle,
   savedTmdbIds,
 }: {
   title: string;
+  subtitle?: string;
   savedTmdbIds: Set<number>;
 }) {
   const items = await getRecommendedFromWatched();
   return (
     <RecommendationsExpandable
       title={title}
+      subtitle={subtitle}
       items={items}
       savedTmdbIds={Array.from(savedTmdbIds)}
     />
@@ -46,14 +58,20 @@ async function RecommendationsLoader({
  */
 export function RecommendationsSection({
   title,
+  subtitle,
   savedTmdbIds,
 }: {
   title: string;
+  subtitle?: string;
   savedTmdbIds: Set<number>;
 }) {
   return (
-    <Suspense fallback={<RecommendationsSkeleton title={title} />}>
-      <RecommendationsLoader title={title} savedTmdbIds={savedTmdbIds} />
+    <Suspense fallback={<RecommendationsSkeleton title={title} subtitle={subtitle} />}>
+      <RecommendationsLoader
+        title={title}
+        subtitle={subtitle}
+        savedTmdbIds={savedTmdbIds}
+      />
     </Suspense>
   );
 }
