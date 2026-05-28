@@ -55,7 +55,7 @@ export async function generateMetadata(
 
 // ─── Async sub-components (all share one cached getTitleMeta call) ──
 
-async function TitleTaglineDirector({
+async function TitleDirector({
   type,
   tmdbId,
   mediaType,
@@ -65,18 +65,12 @@ async function TitleTaglineDirector({
   mediaType: string;
 }) {
   const meta = await getTitleMeta(type, tmdbId);
+  if (meta.directedBy.length === 0) return null;
   return (
-    <>
-      {meta.tagline && (
-        <p className="mt-2 text-sm italic text-muted-foreground">{meta.tagline}</p>
-      )}
-      {meta.directedBy.length > 0 && (
-        <p className="mt-2 text-xs text-muted-foreground font-mono">
-          {mediaType === "movie" ? "Directed by" : "Created by"}{" "}
-          <span className="text-foreground">{meta.directedBy.join(", ")}</span>
-        </p>
-      )}
-    </>
+    <p className="mt-2 text-xs text-muted-foreground font-mono">
+      {mediaType === "movie" ? "Directed by" : "Created by"}{" "}
+      <span className="text-foreground">{meta.directedBy.join(", ")}</span>
+    </p>
   );
 }
 
@@ -224,6 +218,15 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               {title.title}
             </h1>
 
+            {/* Director credit — streams in right under the title */}
+            <Suspense fallback={null}>
+              <TitleDirector
+                type={title.media_type}
+                tmdbId={title.tmdb_id}
+                mediaType={title.media_type}
+              />
+            </Suspense>
+
             {/* Genre chips + rating chips — separate from title meta so they're scannable */}
             {((title.genres && title.genres.length > 0) || imdbScore || criticChip) && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -258,15 +261,6 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 )}
               </div>
             )}
-
-            {/* Tagline + director stream in (fallback=null so title stays put) */}
-            <Suspense fallback={null}>
-              <TitleTaglineDirector
-                type={title.media_type}
-                tmdbId={title.tmdb_id}
-                mediaType={title.media_type}
-              />
-            </Suspense>
 
             {/* Single action row: status · sentiment · delete · trailer · providers · add-to-list */}
             {/* Everything is h-9 so they align on the same baseline */}
