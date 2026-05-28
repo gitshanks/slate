@@ -201,8 +201,10 @@ export interface TmdbCastMember {
 export interface TmdbCrewMember {
   id: number;
   name: string;
+  /** Combined, comma-joined roles for display (e.g. "Director, Writer"). */
   job: string;
   department: string;
+  profile_path: string | null;
 }
 
 export interface TmdbProvider {
@@ -225,6 +227,8 @@ export interface TmdbDetailWithMeta {
   trailerKey: string | null;
   recommendations: TmdbSearchResult[];
   cast: TmdbCastMember[];
+  /** Key crew (director, writers, producers, DP, composer, editor…). */
+  crew: TmdbCrewMember[];
   /** Directors for movies, creators for TV — ready-formatted names. */
   directedBy: string[];
   /** Streaming availability (flatrate only, US region). Null if unavailable. */
@@ -323,6 +327,55 @@ export const getTitleMeta = cache(async (
       .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
       .slice(0, 15);
 
+    // Key crew, deduped per person with their roles combined and ordered by
+    // importance. Capped so the grid stays tidy like the cast (TMDB crew can
+    // run to 100+ entries across every department).
+    // Creative roles first; producers last so a film with a dozen exec
+    // producers doesn't crowd out the DP, composer, and editor.
+    const KEY_CREW_JOBS = [
+      "Director",
+      "Screenplay", "Writer", "Story", "Novel", "Characters",
+      "Director of Photography",
+      "Original Music Composer", "Music",
+      "Editor",
+      "Production Design",
+      "Costume Design",
+      "Producer", "Executive Producer",
+    ];
+    const crewByPerson = new Map<
+      number,
+      { id: number; name: string; profile_path: string | null; jobs: string[]; rank: number }
+    >();
+    for (const c of credits.crew ?? []) {
+      const rank = KEY_CREW_JOBS.indexOf(c.job);
+      if (rank === -1) continue;
+      const existing = crewByPerson.get(c.id);
+      if (existing) {
+        if (!existing.jobs.includes(c.job)) existing.jobs.push(c.job);
+        existing.rank = Math.min(existing.rank, rank);
+      } else {
+        crewByPerson.set(c.id, {
+          id: c.id,
+          name: c.name,
+          profile_path: c.profile_path ?? null,
+          jobs: [c.job],
+          rank,
+        });
+      }
+    }
+    const crew: TmdbCrewMember[] = [...crewByPerson.values()]
+      .sort((a, b) => a.rank - b.rank)
+      .slice(0, 12)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        profile_path: c.profile_path,
+        department: "",
+        job: c.jobs
+          .sort((x, y) => KEY_CREW_JOBS.indexOf(x) - KEY_CREW_JOBS.indexOf(y))
+          .join(", "),
+      }));
+
     // Directors for films, creators for series (from detail.created_by if present).
     let directedBy: string[] = [];
     if (type === "movie") {
@@ -349,6 +402,7 @@ export const getTitleMeta = cache(async (
       trailerKey: trailer?.key ?? null,
       recommendations,
       cast,
+      crew,
       directedBy,
       watchProviders,
     };
@@ -360,6 +414,7 @@ export const getTitleMeta = cache(async (
       trailerKey: null,
       recommendations: [],
       cast: [],
+      crew: [],
       directedBy: [],
       watchProviders: null,
     };

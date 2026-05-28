@@ -1,0 +1,81 @@
+import Link from "next/link";
+import Image from "next/image";
+import { profileUrl } from "@/lib/tmdb-image";
+
+export interface PersonTile {
+  id: number;
+  name: string;
+  /** Character (cast) or role (crew). */
+  subtitle?: string | null;
+  profilePath: string | null;
+}
+
+/**
+ * Wrapped grid of people (cast or crew) — square tiles with photo, name,
+ * and a subtitle, each linking to the person's profile. The whole set fits
+ * on the page without horizontal scrolling.
+ *
+ * Server component — takes pre-fetched data as props.
+ */
+export function PeopleGrid({
+  title,
+  people,
+}: {
+  title: string;
+  people: PersonTile[];
+}) {
+  if (!people.length) return null;
+
+  return (
+    <section className="mt-12">
+      <h2 className="mb-4 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+        {title}
+      </h2>
+
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-x-4 gap-y-6">
+        {people.map((person, i) => {
+          const photo = profileUrl(person.profilePath, "w185");
+          const initials = person.name
+            .split(" ")
+            .map((n) => n[0])
+            .filter(Boolean)
+            .slice(0, 2)
+            .join("")
+            .toUpperCase();
+
+          return (
+            <Link
+              key={`${person.id}-${i}`}
+              href={`/person/${person.id}`}
+              className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all duration-200 hoverable:group-hover:border-primary/50 hoverable:group-hover:shadow-md">
+                {photo ? (
+                  <Image
+                    src={photo}
+                    alt={person.name}
+                    fill
+                    sizes="96px"
+                    className="object-cover transition-transform duration-300 hoverable:group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-muted text-xs font-mono font-medium text-muted-foreground">
+                    {initials || "?"}
+                  </div>
+                )}
+              </div>
+              <p className="mt-2 truncate text-[11px] font-medium text-foreground transition-colors hoverable:group-hover:text-primary">
+                {person.name}
+              </p>
+              {person.subtitle && (
+                <p className="truncate text-[10px] text-muted-foreground">
+                  {person.subtitle}
+                </p>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}

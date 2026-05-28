@@ -14,6 +14,7 @@ import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
+import { CrewRail } from "@/components/crew-rail";
 import { EpisodePosition } from "@/components/episode-position";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -55,25 +56,6 @@ export async function generateMetadata(
 
 // ─── Async sub-components (all share one cached getTitleMeta call) ──
 
-async function TitleDirector({
-  type,
-  tmdbId,
-  mediaType,
-}: {
-  type: "movie" | "tv";
-  tmdbId: number;
-  mediaType: string;
-}) {
-  const meta = await getTitleMeta(type, tmdbId);
-  if (meta.directedBy.length === 0) return null;
-  return (
-    <p className="mt-2 text-xs text-muted-foreground font-mono">
-      {mediaType === "movie" ? "Directed by" : "Created by"}{" "}
-      <span className="text-foreground">{meta.directedBy.join(", ")}</span>
-    </p>
-  );
-}
-
 async function TitleTrailerAndProviders({
   type,
   tmdbId,
@@ -114,6 +96,8 @@ async function TitleCastAndRecs({
   return (
     <>
       {meta.cast.length > 0 && <CastRail cast={meta.cast} />}
+
+      {meta.crew.length > 0 && <CrewRail crew={meta.crew} />}
 
       {meta.recommendations.length > 0 && (
         <TmdbRail
@@ -217,15 +201,6 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
             <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {title.title}
             </h1>
-
-            {/* Director credit — streams in right under the title */}
-            <Suspense fallback={null}>
-              <TitleDirector
-                type={title.media_type}
-                tmdbId={title.tmdb_id}
-                mediaType={title.media_type}
-              />
-            </Suspense>
 
             {/* Genre chips + rating chips — separate from title meta so they're scannable */}
             {((title.genres && title.genres.length > 0) || imdbScore || criticChip) && (

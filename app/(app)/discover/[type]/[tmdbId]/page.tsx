@@ -16,6 +16,7 @@ import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
+import { CrewRail } from "@/components/crew-rail";
 import { AddStatusDropdown } from "@/components/add-status-dropdown";
 import {
   ImdbBadge,
@@ -199,15 +200,6 @@ export default async function DiscoverTitlePage(
               </p>
             )}
 
-            {meta.directedBy.length > 0 && (
-              <p className="mt-2 text-xs text-muted-foreground font-mono">
-                {type === "movie" ? "Directed by" : "Created by"}{" "}
-                <span className="text-foreground">
-                  {meta.directedBy.join(", ")}
-                </span>
-              </p>
-            )}
-
             {/* Action row: Add or Already saved · trailer · providers */}
             <div className="mt-6 flex flex-wrap items-center gap-2">
               {existing ? (
@@ -240,6 +232,8 @@ export default async function DiscoverTitlePage(
             )}
 
             {meta.cast.length > 0 && <CastRail cast={meta.cast} />}
+
+            {meta.crew.length > 0 && <CrewRail crew={meta.crew} />}
 
             {meta.recommendations.length > 0 && (
               <TmdbRail
