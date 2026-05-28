@@ -358,7 +358,10 @@ export const getTitleMeta = cache(async (
       vote_average: detail.vote_average ?? null,
       vote_count: detail.vote_count ?? null,
       tagline: detail.tagline ?? null,
-      reviews: reviews.results.slice(0, 10),
+      // Keep the full first page (TMDB returns up to 20 per title in the same
+      // append_to_response call, so this is free). The UI shows a short
+      // preview and expands to all on demand.
+      reviews: reviews.results.slice(0, 20),
       trailerKey: trailer?.key ?? null,
       recommendations,
       cast,

@@ -31,6 +31,10 @@ function formatDate(iso: string): string {
   });
 }
 
+// Reviews start collapsed to a short preview so the "If you liked…" rail
+// below stays within easy reach; expand to read the full set.
+const PREVIEW_COUNT = 3;
+
 export function TitleReviews({
   reviews,
   tmdbUrl,
@@ -38,7 +42,12 @@ export function TitleReviews({
   reviews: TmdbReview[];
   tmdbUrl: string;
 }) {
+  const [showAll, setShowAll] = React.useState(false);
   if (reviews.length === 0) return null;
+
+  const visible = showAll ? reviews : reviews.slice(0, PREVIEW_COUNT);
+  const hasMore = reviews.length > PREVIEW_COUNT;
+
   return (
     <div className="mt-12">
       <a
@@ -52,10 +61,23 @@ export function TitleReviews({
       </a>
 
       <div className="mt-5 space-y-3">
-        {reviews.map((r) => (
+        {visible.map((r) => (
           <ReviewCard key={r.id} review={r} />
         ))}
       </div>
+
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setShowAll((s) => !s)}
+          className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          {showAll ? "Show fewer reviews" : `Show all ${reviews.length} reviews`}
+          <ChevronDown
+            className={cn("h-4 w-4 transition-transform", showAll && "rotate-180")}
+          />
+        </button>
+      )}
     </div>
   );
 }
