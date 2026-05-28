@@ -3,22 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Clock, Eye, Check, Layers, Upload } from "lucide-react";
+import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_ROOT } from "@/lib/public-mode";
 import { useCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PwaInstallButton } from "@/components/pwa-install-button";
 
-// Icons mirror the bottom nav + status dropdown (Clock / Eye / Check for
-// want / watching / watched) so the three near-identical "Watch-" labels
-// are instantly distinguishable here too.
 const LINKS = [
-  { href: APP_ROOT, label: "Watchlist", icon: Clock },
-  { href: "/watching", label: "Watching", icon: Eye },
-  { href: "/watched", label: "Watched", icon: Check },
-  { href: "/lists", label: "Lists", icon: Layers },
-  { href: "/import", label: "Import", icon: Upload },
+  { href: APP_ROOT, label: "Watchlist" },
+  { href: "/watching", label: "Watching" },
+  { href: "/watched", label: "Watched" },
+  { href: "/lists", label: "Lists" },
+  { href: "/import", label: "Import" },
 ];
 
 /**
@@ -66,26 +63,18 @@ export function TopNav() {
             {LINKS.map((l) => {
               const active =
                 l.href === APP_ROOT ? pathname === APP_ROOT : pathname.startsWith(l.href);
-              const Icon = l.icon;
               return (
                 <Link
                   key={l.href}
                   href={l.href}
                   prefetch
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors",
+                    "rounded-full px-3.5 py-1.5 text-sm transition-colors",
                     active
                       ? "bg-accent text-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
                   )}
                 >
-                  <Icon
-                    className={cn(
-                      "h-4 w-4 shrink-0",
-                      active ? "text-primary" : "text-muted-foreground"
-                    )}
-                    aria-hidden
-                  />
                   {l.label}
                 </Link>
               );
