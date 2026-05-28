@@ -1,7 +1,9 @@
 /**
- * Inline rating — branded badge + score, optionally linked to the source.
- * Sits in the title/discover meta line (Film · Year · Runtime · …) so it
- * matches that row's plain mono style rather than being a separate pill.
+ * A rating — branded badge + score, optionally linked to the source.
+ *
+ * "inline" sits in the title/discover meta line (Film · Year · Runtime · …)
+ * matching that row's plain mono style; used on desktop. "pill" is the
+ * standalone bordered chip used in the mobile chip row below the title.
  */
 
 import * as React from "react";
@@ -13,9 +15,10 @@ interface RatingChipProps {
   label: string;
   /** External URL for the score's source. Renders as plain text if absent. */
   href?: string | null;
+  variant?: "inline" | "pill";
 }
 
-export function RatingChip({ icon, label, href }: RatingChipProps) {
+export function RatingChip({ icon, label, href, variant = "inline" }: RatingChipProps) {
   const inner = (
     <>
       {icon}
@@ -23,17 +26,24 @@ export function RatingChip({ icon, label, href }: RatingChipProps) {
     </>
   );
 
+  const base =
+    variant === "pill"
+      ? "inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px]"
+      : "inline-flex items-center gap-1";
+
   if (href) {
+    const hover =
+      variant === "pill" ? "hover:bg-card/70" : "hover:text-foreground";
     return (
       <a
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+        className={`${base} transition-colors ${hover}`}
       >
         {inner}
       </a>
     );
   }
-  return <span className="inline-flex items-center gap-1">{inner}</span>;
+  return <span className={base}>{inner}</span>;
 }

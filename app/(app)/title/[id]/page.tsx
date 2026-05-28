@@ -195,48 +195,90 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                   <span>{runtime}</span>
                 </>
               )}
-              {(title.genres ?? []).map((g) => (
-                <Fragment key={g.id}>
-                  <span aria-hidden className="opacity-40">·</span>
-                  <span>{g.name}</span>
-                </Fragment>
-              ))}
-              {imdbScore && (
-                <>
-                  <span aria-hidden className="opacity-40">·</span>
-                  <RatingChip
-                    icon={<ImdbBadge className="h-3 w-auto" />}
-                    label={imdbScore}
-                    href={imdbUrl}
-                  />
-                </>
-              )}
-              {criticChip?.kind === "rt" && (
-                <>
-                  <span aria-hidden className="opacity-40">·</span>
-                  <RatingChip
-                    icon={<RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />}
-                    label={criticChip.label}
-                    href={criticChip.href}
-                  />
-                </>
-              )}
-              {criticChip?.kind === "mc" && (
-                <>
-                  <span aria-hidden className="opacity-40">·</span>
-                  <RatingChip
-                    icon={<MetacriticBadge score={criticChip.score} className="h-3 w-auto" />}
-                    label={criticChip.label}
-                    href={criticChip.href}
-                  />
-                </>
-              )}
+              {/* Desktop: genres + ratings inline in the meta line. */}
+              <span className="hidden sm:contents">
+                {(title.genres ?? []).map((g) => (
+                  <Fragment key={g.id}>
+                    <span aria-hidden className="opacity-40">·</span>
+                    <span>{g.name}</span>
+                  </Fragment>
+                ))}
+                {imdbScore && (
+                  <>
+                    <span aria-hidden className="opacity-40">·</span>
+                    <RatingChip
+                      icon={<ImdbBadge className="h-3 w-auto" />}
+                      label={imdbScore}
+                      href={imdbUrl}
+                    />
+                  </>
+                )}
+                {criticChip?.kind === "rt" && (
+                  <>
+                    <span aria-hidden className="opacity-40">·</span>
+                    <RatingChip
+                      icon={<RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />}
+                      label={criticChip.label}
+                      href={criticChip.href}
+                    />
+                  </>
+                )}
+                {criticChip?.kind === "mc" && (
+                  <>
+                    <span aria-hidden className="opacity-40">·</span>
+                    <RatingChip
+                      icon={<MetacriticBadge score={criticChip.score} className="h-3 w-auto" />}
+                      label={criticChip.label}
+                      href={criticChip.href}
+                    />
+                  </>
+                )}
+              </span>
             </div>
 
             {/* Title */}
             <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {title.title}
             </h1>
+
+            {/* Mobile: genres + ratings as chips below the title (the inline
+                meta-line version above is desktop-only). */}
+            {((title.genres && title.genres.length > 0) || imdbScore || criticChip) && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">
+                {(title.genres ?? []).map((g) => (
+                  <span
+                    key={g.id}
+                    className="inline-flex h-6 items-center rounded-full bg-muted/60 px-2.5 text-[11px] text-foreground/80"
+                  >
+                    {g.name}
+                  </span>
+                ))}
+                {imdbScore && (
+                  <RatingChip
+                    variant="pill"
+                    icon={<ImdbBadge className="h-3 w-auto" />}
+                    label={imdbScore}
+                    href={imdbUrl}
+                  />
+                )}
+                {criticChip?.kind === "rt" && (
+                  <RatingChip
+                    variant="pill"
+                    icon={<RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />}
+                    label={criticChip.label}
+                    href={criticChip.href}
+                  />
+                )}
+                {criticChip?.kind === "mc" && (
+                  <RatingChip
+                    variant="pill"
+                    icon={<MetacriticBadge score={criticChip.score} className="h-3 w-auto" />}
+                    label={criticChip.label}
+                    href={criticChip.href}
+                  />
+                )}
+              </div>
+            )}
 
             {/* Single action row: status · sentiment · delete · trailer · providers · add-to-list */}
             {/* Everything is h-9 so they align on the same baseline */}
