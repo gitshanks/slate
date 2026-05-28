@@ -35,10 +35,12 @@ async function RecommendationsLoader({
   title,
   subtitle,
   savedTmdbIds,
+  preview,
 }: {
   title: string;
   subtitle?: string;
   savedTmdbIds: Set<number>;
+  preview?: boolean;
 }) {
   const items = await getRecommendedFromWatched();
   return (
@@ -47,6 +49,7 @@ async function RecommendationsLoader({
       subtitle={subtitle}
       items={items}
       savedTmdbIds={Array.from(savedTmdbIds)}
+      preview={preview}
     />
   );
 }
@@ -60,10 +63,12 @@ export function RecommendationsSection({
   title,
   subtitle,
   savedTmdbIds,
+  preview,
 }: {
   title: string;
   subtitle?: string;
   savedTmdbIds: Set<number>;
+  preview?: boolean;
 }) {
   return (
     <Suspense fallback={<RecommendationsSkeleton title={title} subtitle={subtitle} />}>
@@ -71,6 +76,7 @@ export function RecommendationsSection({
         title={title}
         subtitle={subtitle}
         savedTmdbIds={savedTmdbIds}
+        preview={preview}
       />
     </Suspense>
   );

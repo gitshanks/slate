@@ -14,6 +14,9 @@ interface RecommendationsExpandableProps {
   subtitle?: string;
   items: TmdbSearchResult[];
   savedTmdbIds?: number[];
+  /** Teaser mode: show only the first row, no inline expand (a "See all"
+   *  link elsewhere takes over). */
+  preview?: boolean;
 }
 
 /**
@@ -28,6 +31,7 @@ export function RecommendationsExpandable({
   subtitle,
   items,
   savedTmdbIds,
+  preview = false,
 }: RecommendationsExpandableProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -35,8 +39,8 @@ export function RecommendationsExpandable({
 
   const savedSet = new Set<number>(savedTmdbIds ?? []);
   const hiddenCount = Math.max(items.length - COLLAPSED_COUNT, 0);
-  const canExpand = hiddenCount > 0;
-  const visibleItems = expanded ? items : items.slice(0, COLLAPSED_COUNT);
+  const canExpand = !preview && hiddenCount > 0;
+  const visibleItems = !preview && expanded ? items : items.slice(0, COLLAPSED_COUNT);
 
   return (
     <section className="mt-14">
