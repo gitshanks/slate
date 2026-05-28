@@ -1,3 +1,6 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { profileUrl } from "@/lib/tmdb-image";
@@ -11,11 +14,14 @@ export interface PersonTile {
 }
 
 /**
- * Wrapped grid of people (cast or crew) — square tiles with photo, name,
- * and a subtitle, each linking to the person's profile. The whole set fits
- * on the page without horizontal scrolling.
+ * Wrapped grid of people (cast or crew) — square photo tiles, each linking
+ * to the person's profile. The whole set fits on the page without
+ * horizontal scrolling.
  *
- * Server component — takes pre-fetched data as props.
+ * Columns auto-fill by tile width, but we nudge the count down by one
+ * whenever the last row would otherwise hold a single orphan — so wide
+ * screens never leave one lonely person stranded on their own line. No one
+ * is dropped; the row just rebalances.
  */
 export function PeopleGrid({
   title,
@@ -24,6 +30,38 @@ export function PeopleGrid({
   title: string;
   people: PersonTile[];
 }) {
+  const gridRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const el = gridRef.current;
+    if (!el || people.length === 0) return;
+
+    let lastWidth = -1;
+    const adjust = () => {
+      const width = el.clientWidth;
+      if (width === lastWidth) return; // ignore the height change our own fix causes
+      lastWidth = width;
+
+      // Restore the responsive auto-fill, then read how many columns it
+      // resolves to at this width.
+      el.style.gridTemplateColumns = "";
+      const natural = getComputedStyle(el).gridTemplateColumns.split(" ").length;
+
+      let cols = natural;
+      while (cols > 1 && people.length > cols && people.length % cols === 1) {
+        cols--;
+      }
+      if (cols < natural) {
+        el.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+      }
+    };
+
+    adjust();
+    const ro = new ResizeObserver(adjust);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [people.length]);
+
   if (!people.length) return null;
 
   return (
@@ -32,7 +70,10 @@ export function PeopleGrid({
         {title}
       </h2>
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-x-4 gap-y-6">
+      <div
+        ref={gridRef}
+        className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-x-4 gap-y-6"
+      >
         {people.map((person, i) => {
           const photo = profileUrl(person.profilePath, "w185");
           const initials = person.name
