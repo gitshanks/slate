@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Star, ExternalLink } from "lucide-react";
 import { supabase, type TitleRow } from "@/lib/supabase";
 import { getTitleMeta } from "@/lib/tmdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
@@ -14,6 +13,7 @@ import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { TmdbRail } from "@/components/tmdb-rail";
+import { TitleReviews } from "@/components/title-reviews";
 import { CastRail } from "@/components/cast-rail";
 import { EpisodePosition } from "@/components/episode-position";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -124,53 +124,7 @@ async function TitleCastRecsReviews({
     <>
       {meta.cast.length > 0 && <CastRail cast={meta.cast} />}
 
-      {meta.reviews.length > 0 && (
-        <div className="mt-12">
-          <a
-            href={tmdbUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono hover:text-foreground transition-colors"
-          >
-            What people are saying
-            <ExternalLink className="h-3 w-3" />
-          </a>
-          <div className="mt-5 space-y-4">
-            {meta.reviews.map((r) => {
-              const rating = r.author_details?.rating ?? null;
-              const date = new Date(r.created_at).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              });
-              return (
-                <article
-                  key={r.id}
-                  className="rounded-2xl border border-border bg-card p-5"
-                >
-                  <header className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-sm font-medium">{r.author}</span>
-                      {rating != null && (
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-mono">
-                          <Star className="h-3 w-3 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
-                          {rating.toFixed(1)}
-                        </span>
-                      )}
-                    </div>
-                    <span className="shrink-0 text-[11px] text-muted-foreground font-mono">
-                      {date}
-                    </span>
-                  </header>
-                  <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/80">
-                    {r.content}
-                  </p>
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <TitleReviews reviews={meta.reviews} tmdbUrl={tmdbUrl} />
 
       {meta.recommendations.length > 0 && (
         <TmdbRail
