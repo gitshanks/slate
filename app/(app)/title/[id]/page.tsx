@@ -125,6 +125,7 @@ async function TitleCastAndRecs({
         <TmdbRail
           title={`If you liked ${titleName}…`}
           items={meta.recommendations}
+          layout="grid"
         />
       )}
     </>

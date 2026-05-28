@@ -245,6 +245,7 @@ export default async function DiscoverTitlePage(
               <TmdbRail
                 title={`If you liked ${titleName}…`}
                 items={meta.recommendations}
+                layout="grid"
               />
             )}
           </div>

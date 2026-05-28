@@ -2,15 +2,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { profileUrl } from "@/lib/tmdb-image";
 import type { TmdbCastMember } from "@/lib/tmdb";
-import { RailScroller } from "@/components/rail-scroller";
 
 interface CastRailProps {
   cast: TmdbCastMember[];
 }
 
 /**
- * Grid of billed cast members. Each tile links to the person's profile page.
- * Responsive: 4 columns on mobile, 8 on desktop.
+ * Billed cast as a wrapped grid — the whole set fits on the page without
+ * horizontal scrolling. Each tile links to the person's profile page.
  *
  * Server component — takes pre-fetched data as props.
  */
@@ -23,8 +22,7 @@ export function CastRail({ cast }: CastRailProps) {
         Cast
       </h2>
 
-      <div>
-      <RailScroller>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-x-4 gap-y-6">
         {cast.map((member) => {
           const photo = profileUrl(member.profile_path, "w185");
           const initials = member.name
@@ -39,7 +37,7 @@ export function CastRail({ cast }: CastRailProps) {
             <Link
               key={member.id}
               href={`/person/${member.id}`}
-              className="group block shrink-0 w-[72px] snap-start focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-full"
+              className="group block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <div className="relative aspect-square w-full overflow-hidden rounded-full border border-border bg-card shadow-sm transition-all duration-200 hoverable:group-hover:border-primary/50 hoverable:group-hover:shadow-md">
                 {photo ? (
@@ -47,7 +45,7 @@ export function CastRail({ cast }: CastRailProps) {
                     src={photo}
                     alt={member.name}
                     fill
-                    sizes="(max-width: 640px) 88px, (max-width: 768px) 72px, 64px"
+                    sizes="96px"
                     className="object-cover transition-transform duration-300 hoverable:group-hover:scale-105"
                   />
                 ) : (
@@ -67,7 +65,6 @@ export function CastRail({ cast }: CastRailProps) {
             </Link>
           );
         })}
-      </RailScroller>
       </div>
     </section>
   );

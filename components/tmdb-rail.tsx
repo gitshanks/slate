@@ -7,15 +7,28 @@ interface TmdbRailProps {
   items: TmdbSearchResult[];
   /** tmdb_ids of titles already in the user's library — shows a "saved" badge. */
   savedTmdbIds?: Set<number>;
+  /**
+   * "scroll" (default) is a horizontal rail for busy, multi-rail surfaces
+   * like the home page. "grid" wraps everything into view at once — used on
+   * detail pages where there's vertical room and the full set should be
+   * visible without scrolling.
+   */
+  layout?: "scroll" | "grid";
 }
 
 /**
- * Horizontal scroller of TMDB search results. Each tile deep-links to the
- * discover preview page so the user can review before committing to add.
+ * TMDB results as either a horizontal scroller or a wrapped grid. Each tile
+ * deep-links to the discover preview page so the user can review before
+ * committing to add.
  *
  * Server component — takes pre-fetched data as props.
  */
-export function TmdbRail({ title, items, savedTmdbIds }: TmdbRailProps) {
+export function TmdbRail({
+  title,
+  items,
+  savedTmdbIds,
+  layout = "scroll",
+}: TmdbRailProps) {
   if (items.length === 0) return null;
 
   return (
@@ -26,17 +39,30 @@ export function TmdbRail({ title, items, savedTmdbIds }: TmdbRailProps) {
         </h2>
       </div>
 
-      <div>
-        <RailScroller>
+      {layout === "grid" ? (
+        <div className="grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-5 2xl:grid-cols-6">
           {items.map((item) => (
             <TmdbTile
               key={`${item.media_type}-${item.id}`}
               item={item}
               saved={savedTmdbIds?.has(item.id) ?? false}
+              variant="grid"
             />
           ))}
-        </RailScroller>
-      </div>
+        </div>
+      ) : (
+        <div>
+          <RailScroller>
+            {items.map((item) => (
+              <TmdbTile
+                key={`${item.media_type}-${item.id}`}
+                item={item}
+                saved={savedTmdbIds?.has(item.id) ?? false}
+              />
+            ))}
+          </RailScroller>
+        </div>
+      )}
     </section>
   );
 }
