@@ -190,15 +190,6 @@ export async function getTv(id: number) {
   return { ...raw, imdb_id } as TmdbTvDetail;
 }
 
-export interface TmdbReview {
-  id: string;
-  author: string;
-  author_details?: { rating: number | null; avatar_path: string | null };
-  content: string;
-  created_at: string;
-  url: string;
-}
-
 export interface TmdbCastMember {
   id: number;
   name: string;
@@ -231,7 +222,6 @@ export interface TmdbDetailWithMeta {
   vote_average: number | null;
   vote_count: number | null;
   tagline: string | null;
-  reviews: TmdbReview[];
   trailerKey: string | null;
   recommendations: TmdbSearchResult[];
   cast: TmdbCastMember[];
@@ -290,7 +280,6 @@ export const getTitleMeta = cache(async (
     const data = await tmdb<
       (TmdbMovieDetail | TmdbTvDetail) & {
         created_by?: { name: string }[];
-        reviews?: { results: TmdbReview[] };
         videos?: { results: TmdbVideo[] };
         recommendations?: { results: TmdbSearchResult[] };
         credits?: { cast: TmdbCastMember[]; crew: TmdbCrewMember[] };
@@ -300,11 +289,10 @@ export const getTitleMeta = cache(async (
       }
     >(`/${type}/${tmdbId}`, {
       language: "en-US",
-      append_to_response: "reviews,videos,recommendations,credits,watch/providers",
+      append_to_response: "videos,recommendations,credits,watch/providers",
     });
 
     const detail = data;
-    const reviews = data.reviews ?? { results: [] as TmdbReview[] };
     const videos = data.videos ?? { results: [] as TmdbVideo[] };
     const recs = data.recommendations ?? { results: [] as TmdbSearchResult[] };
     const credits = data.credits ?? {
@@ -358,10 +346,6 @@ export const getTitleMeta = cache(async (
       vote_average: detail.vote_average ?? null,
       vote_count: detail.vote_count ?? null,
       tagline: detail.tagline ?? null,
-      // Keep the full first page (TMDB returns up to 20 per title in the same
-      // append_to_response call, so this is free). The UI shows a short
-      // preview and expands to all on demand.
-      reviews: reviews.results.slice(0, 20),
       trailerKey: trailer?.key ?? null,
       recommendations,
       cast,
@@ -373,7 +357,6 @@ export const getTitleMeta = cache(async (
       vote_average: null,
       vote_count: null,
       tagline: null,
-      reviews: [],
       trailerKey: null,
       recommendations: [],
       cast: [],

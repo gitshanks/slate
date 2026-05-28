@@ -68,11 +68,6 @@ const nextConfig: NextConfig = {
         hostname: "image.tmdb.org",
         pathname: "/t/p/**",
       },
-      // TMDB review avatars are sometimes stored as gravatar URLs.
-      {
-        protocol: "https",
-        hostname: "secure.gravatar.com",
-      },
     ],
   },
 };

@@ -13,7 +13,6 @@ import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { TmdbRail } from "@/components/tmdb-rail";
-import { TitleReviews } from "@/components/title-reviews";
 import { CastRail } from "@/components/cast-rail";
 import { EpisodePosition } from "@/components/episode-position";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -108,23 +107,19 @@ async function TitleTrailerAndProviders({
   );
 }
 
-async function TitleCastRecsReviews({
+async function TitleCastAndRecs({
   type,
   tmdbId,
   titleName,
-  tmdbUrl,
 }: {
   type: "movie" | "tv";
   tmdbId: number;
   titleName: string;
-  tmdbUrl: string;
 }) {
   const meta = await getTitleMeta(type, tmdbId);
   return (
     <>
       {meta.cast.length > 0 && <CastRail cast={meta.cast} />}
-
-      <TitleReviews reviews={meta.reviews} tmdbUrl={tmdbUrl} />
 
       {meta.recommendations.length > 0 && (
         <TmdbRail
@@ -152,7 +147,6 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const year = formatYear(title.release_date);
   const runtime = formatRuntime(title.runtime);
   const ambientBg = rawPosterUrl(title.poster_path, "w342");
-  const tmdbUrl = `https://www.themoviedb.org/${title.media_type}/${title.tmdb_id}`;
   const imdbScore = formatImdbRating(title.imdb_rating);
   const rtScore = formatRtScore(title.rt_score);
   const mcScore = formatMetacriticScore(title.metacritic_score);
@@ -347,11 +341,10 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 </div>
               }
             >
-              <TitleCastRecsReviews
+              <TitleCastAndRecs
                 type={title.media_type}
                 tmdbId={title.tmdb_id}
                 titleName={title.title}
-                tmdbUrl={tmdbUrl}
               />
             </Suspense>
           </div>
