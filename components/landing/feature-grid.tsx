@@ -101,34 +101,55 @@ export function FeatureGrid() {
   );
 }
 
+/**
+ * Each feature reads like a film production slate — the object the app is
+ * named after. A hinged clapper stick (the diagonal stripes) sits on top,
+ * the board below carries stencilled SLATE/TAKE fields, and on hover the
+ * clapper snaps shut. Cinema-coherent with the poster-wall hero and a long
+ * way from the stock icon-chip feature card.
+ */
 function FeatureCell({ feature, index }: { feature: Feature; index: number }) {
   const { icon: Icon } = feature;
-  return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border bg-card/50 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:bg-card sm:p-7">
-      {/* Corner glow on hover — the only motion these cards need. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/15 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
-      />
+  const slate = String(index + 1).padStart(2, "0");
 
-      <div className="flex items-start justify-between">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-colors group-hover:bg-primary/15">
-          <Icon className="h-5 w-5" />
+  return (
+    <div className="group relative overflow-hidden rounded-lg border border-border bg-card/40 transition-all duration-300 hover:-translate-y-1 hover:bg-card hover:shadow-[0_24px_48px_-28px_rgba(0,0,0,0.75)]">
+      {/* Clapper stick: hinged at the left, snaps shut on hover. */}
+      <div className="relative h-9 border-b border-border bg-background/40">
+        <div
+          aria-hidden
+          className="absolute inset-0 origin-left -rotate-[7deg] transition-transform duration-300 ease-out group-hover:rotate-0"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(-56deg, hsl(var(--foreground) / 0.85) 0 12px, transparent 12px 24px)",
+            opacity: 0.5,
+          }}
+        />
+        <div className="relative flex h-full items-center justify-between px-4">
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-foreground/75">
+            Slate {slate}
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground/70">
+            Take 1
+          </span>
         </div>
-        <span className="font-mono text-xs text-muted-foreground/50 tabular-nums">
-          {String(index + 1).padStart(2, "0")}
-        </span>
       </div>
 
-      <p className="mt-6 text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono">
-        {feature.eyebrow}
-      </p>
-      <h3 className="mt-1.5 text-lg font-semibold tracking-tight text-foreground">
-        {feature.title}
-      </h3>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        {feature.body}
-      </p>
+      {/* The board. */}
+      <div className="p-6 sm:p-7">
+        <div className="flex items-center gap-2.5 text-primary">
+          <Icon className="h-4 w-4" />
+          <p className="text-[10px] uppercase tracking-[0.2em] font-mono">
+            {feature.eyebrow}
+          </p>
+        </div>
+        <h3 className="mt-3 text-lg font-semibold tracking-tight text-foreground">
+          {feature.title}
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          {feature.body}
+        </p>
+      </div>
     </div>
   );
 }
