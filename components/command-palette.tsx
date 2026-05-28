@@ -382,7 +382,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                 aiMode ? "right-12 sm:right-24" : "right-12",
                 aiMode
                   ? "text-primary bg-primary/10 hover:bg-primary/15"
-                  : "text-muted-foreground/70 hover:text-foreground hover:bg-accent"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
               )}
             >
               <Sparkles className="h-3.5 w-3.5" />
