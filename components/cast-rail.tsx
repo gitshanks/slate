@@ -37,9 +37,9 @@ export function CastRail({ cast }: CastRailProps) {
             <Link
               key={member.id}
               href={`/person/${member.id}`}
-              className="group block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <div className="relative aspect-square w-full overflow-hidden rounded-full border border-border bg-card shadow-sm transition-all duration-200 hoverable:group-hover:border-primary/50 hoverable:group-hover:shadow-md">
+              <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all duration-200 hoverable:group-hover:border-primary/50 hoverable:group-hover:shadow-md">
                 {photo ? (
                   <Image
                     src={photo}
@@ -54,11 +54,11 @@ export function CastRail({ cast }: CastRailProps) {
                   </div>
                 )}
               </div>
-              <p className="mt-2 truncate text-center text-[11px] font-medium text-foreground transition-colors hoverable:group-hover:text-primary">
+              <p className="mt-2 truncate text-[11px] font-medium text-foreground transition-colors hoverable:group-hover:text-primary">
                 {member.name}
               </p>
               {member.character && (
-                <p className="truncate text-center text-[10px] text-muted-foreground">
+                <p className="truncate text-[10px] text-muted-foreground">
                   {member.character}
                 </p>
               )}
