@@ -2,9 +2,17 @@ import Image from "next/image";
 import { backdropUrl } from "@/lib/tmdb";
 
 /**
- * Renders the title's backdrop as a page background behind content.
- * Absolutely positioned inside a `relative` parent — content lives in
- * normal flow on top of it with z-10.
+ * Cinematic header backdrop. Sized to FILL its relative parent (the title
+ * header wrapper) rather than a fixed height, so the dark scrim always
+ * covers exactly the header content — meta, title, chips, actions, overview
+ * — no matter how long the title or synopsis runs. It extends up under the
+ * translucent nav and breaks out to the full viewport width.
+ *
+ * The scrim is theme-INDEPENDENT (dark in both modes): a cinematic backdrop
+ * is fundamentally a dark treatment; a light scrim just fogs the image. So
+ * header text on top must be light in both themes (see the title page). The
+ * bottom edge dissolves into the page background so the body below reads on
+ * a clean surface in either theme.
  */
 export function BackdropHero({
   path,
@@ -17,7 +25,7 @@ export function BackdropHero({
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute left-1/2 right-1/2 top-0 -ml-[50vw] -mr-[50vw] -mt-16 h-[calc(100vh+4rem)] min-h-[760px] w-screen overflow-hidden"
+      className="pointer-events-none absolute -top-16 bottom-0 left-1/2 -ml-[50vw] w-screen overflow-hidden"
     >
       {src ? (
         <Image
@@ -29,24 +37,36 @@ export function BackdropHero({
           className="object-cover"
         />
       ) : (
-        <div className="h-full w-full bg-card" />
+        <div className="h-full w-full bg-neutral-900" />
       )}
-      {/* Global darkening + fade to bg at bottom + gentle left weight for text */}
+
+      {/* Left-weighted dark scrim for title legibility — theme-independent. */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to right, hsl(var(--background) / 0.9) 0%, hsl(var(--background) / 0.7) 35%, hsl(var(--background) / 0.35) 60%, hsl(var(--background) / 0.15) 100%)",
+            "linear-gradient(to right, rgba(8,8,11,0.92) 0%, rgba(8,8,11,0.74) 34%, rgba(8,8,11,0.42) 62%, rgba(8,8,11,0.16) 100%)",
         }}
       />
+      {/* Slight top scrim so anything under the translucent nav stays legible. */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to top, hsl(var(--background)) 0%, hsl(var(--background) / 0.3) 40%, transparent 85%)",
+            "linear-gradient(to bottom, rgba(8,8,11,0.6) 0%, transparent 22%)",
         }}
       />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(var(--primary)/0.15),transparent_60%)]" />
+      {/* Dissolve the bottom edge into the page background (theme-aware) so the
+          body content below reads on a clean surface in both themes. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to top, hsl(var(--background)) 0%, hsl(var(--background) / 0.5) 12%, transparent 30%)",
+        }}
+      />
+      {/* Accent glow, top-right. */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(var(--primary)/0.16),transparent_60%)]" />
     </div>
   );
 }
