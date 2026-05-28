@@ -140,7 +140,7 @@ export function WatchedStats({ titles }: WatchedStatsProps) {
             ))}
           </div>
           {unrated > 0 && (
-            <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+            <p className="mt-2 font-mono text-[11px] text-muted-foreground/60">
               · {unrated} unrated
             </p>
           )}

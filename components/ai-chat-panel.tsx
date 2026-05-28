@@ -239,7 +239,7 @@ export function AiChatPanel({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground/70">
               e.g. <em>&ldquo;cozy autumn mysteries&rdquo;</em>,{" "}
               <em>&ldquo;A24 horror after 2020&rdquo;</em>
             </p>
@@ -339,7 +339,7 @@ function AssistantBubble({
       )}
 
       {turn.intent && (
-        <div className="ml-8 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+        <div className="ml-8 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70">
           <Wand2 className="h-3 w-3" />
           <span className="normal-case tracking-normal">
             {summarizeIntent(turn.intent)}
