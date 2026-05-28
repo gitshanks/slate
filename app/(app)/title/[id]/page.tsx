@@ -69,12 +69,12 @@ async function TitleTaglineDirector({
   return (
     <>
       {meta.tagline && (
-        <p className="mt-2 text-sm italic text-white/70">{meta.tagline}</p>
+        <p className="mt-2 text-sm italic text-muted-foreground">{meta.tagline}</p>
       )}
       {meta.directedBy.length > 0 && (
-        <p className="mt-2 text-xs text-white/60 font-mono">
+        <p className="mt-2 text-xs text-muted-foreground font-mono">
           {mediaType === "movie" ? "Directed by" : "Created by"}{" "}
-          <span className="text-white/90">{meta.directedBy.join(", ")}</span>
+          <span className="text-foreground">{meta.directedBy.join(", ")}</span>
         </p>
       )}
     </>
@@ -244,17 +244,16 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
         />
       )}
 
-      {/* Cinematic header — the backdrop fills this wrapper, so the dark
-          scrim covers exactly the header block (meta → overview) regardless
-          of title/synopsis length. Text on the scrim is light in both themes. */}
-      <div className="relative isolate">
-        <BackdropHero path={title.backdrop_path} alt={title.title} />
+      <BackdropHero path={title.backdrop_path} alt={title.title} />
 
-        <div className="relative z-10 px-4 pb-16 pt-24 text-white sm:px-6 sm:pb-20 lg:px-10 lg:pt-28">
+      <div className="relative z-10 pt-8 px-4 sm:pt-10 sm:px-6 lg:pt-14 lg:px-10">
+        <div>
+
+          {/* Main content */}
           <div>
             {/* Primary meta — type · year · runtime, kept tight and readable */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-mono uppercase tracking-[0.08em] text-white/55">
-              <span className="text-white/85">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-mono uppercase tracking-[0.08em] text-muted-foreground">
+              <span className="text-foreground/80">
                 {title.media_type === "movie" ? "Film" : "Series"}
               </span>
               {year && (
@@ -272,7 +271,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
             </div>
 
             {/* Title */}
-            <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-tight text-white drop-shadow-sm sm:text-4xl md:text-5xl">
+            <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {title.title}
             </h1>
 
@@ -282,7 +281,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 {(title.genres ?? []).map((g) => (
                   <span
                     key={g.id}
-                    className="inline-flex h-6 items-center rounded-full bg-white/10 px-2.5 text-[11px] text-white/85 ring-1 ring-inset ring-white/15 backdrop-blur-sm"
+                    className="inline-flex h-6 items-center rounded-full bg-muted/60 px-2.5 text-[11px] text-foreground/80"
                   >
                     {g.name}
                   </span>
@@ -359,19 +358,13 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 </div>
               )}
 
-            {/* Overview — last item in the cinematic header */}
+            {/* Overview — from Supabase, immediate */}
             {title.overview && (
-              <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/85">
+              <p className="mt-6 max-w-2xl text-base leading-relaxed text-foreground/85">
                 {title.overview}
               </p>
             )}
-          </div>
-        </div>
-      </div>
 
-      {/* Body — clean theme surface below the cinematic header */}
-      <div className="relative z-10 px-4 pt-10 sm:px-6 lg:px-10">
-        <div>
             {/* Your saved note */}
             {title.review && (
               <div className="mt-8 rounded-2xl border border-border bg-card p-6">
@@ -407,6 +400,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 tmdbUrl={tmdbUrl}
               />
             </Suspense>
+          </div>
         </div>
       </div>
     </div>
