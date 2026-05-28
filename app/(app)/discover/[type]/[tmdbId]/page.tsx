@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -153,46 +154,47 @@ export default async function DiscoverTitlePage(
                   <span>{runtime}</span>
                 </>
               )}
-            </div>
-
-            <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
-              {titleName}
-            </h1>
-
-            {/* Genre chips + rating chips */}
-            {(genres.length > 0 || imdbScore || criticChip) && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {genres.map((g) => (
-                  <span
-                    key={g.id}
-                    className="inline-flex h-6 items-center rounded-full bg-muted/60 px-2.5 text-[11px] text-foreground/80"
-                  >
-                    {g.name}
-                  </span>
-                ))}
-                {imdbScore && (
+              {genres.map((g) => (
+                <Fragment key={g.id}>
+                  <span aria-hidden className="opacity-40">·</span>
+                  <span>{g.name}</span>
+                </Fragment>
+              ))}
+              {imdbScore && (
+                <>
+                  <span aria-hidden className="opacity-40">·</span>
                   <RatingChip
                     icon={<ImdbBadge className="h-3 w-auto" />}
                     label={imdbScore}
                     href={imdbUrl}
                   />
-                )}
-                {criticChip?.kind === "rt" && (
+                </>
+              )}
+              {criticChip?.kind === "rt" && (
+                <>
+                  <span aria-hidden className="opacity-40">·</span>
                   <RatingChip
                     icon={<RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />}
                     label={criticChip.label}
                     href={criticChip.href}
                   />
-                )}
-                {criticChip?.kind === "mc" && (
+                </>
+              )}
+              {criticChip?.kind === "mc" && (
+                <>
+                  <span aria-hidden className="opacity-40">·</span>
                   <RatingChip
                     icon={<MetacriticBadge score={criticChip.score} className="h-3 w-auto" />}
                     label={criticChip.label}
                     href={criticChip.href}
                   />
-                )}
-              </div>
-            )}
+                </>
+              )}
+            </div>
+
+            <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
+              {titleName}
+            </h1>
 
             {meta.tagline && (
               <p className="mt-2 text-sm italic text-muted-foreground">
