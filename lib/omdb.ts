@@ -55,7 +55,10 @@ export async function getOmdbRatings(imdbId: string): Promise<OmdbRatings> {
 
   let json: OmdbResponse & { Error?: string };
   try {
-    const res = await fetch(url, { next: { revalidate: 60 * 60 * 24 } });
+    const res = await fetch(url, {
+      cache: "force-cache",
+      next: { revalidate: 60 * 60 * 24 },
+    });
     if (!res.ok) {
       const hint =
         res.status === 401

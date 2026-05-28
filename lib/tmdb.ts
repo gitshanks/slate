@@ -15,7 +15,15 @@ async function tmdb<T>(path: string, params: Record<string, string> = {}): Promi
   url.searchParams.set("api_key", KEY);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
 
-  const res = await fetch(url, { next: { revalidate: 60 * 60 } });
+  // Explicit force-cache (not just revalidate) so TMDB responses are served
+  // from the Data Cache even on dynamically-rendered routes and after
+  // request-time APIs (cookies/params) are touched. NOTE: a page that sets
+  // `export const dynamic = "force-dynamic"` overrides this back to no-store
+  // and re-fetches every request — keep TMDB-fetching pages off force-dynamic.
+  const res = await fetch(url, {
+    cache: "force-cache",
+    next: { revalidate: 60 * 60 },
+  });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`TMDB ${res.status} ${path}: ${text}`);
@@ -275,31 +283,35 @@ export const getTitleMeta = cache(async (
   tmdbId: number
 ): Promise<TmdbDetailWithMeta> => {
   try {
-    // Fire everything in parallel — no waterfalls
-    const [detail, reviews, videos, recs, credits, watchData] = await Promise.all([
-      type === "movie" ? getMovie(tmdbId) : getTv(tmdbId),
-      tmdb<{ results: TmdbReview[] }>(`/${type}/${tmdbId}/reviews`, {
-        language: "en-US",
-        page: "1",
-      }),
-      tmdb<{ results: TmdbVideo[] }>(`/${type}/${tmdbId}/videos`, {
-        language: "en-US",
-      }).catch(() => ({ results: [] as TmdbVideo[] })),
-      tmdb<{ results: TmdbSearchResult[] }>(
-        `/${type}/${tmdbId}/recommendations`,
-        { language: "en-US", page: "1" }
-      ).catch(() => ({ results: [] as TmdbSearchResult[] })),
-      tmdb<{ cast: TmdbCastMember[]; crew: TmdbCrewMember[] }>(
-        `/${type}/${tmdbId}/credits`,
-        { language: "en-US" }
-      ).catch(() => ({
-        cast: [] as TmdbCastMember[],
-        crew: [] as TmdbCrewMember[],
-      })),
-      tmdb<{ results: Record<string, { flatrate?: TmdbProvider[]; link: string }> }>(
-        `/${type}/${tmdbId}/watch/providers`
-      ).catch(() => null),
-    ]);
+    // One combined request via append_to_response instead of six parallel
+    // calls. TMDB returns detail + reviews + videos + recommendations +
+    // credits + watch/providers nested in a single response, cutting the
+    // per-title TMDB call count 6→1 — the dominant shape of our API spend.
+    const data = await tmdb<
+      (TmdbMovieDetail | TmdbTvDetail) & {
+        created_by?: { name: string }[];
+        reviews?: { results: TmdbReview[] };
+        videos?: { results: TmdbVideo[] };
+        recommendations?: { results: TmdbSearchResult[] };
+        credits?: { cast: TmdbCastMember[]; crew: TmdbCrewMember[] };
+        "watch/providers"?: {
+          results: Record<string, { flatrate?: TmdbProvider[]; link: string }>;
+        };
+      }
+    >(`/${type}/${tmdbId}`, {
+      language: "en-US",
+      append_to_response: "reviews,videos,recommendations,credits,watch/providers",
+    });
+
+    const detail = data;
+    const reviews = data.reviews ?? { results: [] as TmdbReview[] };
+    const videos = data.videos ?? { results: [] as TmdbVideo[] };
+    const recs = data.recommendations ?? { results: [] as TmdbSearchResult[] };
+    const credits = data.credits ?? {
+      cast: [] as TmdbCastMember[],
+      crew: [] as TmdbCrewMember[],
+    };
+    const watchData = data["watch/providers"] ?? null;
 
     // Pick the best trailer: prefer official YouTube trailers
     const trailer =

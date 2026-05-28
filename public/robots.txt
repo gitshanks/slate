@@ -1,6 +1,7 @@
 User-agent: *
 Disallow: /title/
 Disallow: /person/
+Disallow: /discover/
 Disallow: /lists/
 Disallow: /watching
 Disallow: /watched

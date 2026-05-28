@@ -33,7 +33,10 @@ import {
   rottenTomatoesSearchUrl,
 } from "@/lib/utils";
 
-export const dynamic = "force-dynamic";
+// NOT force-dynamic: it would flip every TMDB/OMDB fetch to no-store (see
+// lib/tmdb.ts) and re-fetch on every crawl. The page still renders
+// dynamically via params + the per-visitor demo cookie; TMDB/OMDB data is
+// served from the Data Cache.
 
 export default async function DiscoverTitlePage(
   props: PageProps<"/discover/[type]/[tmdbId]">

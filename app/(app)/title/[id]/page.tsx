@@ -33,13 +33,13 @@ import {
   rottenTomatoesSearchUrl,
 } from "@/lib/utils";
 
-// The public demo keeps per-visitor mutations in a cookie-backed sandbox,
-// which means the title row for a freshly-added ID only exists in the
-// adder's cookie. ISR would cache one visitor's render and serve it to
-// everyone else (who don't have that ID in their cookie → 404). Forcing
-// dynamic rendering keeps demo mode correct, and bot crawls of /title/*
-// are blocked by robots.txt so real CPU cost stays tiny.
-export const dynamic = "force-dynamic";
+// Renders dynamically on-demand anyway (dynamic [id] param + per-visitor
+// demo cookie), so the cookie-backed demo render stays correct without ISR.
+// Deliberately NOT force-dynamic: that flips every TMDB fetch in
+// getTitleMeta to no-store (see lib/tmdb.ts), re-fetching ~6 TMDB endpoints
+// on every hit — which is what crawlers turned into millions of TMDB calls.
+// TMDB data is universal, so it's served from the Data Cache; only the
+// Supabase rows render fresh per request.
 
 export async function generateMetadata(
   props: PageProps<"/title/[id]">
