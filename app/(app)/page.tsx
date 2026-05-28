@@ -9,12 +9,7 @@ import { FilteredGrid } from "@/components/filtered-grid";
 import { Film } from "lucide-react";
 import { OpenPaletteHint } from "@/components/open-palette-hint";
 import { fetchTitlesByStatus } from "@/lib/title-filters";
-import {
-  getTrending,
-  getPopularMovies,
-  getNowPlaying,
-  getPopularTv,
-} from "@/lib/tmdb";
+import { getTrending, getNowPlaying } from "@/lib/tmdb";
 
 export const metadata: Metadata = {
   title: "slate — Watchlist",
@@ -86,9 +81,7 @@ export default async function WatchlistPage() {
 
         <RecommendationsSection title="You might like" savedTmdbIds={savedTmdbIds} />
         <TmdbRailAsync title="Trending this week" fetcher={getTrending} savedTmdbIds={savedTmdbIds} />
-        <TmdbRailAsync title="Popular films" fetcher={getPopularMovies} savedTmdbIds={savedTmdbIds} />
         <TmdbRailAsync title="Now playing" fetcher={getNowPlaying} savedTmdbIds={savedTmdbIds} />
-        <TmdbRailAsync title="Popular TV shows" fetcher={getPopularTv} savedTmdbIds={savedTmdbIds} />
       </div>
     </div>
   );
