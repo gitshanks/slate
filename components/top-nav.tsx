@@ -38,7 +38,7 @@ export function TopNav() {
           spacer below preserves layout flow so main and the title page's
           negative-margin tricks keep working unchanged. */}
       <header className="fixed inset-x-0 top-0 z-40 w-full glass border-b border-border/60">
-      <div className="mx-auto flex h-14 max-w-[1480px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
+      <div className="flex h-14 w-full items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
         <div className="flex items-center gap-3">
           <Link href={APP_ROOT} prefetch className="group flex items-center pt-1 pb-2" aria-label="Slate home">
             <Image

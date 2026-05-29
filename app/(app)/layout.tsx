@@ -13,7 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           plus iOS safe-area-inset-bottom). Desktop falls back to the
           standard py-6 / lg:py-8 since BottomNav is md:hidden. */}
       <main
-        className="mx-auto w-full max-w-[1480px] px-4 pt-5 sm:px-6 sm:pt-6 lg:px-10 lg:pt-8 pb-[calc(env(safe-area-inset-bottom)+7rem)] md:pb-6 lg:pb-8"
+        className="w-full px-4 pt-5 sm:px-6 sm:pt-6 lg:px-10 lg:pt-8 pb-[calc(env(safe-area-inset-bottom)+7rem)] md:pb-6 lg:pb-8"
       >
         {children}
       </main>

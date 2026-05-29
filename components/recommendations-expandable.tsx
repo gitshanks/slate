@@ -46,11 +46,11 @@ export function RecommendationsExpandable({
     <section className="mt-14">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
             {title}
           </h2>
           {subtitle && (
-            <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           )}
         </div>
         {canExpand && (

@@ -58,9 +58,9 @@ export function TmdbTile({ item, saved, variant = "rail" }: TmdbTileProps) {
         )}
       </div>
       <div className="mt-2 px-0.5">
-        <p className="truncate text-xs font-medium text-foreground">{name}</p>
+        <p className="truncate text-sm font-medium text-foreground">{name}</p>
         {year && (
-          <p className="text-[10px] text-muted-foreground font-mono">{year}</p>
+          <p className="text-[11px] text-muted-foreground font-mono">{year}</p>
         )}
       </div>
     </Link>

@@ -76,7 +76,7 @@ export function BottomNav() {
         paddingBottom: "max(calc(env(safe-area-inset-bottom) + 0.5rem), 1.5rem)",
       }}
     >
-      <ul className="mx-auto flex max-w-[1480px] items-stretch px-1 pt-3">
+      <ul className="flex items-stretch px-1 pt-3">
         {TABS.map((t) => {
           const active = t.href === activeHref;
           const Icon = t.icon;

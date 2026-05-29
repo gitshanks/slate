@@ -6,7 +6,7 @@ import type { TmdbSearchResult } from "@/lib/tmdb";
 function RailSkeleton({ title }: { title: string }) {
   return (
     <section className="mt-14">
-      <p className="mb-4 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+      <p className="mb-4 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
         {title}
       </p>
       <div>

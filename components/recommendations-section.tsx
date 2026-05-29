@@ -12,11 +12,11 @@ function RecommendationsSkeleton({
 }) {
   return (
     <section className="mt-14">
-      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+      <p className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
         {title}
       </p>
       {subtitle && (
-        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
       )}
       <div className="mt-4 flex gap-3 overflow-hidden pb-2">
         {Array.from({ length: 10 }).map((_, i) => (

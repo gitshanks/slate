@@ -34,7 +34,7 @@ export function TmdbRail({
   return (
     <section className="mt-14">
       <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+        <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
           {title}
         </h2>
       </div>
