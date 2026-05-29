@@ -178,107 +178,69 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
 
           {/* Main content */}
           <div>
-            {/* Primary meta — type · year · runtime, kept tight and readable */}
+            {/* Primary meta — runtime · year · ratings · genres (no media-type
+                label). One responsive line: extra genres are sm-only so it
+                stays to ~one line on mobile, and flex-wrap prevents overflow. */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-mono uppercase tracking-[0.08em] text-muted-foreground">
-              <span className="text-foreground/80">
-                {title.media_type === "movie" ? "Film" : "Series"}
-              </span>
-              {year && (
-                <>
-                  <span aria-hidden className="opacity-40">·</span>
-                  <span>{year}</span>
-                </>
-              )}
-              {runtime && (
-                <>
-                  <span aria-hidden className="opacity-40">·</span>
-                  <span>{runtime}</span>
-                </>
-              )}
-              {/* Desktop: genres + ratings inline in the meta line. */}
-              <span className="hidden sm:contents">
-                {(title.genres ?? []).map((g) => (
-                  <Fragment key={g.id}>
-                    <span aria-hidden className="opacity-40">·</span>
-                    <span>{g.name}</span>
+              {[
+                runtime && (
+                  <span key="runtime" className="text-foreground/80">
+                    {runtime}
+                  </span>
+                ),
+                year && <span key="year">{year}</span>,
+                imdbScore && (
+                  <RatingChip
+                    key="imdb"
+                    icon={<ImdbBadge className="h-3 w-auto" />}
+                    label={imdbScore}
+                    href={imdbUrl}
+                  />
+                ),
+                criticChip?.kind === "rt" && (
+                  <RatingChip
+                    key="critic"
+                    icon={<RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />}
+                    label={criticChip.label}
+                    href={criticChip.href}
+                  />
+                ),
+                criticChip?.kind === "mc" && (
+                  <RatingChip
+                    key="critic"
+                    icon={<MetacriticBadge score={criticChip.score} className="h-3 w-auto" />}
+                    label={criticChip.label}
+                    href={criticChip.href}
+                  />
+                ),
+                (title.genres ?? [])[0] && (
+                  <span key="genre0">{(title.genres ?? [])[0]?.name}</span>
+                ),
+              ]
+                .filter(Boolean)
+                .map((node, i) => (
+                  <Fragment key={i}>
+                    {i > 0 && <span aria-hidden className="opacity-40">·</span>}
+                    {node}
                   </Fragment>
                 ))}
-                {imdbScore && (
-                  <>
-                    <span aria-hidden className="opacity-40">·</span>
-                    <RatingChip
-                      icon={<ImdbBadge className="h-3 w-auto" />}
-                      label={imdbScore}
-                      href={imdbUrl}
-                    />
-                  </>
-                )}
-                {criticChip?.kind === "rt" && (
-                  <>
-                    <span aria-hidden className="opacity-40">·</span>
-                    <RatingChip
-                      icon={<RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />}
-                      label={criticChip.label}
-                      href={criticChip.href}
-                    />
-                  </>
-                )}
-                {criticChip?.kind === "mc" && (
-                  <>
-                    <span aria-hidden className="opacity-40">·</span>
-                    <RatingChip
-                      icon={<MetacriticBadge score={criticChip.score} className="h-3 w-auto" />}
-                      label={criticChip.label}
-                      href={criticChip.href}
-                    />
-                  </>
-                )}
-              </span>
+              {/* Extra genres — desktop only, so mobile stays compact. */}
+              {(title.genres ?? []).slice(1, 3).length > 0 && (
+                <span className="hidden sm:contents">
+                  {(title.genres ?? []).slice(1, 3).map((g) => (
+                    <Fragment key={g.id}>
+                      <span aria-hidden className="opacity-40">·</span>
+                      <span>{g.name}</span>
+                    </Fragment>
+                  ))}
+                </span>
+              )}
             </div>
 
             {/* Title */}
             <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {title.title}
             </h1>
-
-            {/* Mobile: genres + ratings as chips below the title (the inline
-                meta-line version above is desktop-only). */}
-            {((title.genres && title.genres.length > 0) || imdbScore || criticChip) && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">
-                {(title.genres ?? []).map((g) => (
-                  <span
-                    key={g.id}
-                    className="inline-flex h-6 items-center rounded-full bg-muted/60 px-2.5 text-[11px] text-foreground/80"
-                  >
-                    {g.name}
-                  </span>
-                ))}
-                {imdbScore && (
-                  <RatingChip
-                    variant="pill"
-                    icon={<ImdbBadge className="h-3 w-auto" />}
-                    label={imdbScore}
-                    href={imdbUrl}
-                  />
-                )}
-                {criticChip?.kind === "rt" && (
-                  <RatingChip
-                    variant="pill"
-                    icon={<RottenTomatoesBadge score={criticChip.score} className="h-3 w-auto" />}
-                    label={criticChip.label}
-                    href={criticChip.href}
-                  />
-                )}
-                {criticChip?.kind === "mc" && (
-                  <RatingChip
-                    variant="pill"
-                    icon={<MetacriticBadge score={criticChip.score} className="h-3 w-auto" />}
-                    label={criticChip.label}
-                    href={criticChip.href}
-                  />
-                )}
-              </div>
-            )}
 
             {/* Single action row: status · sentiment · delete · trailer · providers · add-to-list */}
             {/* Everything is h-9 so they align on the same baseline */}
