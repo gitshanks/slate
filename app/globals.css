@@ -132,6 +132,19 @@
   --font-mono: var(--font-mono), ui-monospace, "JetBrains Mono", monospace;
 }
 
+/* Larger breakpoints so the poster grids keep adding columns past 2xl
+   (1536px) on big displays instead of stretching tiles comically large.
+   Defined in rem (1rem = 16px) to MATCH Tailwind's default breakpoints:
+   v4 emits px-unit breakpoints in a block BEFORE the rem defaults, so a px
+   value here would lose to 2xl (96rem) in the cascade. Rem values sort by
+   magnitude after 2xl and win at their widths. */
+@theme {
+  --breakpoint-3xl: 109.375rem; /* 1750px */
+  --breakpoint-4xl: 125rem;     /* 2000px */
+  --breakpoint-5xl: 140.625rem; /* 2250px */
+  --breakpoint-6xl: 156.25rem;  /* 2500px */
+}
+
 /* Eliminate 300ms tap delay on all interactive elements.
    Wrapped in @layer base so utility classes like `touch-pan-x` on
    horizontal rails can override it — unlayered rules would beat

@@ -33,7 +33,7 @@ export default function WatchedLoading() {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i}>
             <Skeleton className="aspect-[2/3] w-full rounded-xl" />

@@ -1,6 +1,7 @@
 import type { TmdbSearchResult } from "@/lib/tmdb";
 import { RailScroller } from "@/components/rail-scroller";
 import { TmdbTile } from "@/components/tmdb-tile";
+import { cn } from "@/lib/utils";
 
 interface TmdbRailProps {
   title: string;
@@ -14,6 +15,8 @@ interface TmdbRailProps {
    * visible without scrolling.
    */
   layout?: "scroll" | "grid";
+  /** Override the section's top spacing (e.g. tighten the first rail under a header). */
+  className?: string;
 }
 
 /**
@@ -28,11 +31,12 @@ export function TmdbRail({
   items,
   savedTmdbIds,
   layout = "scroll",
+  className,
 }: TmdbRailProps) {
   if (items.length === 0) return null;
 
   return (
-    <section className="mt-14">
+    <section className={cn("mt-14", className)}>
       <div className="mb-4 flex items-baseline justify-between">
         <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
           {title}
@@ -40,7 +44,7 @@ export function TmdbRail({
       </div>
 
       {layout === "grid" ? (
-        <div className="grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-5 2xl:grid-cols-6">
+        <div className="grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
           {items.map((item) => (
             <TmdbTile
               key={`${item.media_type}-${item.id}`}

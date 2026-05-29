@@ -2,10 +2,11 @@ import { Suspense } from "react";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TmdbSearchResult } from "@/lib/tmdb";
+import { cn } from "@/lib/utils";
 
-function RailSkeleton({ title }: { title: string }) {
+function RailSkeleton({ title, className }: { title: string; className?: string }) {
   return (
-    <section className="mt-14">
+    <section className={cn("mt-14", className)}>
       <p className="mb-4 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
         {title}
       </p>
@@ -28,16 +29,18 @@ interface TmdbRailAsyncProps {
   title: string;
   fetcher: () => Promise<TmdbSearchResult[]>;
   savedTmdbIds?: Set<number>;
+  /** Passed through to the rail's <section> to tune top spacing. */
+  className?: string;
 }
 
-async function TmdbRailLoader({ title, fetcher, savedTmdbIds }: TmdbRailAsyncProps) {
+async function TmdbRailLoader({ title, fetcher, savedTmdbIds, className }: TmdbRailAsyncProps) {
   const items = await fetcher();
-  return <TmdbRail title={title} items={items} savedTmdbIds={savedTmdbIds} />;
+  return <TmdbRail title={title} items={items} savedTmdbIds={savedTmdbIds} className={className} />;
 }
 
 export function TmdbRailAsync(props: TmdbRailAsyncProps) {
   return (
-    <Suspense fallback={<RailSkeleton title={props.title} />}>
+    <Suspense fallback={<RailSkeleton title={props.title} className={props.className} />}>
       <TmdbRailLoader {...props} />
     </Suspense>
   );

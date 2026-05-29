@@ -4,12 +4,11 @@ import { supabase } from "@/lib/supabase";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { TmdbRailAsync } from "@/components/tmdb-rail-async";
-import { RecommendationsSection } from "@/components/recommendations-section";
 import { FilteredGrid } from "@/components/filtered-grid";
 import { Film } from "lucide-react";
 import { OpenPaletteHint } from "@/components/open-palette-hint";
 import { fetchTitlesByStatus } from "@/lib/title-filters";
-import { getTrending, getNowPlaying } from "@/lib/tmdb";
+import { getTrending, getNowPlaying, getRecommendedFromWatched } from "@/lib/tmdb";
 
 export const metadata: Metadata = {
   title: "slate — Watchlist",
@@ -79,10 +78,11 @@ export default async function WatchlistPage() {
           Find what&rsquo;s next
         </h2>
 
-        <RecommendationsSection
+        <TmdbRailAsync
           title="You might like"
-          subtitle="Based on the titles you've watched"
+          fetcher={getRecommendedFromWatched}
           savedTmdbIds={savedTmdbIds}
+          className="mt-6"
         />
         <TmdbRailAsync title="Trending this week" fetcher={getTrending} savedTmdbIds={savedTmdbIds} />
         <TmdbRailAsync title="Now playing" fetcher={getNowPlaying} savedTmdbIds={savedTmdbIds} />
