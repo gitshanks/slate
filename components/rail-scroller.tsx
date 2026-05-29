@@ -15,6 +15,11 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  // Vertical centre of the poster artwork. The arrows anchor to this rather
+  // than the full tile height — the title/year text below each poster would
+  // otherwise drag them down off the artwork. null until measured, so the
+  // `top-1/2` class is the fallback.
+  const [posterCenter, setPosterCenter] = useState<number | null>(null);
 
   const updateArrows = useCallback(() => {
     const el = ref.current;
@@ -23,19 +28,33 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
   }, []);
 
+  const measureArrowAnchor = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Tiles render the poster as their first element child (see TmdbTile and
+    // the AI result rail), so its height is the artwork height.
+    const poster = el.firstElementChild?.firstElementChild ?? null;
+    setPosterCenter(poster ? poster.clientHeight / 2 : null);
+  }, []);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    updateArrows();
+    const sync = () => {
+      updateArrows();
+      measureArrowAnchor();
+    };
+    sync();
     el.addEventListener("scroll", updateArrows, { passive: true });
-    // Also update on resize (e.g. window resize changes clientWidth).
-    const ro = new ResizeObserver(updateArrows);
+    // Resync on resize: window resize changes clientWidth, and the poster
+    // height changes at the sm breakpoint (tiles widen).
+    const ro = new ResizeObserver(sync);
     ro.observe(el);
     return () => {
       el.removeEventListener("scroll", updateArrows);
       ro.disconnect();
     };
-  }, [updateArrows]);
+  }, [updateArrows, measureArrowAnchor]);
 
   const scroll = useCallback((direction: "left" | "right") => {
     const el = ref.current;
@@ -55,6 +74,7 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
         type="button"
         aria-label="Scroll left"
         onClick={() => scroll("left")}
+        style={posterCenter != null ? { top: posterCenter } : undefined}
         className={cn(
           "absolute left-1 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center",
           "h-9 w-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md ring-1 ring-border",
@@ -81,6 +101,7 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
         type="button"
         aria-label="Scroll right"
         onClick={() => scroll("right")}
+        style={posterCenter != null ? { top: posterCenter } : undefined}
         className={cn(
           "absolute right-1 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center",
           "h-9 w-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md ring-1 ring-border",
