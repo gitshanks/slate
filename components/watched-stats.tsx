@@ -105,7 +105,7 @@ export function WatchedStats({ titles }: WatchedStatsProps) {
             key={s.label}
             className="rounded-2xl border border-border bg-card/60 px-4 py-4 backdrop-blur"
           >
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
               {s.label}
             </p>
             <p className="mt-2 font-mono text-2xl font-semibold tabular-nums sm:text-3xl">
@@ -117,7 +117,7 @@ export function WatchedStats({ titles }: WatchedStatsProps) {
 
       {titles.length > 0 && (
         <div>
-          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
             Your taste
           </p>
           <div className="grid grid-cols-3 gap-2">
@@ -126,7 +126,7 @@ export function WatchedStats({ titles }: WatchedStatsProps) {
                 key={pill.key}
                 className={`rounded-2xl border border-border border-l-4 ${pill.borderColor} ${pill.bgTint} px-3 py-3 backdrop-blur sm:px-4 sm:py-4`}
               >
-                <div className={`flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] font-mono ${pill.textColor}`}>
+                <div className={`flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] font-mono ${pill.textColor}`}>
                   {pill.icon}
                   <span className="text-muted-foreground">{pill.label}</span>
                 </div>

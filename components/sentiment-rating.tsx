@@ -106,7 +106,7 @@ export function SentimentRating({
             >
               <Icon className={cn("h-3.5 w-3.5", active ? cn(activeClass, "fill-current") : "text-muted-foreground")} />
               <span className={active ? "font-medium" : ""}>{label}</span>
-              {active && <span className="ml-auto text-[10px] text-muted-foreground">✓</span>}
+              {active && <span className="ml-auto text-xs text-muted-foreground">✓</span>}
             </DropdownMenuItem>
           );
         })}

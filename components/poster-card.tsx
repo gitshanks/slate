@@ -141,8 +141,8 @@ export function PosterCard({ title, priority }: PosterCardProps) {
 
       {/* Always-visible title under poster on mobile */}
       <div className="mt-2 px-0.5 sm:hidden">
-        <p className="text-xs font-medium text-foreground line-clamp-1">{title.title}</p>
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
+        <p className="text-sm font-medium text-foreground line-clamp-1">{title.title}</p>
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono">
           {year && <span>{year}</span>}
           {genre && (
             <>

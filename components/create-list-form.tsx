@@ -40,7 +40,7 @@ export function CreateListForm() {
         className="w-[360px] max-w-[calc(100vw-2rem)] p-4"
       >
         <form action={handleSubmit} className="flex flex-col gap-3">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
             New list
           </p>
           <input

@@ -524,7 +524,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                           )}
                         </span>
                       </div>
-                      <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                      <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
                         <Library className="h-3 w-3" />
                         {hit.status}
                       </span>
@@ -575,7 +575,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                         </span>
                       </div>
                       {isSaved ? (
-                        <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-primary">
+                        <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-1 text-[11px] font-mono uppercase tracking-wider text-primary">
                           <Check className="h-3 w-3" />
                           Saved
                         </span>
@@ -605,7 +605,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                                 e.stopPropagation();
                                 handleQuickAdd(r, status);
                               }}
-                              className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-card px-2 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                              className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-card px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
                             >
                               <Icon className="h-3 w-3" />
                               <span className="hidden sm:inline">{label}</span>

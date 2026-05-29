@@ -13,7 +13,7 @@ export function OpenPaletteHint() {
     >
       <Search className="h-4 w-4" />
       Open search
-      <kbd className="ml-1 rounded border border-border px-1.5 py-0.5 font-mono text-[10px]">
+      <kbd className="ml-1 rounded border border-border px-1.5 py-0.5 font-mono text-[11px]">
         ⌘K
       </kbd>
     </button>

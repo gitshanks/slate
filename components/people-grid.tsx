@@ -66,7 +66,7 @@ export function PeopleGrid({
 
   return (
     <section className="mt-12">
-      <h2 className="mb-4 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+      <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
         {title}
       </h2>
 
@@ -109,7 +109,7 @@ export function PeopleGrid({
                 {person.name}
               </p>
               {person.subtitle && (
-                <p className="truncate text-[10px] text-muted-foreground">
+                <p className="truncate text-[11px] text-muted-foreground">
                   {person.subtitle}
                 </p>
               )}

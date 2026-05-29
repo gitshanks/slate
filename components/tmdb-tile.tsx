@@ -51,7 +51,7 @@ export function TmdbTile({ item, saved, variant = "rail" }: TmdbTileProps) {
         )}
 
         {saved && (
-          <div className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary/90 backdrop-blur-sm px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
+          <div className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary/90 backdrop-blur-sm px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
             <Check className="h-3 w-3" />
             Saved
           </div>

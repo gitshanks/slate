@@ -218,7 +218,7 @@ export function AiChatPanel({
       {/* Empty state: prompt + suggestion chips + a hint about Enter to send. */}
       {isEmpty && (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
-          <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+          <div className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
             <Sparkles className="h-3 w-3" />
             <span>AI search</span>
           </div>
@@ -340,7 +340,7 @@ function AssistantBubble({
       )}
 
       {turn.intent && (
-        <div className="ml-8 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70">
+        <div className="ml-8 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground/70">
           <Wand2 className="h-3 w-3" />
           <span className="normal-case tracking-normal">
             {summarizeIntent(turn.intent)}
@@ -421,10 +421,10 @@ function ResultRail({
                   </div>
                 )}
               </div>
-              <span className="line-clamp-2 text-[12px] font-medium leading-tight text-foreground">
+              <span className="line-clamp-2 text-xs font-medium leading-tight text-foreground">
                 {name}
               </span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 {year}
                 {score && <> · {score}</>}
               </span>

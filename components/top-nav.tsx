@@ -92,7 +92,7 @@ export function TopNav() {
           >
             <Search className="h-3.5 w-3.5" />
             <span>Search & add…</span>
-            <kbd className="ml-2 rounded border border-border px-1.5 py-0.5 font-mono text-[10px]">
+            <kbd className="ml-2 rounded border border-border px-1.5 py-0.5 font-mono text-[11px]">
               ⌘K
             </kbd>
           </button>

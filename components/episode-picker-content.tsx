@@ -93,11 +93,11 @@ export function EpisodePickerContent({
           <DropdownMenuTrigger
             className={cn(
               "inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-2.5",
-              "text-[12px] font-medium text-foreground transition-colors hover:bg-accent",
+              "text-xs font-medium text-foreground transition-colors hover:bg-accent",
             )}
           >
             {nextInActive && (
-              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              <span className="font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground">
                 Up next
               </span>
             )}
@@ -123,7 +123,7 @@ export function EpisodePickerContent({
                     className="flex items-center justify-between gap-3"
                   >
                     <span className="flex items-center gap-2">
-                      <span className="font-mono text-[12px]">
+                      <span className="font-mono text-xs">
                         Season {s.n}
                       </span>
                       {isCurrent && (
