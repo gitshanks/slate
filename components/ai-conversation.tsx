@@ -80,16 +80,51 @@ export function useAiConversation() {
   return v;
 }
 
+// Per-tab so the thread also survives a full reload, but clears when the tab
+// (or PWA) closes — "for that browser session".
+const STORAGE_KEY = "slate:ai-conversation";
+
 /**
  * Holds the AI search conversation so the command-palette modal AND the
  * /discover page render and extend one shared thread. Lives high in the
  * (app) layout, so the thread survives a client-side navigation from the
- * modal to the page (the layout — and this provider — stays mounted).
+ * modal to the page (the layout — and this provider — stays mounted), and is
+ * mirrored to sessionStorage so it also survives a full page reload within
+ * the same browser session.
  */
 export function AiConversationProvider({ children }: { children: React.ReactNode }) {
   const [turns, setTurns] = React.useState<ChatTurn[]>([]);
   const [streaming, setStreaming] = React.useState(false);
   const abortRef = React.useRef<AbortController | null>(null);
+
+  // Rehydrate once on mount. We start from [] (matching SSR) and restore in an
+  // effect to avoid a hydration mismatch; `hydrated` then gates the writer so
+  // it can't clobber storage with the initial empty state.
+  const [hydrated, setHydrated] = React.useState(false);
+  React.useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as ChatTurn[];
+        if (Array.isArray(parsed) && parsed.length > 0) setTurns(parsed);
+      }
+    } catch {
+      // Private mode / quota / parse error — just start fresh.
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist completed turns. Skipped mid-stream so we don't stringify the whole
+  // thread on every token; the final state lands when streaming flips off.
+  React.useEffect(() => {
+    if (!hydrated || streaming) return;
+    try {
+      if (turns.length > 0) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(turns));
+      else sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore storage failures — persistence is best-effort.
+    }
+  }, [turns, hydrated, streaming]);
 
   const applyEvent = React.useCallback((event: ChatEvent) => {
     if (event.type === "text") {
