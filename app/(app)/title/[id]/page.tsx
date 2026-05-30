@@ -15,7 +15,6 @@ import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
 import { CrewRail } from "@/components/crew-rail";
-import { EpisodePosition } from "@/components/episode-position";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ImdbBadge,
@@ -267,20 +266,6 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
             </div>
 
             {/* Episode-position picker — only TV currently being watched. */}
-            {title.media_type === "tv" &&
-              title.status === "watching" &&
-              title.seasons &&
-              title.seasons.length > 0 && (
-                <div className="mt-6 max-w-2xl">
-                  <EpisodePosition
-                    titleId={title.id}
-                    currentSeason={title.current_season}
-                    currentEpisode={title.current_episode}
-                    seasons={title.seasons}
-                  />
-                </div>
-              )}
-
             {/* Overview — from Supabase, immediate */}
             {title.overview && (
               <p className="mt-6 max-w-2xl text-base leading-relaxed text-foreground/85">

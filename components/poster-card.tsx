@@ -3,7 +3,6 @@ import Image from "next/image";
 import { Heart, ThumbsUp, ThumbsDown } from "lucide-react";
 import { ViewTransition } from "@/components/view-transition";
 import { PosterCardActions } from "@/components/poster-card-actions";
-import { EpisodeChip } from "@/components/episode-chip";
 import { RatingPair } from "@/components/rating-pair";
 import {
   cn,
@@ -28,9 +27,6 @@ interface PosterCardProps {
     | "rt_score"
     | "metacritic_score"
     | "genres"
-    | "current_season"
-    | "current_episode"
-    | "seasons"
     | "rating"
   >;
   priority?: boolean;
@@ -99,16 +95,6 @@ export function PosterCard({ title, priority }: PosterCardProps) {
               variant="compact"
             />
           </div>
-        )}
-
-        {/* Episode +1 chip (top-right) — only TV in watching state */}
-        {title.media_type === "tv" && title.status === "watching" && (
-          <EpisodeChip
-            titleId={title.id}
-            currentSeason={title.current_season}
-            currentEpisode={title.current_episode}
-            seasons={title.seasons}
-          />
         )}
 
         {/* Sentiment badge (bottom-right) — only when the title has a user rating */}
