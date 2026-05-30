@@ -114,11 +114,11 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
       </div>
 
       <div className="lg:flex lg:items-start lg:gap-8">
-        {/* Chat column — on desktop it sticks alongside the results and scrolls
-            its own thread, with the follow-up pinned at its base. On mobile it
-            collapses: thread here, results below, follow-up as a fixed bottom
-            bar. */}
-        <div className="lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100vh-7rem)] lg:w-[380px] lg:shrink-0 lg:flex-col xl:w-[440px]">
+        {/* Chat column — on desktop it's a distinct, sticky panel beside the
+            results: its own scrolling thread with the follow-up pinned at the
+            base. On mobile it collapses: thread here, results below, follow-up
+            as a fixed bottom bar (so no panel chrome there). */}
+        <div className="lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100vh-7rem)] lg:w-[380px] lg:shrink-0 lg:flex-col lg:rounded-2xl lg:border lg:border-border lg:bg-card/50 lg:p-5 xl:w-[440px]">
           {/* Conversation thread — per-turn rails suppressed; the latest
               answer's results render as the grid in the other column. */}
           <div className="flex flex-col gap-4 lg:flex-1 lg:overflow-y-auto lg:pr-1">
