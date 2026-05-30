@@ -29,7 +29,7 @@ export function RatingChip({ icon, label, href, variant = "inline" }: RatingChip
   const base =
     variant === "pill"
       ? "inline-flex h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2 text-[11px]"
-      : "inline-flex items-center gap-1";
+      : "inline-flex items-center gap-1.5";
 
   if (href) {
     const hover =

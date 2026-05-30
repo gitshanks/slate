@@ -34,14 +34,14 @@ export function MoreActionsSheet({ children }: { children: React.ReactNode }) {
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
+        className="rounded-t-3xl border-t-0 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] [&>button]:hidden"
       >
-        <SheetHeader className="text-left">
-          <SheetTitle className="text-base">More</SheetTitle>
+        {/* Grabber — the native bottom-sheet affordance. */}
+        <div aria-hidden className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-muted-foreground/25" />
+        <SheetHeader className="px-2.5 pb-1 text-left">
+          <SheetTitle className="text-base font-semibold">More</SheetTitle>
         </SheetHeader>
-        <div className="mt-5 flex flex-col items-start gap-2.5">
-          {children}
-        </div>
+        <div className="mt-1 flex flex-col gap-0.5">{children}</div>
       </SheetContent>
     </Sheet>
   );
