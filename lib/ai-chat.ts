@@ -494,7 +494,7 @@ async function executeSearchTitles(
  * is the difference between the rail showing 16 documentaries *about* the
  * actor and showing the actor's actual movies.
  */
-async function runDiscoverForIntent(
+export async function runDiscoverForIntent(
   intent: SearchIntent,
 ): Promise<TmdbMediaResult[]> {
   const wantMovie = intent.media_type !== "tv";

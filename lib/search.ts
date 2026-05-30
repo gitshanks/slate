@@ -18,7 +18,7 @@ async function searchLibrary(q: string): Promise<TitleRow[]> {
 }
 
 /** Of the given TMDB ids, which are already saved to the library. */
-async function savedAmong(tmdbIds: number[]): Promise<Set<number>> {
+export async function savedAmong(tmdbIds: number[]): Promise<Set<number>> {
   if (tmdbIds.length === 0) return new Set();
   try {
     const { data } = await supabase

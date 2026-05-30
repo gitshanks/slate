@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Loader2, Film, Tv, Sparkles, Search, Wand2 } from "lucide-react";
+import { Loader2, Film, Tv, Sparkles, Search, Wand2, ArrowRight } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { formatTmdbScore, cn } from "@/lib/utils";
 import { RailScroller } from "@/components/rail-scroller";
@@ -262,6 +262,20 @@ export function AiChatPanel({
                     onClose();
                     router.push(`/discover/${item.media_type}/${item.id}`);
                   }}
+                  onBrowse={
+                    turn.intent && turn.results && turn.results.length > 0
+                      ? () => {
+                          onClose();
+                          const prev = turns[i - 1];
+                          router.push(
+                            browseUrl(
+                              turn.intent!,
+                              prev && prev.role === "user" ? prev.content : "",
+                            ),
+                          );
+                        }
+                      : undefined
+                  }
                 />
               ),
             )}
@@ -297,9 +311,12 @@ function UserBubble({ text }: { text: string }) {
 function AssistantBubble({
   turn,
   onResultClick,
+  onBrowse,
 }: {
   turn: AssistantTurn;
   onResultClick: (item: ChatResultItem) => void;
+  /** Present only when this turn has browsable results — opens the full page. */
+  onBrowse?: () => void;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -352,6 +369,17 @@ function AssistantBubble({
         <ResultRail items={turn.results} onClick={onResultClick} />
       )}
 
+      {onBrowse && (
+        <button
+          type="button"
+          onClick={onBrowse}
+          className="ml-8 inline-flex w-fit items-center gap-1 text-[11px] font-medium text-primary transition-opacity hover:opacity-80"
+        >
+          Browse all
+          <ArrowRight className="h-3 w-3" />
+        </button>
+      )}
+
       {/* Inline error rendered separately only if we already have prose
           (so the user keeps seeing the partial response above). */}
       {turn.error && turn.content && (
@@ -359,6 +387,20 @@ function AssistantBubble({
       )}
     </div>
   );
+}
+
+/** Encode an AI intent into the /discover browse-page URL. */
+function browseUrl(intent: SearchIntent, title: string): string {
+  const p = new URLSearchParams();
+  if (intent.media_type !== "both") p.set("mt", intent.media_type);
+  if (intent.genres.length > 0) p.set("genres", intent.genres.join(","));
+  if (intent.year_min != null) p.set("ymin", String(intent.year_min));
+  if (intent.year_max != null) p.set("ymax", String(intent.year_max));
+  if (intent.sort_by) p.set("sort", intent.sort_by);
+  if (intent.min_rating != null) p.set("minr", String(intent.min_rating));
+  if (intent.query_text) p.set("q", intent.query_text);
+  if (title) p.set("title", title);
+  return `/discover?${p.toString()}`;
 }
 
 function summarizeIntent(intent: SearchIntent): string {
