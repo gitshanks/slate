@@ -46,6 +46,10 @@ export interface TmdbSearchResult {
   release_date?: string;   // movie
   first_air_date?: string; // tv
   vote_average?: number;
+  // person results (media_type === "person")
+  profile_path?: string | null;
+  known_for_department?: string;
+  known_for?: { id: number; title?: string; name?: string; media_type?: string }[];
 }
 
 export interface TmdbMovieDetail {
@@ -162,10 +166,56 @@ export async function searchMultiWithFallback(query: string): Promise<{
 /** TMDB `multi` search includes `person` results; narrow to movie|tv. */
 export type TmdbMediaResult = TmdbSearchResult & { media_type: "movie" | "tv" };
 
+/** The `person` slice of a `multi` search. */
+export type TmdbPersonResult = TmdbSearchResult & { media_type: "person" };
+
 function filterMediaResults(results: TmdbSearchResult[]): TmdbMediaResult[] {
   return results.filter(
     (r): r is TmdbMediaResult => r.media_type === "movie" || r.media_type === "tv"
   );
+}
+
+function filterPeopleResults(results: TmdbSearchResult[]): TmdbPersonResult[] {
+  return results.filter(
+    (r): r is TmdbPersonResult => r.media_type === "person"
+  );
+}
+
+/**
+ * Full `multi` search for the results *page* — keeps both the movie/TV titles
+ * AND the people (`searchMultiWithFallback` throws people away because the
+ * command-palette overlay only adds titles). One `searchMulti` call feeds
+ * both buckets; if the exact query yields nothing we reuse the same word-drop
+ * fuzzy retry so a trailing typo still surfaces results.
+ */
+export async function searchAll(query: string): Promise<{
+  media: TmdbMediaResult[];
+  people: TmdbPersonResult[];
+  approximate: boolean;
+  approxQuery: string | null;
+}> {
+  const trimmed = query.trim();
+  if (!trimmed) return { media: [], people: [], approximate: false, approxQuery: null };
+
+  const first = await searchMulti(trimmed);
+  const media = filterMediaResults(first.results);
+  const people = filterPeopleResults(first.results);
+  if (media.length > 0 || people.length > 0) {
+    return { media, people, approximate: false, approxQuery: null };
+  }
+
+  const words = trimmed.split(/\s+/);
+  for (let drop = 1; drop <= 2 && words.length - drop >= 1; drop++) {
+    const retryQuery = words.slice(0, words.length - drop).join(" ");
+    if (!retryQuery) break;
+    const retry = await searchMulti(retryQuery);
+    const retryMedia = filterMediaResults(retry.results);
+    const retryPeople = filterPeopleResults(retry.results);
+    if (retryMedia.length > 0 || retryPeople.length > 0) {
+      return { media: retryMedia, people: retryPeople, approximate: true, approxQuery: retryQuery };
+    }
+  }
+  return { media: [], people: [], approximate: false, approxQuery: null };
 }
 
 export async function getMovie(id: number) {
