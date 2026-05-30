@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import type { TmdbProvider } from "@/lib/tmdb";
 import { TMDB_IMG } from "@/lib/tmdb-image";
+import { ActionRow } from "@/components/action-row";
 
 // Maps TMDB provider_id → streaming service search URL template (title appended as query).
 const PROVIDER_URLS: Record<number, (t: string) => string> = {
@@ -50,39 +51,69 @@ interface WatchProvidersButtonProps {
   providers: TmdbProvider[];
   link: string;
   titleName: string;
+  /** "pill" (default, desktop row) or "row" (mobile More sheet). */
+  variant?: "pill" | "row";
 }
 
-export function WatchProvidersButton({ providers, link, titleName }: WatchProvidersButtonProps) {
+export function WatchProvidersButton({ providers, link, titleName, variant = "pill" }: WatchProvidersButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
-        title="Where to watch"
-      >
-        <Tv className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="flex items-center gap-1.5">
-          {providers.slice(0, 4).map((p) => (
-            <Image
-              key={p.provider_id}
-              src={`${TMDB_IMG}/w45${p.logo_path}`}
-              alt={p.provider_name}
-              width={20}
-              height={20}
-              className="rounded-sm"
-              title={p.provider_name}
-            />
-          ))}
-        </span>
-        {providers.length > 4 && (
-          <span className="font-mono text-[11px] text-muted-foreground">
-            +{providers.length - 4}
+      {variant === "row" ? (
+        <ActionRow
+          icon={<Tv className="h-[18px] w-[18px]" />}
+          label="Where to watch"
+          onClick={() => setOpen(true)}
+          trailing={
+            <span className="flex shrink-0 items-center gap-1">
+              {providers.slice(0, 3).map((p) => (
+                <Image
+                  key={p.provider_id}
+                  src={`${TMDB_IMG}/w45${p.logo_path}`}
+                  alt={p.provider_name}
+                  width={22}
+                  height={22}
+                  className="rounded-md ring-1 ring-border/50"
+                  title={p.provider_name}
+                />
+              ))}
+              {providers.length > 3 && (
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  +{providers.length - 3}
+                </span>
+              )}
+            </span>
+          }
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
+          title="Where to watch"
+        >
+          <Tv className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="flex items-center gap-1.5">
+            {providers.slice(0, 4).map((p) => (
+              <Image
+                key={p.provider_id}
+                src={`${TMDB_IMG}/w45${p.logo_path}`}
+                alt={p.provider_name}
+                width={20}
+                height={20}
+                className="rounded-sm"
+                title={p.provider_name}
+              />
+            ))}
           </span>
-        )}
-      </button>
+          {providers.length > 4 && (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              +{providers.length - 4}
+            </span>
+          )}
+        </button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="top-[50%] translate-y-[-50%] left-[50%] translate-x-[-50%] right-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl p-4">

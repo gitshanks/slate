@@ -8,10 +8,13 @@ import {
   DialogTrigger,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ActionRow } from "@/components/action-row";
 
 interface TrailerButtonProps {
   trailerKey: string;
   titleName: string;
+  /** "pill" (default, desktop row) or "row" (mobile More sheet). */
+  variant?: "pill" | "row";
 }
 
 /**
@@ -19,7 +22,7 @@ interface TrailerButtonProps {
  * Only render this when you actually have a trailerKey — the parent should
  * gate on that.
  */
-export function TrailerButton({ trailerKey, titleName }: TrailerButtonProps) {
+export function TrailerButton({ trailerKey, titleName, variant = "pill" }: TrailerButtonProps) {
   const [open, setOpen] = React.useState(false);
 
   // Only set the iframe src while the dialog is open so we don't preload the
@@ -31,13 +34,17 @@ export function TrailerButton({ trailerKey, titleName }: TrailerButtonProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
-          type="button"
-          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
-        >
-          <Play className="h-3.5 w-3.5 fill-current" />
-          Watch trailer
-        </button>
+        {variant === "row" ? (
+          <ActionRow icon={<Play className="h-[18px] w-[18px] fill-current" />} label="Watch trailer" />
+        ) : (
+          <button
+            type="button"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
+          >
+            <Play className="h-3.5 w-3.5 fill-current" />
+            Watch trailer
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent size="lg" className="p-0 sm:max-w-3xl">
         <DialogTitle className="sr-only">{titleName} — trailer</DialogTitle>

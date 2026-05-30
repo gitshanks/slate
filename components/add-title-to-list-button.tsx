@@ -8,14 +8,17 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 import { addTitleToList, createListAndAddTitle } from "@/lib/actions";
+import { ActionRow } from "@/components/action-row";
 import { toast } from "sonner";
 
 interface AddTitleToListButtonProps {
   titleId: string;
   lists: { id: string; name: string }[];
+  /** "pill" (default, desktop row) or "row" (mobile More sheet). */
+  variant?: "pill" | "row";
 }
 
-export function AddTitleToListButton({ titleId, lists }: AddTitleToListButtonProps) {
+export function AddTitleToListButton({ titleId, lists, variant = "pill" }: AddTitleToListButtonProps) {
   const [open, setOpen] = React.useState(false);
   const [pending, start] = React.useTransition();
   // Tracks lists the title has been added to in this popover session so we can
@@ -80,13 +83,21 @@ export function AddTitleToListButton({ titleId, lists }: AddTitleToListButtonPro
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
-        >
-          <ListPlus className="h-3.5 w-3.5 text-muted-foreground" />
-          Add to list
-        </button>
+        {variant === "row" ? (
+          <ActionRow
+            icon={<ListPlus className="h-[18px] w-[18px]" />}
+            label="Add to list"
+            sublabel={lists.length > 0 ? `${lists.length} ${lists.length === 1 ? "list" : "lists"}` : "Create your first list"}
+          />
+        ) : (
+          <button
+            type="button"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
+          >
+            <ListPlus className="h-3.5 w-3.5 text-muted-foreground" />
+            Add to list
+          </button>
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-60 p-1.5" align="start">
         {creating ? (

@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ActionRow } from "@/components/action-row";
 import { cn } from "@/lib/utils";
 import { removeTitle } from "@/lib/actions";
 import { APP_ROOT } from "@/lib/public-mode";
@@ -13,11 +14,14 @@ export function RemoveButton({
   titleId,
   titleName,
   iconOnly = false,
+  variant,
   className,
 }: {
   titleId: string;
   titleName: string;
   iconOnly?: boolean;
+  /** "row" renders a full-width destructive menu row (mobile More sheet). */
+  variant?: "row";
   className?: string;
 }) {
   const [pending, start] = useTransition();
@@ -34,6 +38,19 @@ export function RemoveButton({
         toast.error(e instanceof Error ? e.message : "Failed");
       }
     });
+  }
+
+  if (variant === "row") {
+    return (
+      <ActionRow
+        icon={<Trash2 className="h-[18px] w-[18px]" />}
+        label="Remove from library"
+        destructive
+        trailing={null}
+        onClick={onClick}
+        disabled={pending}
+      />
+    );
   }
 
   if (iconOnly) {

@@ -10,6 +10,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { ActionRow } from "@/components/action-row";
 import { setReview } from "@/lib/actions";
 import { toast } from "sonner";
 
@@ -17,10 +18,13 @@ export function ReviewSheet({
   titleId,
   titleName,
   initialReview,
+  variant = "pill",
 }: {
   titleId: string;
   titleName: string;
   initialReview: string | null;
+  /** "pill" (default, desktop row) or "row" (mobile More sheet). */
+  variant?: "pill" | "row";
 }) {
   const [open, setOpen] = React.useState(false);
   const [review, setReviewState] = React.useState<string>(initialReview ?? "");
@@ -38,16 +42,27 @@ export function ReviewSheet({
     });
   }
 
+  const label = initialReview ? "Edit note" : "Add note";
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
-      >
-        <NotebookPen className="h-3.5 w-3.5 text-muted-foreground" />
-        {initialReview ? "Edit note" : "Add note"}
-      </button>
+      {variant === "row" ? (
+        <ActionRow
+          icon={<NotebookPen className="h-[18px] w-[18px]" />}
+          label={label}
+          sublabel={initialReview ? "Your private note" : "Jot a private note"}
+          onClick={() => setOpen(true)}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
+        >
+          <NotebookPen className="h-3.5 w-3.5 text-muted-foreground" />
+          {label}
+        </button>
+      )}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md">
           <SheetHeader>

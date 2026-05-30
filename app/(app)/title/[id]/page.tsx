@@ -60,27 +60,33 @@ async function TitleTrailerAndProviders({
   type,
   tmdbId,
   titleName,
+  variant = "pill",
 }: {
   type: "movie" | "tv";
   tmdbId: number;
   titleName: string;
+  variant?: "pill" | "row";
 }) {
   const meta = await getTitleMeta(type, tmdbId);
   if (!meta.trailerKey && !meta.watchProviders) return null;
-  return (
-    <div className="flex items-center gap-2">
+  const inner = (
+    <>
       {meta.trailerKey && (
-        <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} />
+        <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} variant={variant} />
       )}
       {meta.watchProviders && meta.watchProviders.providers.length > 0 && (
         <WatchProvidersButton
           providers={meta.watchProviders.providers}
           link={meta.watchProviders.link}
           titleName={titleName}
+          variant={variant}
         />
       )}
-    </div>
+    </>
   );
+  // Row variant feeds straight into the More sheet's flex-col; pill variant
+  // keeps its own inline group on desktop.
+  return variant === "row" ? inner : <div className="flex items-center gap-2">{inner}</div>;
 }
 
 async function TitleCastAndRecs({
@@ -271,7 +277,8 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 <RemoveButton titleId={title.id} titleName={title.title} iconOnly />
               </div>
 
-              {/* Mobile: the same secondary actions, collapsed into a sheet. */}
+              {/* Mobile: the same secondary actions, collapsed into a sheet
+                  as full-width menu rows. */}
               <div className="sm:hidden">
                 <MoreActionsSheet>
                   <Suspense fallback={null}>
@@ -279,15 +286,19 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                       type={title.media_type}
                       tmdbId={title.tmdb_id}
                       titleName={title.title}
+                      variant="row"
                     />
                   </Suspense>
-                  <AddTitleToListButton titleId={title.id} lists={userLists} />
+                  <AddTitleToListButton titleId={title.id} lists={userLists} variant="row" />
                   <ReviewSheet
                     titleId={title.id}
                     titleName={title.title}
                     initialReview={title.review}
+                    variant="row"
                   />
-                  <RemoveButton titleId={title.id} titleName={title.title} />
+                  {/* Separate the destructive action. */}
+                  <div aria-hidden className="my-1 h-px bg-border/60" />
+                  <RemoveButton titleId={title.id} titleName={title.title} variant="row" />
                 </MoreActionsSheet>
               </div>
             </div>
