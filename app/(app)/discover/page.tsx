@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { Sparkles } from "lucide-react";
 import { runDiscoverForIntent } from "@/lib/ai-chat";
 import { savedAmong } from "@/lib/search";
 import type { SearchIntent } from "@/lib/ai-search";
-import { SearchResults } from "@/components/search-results";
-import { EmptyState } from "@/components/empty-state";
+import { DiscoverView } from "@/components/discover-view";
 
 export const metadata: Metadata = {
   title: "slate — AI search",
@@ -38,11 +36,9 @@ function summarize(intent: SearchIntent): string {
 }
 
 /**
- * Full-page browse of an AI-search interpretation. The command-palette AI
- * chat parses your phrasing into a SearchIntent and passes it here in the URL;
- * we re-run the same `runDiscoverForIntent` the chat uses — no second LLM call,
- * and the page is shareable. Renders through SearchResults so it gets the
- * All / Films / Series filter for free.
+ * /discover prefetches the URL-intent grid server-side (for fresh / shared
+ * links). DiscoverView then decides at runtime: if a live AI thread exists in
+ * the shared store, it shows the conversation instead; otherwise this grid.
  */
 export default async function DiscoverPage(props: PageProps<"/discover">) {
   const sp = await props.searchParams;
@@ -74,47 +70,16 @@ export default async function DiscoverPage(props: PageProps<"/discover">) {
     Boolean(intent.query_text) ||
     intent.sort_by != null;
 
-  if (!hasIntent) {
-    return (
-      <EmptyState
-        icon={<Sparkles className="h-6 w-6" />}
-        title="Nothing to browse yet"
-        description="Open ⌘K, switch to AI mode, and choose “Browse all” on a set of results."
-      />
-    );
-  }
-
-  const media = await runDiscoverForIntent(intent);
+  const media = hasIntent ? await runDiscoverForIntent(intent) : [];
   const savedTmdbIds = await savedAmong(media.map((m) => m.id));
-  const summary = summarize(intent);
 
   return (
-    <div>
-      <div className="mb-8">
-        <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-          <Sparkles className="h-3 w-3" />
-          AI search
-        </p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
-          {title || "Results"}
-        </h1>
-        {summary && <p className="mt-2 text-sm text-muted-foreground">{summary}</p>}
-      </div>
-
-      {media.length === 0 ? (
-        <EmptyState
-          icon={<Sparkles className="h-6 w-6" />}
-          title="No matches"
-          description="Try a broader ask in AI mode."
-        />
-      ) : (
-        <SearchResults
-          library={[]}
-          media={media}
-          people={[]}
-          savedTmdbIds={[...savedTmdbIds]}
-        />
-      )}
-    </div>
+    <DiscoverView
+      serverMedia={media}
+      serverSaved={[...savedTmdbIds]}
+      title={title}
+      summary={hasIntent ? summarize(intent) : ""}
+      hasIntent={hasIntent}
+    />
   );
 }

@@ -7,59 +7,12 @@ import { Loader2, Film, Tv, Sparkles, Search, Wand2, ArrowRight } from "lucide-r
 import { posterUrl } from "@/lib/tmdb-image";
 import { formatTmdbScore, cn } from "@/lib/utils";
 import { RailScroller } from "@/components/rail-scroller";
-
-// Wire shapes mirror lib/ai-chat.ts. Kept loose here so we don't couple
-// the client bundle to the server-only module.
-interface SearchIntent {
-  media_type: "movie" | "tv" | "both";
-  genres: string[];
-  year_min: number | null;
-  year_max: number | null;
-  query_text: string | null;
-  sort_by: "popularity" | "rating" | "recent" | null;
-  min_rating: number | null;
-  interpretation: string;
-}
-
-interface ChatResultItem {
-  id: number;
-  media_type: "movie" | "tv";
-  title?: string;
-  name?: string;
-  poster_path: string | null;
-  release_date?: string;
-  first_air_date?: string;
-  vote_average?: number;
-}
-
-interface UserTurn {
-  role: "user";
-  content: string;
-}
-
-interface AssistantTurn {
-  role: "assistant";
-  content: string;
-  searching: boolean;
-  intent: SearchIntent | null;
-  results: ChatResultItem[] | null;
-  error: string | null;
-  /** Set true when the stream finishes for this turn. Drives the cursor blink. */
-  done: boolean;
-}
-
-type ChatTurn = UserTurn | AssistantTurn;
-
-type ChatEvent =
-  | { type: "text"; delta: string }
-  | { type: "search_start" }
-  | {
-      type: "search_result";
-      intent: SearchIntent;
-      results: ChatResultItem[];
-    }
-  | { type: "done" }
-  | { type: "error"; message: string };
+import {
+  useAiConversation,
+  type ChatResultItem,
+  type SearchIntent,
+  type AssistantTurn,
+} from "@/components/ai-conversation";
 
 interface AiChatPanelProps {
   /** The shared input value — the chat treats it as the next user message. */
@@ -69,8 +22,6 @@ interface AiChatPanelProps {
   suggestions: string[];
   /** Closes the palette. Called when the user clicks a result. */
   onClose: () => void;
-  /** Imperative reset hook — caller invokes when palette closes. */
-  registerReset: (reset: () => void) => void;
   /** Bumped by the parent every time the input fires Enter. */
   submitTick: number;
 }
@@ -80,117 +31,13 @@ export function AiChatPanel({
   setQuery,
   suggestions,
   onClose,
-  registerReset,
   submitTick,
 }: AiChatPanelProps) {
-  const [turns, setTurns] = React.useState<ChatTurn[]>([]);
-  const [streaming, setStreaming] = React.useState(false);
+  // Conversation state is shared with the /discover page via the provider in
+  // the (app) layout, so the thread survives the modal → page hop.
+  const { turns, submit } = useAiConversation();
   const router = useRouter();
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  const abortRef = React.useRef<AbortController | null>(null);
-
-  // Reset hook: parent calls this on dialog close.
-  React.useEffect(() => {
-    registerReset(() => {
-      abortRef.current?.abort();
-      setTurns([]);
-      setStreaming(false);
-    });
-    // The reset closure captures setTurns/setStreaming, not turns/streaming, so
-    // re-running on every render isn't an issue — but we still only care about
-    // `registerReset` identity.
-  }, [registerReset]);
-
-  const applyEvent = React.useCallback((event: ChatEvent) => {
-    if (event.type === "text") {
-      setTurns((prev) => mutateLastAssistant(prev, (a) => ({ ...a, content: a.content + event.delta })));
-    } else if (event.type === "search_start") {
-      setTurns((prev) => mutateLastAssistant(prev, (a) => ({ ...a, searching: true })));
-    } else if (event.type === "search_result") {
-      setTurns((prev) =>
-        mutateLastAssistant(prev, (a) => ({
-          ...a,
-          searching: false,
-          intent: event.intent,
-          results: event.results,
-        })),
-      );
-    } else if (event.type === "error") {
-      setTurns((prev) => mutateLastAssistant(prev, (a) => ({ ...a, error: event.message, done: true })));
-    }
-  }, []);
-
-  const submit = React.useCallback(
-    async (message: string) => {
-      const trimmed = message.trim();
-      if (!trimmed || streaming) return;
-
-      const next: ChatTurn[] = [
-        ...turns,
-        { role: "user", content: trimmed },
-        {
-          role: "assistant",
-          content: "",
-          searching: false,
-          intent: null,
-          results: null,
-          error: null,
-          done: false,
-        },
-      ];
-      setTurns(next);
-      setQuery("");
-      setStreaming(true);
-
-      const ctrl = new AbortController();
-      abortRef.current = ctrl;
-
-      try {
-        const res = await fetch("/api/ai-chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: ctrl.signal,
-          body: JSON.stringify({
-            messages: next
-              .filter((t) => t.role === "user" || (t.role === "assistant" && t.content))
-              .map((t) => ({ role: t.role, content: t.content })),
-          }),
-        });
-        if (!res.ok || !res.body) {
-          throw new Error(`chat failed (${res.status})`);
-        }
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          // NDJSON: one event per line.
-          const lines = buf.split("\n");
-          buf = lines.pop() ?? "";
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            let event: ChatEvent;
-            try {
-              event = JSON.parse(line) as ChatEvent;
-            } catch {
-              continue;
-            }
-            applyEvent(event);
-          }
-        }
-      } catch (err) {
-        if ((err as Error)?.name === "AbortError") return;
-        const message = err instanceof Error ? err.message : "chat error";
-        setTurns((prev) => mutateLastAssistant(prev, (a) => ({ ...a, error: message, done: true })));
-      } finally {
-        setTurns((prev) => mutateLastAssistant(prev, (a) => ({ ...a, done: true, searching: false })));
-        setStreaming(false);
-      }
-    },
-    [turns, streaming, setQuery, applyEvent],
-  );
 
   // Parent bumps `submitTick` whenever it wants us to submit the current
   // query — Enter on the input, or clicking the AI Mode toggle while
@@ -201,8 +48,11 @@ export function AiChatPanel({
   React.useEffect(() => {
     if (submitTick === lastTickRef.current) return;
     lastTickRef.current = submitTick;
-    if (query.trim()) submit(query);
-  }, [submitTick, query, submit]);
+    if (query.trim()) {
+      submit(query);
+      setQuery("");
+    }
+  }, [submitTick, query, submit, setQuery]);
 
   // Auto-scroll on new content.
   React.useEffect(() => {
@@ -224,7 +74,7 @@ export function AiChatPanel({
           </div>
           <p className="text-sm text-muted-foreground">
             Describe what you&rsquo;re in the mood for. Press{" "}
-            <kbd className="font-mono">↵</kbd> to send. Follow-ups stay in this thread until you close the palette.
+            <kbd className="font-mono">↵</kbd> to send. Follow-ups continue the thread — here or on the results page.
           </p>
           {suggestions.length > 0 ? (
             <div className="flex max-w-md flex-wrap justify-center gap-1.5">
@@ -286,19 +136,7 @@ export function AiChatPanel({
   );
 }
 
-function mutateLastAssistant(
-  prev: ChatTurn[],
-  mutator: (a: AssistantTurn) => AssistantTurn,
-): ChatTurn[] {
-  if (prev.length === 0) return prev;
-  const last = prev[prev.length - 1];
-  if (last.role !== "assistant") return prev;
-  const updated = [...prev];
-  updated[updated.length - 1] = mutator(last);
-  return updated;
-}
-
-function UserBubble({ text }: { text: string }) {
+export function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
       <div className="max-w-[80%] rounded-2xl rounded-br-md bg-primary/10 px-3 py-2 text-sm text-foreground">
@@ -308,15 +146,18 @@ function UserBubble({ text }: { text: string }) {
   );
 }
 
-function AssistantBubble({
+export function AssistantBubble({
   turn,
   onResultClick,
   onBrowse,
+  hideResults = false,
 }: {
   turn: AssistantTurn;
-  onResultClick: (item: ChatResultItem) => void;
+  onResultClick?: (item: ChatResultItem) => void;
   /** Present only when this turn has browsable results — opens the full page. */
   onBrowse?: () => void;
+  /** Page view shows the latest results as a grid below, so the per-turn rail + browse link are suppressed. */
+  hideResults?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -365,11 +206,11 @@ function AssistantBubble({
         </div>
       )}
 
-      {turn.results && turn.results.length > 0 && (
+      {!hideResults && onResultClick && turn.results && turn.results.length > 0 && (
         <ResultRail items={turn.results} onClick={onResultClick} />
       )}
 
-      {onBrowse && (
+      {!hideResults && onBrowse && (
         <button
           type="button"
           onClick={onBrowse}

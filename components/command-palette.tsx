@@ -90,7 +90,6 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   // Bumped each time the user hits Enter in AI mode — picked up by AiChatPanel
   // to fire the next chat turn.
   const [submitTick, setSubmitTick] = React.useState(0);
-  const chatResetRef = React.useRef<(() => void) | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -141,8 +140,9 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     return () => document.removeEventListener("keydown", onKey);
   }, [aiEnabled]);
 
-  // Reset transient state when the palette closes — fresh open should feel fresh.
-  // Per product spec: chat conversation also resets every time.
+  // Reset transient *search* state when the palette closes — fresh open feels
+  // fresh. The AI conversation deliberately persists (it lives in the shared
+  // provider) so it survives close and the modal → /discover page hop.
   React.useEffect(() => {
     if (!open) {
       setQuery("");
@@ -152,7 +152,6 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       setApproximate(false);
       setApproxQuery(null);
       setJustAdded(new Set());
-      chatResetRef.current?.();
     }
   }, [open]);
 
@@ -478,9 +477,6 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
             setQuery={setQuery}
             suggestions={suggestions}
             onClose={() => setOpen(false)}
-            registerReset={(reset) => {
-              chatResetRef.current = reset;
-            }}
             submitTick={submitTick}
           />
         ) : (
