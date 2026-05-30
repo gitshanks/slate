@@ -102,7 +102,7 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
   };
 
   return (
-    <div className="pb-28">
+    <div className="pb-28 lg:pb-8">
       <div className="mb-8">
         <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
           <Sparkles className="h-3 w-3" />
@@ -113,56 +113,69 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
         </h1>
       </div>
 
-      {/* Conversation thread — per-turn rails suppressed; the latest answer's
-          results render as the grid below. */}
-      <div className="mb-10 flex flex-col gap-4">
-        {turns.map((t, i) =>
-          t.role === "user" ? (
-            <UserBubble key={i} text={t.content} />
-          ) : (
-            <AssistantBubble key={i} turn={t} hideResults />
-          ),
-        )}
-        <div ref={endRef} />
-      </div>
-
-      {media.length > 0 && (
-        <SearchResults library={[]} media={media} people={[]} savedTmdbIds={[]} />
-      )}
-
-      {/* Follow-up bar — pinned above the mobile BottomNav, flush on desktop. */}
-      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+3.75rem)] z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:bottom-0 sm:px-6 lg:px-10">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send();
-          }}
-          className="relative mx-auto flex max-w-2xl items-center"
-        >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a follow-up…"
-            inputMode="search"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            className="h-11 w-full rounded-full border border-border bg-card pl-4 pr-12 text-base sm:text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
-          />
-          <button
-            type="submit"
-            aria-label="Send"
-            disabled={!input.trim() || streaming}
-            className={cn(
-              "absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-colors",
-              input.trim() && !streaming
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "bg-muted text-muted-foreground/50",
+      <div className="lg:flex lg:items-start lg:gap-8">
+        {/* Chat column — on desktop it sticks alongside the results and scrolls
+            its own thread, with the follow-up pinned at its base. On mobile it
+            collapses: thread here, results below, follow-up as a fixed bottom
+            bar. */}
+        <div className="lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100vh-7rem)] lg:w-[380px] lg:shrink-0 lg:flex-col xl:w-[440px]">
+          {/* Conversation thread — per-turn rails suppressed; the latest
+              answer's results render as the grid in the other column. */}
+          <div className="flex flex-col gap-4 lg:flex-1 lg:overflow-y-auto lg:pr-1">
+            {turns.map((t, i) =>
+              t.role === "user" ? (
+                <UserBubble key={i} text={t.content} />
+              ) : (
+                <AssistantBubble key={i} turn={t} hideResults />
+              ),
             )}
-          >
-            {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
-          </button>
-        </form>
+            <div ref={endRef} />
+          </div>
+
+          {/* Follow-up — fixed bottom bar on mobile, static in-column on desktop. */}
+          <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+3.75rem)] z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:px-6 md:bottom-0 lg:static lg:z-auto lg:mt-3 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                send();
+              }}
+              className="relative mx-auto flex w-full max-w-2xl items-center lg:max-w-none"
+            >
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask a follow-up…"
+                inputMode="search"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                className="h-11 w-full rounded-full border border-border bg-card pl-4 pr-12 text-base sm:text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
+              />
+              <button
+                type="submit"
+                aria-label="Send"
+                disabled={!input.trim() || streaming}
+                className={cn(
+                  "absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-colors",
+                  input.trim() && !streaming
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-muted text-muted-foreground/50",
+                )}
+              >
+                {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Results column */}
+        <div className="mt-10 min-w-0 lg:mt-0 lg:flex-1">
+          {media.length > 0 ? (
+            <SearchResults library={[]} media={media} people={[]} savedTmdbIds={[]} />
+          ) : (
+            <p className="text-sm text-muted-foreground">No results for this turn.</p>
+          )}
+        </div>
       </div>
     </div>
   );
