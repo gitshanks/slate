@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { CreateListForm } from "@/components/create-list-form";
 import { DeleteListButton } from "@/components/delete-list-button";
 import { ShareListButton } from "@/components/share-list-button";
-import { ListPlus } from "lucide-react";
+import { ListPlus, Film } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -73,61 +73,72 @@ export default async function ListsPage() {
           description="Group titles into themed collections — Cozy winter, A24 horror, Long flights…"
         />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-          {(lists as ListRow[]).map((list) => (
-            // Wrapper div so we can absolutely position the delete button
-            // without nesting interactive elements inside <Link>
-            <div key={list.id} className="relative group/card">
-              <Link
-                href={`/lists/${list.slug}`}
-                // Auto-height on mobile (single column, no row alignment to
-                // preserve) so short descriptions don't leave dead space;
-                // fixed height on sm+ where multi-column rows need to line
-                // up. Tighter padding on mobile.
-                className="flex min-h-[140px] flex-col rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)] sm:h-[176px] sm:p-6"
-              >
-                <div className="flex-1 pr-20">
-                  <h3 className="text-lg font-semibold tracking-tight">{list.name}</h3>
-                  {list.description && (
-                    <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                      {list.description}
-                    </p>
-                  )}
-                </div>
-                <div className="mt-3 flex items-end justify-between gap-3 sm:mt-4">
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {counts[list.id] ?? 0}{" "}
-                    {(counts[list.id] ?? 0) === 1 ? "title" : "titles"}
-                  </p>
-                  {(posters[list.id] ?? []).length > 0 && (
-                    <div className="flex gap-1">
-                      {(posters[list.id] ?? []).map((p, i) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          key={i}
-                          src={`https://image.tmdb.org/t/p/w92${p}`}
-                          alt=""
-                          className="h-9 w-6 rounded-sm object-cover opacity-80"
-                        />
-                      ))}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {(lists as ListRow[]).map((list) => {
+            const covers = posters[list.id] ?? [];
+            const count = counts[list.id] ?? 0;
+            return (
+              // Wrapper div so we can absolutely position the action buttons
+              // without nesting interactive elements inside <Link>.
+              <div key={list.id} className="relative group/card">
+                <Link
+                  href={`/lists/${list.slug}`}
+                  className="block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)]"
+                >
+                  {/* Poster cover — the list's first titles fanned out as the
+                      hero. Empty lists get a muted placeholder. */}
+                  <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-b from-muted/40 to-muted/10">
+                    {covers.length > 0 ? (
+                      <>
+                        <div className="absolute inset-0 flex items-center justify-center gap-2 px-6">
+                          {covers.map((p, i) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              key={i}
+                              src={`https://image.tmdb.org/t/p/w185${p}`}
+                              alt=""
+                              loading="lazy"
+                              className="h-[78%] w-auto rounded-md object-cover shadow-lg shadow-black/40 ring-1 ring-white/10 transition-transform duration-300 ease-out group-hover/card:-translate-y-0.5"
+                              style={{ transform: `rotate(${(i - (covers.length - 1) / 2) * 5}deg)` }}
+                            />
+                          ))}
+                        </div>
+                        {/* Bottom fade so the title block below sits cleanly. */}
+                        <div aria-hidden className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent" />
+                      </>
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/40">
+                        <Film className="h-8 w-8" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Name · count · description */}
+                  <div className="p-4 sm:p-5">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h3 className="truncate text-lg font-semibold tracking-tight">
+                        {list.name}
+                      </h3>
+                      <span className="shrink-0 text-xs text-muted-foreground font-mono">
+                        {count} {count === 1 ? "title" : "titles"}
+                      </span>
                     </div>
-                  )}
+                    {list.description && (
+                      <p className="mt-1 text-sm text-muted-foreground line-clamp-1">
+                        {list.description}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+                {/* Share + Delete — absolutely positioned over the cover, stop
+                    click propagation. Visible on hover (and always on touch). */}
+                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
+                  <ShareListButton listSlug={list.slug} listName={list.name} />
+                  <DeleteListButton listId={list.id} listName={list.name} iconOnly />
                 </div>
-              </Link>
-              {/* Share + Delete — absolutely positioned, stop click propagation */}
-              <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
-                <ShareListButton
-                  listSlug={list.slug}
-                  listName={list.name}
-                />
-                <DeleteListButton
-                  listId={list.id}
-                  listName={list.name}
-                  iconOnly
-                />
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
