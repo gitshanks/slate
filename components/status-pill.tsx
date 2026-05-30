@@ -53,11 +53,11 @@ export function StatusPill({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3.5 text-xs font-medium text-primary shadow-sm transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Icon className="h-3.5 w-3.5 text-primary" />
+          <Icon className="h-3.5 w-3.5" />
           <span>{active.label}</span>
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          <ChevronDown className="h-3 w-3 text-primary/60" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[9rem]">

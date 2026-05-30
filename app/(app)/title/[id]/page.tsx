@@ -67,7 +67,7 @@ async function TitleTrailerAndProviders({
   const meta = await getTitleMeta(type, tmdbId);
   if (!meta.trailerKey && !meta.watchProviders) return null;
   return (
-    <>
+    <div className="flex items-center gap-2">
       {meta.trailerKey && (
         <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} />
       )}
@@ -78,7 +78,7 @@ async function TitleTrailerAndProviders({
           titleName={titleName}
         />
       )}
-    </>
+    </div>
   );
 }
 
@@ -241,15 +241,23 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               {title.title}
             </h1>
 
-            {/* Single action row: status · sentiment · delete · trailer · providers · add-to-list */}
-            {/* Everything is h-9 so they align on the same baseline */}
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              <StatusPill titleId={title.id} status={title.status} />
-              <SentimentRating
-                titleId={title.id}
-                rating={title.rating != null ? Number(title.rating) : null}
-              />
-              <RemoveButton titleId={title.id} titleName={title.title} iconOnly />
+            {/* Action panel — grouped left→right: your status, how to watch,
+                then organize. The destructive Remove is pushed to the far right
+                and kept muted so it's never a misclick beside the common
+                actions. All controls are h-9 pills; groups wrap as whole units
+                (gap-x-4 between groups, gap-2 within). */}
+            <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+              {/* Your status & rating — the primary cluster */}
+              <div className="flex items-center gap-2">
+                <StatusPill titleId={title.id} status={title.status} />
+                <SentimentRating
+                  titleId={title.id}
+                  rating={title.rating != null ? Number(title.rating) : null}
+                />
+              </div>
+
+              {/* How to watch — self-contained group; renders nothing when
+                  there's no trailer or providers */}
               <Suspense fallback={null}>
                 <TitleTrailerAndProviders
                   type={title.media_type}
@@ -257,15 +265,26 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                   titleName={title.title}
                 />
               </Suspense>
-              <AddTitleToListButton titleId={title.id} lists={userLists} />
-              <ReviewSheet
+
+              {/* Organize */}
+              <div className="flex items-center gap-2">
+                <AddTitleToListButton titleId={title.id} lists={userLists} />
+                <ReviewSheet
+                  titleId={title.id}
+                  titleName={title.title}
+                  initialReview={title.review}
+                />
+              </div>
+
+              {/* Destructive — set apart on the far right (desktop) */}
+              <RemoveButton
                 titleId={title.id}
                 titleName={title.title}
-                initialReview={title.review}
+                iconOnly
+                className="sm:ml-auto"
               />
             </div>
 
-            {/* Episode-position picker — only TV currently being watched. */}
             {/* Overview — from Supabase, immediate */}
             {title.overview && (
               <p className="mt-6 max-w-2xl text-base leading-relaxed text-foreground/85">
