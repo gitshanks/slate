@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { SearchX } from "lucide-react";
 import { searchEverything } from "@/lib/search";
-import { MediaGrid } from "@/components/media-grid";
-import { TmdbTile } from "@/components/tmdb-tile";
-import { PeopleGrid, type PersonTile } from "@/components/people-grid";
+import { SearchResults } from "@/components/search-results";
 import { EmptyState } from "@/components/empty-state";
+import type { PersonTile } from "@/components/people-grid";
 import type { TmdbPersonResult } from "@/lib/tmdb";
 
 export const metadata: Metadata = {
@@ -30,12 +29,6 @@ function toPersonTile(p: TmdbPersonResult): PersonTile {
     profilePath: p.profile_path ?? null,
   };
 }
-
-const GRID_CLASS =
-  "grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10";
-
-const SECTION_HEADING =
-  "mb-4 text-lg font-semibold tracking-tight text-foreground sm:text-xl";
 
 export default async function SearchPage(props: PageProps<"/search">) {
   const q = pick((await props.searchParams).q).trim();
@@ -79,36 +72,12 @@ export default async function SearchPage(props: PageProps<"/search">) {
           description="Try a different spelling or fewer words."
         />
       ) : (
-        // PeopleGrid carries its own top margin, so sections manage their own
-        // spacing rather than a wrapping space-y (which would double it up).
-        <>
-          {library.length > 0 && (
-            <section>
-              <h2 className={SECTION_HEADING}>In your library</h2>
-              <MediaGrid titles={library} />
-            </section>
-          )}
-
-          {media.length > 0 && (
-            <section className={library.length > 0 ? "mt-12" : undefined}>
-              <h2 className={SECTION_HEADING}>Movies &amp; TV</h2>
-              <div className={GRID_CLASS}>
-                {media.map((item) => (
-                  <TmdbTile
-                    key={`${item.media_type}-${item.id}`}
-                    item={item}
-                    variant="grid"
-                    saved={savedTmdbIds.has(item.id)}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {people.length > 0 && (
-            <PeopleGrid title="People" people={people.map(toPersonTile)} />
-          )}
-        </>
+        <SearchResults
+          library={library}
+          media={media}
+          people={people.map(toPersonTile)}
+          savedTmdbIds={[...savedTmdbIds]}
+        />
       )}
     </div>
   );
