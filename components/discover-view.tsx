@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles, ArrowUp, Loader2 } from "lucide-react";
+import { Sparkles, ArrowUp, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAiConversation, type ChatTurn } from "@/components/ai-conversation";
 import { UserBubble, AssistantBubble } from "@/components/ai-chat-panel";
@@ -109,7 +109,7 @@ function useKeyboardInset() {
 }
 
 function ConversationView({ turns }: { turns: ChatTurn[] }) {
-  const { streaming, submit } = useAiConversation();
+  const { streaming, submit, reset } = useAiConversation();
   const [input, setInput] = React.useState("");
   const endRef = React.useRef<HTMLDivElement>(null);
   const kbInset = useKeyboardInset();
@@ -131,14 +131,24 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
 
   return (
     <div>
-      <div className="mb-8">
-        <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-          <Sparkles className="h-3 w-3" />
-          AI search
-        </p>
-        <h1 className="mt-1 line-clamp-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-          {title}
-        </h1>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+            <Sparkles className="h-3 w-3" />
+            AI search
+          </p>
+          <h1 className="mt-1 line-clamp-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+            {title}
+          </h1>
+        </div>
+        <button
+          type="button"
+          onClick={reset}
+          className="mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Clear
+        </button>
       </div>
 
       <div className="lg:flex lg:items-start lg:gap-8">
