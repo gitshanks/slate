@@ -653,6 +653,14 @@ async function* streamOpenAIChat(
   // searches whose results overwrite the previous rail in the UI.
   const MAX_HOPS = 2;
 
+  // A follow-up (more than one user turn) is often a question ABOUT the
+  // results already on screen ("which one is highest rated?") rather than a
+  // fresh search. Forcing a tool call on those makes the model emit a
+  // degenerate/empty search that can dead-end the turn with no prose (stuck
+  // on "Thinking…"). So only force a tool call on the first turn; let
+  // follow-ups answer conversationally from the prior prose in context.
+  const isFollowUp = messages.filter((m) => m.role === "user").length > 1;
+
   // Whether we've already retried with tools disabled. The retry is the
   // graceful-degradation path when Groq rejects a tool call: drop the tools
   // parameter and let the model respond conversationally.
@@ -716,7 +724,7 @@ async function* streamOpenAIChat(
               // emitting a structured function call. On hop 1 we omit
               // tool_choice so the model writes prose with the tool result
               // already in context.
-              ...(hop === 0 ? { tool_choice: "required" as const } : {}),
+              ...(hop === 0 && !isFollowUp ? { tool_choice: "required" as const } : {}),
             }),
         stream: true,
       });
@@ -725,7 +733,9 @@ async function* streamOpenAIChat(
       // no prose. If the model writes prose anyway it's defying the
       // constraint and the prose is ungrounded — suppress it here so the
       // user never sees hallucinated text on screen.
-      const shouldYieldText = hop > 0 || triedFallback;
+      // On follow-ups we don't force a tool, so hop-0 prose is a real answer —
+      // surface it rather than suppressing it as ungrounded.
+      const shouldYieldText = hop > 0 || triedFallback || isFollowUp;
 
       for await (const chunk of stream) {
         const choice = chunk.choices[0];
@@ -837,6 +847,7 @@ async function* streamOpenAIChat(
     if (
       hop === 0 &&
       !triedFallback &&
+      !isFollowUp &&
       (finishReason !== "tool_calls" || pendingCalls.size === 0)
     ) {
       triedFallback = true;

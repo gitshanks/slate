@@ -102,7 +102,7 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
   };
 
   return (
-    <div className="pb-28 lg:pb-8">
+    <div>
       <div className="mb-8">
         <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
           <Sparkles className="h-3 w-3" />
@@ -132,8 +132,10 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
             <div ref={endRef} />
           </div>
 
-          {/* Follow-up — fixed bottom bar on mobile, static in-column on desktop. */}
-          <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+3.75rem)] z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:px-6 md:bottom-0 lg:static lg:z-auto lg:mt-3 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+          {/* Follow-up — in normal flow (no fixed positioning, which fought the
+              iOS keyboard and floated over content). Sits right under the
+              thread on mobile; at the base of the chat panel on desktop. */}
+          <div className="mt-4 border-t border-border pt-4">
             <form
               onSubmit={(e) => {
                 e.preventDefault();

@@ -181,10 +181,15 @@ export function AssistantBubble({
               <Search className="h-3.5 w-3.5 animate-pulse" />
               Searching…
             </span>
-          ) : (
+          ) : !turn.done ? (
             <span className="inline-flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Thinking…
+            </span>
+          ) : turn.results && turn.results.length > 0 ? null : (
+            // Finished with no prose and no results — don't spin forever.
+            <span className="text-muted-foreground">
+              I didn&rsquo;t catch a response there — mind asking again?
             </span>
           )}
         </div>
