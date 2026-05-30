@@ -21,6 +21,8 @@ import {
   Library,
   Sparkles,
   ArrowUp,
+  Mic,
+  Search,
 } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { addTitle } from "@/lib/actions";
@@ -28,6 +30,7 @@ import { RatingPair } from "@/components/rating-pair";
 import { formatTmdbScore, cn } from "@/lib/utils";
 import type { TitleStatus } from "@/lib/supabase";
 import { AiChatPanel } from "@/components/ai-chat-panel";
+import { useSpeechRecognition } from "@/lib/use-speech-recognition";
 
 interface SearchResult {
   id: number;
@@ -90,6 +93,24 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   const chatResetRef = React.useRef<(() => void) | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Voice search (standard mode). Dictation fills the box and stops; the user
+  // reviews and presses Enter. Hidden entirely when unsupported.
+  const { supported: voiceSupported, listening, toggle: toggleVoice } =
+    useSpeechRecognition({
+      onResult: (transcript) => setQuery(transcript),
+      onEnd: () => inputRef.current?.focus(),
+    });
+
+  // Open the full, browsable results page for the current query. Driven by the
+  // "Search all results" row (which cmdk auto-highlights), so a bare
+  // type-then-Enter lands here instead of opening result #1.
+  const handleSearchAll = React.useCallback(() => {
+    const q = query.trim();
+    if (!q) return;
+    setOpen(false);
+    router.push(`/search?q=${encodeURIComponent(q)}`);
+  }, [query, router]);
 
   // Mobile keyboard reliability: when the dialog opens (or AI mode toggles
   // on), iOS sometimes doesn't surface the soft keyboard because cmdk's
@@ -262,6 +283,10 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   // see the streaming response without manually tapping outside the input.
   // Desktop browsers don't show a soft keyboard so the blur is harmless
   // there — users can re-click to type a follow-up.
+  // Enter in AI mode submits the input as a chat turn instead of letting cmdk
+  // navigate. In standard mode cmdk handles Enter itself — it fires the
+  // highlighted row's onSelect, and the auto-highlighted row is "Search all
+  // results", so a bare type-then-Enter opens the results page.
   const handleInputKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (aiMode && e.key === "Enter" && query.trim()) {
@@ -287,13 +312,15 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     return () => mq.removeEventListener("change", update);
   }, []);
 
-  const placeholder = aiMode
-    ? isMobile
-      ? "Ask AI…"
-      : "Ask anything — \"feel-good 90s rom-coms\", \"Nolan thrillers\"…"
-    : isMobile
-      ? "Search…"
-      : "Search movies and TV shows…";
+  const placeholder = listening
+    ? "Listening…"
+    : aiMode
+      ? isMobile
+        ? "Ask AI…"
+        : "Ask anything — \"feel-good 90s rom-coms\", \"Nolan thrillers\"…"
+      : isMobile
+        ? "Search…"
+        : "Search movies and TV shows…";
   const heading = approximate
     ? `Approximate results${approxQuery ? ` for "${approxQuery}"` : ""}`
     : "Add from TMDB";
@@ -337,10 +364,35 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
               aiMode
                 ? "pr-20 sm:pr-52"
                 : aiEnabled
-                  ? "pr-20 sm:pr-40"
-                  : "pr-10",
+                  ? voiceSupported
+                    ? "pr-28 sm:pr-44"
+                    : "pr-20 sm:pr-40"
+                  : voiceSupported
+                    ? "pr-20"
+                    : "pr-10",
             )}
           />
+          {!aiMode && voiceSupported && (
+            <button
+              type="button"
+              aria-label={listening ? "Stop listening" : "Search by voice"}
+              title={listening ? "Listening… tap to stop" : "Search by voice"}
+              aria-pressed={listening}
+              onClick={toggleVoice}
+              className={cn(
+                "absolute top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+                // Sits left of the AI Mode pill (right-12) when AI is enabled,
+                // otherwise takes the pill's spot — both clear the dialog's
+                // close-X at right-4.
+                aiEnabled ? "right-20 sm:right-[8.5rem]" : "right-12",
+                listening
+                  ? "text-primary bg-primary/10 hover:bg-primary/15"
+                  : "text-muted-foreground/70 hover:text-foreground hover:bg-accent"
+              )}
+            >
+              <Mic className={cn("h-3.5 w-3.5", listening && "animate-pulse")} />
+            </button>
+          )}
           {aiEnabled && (
             <button
               type="button"
@@ -433,6 +485,32 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
           />
         ) : (
           <CommandList className="max-h-[60vh]">
+            {/* Auto-highlighted first row: Enter (with no other row chosen)
+                opens the full, browsable results page. */}
+            {query.trim().length >= 2 && (
+              <CommandGroup>
+                <CommandItem
+                  value="search-all"
+                  onSelect={handleSearchAll}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSearchAll();
+                  }}
+                  className="gap-3"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                    <Search className="h-4 w-4" />
+                  </div>
+                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                    Search all results for{" "}
+                    <span className="font-medium">&ldquo;{query.trim()}&rdquo;</span>
+                  </span>
+                  <kbd className="ml-auto shrink-0 rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                    ↵
+                  </kbd>
+                </CommandItem>
+              </CommandGroup>
+            )}
             {loading && (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -445,7 +523,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
               <div className="px-4 py-10 text-center text-xs text-muted-foreground">
                 Search your library or add from TMDB.
                 <br />
-                Press <kbd className="font-mono">↵</kbd> to open or preview.
+                Press <kbd className="font-mono">↵</kbd> to see all results.
                 {aiEnabled && (
                   <>
                     <br />
