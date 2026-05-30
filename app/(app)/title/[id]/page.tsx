@@ -9,6 +9,7 @@ import { StatusPill } from "@/components/status-pill";
 import { SentimentRating } from "@/components/sentiment-rating";
 import { ReviewSheet } from "@/components/review-sheet";
 import { RemoveButton } from "@/components/remove-button";
+import { MoreActionsSheet } from "@/components/more-actions-sheet";
 import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { AddTitleToListButton } from "@/components/add-title-to-list-button";
@@ -241,48 +242,54 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               {title.title}
             </h1>
 
-            {/* Action panel — grouped left→right: your status, how to watch,
-                then organize. The destructive Remove is pushed to the far right
-                and kept muted so it's never a misclick beside the common
-                actions. All controls are h-9 pills; groups wrap as whole units
-                (gap-x-4 between groups, gap-2 within). */}
-            <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
-              {/* Your status & rating — the primary cluster */}
-              <div className="flex items-center gap-2">
-                <StatusPill titleId={title.id} status={title.status} />
-                <SentimentRating
-                  titleId={title.id}
-                  rating={title.rating != null ? Number(title.rating) : null}
-                />
-              </div>
+            {/* Action panel. Primary actions (status + rating) stay inline at
+                every width. On desktop the rest sit in the same row at a
+                uniform gap; on mobile they collapse behind a single "More"
+                sheet so the header never wraps to three rows of pills. */}
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <StatusPill titleId={title.id} status={title.status} />
+              <SentimentRating
+                titleId={title.id}
+                rating={title.rating != null ? Number(title.rating) : null}
+              />
 
-              {/* How to watch — self-contained group; renders nothing when
-                  there's no trailer or providers */}
-              <Suspense fallback={null}>
-                <TitleTrailerAndProviders
-                  type={title.media_type}
-                  tmdbId={title.tmdb_id}
-                  titleName={title.title}
-                />
-              </Suspense>
-
-              {/* Organize */}
-              <div className="flex items-center gap-2">
+              {/* Desktop: secondary actions inline at the same gap. */}
+              <div className="hidden items-center gap-2 sm:flex">
+                <Suspense fallback={null}>
+                  <TitleTrailerAndProviders
+                    type={title.media_type}
+                    tmdbId={title.tmdb_id}
+                    titleName={title.title}
+                  />
+                </Suspense>
                 <AddTitleToListButton titleId={title.id} lists={userLists} />
                 <ReviewSheet
                   titleId={title.id}
                   titleName={title.title}
                   initialReview={title.review}
                 />
+                <RemoveButton titleId={title.id} titleName={title.title} iconOnly />
               </div>
 
-              {/* Destructive — set apart on the far right (desktop) */}
-              <RemoveButton
-                titleId={title.id}
-                titleName={title.title}
-                iconOnly
-                className="sm:ml-auto"
-              />
+              {/* Mobile: the same secondary actions, collapsed into a sheet. */}
+              <div className="sm:hidden">
+                <MoreActionsSheet>
+                  <Suspense fallback={null}>
+                    <TitleTrailerAndProviders
+                      type={title.media_type}
+                      tmdbId={title.tmdb_id}
+                      titleName={title.title}
+                    />
+                  </Suspense>
+                  <AddTitleToListButton titleId={title.id} lists={userLists} />
+                  <ReviewSheet
+                    titleId={title.id}
+                    titleName={title.title}
+                    initialReview={title.review}
+                  />
+                  <RemoveButton titleId={title.id} titleName={title.title} />
+                </MoreActionsSheet>
+              </div>
             </div>
 
             {/* Overview — from Supabase, immediate */}
