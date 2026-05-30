@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Loader2, Film, Tv, Sparkles, Search, Wand2 } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
-import { formatTmdbScore } from "@/lib/utils";
+import { formatTmdbScore, cn } from "@/lib/utils";
 import { RailScroller } from "@/components/rail-scroller";
 
 // Wire shapes mirror lib/ai-chat.ts. Kept loose here so we don't couple
@@ -374,6 +374,12 @@ function summarizeIntent(intent: SearchIntent): string {
   return parts.length > 0 ? parts.join(" · ") : "broad search";
 }
 
+const RAIL_TYPES = [
+  { value: "", label: "All" },
+  { value: "movie", label: "Films" },
+  { value: "tv", label: "Series" },
+] as const;
+
 function ResultRail({
   items,
   onClick,
@@ -381,6 +387,14 @@ function ResultRail({
   items: ChatResultItem[];
   onClick: (item: ChatResultItem) => void;
 }) {
+  const [type, setType] = React.useState<"" | "movie" | "tv">("");
+  // Only offer the filter when a single answer actually mixes films and
+  // series — otherwise the AI already committed to one type and chips are noise.
+  const mixed =
+    items.some((i) => i.media_type === "movie") &&
+    items.some((i) => i.media_type === "tv");
+  const shown = type ? items.filter((i) => i.media_type === type) : items;
+
   return (
     // ml-8 indents the rail beneath the assistant text; -mr-4 bleeds it to the
     // dialog edge. RailScroller supplies the desktop hover arrows — a plain
@@ -388,8 +402,27 @@ function ResultRail({
     // delta won't move horizontal-only overflow), which left this list stuck
     // on desktop even though it panned fine on touch.
     <div className="ml-8 -mr-4">
+      {mixed && (
+        <div className="mb-2 inline-flex items-center rounded-full border border-border bg-card p-0.5">
+          {RAIL_TYPES.map(({ value, label }) => (
+            <button
+              key={value || "all"}
+              type="button"
+              onClick={() => setType(value)}
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors",
+                type === value
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       <RailScroller>
-        {items.map((item) => {
+        {shown.map((item) => {
           const name = item.title || item.name || "Untitled";
           const date = item.release_date || item.first_air_date || "";
           const year = date ? date.slice(0, 4) : "";
