@@ -81,10 +81,38 @@ function lastResults(turns: ChatTurn[]): TmdbMediaResult[] {
   return [];
 }
 
+/**
+ * Soft-keyboard height via the VisualViewport API. iOS doesn't shrink the
+ * layout viewport when the keyboard opens (a `position: fixed` bar would sit
+ * behind it), so we measure the overlap and lift the input by that much.
+ * Returns 0 when the keyboard is closed or the API is unavailable (desktop).
+ */
+function useKeyboardInset() {
+  const [inset, setInset] = React.useState(0);
+  React.useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const overlap = window.innerHeight - vv.height - vv.offsetTop;
+      // Ignore small deltas (URL-bar show/hide) — real keyboards are tall.
+      setInset(overlap > 100 ? Math.round(overlap) : 0);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+  return inset;
+}
+
 function ConversationView({ turns }: { turns: ChatTurn[] }) {
   const { streaming, submit } = useAiConversation();
   const [input, setInput] = React.useState("");
   const endRef = React.useRef<HTMLDivElement>(null);
+  const kbInset = useKeyboardInset();
 
   const title = turns.find((t) => t.role === "user")?.content ?? "AI search";
   const media = lastResults(turns);
@@ -102,7 +130,7 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
   };
 
   return (
-    <div className="pb-28 lg:pb-8">
+    <div>
       <div className="mb-8">
         <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
           <Sparkles className="h-3 w-3" />
@@ -132,8 +160,19 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
             <div ref={endRef} />
           </div>
 
-          {/* Follow-up — fixed bottom bar on mobile, static in-column on desktop. */}
-          <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+3.75rem)] z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:px-6 md:bottom-0 lg:static lg:z-auto lg:mt-3 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+          {/* Follow-up. In normal flow when idle (under the thread on mobile,
+              at the base of the chat panel on desktop). When the soft keyboard
+              opens we pin it just above the keyboard via the VisualViewport
+              inset — so it sits snug above the keys instead of floating. */}
+          <div
+            className={cn(
+              "border-t border-border",
+              kbInset > 0
+                ? "fixed inset-x-0 z-50 bg-background px-4 py-3 sm:px-6"
+                : "mt-4 pt-4",
+            )}
+            style={kbInset > 0 ? { bottom: kbInset } : undefined}
+          >
             <form
               onSubmit={(e) => {
                 e.preventDefault();
