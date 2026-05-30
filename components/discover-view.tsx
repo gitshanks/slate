@@ -81,10 +81,38 @@ function lastResults(turns: ChatTurn[]): TmdbMediaResult[] {
   return [];
 }
 
+/**
+ * Soft-keyboard height via the VisualViewport API. iOS doesn't shrink the
+ * layout viewport when the keyboard opens (a `position: fixed` bar would sit
+ * behind it), so we measure the overlap and lift the input by that much.
+ * Returns 0 when the keyboard is closed or the API is unavailable (desktop).
+ */
+function useKeyboardInset() {
+  const [inset, setInset] = React.useState(0);
+  React.useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const overlap = window.innerHeight - vv.height - vv.offsetTop;
+      // Ignore small deltas (URL-bar show/hide) — real keyboards are tall.
+      setInset(overlap > 100 ? Math.round(overlap) : 0);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+  return inset;
+}
+
 function ConversationView({ turns }: { turns: ChatTurn[] }) {
   const { streaming, submit } = useAiConversation();
   const [input, setInput] = React.useState("");
   const endRef = React.useRef<HTMLDivElement>(null);
+  const kbInset = useKeyboardInset();
 
   const title = turns.find((t) => t.role === "user")?.content ?? "AI search";
   const media = lastResults(turns);
@@ -132,10 +160,19 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
             <div ref={endRef} />
           </div>
 
-          {/* Follow-up — in normal flow (no fixed positioning, which fought the
-              iOS keyboard and floated over content). Sits right under the
-              thread on mobile; at the base of the chat panel on desktop. */}
-          <div className="mt-4 border-t border-border pt-4">
+          {/* Follow-up. In normal flow when idle (under the thread on mobile,
+              at the base of the chat panel on desktop). When the soft keyboard
+              opens we pin it just above the keyboard via the VisualViewport
+              inset — so it sits snug above the keys instead of floating. */}
+          <div
+            className={cn(
+              "border-t border-border",
+              kbInset > 0
+                ? "fixed inset-x-0 z-50 bg-background px-4 py-3 sm:px-6"
+                : "mt-4 pt-4",
+            )}
+            style={kbInset > 0 ? { bottom: kbInset } : undefined}
+          >
             <form
               onSubmit={(e) => {
                 e.preventDefault();
