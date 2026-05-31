@@ -131,24 +131,14 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
 
   return (
     <div>
-      <div className="mb-8 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-            <Sparkles className="h-3 w-3" />
-            AI search
-          </p>
-          <h1 className="mt-1 line-clamp-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            {title}
-          </h1>
-        </div>
-        <button
-          type="button"
-          onClick={reset}
-          className="mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Clear
-        </button>
+      <div className="mb-8">
+        <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+          <Sparkles className="h-3 w-3" />
+          AI search
+        </p>
+        <h1 className="mt-1 line-clamp-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+          {title}
+        </h1>
       </div>
 
       <div className="lg:flex lg:items-start lg:gap-8">
@@ -157,6 +147,19 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
             base. On mobile it collapses: thread here, results below, follow-up
             as a fixed bottom bar (so no panel chrome there). */}
         <div className="lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100vh-7rem)] lg:w-[380px] lg:shrink-0 lg:flex-col lg:rounded-2xl lg:border lg:border-border lg:bg-card/50 lg:p-5 xl:w-[440px]">
+          {/* Clear lives inside the chat box so it reads as part of the
+              conversation, not the page. */}
+          <div className="mb-3 flex justify-end border-b border-border/60 pb-2">
+            <button
+              type="button"
+              onClick={reset}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Trash2 className="h-3 w-3" />
+              Clear
+            </button>
+          </div>
+
           {/* Conversation thread — per-turn rails suppressed; the latest
               answer's results render as the grid in the other column. */}
           <div className="flex flex-col gap-4 lg:flex-1 lg:overflow-y-auto lg:pr-1">
