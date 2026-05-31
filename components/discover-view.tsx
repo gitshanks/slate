@@ -147,19 +147,6 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
             base. On mobile it collapses: thread here, results below, follow-up
             as a fixed bottom bar (so no panel chrome there). */}
         <div className="lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100vh-7rem)] lg:w-[380px] lg:shrink-0 lg:flex-col lg:rounded-2xl lg:border lg:border-border lg:bg-card/50 lg:p-5 xl:w-[440px]">
-          {/* Clear lives inside the chat box so it reads as part of the
-              conversation, not the page. */}
-          <div className="mb-3 flex justify-end border-b border-border/60 pb-2">
-            <button
-              type="button"
-              onClick={reset}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Trash2 className="h-3 w-3" />
-              Clear
-            </button>
-          </div>
-
           {/* Conversation thread — per-turn rails suppressed; the latest
               answer's results render as the grid in the other column. */}
           <div className="flex flex-col gap-4 lg:flex-1 lg:overflow-y-auto lg:pr-1">
@@ -170,6 +157,17 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
                 <AssistantBubble key={i} turn={t} hideResults />
               ),
             )}
+            {/* Clear, tucked at the bottom-right of the newest message. */}
+            <div className="-mt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={reset}
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground/70 transition-colors hover:text-foreground"
+              >
+                <Trash2 className="h-3 w-3" />
+                Clear
+              </button>
+            </div>
             <div ref={endRef} />
           </div>
 
