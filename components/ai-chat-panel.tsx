@@ -163,6 +163,7 @@ export function AssistantBubble({
   onResultClick,
   onBrowse,
   hideResults = false,
+  footerAction,
 }: {
   turn: AssistantTurn;
   onResultClick?: (item: ChatResultItem) => void;
@@ -170,6 +171,8 @@ export function AssistantBubble({
   onBrowse?: () => void;
   /** Page view shows the latest results as a grid below, so the per-turn rail + browse link are suppressed. */
   hideResults?: boolean;
+  /** Optional control rendered on the intent-chip row, right-aligned (e.g. Clear on the newest turn). */
+  footerAction?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -214,12 +217,19 @@ export function AssistantBubble({
         </div>
       )}
 
-      {turn.intent && (
-        <div className="ml-8 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground/70">
-          <Wand2 className="h-3 w-3" />
-          <span className="normal-case tracking-normal">
-            {summarizeIntent(turn.intent)}
-          </span>
+      {(turn.intent || footerAction) && (
+        <div className="ml-8 flex items-center justify-between gap-3">
+          {turn.intent ? (
+            <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground/70">
+              <Wand2 className="h-3 w-3" />
+              <span className="normal-case tracking-normal">
+                {summarizeIntent(turn.intent)}
+              </span>
+            </span>
+          ) : (
+            <span />
+          )}
+          {footerAction}
         </div>
       )}
 

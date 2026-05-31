@@ -154,20 +154,27 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
               t.role === "user" ? (
                 <UserBubble key={i} text={t.content} />
               ) : (
-                <AssistantBubble key={i} turn={t} hideResults />
+                <AssistantBubble
+                  key={i}
+                  turn={t}
+                  hideResults
+                  // Clear sits on the newest message's footer row, aligned with
+                  // its search-term chip.
+                  footerAction={
+                    i === turns.length - 1 ? (
+                      <button
+                        type="button"
+                        onClick={reset}
+                        className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground/70 transition-colors hover:text-foreground"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Clear
+                      </button>
+                    ) : undefined
+                  }
+                />
               ),
             )}
-            {/* Clear, tucked at the bottom-right of the newest message. */}
-            <div className="-mt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={reset}
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground/70 transition-colors hover:text-foreground"
-              >
-                <Trash2 className="h-3 w-3" />
-                Clear
-              </button>
-            </div>
             <div ref={endRef} />
           </div>
 
