@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 
 // Wire shapes mirror lib/ai-chat.ts. Kept loose here so the client bundle
 // doesn't couple to the server-only module.
@@ -221,6 +222,20 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
     setTurns([]);
     setStreaming(false);
   }, []);
+
+  // Auto-clear when the user leaves the AI search area. We key off pathname
+  // changes (client-side navigation) rather than an unmount, so a full reload
+  // — which doesn't change the path — keeps the thread (session persistence),
+  // while navigating away drops it. The `/discover` prefix keeps the thread
+  // while peeking at a result preview (`/discover/movie/123`) and back.
+  const pathname = usePathname();
+  const prevPathRef = React.useRef(pathname);
+  React.useEffect(() => {
+    const wasInDiscover = prevPathRef.current.startsWith("/discover");
+    const nowInDiscover = pathname.startsWith("/discover");
+    prevPathRef.current = pathname;
+    if (wasInDiscover && !nowInDiscover) reset();
+  }, [pathname, reset]);
 
   const value = React.useMemo(
     () => ({ turns, streaming, submit, reset }),

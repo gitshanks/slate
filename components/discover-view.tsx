@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles, ArrowUp, Loader2 } from "lucide-react";
+import { Sparkles, ArrowUp, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAiConversation, type ChatTurn } from "@/components/ai-conversation";
 import { UserBubble, AssistantBubble } from "@/components/ai-chat-panel";
@@ -109,7 +109,7 @@ function useKeyboardInset() {
 }
 
 function ConversationView({ turns }: { turns: ChatTurn[] }) {
-  const { streaming, submit } = useAiConversation();
+  const { streaming, submit, reset } = useAiConversation();
   const [input, setInput] = React.useState("");
   const endRef = React.useRef<HTMLDivElement>(null);
   const kbInset = useKeyboardInset();
@@ -154,7 +154,25 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
               t.role === "user" ? (
                 <UserBubble key={i} text={t.content} />
               ) : (
-                <AssistantBubble key={i} turn={t} hideResults />
+                <AssistantBubble
+                  key={i}
+                  turn={t}
+                  hideResults
+                  // Clear sits on the newest message's footer row, aligned with
+                  // its search-term chip.
+                  footerAction={
+                    i === turns.length - 1 ? (
+                      <button
+                        type="button"
+                        onClick={reset}
+                        className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground/70 transition-colors hover:text-foreground"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Clear
+                      </button>
+                    ) : undefined
+                  }
+                />
               ),
             )}
             <div ref={endRef} />

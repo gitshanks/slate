@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Loader2, Film, Tv, Sparkles, Search, Wand2, ArrowRight } from "lucide-react";
+import { Loader2, Film, Tv, Sparkles, Search, Wand2, ArrowRight, Trash2 } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { formatTmdbScore, cn } from "@/lib/utils";
 import { RailScroller } from "@/components/rail-scroller";
@@ -35,7 +35,7 @@ export function AiChatPanel({
 }: AiChatPanelProps) {
   // Conversation state is shared with the /discover page via the provider in
   // the (app) layout, so the thread survives the modal → page hop.
-  const { turns, submit } = useAiConversation();
+  const { turns, submit, reset } = useAiConversation();
   const router = useRouter();
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -65,6 +65,18 @@ export function AiChatPanel({
 
   return (
     <div className="flex max-h-[70vh] min-h-[280px] flex-col">
+      {!isEmpty && (
+        <div className="flex justify-end border-b border-border/60 px-3 py-1.5">
+          <button
+            type="button"
+            onClick={reset}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <Trash2 className="h-3 w-3" />
+            Clear
+          </button>
+        </div>
+      )}
       {/* Empty state: prompt + suggestion chips + a hint about Enter to send. */}
       {isEmpty && (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
@@ -151,6 +163,7 @@ export function AssistantBubble({
   onResultClick,
   onBrowse,
   hideResults = false,
+  footerAction,
 }: {
   turn: AssistantTurn;
   onResultClick?: (item: ChatResultItem) => void;
@@ -158,6 +171,8 @@ export function AssistantBubble({
   onBrowse?: () => void;
   /** Page view shows the latest results as a grid below, so the per-turn rail + browse link are suppressed. */
   hideResults?: boolean;
+  /** Optional control rendered on the intent-chip row, right-aligned (e.g. Clear on the newest turn). */
+  footerAction?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -202,12 +217,19 @@ export function AssistantBubble({
         </div>
       )}
 
-      {turn.intent && (
-        <div className="ml-8 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground/70">
-          <Wand2 className="h-3 w-3" />
-          <span className="normal-case tracking-normal">
-            {summarizeIntent(turn.intent)}
-          </span>
+      {(turn.intent || footerAction) && (
+        <div className="ml-8 flex items-center justify-between gap-3">
+          {turn.intent ? (
+            <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground/70">
+              <Wand2 className="h-3 w-3" />
+              <span className="normal-case tracking-normal">
+                {summarizeIntent(turn.intent)}
+              </span>
+            </span>
+          ) : (
+            <span />
+          )}
+          {footerAction}
         </div>
       )}
 
