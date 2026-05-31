@@ -7,6 +7,8 @@ import { useAiConversation, type ChatTurn } from "@/components/ai-conversation";
 import { UserBubble, AssistantBubble } from "@/components/ai-chat-panel";
 import { SearchResults } from "@/components/search-results";
 import { EmptyState } from "@/components/empty-state";
+import { RailScroller } from "@/components/rail-scroller";
+import { TmdbTile } from "@/components/tmdb-tile";
 import type { TmdbMediaResult } from "@/lib/tmdb";
 
 /**
@@ -82,45 +84,128 @@ function lastResults(turns: ChatTurn[]): TmdbMediaResult[] {
 }
 
 /**
- * Soft-keyboard height via the VisualViewport API. iOS doesn't shrink the
- * layout viewport when the keyboard opens (a `position: fixed` bar would sit
- * behind it), so we measure the overlap and lift the input by that much.
- * Returns 0 when the keyboard is closed or the API is unavailable (desktop).
+ * Sizes the mobile chat shell so its bottom rides the visual viewport — it
+ * shrinks when the soft keyboard opens (iOS doesn't reflow the layout viewport
+ * for the keyboard). The thread (flex-1) absorbs the change so the input stays
+ * just above the keys. Returns null until measured / on desktop (shell hidden).
  */
-function useKeyboardInset() {
-  const [inset, setInset] = React.useState(0);
+function useChatShellHeight(ref: React.RefObject<HTMLDivElement | null>) {
+  const [height, setHeight] = React.useState<number | null>(null);
   React.useEffect(() => {
     const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => {
-      const overlap = window.innerHeight - vv.height - vv.offsetTop;
-      // Ignore small deltas (URL-bar show/hide) — real keyboards are tall.
-      setInset(overlap > 100 ? Math.round(overlap) : 0);
+    const compute = () => {
+      const el = ref.current;
+      if (!el || getComputedStyle(el).display === "none") return; // desktop
+      const viewportBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+      const top = el.getBoundingClientRect().top;
+      const BOTTOM_RESERVE = 80; // bottom nav + safe area (approx)
+      setHeight(Math.max(260, Math.round(viewportBottom - top - BOTTOM_RESERVE)));
     };
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
+    compute();
+    const t = window.setTimeout(compute, 120);
+    window.addEventListener("resize", compute);
+    vv?.addEventListener("resize", compute);
+    vv?.addEventListener("scroll", compute);
     return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
+      window.clearTimeout(t);
+      window.removeEventListener("resize", compute);
+      vv?.removeEventListener("resize", compute);
+      vv?.removeEventListener("scroll", compute);
     };
-  }, []);
-  return inset;
+  }, [ref]);
+  return height;
+}
+
+function FollowUpForm({
+  value,
+  onChange,
+  onSend,
+  streaming,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSend: () => void;
+  streaming: boolean;
+}) {
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSend();
+      }}
+      className="relative flex w-full items-center"
+    >
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Ask a follow-up…"
+        inputMode="search"
+        autoCapitalize="off"
+        autoCorrect="off"
+        spellCheck={false}
+        className="h-11 w-full rounded-full border border-border bg-card pl-4 pr-12 text-base sm:text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
+      />
+      <button
+        type="submit"
+        aria-label="Send"
+        disabled={!value.trim() || streaming}
+        className={cn(
+          "absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-colors",
+          value.trim() && !streaming
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "bg-muted text-muted-foreground/50",
+        )}
+      >
+        {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+      </button>
+    </form>
+  );
+}
+
+/** Message list (+ Clear on the newest message), self-scrolling to the end. */
+function ChatThread({ turns, onClear }: { turns: ChatTurn[]; onClear: () => void }) {
+  const endRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [turns]);
+  return (
+    <>
+      {turns.map((t, i) =>
+        t.role === "user" ? (
+          <UserBubble key={i} text={t.content} />
+        ) : (
+          <AssistantBubble
+            key={i}
+            turn={t}
+            hideResults
+            footerAction={
+              i === turns.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={onClear}
+                  className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground/70 transition-colors hover:text-foreground"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Clear
+                </button>
+              ) : undefined
+            }
+          />
+        ),
+      )}
+      <div ref={endRef} />
+    </>
+  );
 }
 
 function ConversationView({ turns }: { turns: ChatTurn[] }) {
   const { streaming, submit, reset } = useAiConversation();
   const [input, setInput] = React.useState("");
-  const endRef = React.useRef<HTMLDivElement>(null);
-  const kbInset = useKeyboardInset();
+  const shellRef = React.useRef<HTMLDivElement>(null);
+  const shellHeight = useChatShellHeight(shellRef);
 
   const title = turns.find((t) => t.role === "user")?.content ?? "AI search";
   const media = lastResults(turns);
-
-  // Keep the newest turn in view as the thread grows.
-  React.useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [turns]);
 
   const send = () => {
     const v = input.trim();
@@ -131,102 +216,52 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-6 lg:mb-8">
         <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
           <Sparkles className="h-3 w-3" />
           AI search
         </p>
-        <h1 className="mt-1 line-clamp-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="mt-1 line-clamp-2 text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
           {title}
         </h1>
       </div>
 
-      <div className="lg:flex lg:items-start lg:gap-8">
-        {/* Chat column — on desktop it's a distinct, sticky panel beside the
-            results: its own scrolling thread with the follow-up pinned at the
-            base. On mobile it collapses: thread here, results below, follow-up
-            as a fixed bottom bar (so no panel chrome there). */}
-        <div className="lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100vh-7rem)] lg:w-[380px] lg:shrink-0 lg:flex-col lg:rounded-2xl lg:border lg:border-border lg:bg-card/50 lg:p-5 xl:w-[440px]">
-          {/* Conversation thread — per-turn rails suppressed; the latest
-              answer's results render as the grid in the other column. */}
-          <div className="flex flex-col gap-4 lg:flex-1 lg:overflow-y-auto lg:pr-1">
-            {turns.map((t, i) =>
-              t.role === "user" ? (
-                <UserBubble key={i} text={t.content} />
-              ) : (
-                <AssistantBubble
-                  key={i}
-                  turn={t}
-                  hideResults
-                  // Clear sits on the newest message's footer row, aligned with
-                  // its search-term chip.
-                  footerAction={
-                    i === turns.length - 1 ? (
-                      <button
-                        type="button"
-                        onClick={reset}
-                        className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground/70 transition-colors hover:text-foreground"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Clear
-                      </button>
-                    ) : undefined
-                  }
-                />
-              ),
-            )}
-            <div ref={endRef} />
+      {/* MOBILE: chat-app shell — results rail pinned on top, thread scrolls,
+          follow-up at the bottom. Height tracks the visual viewport so the
+          input rides just above the keyboard. */}
+      <div
+        ref={shellRef}
+        className="flex flex-col lg:hidden"
+        style={shellHeight ? { height: shellHeight } : undefined}
+      >
+        {media.length > 0 && (
+          <div className="-mr-4 shrink-0 pb-3">
+            <RailScroller>
+              {media.map((m) => (
+                <TmdbTile key={`${m.media_type}-${m.id}`} item={m} variant="rail" />
+              ))}
+            </RailScroller>
           </div>
+        )}
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto border-t border-border pt-4">
+          <ChatThread turns={turns} onClear={reset} />
+        </div>
+        <div className="shrink-0 border-t border-border pt-3">
+          <FollowUpForm value={input} onChange={setInput} onSend={send} streaming={streaming} />
+        </div>
+      </div>
 
-          {/* Follow-up. In normal flow when idle (under the thread on mobile,
-              at the base of the chat panel on desktop). When the soft keyboard
-              opens we pin it just above the keyboard via the VisualViewport
-              inset — so it sits snug above the keys instead of floating. */}
-          <div
-            className={cn(
-              "border-t border-border",
-              kbInset > 0
-                ? "fixed inset-x-0 z-50 bg-background px-4 py-3 sm:px-6"
-                : "mt-4 pt-4",
-            )}
-            style={kbInset > 0 ? { bottom: kbInset } : undefined}
-          >
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                send();
-              }}
-              className="relative mx-auto flex w-full max-w-2xl items-center lg:max-w-none"
-            >
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask a follow-up…"
-                inputMode="search"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                className="h-11 w-full rounded-full border border-border bg-card pl-4 pr-12 text-base sm:text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
-              />
-              <button
-                type="submit"
-                aria-label="Send"
-                disabled={!input.trim() || streaming}
-                className={cn(
-                  "absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-colors",
-                  input.trim() && !streaming
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-muted text-muted-foreground/50",
-                )}
-              >
-                {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
-              </button>
-            </form>
+      {/* DESKTOP: two-column — sticky chat panel left, results grid right. */}
+      <div className="hidden lg:flex lg:items-start lg:gap-8">
+        <div className="lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100vh-7rem)] lg:w-[380px] lg:shrink-0 lg:flex-col lg:rounded-2xl lg:border lg:border-border lg:bg-card/50 lg:p-5 xl:w-[440px]">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+            <ChatThread turns={turns} onClear={reset} />
+          </div>
+          <div className="mt-4 border-t border-border pt-4">
+            <FollowUpForm value={input} onChange={setInput} onSend={send} streaming={streaming} />
           </div>
         </div>
-
-        {/* Results column */}
-        <div className="mt-10 min-w-0 lg:mt-0 lg:flex-1">
+        <div className="min-w-0 lg:flex-1">
           {media.length > 0 ? (
             <SearchResults library={[]} media={media} people={[]} savedTmdbIds={[]} />
           ) : (
