@@ -57,7 +57,7 @@ export function FeatureGrid() {
       />
 
       <div className="mx-auto max-w-[1200px] px-5 py-24 sm:px-8 sm:py-32">
-        <div className="max-w-2xl">
+        <div className="max-w-2xl md:mx-auto md:text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-mono backdrop-blur-md">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             Why slate
@@ -68,7 +68,7 @@ export function FeatureGrid() {
             <span className="text-primary">without the social part.</span>
           </h2>
 
-          <p className="mt-5 max-w-xl text-pretty text-muted-foreground sm:text-lg">
+          <p className="mt-5 max-w-xl text-pretty text-muted-foreground sm:text-lg md:mx-auto">
             Slate is a single-user app. It optimizes for one thing: helping you
             decide what to watch tonight, and remembering what you thought of it
             tomorrow.
