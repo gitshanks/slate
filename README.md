@@ -1,5 +1,3 @@
-<div align="center">
-
 # slate
 
 **Your personal Letterboxd.** A fast, private watchlist for everything you want to watch and everything you've loved.
@@ -41,7 +39,8 @@ Letterboxd is great, but it's social. Slate is the opposite: a single-user watch
 
 Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · shadcn/ui · Postgres + PostgREST · TMDB API · Docker / Vercel
 
-<img width="1493" alt="slate — title detail" src="https://github.com/user-attachments/assets/136629c4-b999-4e4c-82d6-56ddd8e6186f" />
+<img width="2560" height="1296" alt="Screenshot 2026-06-11 at 10 37 58 AM" src="https://github.com/user-attachments/assets/3247d633-123c-4325-b8be-a0f452b8d89d" />
+<div align="center">
 
 ## Self-host
 
