@@ -10,14 +10,16 @@ export function LandingFooter() {
             alt="Slate"
             width={48}
             height={13}
-            className="hidden h-[13px] w-auto opacity-70 dark:block"
+            // Optical nudge: the wordmark baseline sits a hair high against the
+            // license text when box-centered, so drop it 1px to align baselines.
+            className="relative top-px hidden h-[13px] w-auto opacity-70 dark:block"
           />
           <Image
             src="/brand/logo-dark.svg"
             alt="Slate"
             width={48}
             height={13}
-            className="h-[13px] w-auto opacity-70 dark:hidden"
+            className="relative top-px h-[13px] w-auto opacity-70 dark:hidden"
           />
           <span className="whitespace-nowrap">MIT licensed · single-user by design</span>
         </div>
