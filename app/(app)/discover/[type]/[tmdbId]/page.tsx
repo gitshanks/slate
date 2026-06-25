@@ -18,6 +18,8 @@ import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
 import { CrewRail } from "@/components/crew-rail";
+import { MotionReveal } from "@/components/motion-reveal";
+import { DUR } from "@/lib/motion";
 import { AddStatusDropdown } from "@/components/add-status-dropdown";
 import {
   ImdbBadge,
@@ -268,16 +270,26 @@ export default async function DiscoverTitlePage(
               </p>
             )}
 
-            {meta.cast.length > 0 && <CastRail cast={meta.cast} />}
+            {meta.cast.length > 0 && (
+              <MotionReveal delay={0}>
+                <CastRail cast={meta.cast} />
+              </MotionReveal>
+            )}
 
-            {meta.crew.length > 0 && <CrewRail crew={meta.crew} />}
+            {meta.crew.length > 0 && (
+              <MotionReveal delay={DUR.fast}>
+                <CrewRail crew={meta.crew} />
+              </MotionReveal>
+            )}
 
             {meta.recommendations.length > 0 && (
-              <TmdbRail
-                title={`If you liked ${titleName}…`}
-                items={meta.recommendations}
-                layout="grid"
-              />
+              <MotionReveal delay={DUR.fast * 2}>
+                <TmdbRail
+                  title={`If you liked ${titleName}…`}
+                  items={meta.recommendations}
+                  layout="grid"
+                />
+              </MotionReveal>
             )}
           </div>
         </div>

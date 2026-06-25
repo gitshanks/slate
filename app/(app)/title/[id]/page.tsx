@@ -16,6 +16,8 @@ import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
 import { CrewRail } from "@/components/crew-rail";
+import { MotionReveal } from "@/components/motion-reveal";
+import { DUR } from "@/lib/motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ImdbBadge,
@@ -99,18 +101,32 @@ async function TitleCastAndRecs({
   titleName: string;
 }) {
   const meta = await getTitleMeta(type, tmdbId);
+  // These stream in after the page entrance has already settled, so a staged
+  // reveal here is additive (not a double-animation of the above-fold). Each
+  // block eases in a beat after the previous instead of hard-swapping the
+  // skeleton.
   return (
     <>
-      {meta.cast.length > 0 && <CastRail cast={meta.cast} />}
+      {meta.cast.length > 0 && (
+        <MotionReveal delay={0}>
+          <CastRail cast={meta.cast} />
+        </MotionReveal>
+      )}
 
-      {meta.crew.length > 0 && <CrewRail crew={meta.crew} />}
+      {meta.crew.length > 0 && (
+        <MotionReveal delay={DUR.fast}>
+          <CrewRail crew={meta.crew} />
+        </MotionReveal>
+      )}
 
       {meta.recommendations.length > 0 && (
-        <TmdbRail
-          title={`If you liked ${titleName}…`}
-          items={meta.recommendations}
-          layout="grid"
-        />
+        <MotionReveal delay={DUR.fast * 2}>
+          <TmdbRail
+            title={`If you liked ${titleName}…`}
+            items={meta.recommendations}
+            layout="grid"
+          />
+        </MotionReveal>
       )}
     </>
   );
