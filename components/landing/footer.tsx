@@ -19,7 +19,7 @@ export function LandingFooter() {
             height={13}
             className="h-[13px] w-auto opacity-70 dark:hidden"
           />
-          <span>· MIT licensed · single-user by design</span>
+          <span>MIT licensed · single-user by design</span>
         </div>
         <p className="max-w-md text-pretty leading-relaxed">
           This product uses the TMDB API but is not endorsed or certified by
