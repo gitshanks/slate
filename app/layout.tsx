@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { MotionConfig } from "motion/react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AccentProvider } from "@/components/accent-provider";
 import { SonnerToaster } from "@/components/ui/sonner";
@@ -49,18 +50,20 @@ export default function RootLayout({
             __html: `(function(){try{var a=localStorage.getItem(${JSON.stringify(ACCENT_STORAGE_KEY)});if(a&&a!==${JSON.stringify(DEFAULT_ACCENT)})document.documentElement.classList.add("accent-"+a);}catch(e){}})()`,
           }}
         />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AccentProvider>
-            {children}
-            <SonnerToaster />
-            <UpdateBanner />
-          </AccentProvider>
-        </ThemeProvider>
+        <MotionConfig reducedMotion="user">
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <AccentProvider>
+              {children}
+              <SonnerToaster />
+              <UpdateBanner />
+            </AccentProvider>
+          </ThemeProvider>
+        </MotionConfig>
         <Script src="https://mcp.figma.com/mcp/html-to-design/capture.js" strategy="lazyOnload" />
       </body>
     </html>
