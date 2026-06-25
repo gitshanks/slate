@@ -99,7 +99,7 @@ function FeatureRow({ feature, index }: { feature: Feature; index: number }) {
         className="absolute left-0 top-1/2 hidden h-0 w-[2px] -translate-y-1/2 bg-primary transition-all duration-300 ease-out group-hover:h-[60%] md:block"
       />
 
-      <span className="font-mono text-3xl font-light leading-none tabular-nums text-foreground/20 transition-colors duration-200 group-hover:text-primary sm:text-[2.5rem]">
+      <span className="font-mono text-3xl font-light leading-none tabular-nums text-foreground/20 transition-colors duration-200 group-hover:text-primary sm:text-[2.5rem] md:self-center">
         {String(index + 1).padStart(2, "0")}
       </span>
 
