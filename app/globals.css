@@ -319,38 +319,22 @@ body[data-scroll-locked] {
   animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* Crossfade root pages a little faster than the morphing poster. */
+/* No root crossfade — Motion owns the page entrance (app/(app)/template.tsx),
+   so a root crossfade would only double up. View Transitions stay scoped to
+   the shared-element poster morph. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 220ms;
+  animation: none !important;
 }
 
-/* Mobile keeps the shared-element FLIP transitions off (the morphing
-   poster is choppy on iOS Safari) but still gets a lightweight root
-   crossfade — that's pure opacity work, runs smoothly on iOS, and is the
-   difference between a tab swap feeling like a hard cut and feeling
-   continuous. */
-@keyframes slate-vt-fade-out {
-  to {
-    opacity: 0;
-  }
-}
-@keyframes slate-vt-fade-in {
-  from {
-    opacity: 0;
-  }
-}
+/* Mobile: the shared-element FLIP morph is choppy on iOS Safari, so turn
+   View Transitions off entirely here and let Motion's page entrance carry
+   the continuity. */
 @media (max-width: 767px) {
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation: none !important;
-  }
-  ::view-transition-old(root) {
-    animation: slate-vt-fade-out 220ms cubic-bezier(0.32, 0.72, 0, 1) both !important;
-  }
-  ::view-transition-new(root) {
-    animation: slate-vt-fade-in 220ms cubic-bezier(0.32, 0.72, 0, 1) both !important;
   }
 }
 
