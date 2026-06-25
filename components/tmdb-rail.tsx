@@ -36,6 +36,17 @@ export function TmdbRail({
 }: TmdbRailProps) {
   if (items.length === 0) return null;
 
+  // Defensive dedupe: some TMDB endpoints (and the demo seed) surface the same
+  // title twice in one list, which collides on the `${media_type}-${id}` React
+  // key and warns. Keep the first occurrence so every tile is unique.
+  const seen = new Set<string>();
+  const uniqueItems = items.filter((item) => {
+    const key = `${item.media_type}-${item.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
   return (
     <section className={cn("mt-14", className)}>
       <div className="mb-4 flex items-baseline justify-between">
@@ -46,7 +57,7 @@ export function TmdbRail({
 
       {layout === "grid" ? (
         <MotionGrid className="grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
-          {items.map((item) => (
+          {uniqueItems.map((item) => (
             <MotionItem key={`${item.media_type}-${item.id}`}>
               <TmdbTile
                 item={item}
@@ -59,7 +70,7 @@ export function TmdbRail({
       ) : (
         <div>
           <RailScroller>
-            {items.map((item) => (
+            {uniqueItems.map((item) => (
               <TmdbTile
                 key={`${item.media_type}-${item.id}`}
                 item={item}
