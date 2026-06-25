@@ -3,8 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EASE, DUR } from "@/lib/motion";
 import { APP_ROOT } from "@/lib/public-mode";
 import { useCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -69,12 +71,21 @@ export function TopNav() {
                   href={l.href}
                   prefetch
                   className={cn(
-                    "rounded-full px-3.5 py-1.5 text-sm transition-colors",
+                    "relative rounded-full px-3.5 py-1.5 text-sm transition-colors",
                     active
-                      ? "bg-accent text-foreground"
+                      ? "text-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
                   )}
                 >
+                  {/* Shared element: one fill exists at a time and Motion
+                      slides it (FLIP) from the old pill to the new one. */}
+                  {active && (
+                    <motion.span
+                      layoutId="nav-active"
+                      transition={{ duration: DUR.base, ease: EASE }}
+                      className="absolute inset-0 -z-10 rounded-full bg-accent"
+                    />
+                  )}
                   {l.label}
                 </Link>
               );

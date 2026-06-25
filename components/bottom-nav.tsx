@@ -3,9 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
 import { Clock, Eye, Check, Layers, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_ROOT } from "@/lib/public-mode";
+import { EASE, DUR } from "@/lib/motion";
 
 // Icons mirror AddStatusDropdown's want/watching/watched mapping (Clock /
 // Eye / Check) so the same metaphor reads everywhere a title's status is
@@ -81,7 +83,7 @@ export function BottomNav() {
           const active = t.href === activeHref;
           const Icon = t.icon;
           return (
-            <li key={t.href} className="flex-1">
+            <li key={t.href} className="relative flex-1">
               <Link
                 href={t.href}
                 prefetch
@@ -93,6 +95,15 @@ export function BottomNav() {
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
+                {/* Sliding top indicator — one bar shared across tabs, Motion
+                    glides it to the active tab. */}
+                {active && (
+                  <motion.span
+                    layoutId="bottomnav-active"
+                    transition={{ duration: DUR.base, ease: EASE }}
+                    className="absolute -top-3 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary"
+                  />
+                )}
                 <Icon
                   className={cn(
                     "h-[22px] w-[22px] transition-transform",
