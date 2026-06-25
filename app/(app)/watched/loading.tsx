@@ -7,7 +7,7 @@ export default function WatchedLoading() {
       <div className="mb-6 flex items-end justify-between">
         <div>
           <Skeleton shape="text" className="h-3 w-24" />
-          <Skeleton className="mt-3 h-9 w-32 rounded-md" />
+          <Skeleton className="mt-1 h-10 w-32 rounded-md" />
         </div>
       </div>
 
@@ -37,8 +37,9 @@ export default function WatchedLoading() {
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i}>
             <Skeleton className="aspect-[2/3] w-full rounded-xl" />
-            <Skeleton shape="text" className="mt-2 h-3 w-4/5" />
-            <Skeleton shape="text" className="mt-1.5 h-2.5 w-1/3" />
+            {/* PosterCard shows the title under the poster on mobile only. */}
+            <Skeleton shape="text" className="mt-2 h-3 w-4/5 sm:hidden" />
+            <Skeleton shape="text" className="mt-1.5 h-2.5 w-1/3 sm:hidden" />
           </div>
         ))}
       </div>
