@@ -1,3 +1,5 @@
+<div align="center">
+
 # slate
 
 **Your personal Letterboxd.** A fast, private watchlist for everything you want to watch and everything you've loved.
@@ -39,8 +41,7 @@ Letterboxd is great, but it's social. Slate is the opposite: a single-user watch
 
 Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · shadcn/ui · Postgres + PostgREST · TMDB API · Docker / Vercel
 
-<img width="2560" height="1296" alt="Screenshot 2026-06-11 at 10 37 58 AM" src="https://github.com/user-attachments/assets/3247d633-123c-4325-b8be-a0f452b8d89d" />
-<div align="center">
+<img width="2560" height="1296" alt="slate — title page" src="https://github.com/user-attachments/assets/3247d633-123c-4325-b8be-a0f452b8d89d" />
 
 ## Self-host
 
@@ -110,7 +111,7 @@ cd slate && npm install
 |---|---|---|
 | **TMDB** | v3 API key (free, instant) — required | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
 | **OMDB** | API key (free, 1k lookups/day) — recommended; powers IMDb / RT / Metacritic chips | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) |
-| **Supabase** | Project URL + `service_role` key — required | [supabase.com/dashboard](https://supabase.com/dashboard) -> **New project** |
+| **Supabase** | Project URL + `service_role` key — required | [supabase.com/dashboard](https://supabase.com/dashboard) → **New project** |
 
 Then open the Supabase **SQL editor** and paste in [`supabase/schema.sql`](./supabase/schema.sql). That's the entire database. Already running an older slate? Re-running it is safe: every `create` and `alter` uses `if not exists`, so it picks up new columns without touching your data.
 
@@ -156,7 +157,7 @@ npx tsx scripts/backfill-seasons.ts
 
 Coming from another tracker? Drop a CSV into `/import`:
 
-- **Letterboxd:** Settings -> Data -> Export your data. Import `watched.csv`, `ratings.csv`, or `watchlist.csv`.
+- **Letterboxd:** Settings → Data → Export your data. Import `watched.csv`, `ratings.csv`, or `watchlist.csv`.
 - **Trakt:** any movie/show CSV export.
 
 Rows are matched against TMDB, deduped against your library, and dropped into the right state with ratings preserved.
@@ -172,12 +173,19 @@ app/
     title/[id]/       #   /title/:id
     lists/            #   /lists, /lists/:slug
     discover/         #   /discover
+    search/           #   /search        keyword + AI search results
     import/           #   /import
     person/[id]/      #   /person/:id
+    share/            #   /share         add-to-library deep link
+  landing/            # marketing landing page (demo mode)
   unlock/             # passcode screen
-  api/tmdb/search/    # server-side TMDB proxy
+  api/
+    tmdb/search/      #   server-side TMDB proxy
+    ai-suggest/       #   live AI query suggestions
+    ai-chat/          #   natural-language AI search
+    version/          #   build version probe
   layout.tsx          # root shell + ThemeProvider + Sonner
-  globals.css         # design tokens (HSL -> @theme inline)
+  globals.css         # design tokens (HSL → @theme inline)
 components/
   ui/                 # shadcn/ui primitives
   command-palette.tsx
@@ -189,7 +197,9 @@ lib/
   supabase.ts         # server-only client + generated types
   tmdb.ts             # TMDB fetch helpers
   actions.ts          # Server Actions — all mutations
+  ai-search.ts        # natural-language query parsing
   accent-theme.ts     # accent color palette config
+  ...
 proxy.ts              # passcode gate (Next.js proxy)
 supabase/schema.sql   # one-shot DB setup
 docker-compose.yml    # self-host stack
