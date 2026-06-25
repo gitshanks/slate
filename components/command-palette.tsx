@@ -545,7 +545,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
 
             {library.length > 0 && (
               <CommandGroup heading="Your library">
-                {library.map((hit) => {
+                {library.map((hit, i) => {
                   const year = hit.release_date ? hit.release_date.slice(0, 4) : "";
                   const poster = posterUrl(hit.poster_path, "w92");
                   const hasRating =
@@ -561,7 +561,11 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                         e.preventDefault();
                         handleLibrarySelect(hit);
                       }}
-                      className="gap-3"
+                      // cmdk-safe staggered fade: the class lives on the item
+                      // itself so keyboard nav still works; keyed rows mean only
+                      // newly-appearing results animate.
+                      className="gap-3 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both"
+                      style={{ animationDuration: "220ms", animationDelay: `${Math.min(i * 30, 180)}ms` }}
                     >
                       <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-muted">
                         {poster ? (
@@ -610,7 +614,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
 
             {results.length > 0 && (
               <CommandGroup heading={heading}>
-                {results.map((r) => {
+                {results.map((r, i) => {
                   const name = r.title || r.name || "Untitled";
                   const date = r.release_date || r.first_air_date || "";
                   const year = date ? date.slice(0, 4) : "";
@@ -628,7 +632,9 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                         e.preventDefault();
                         handleSelect(r);
                       }}
-                      className="gap-3"
+                      // cmdk-safe staggered fade (see "Your library" group above).
+                      className="gap-3 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both"
+                      style={{ animationDuration: "220ms", animationDelay: `${Math.min(i * 30, 180)}ms` }}
                     >
                       <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-muted">
                         {poster ? (
