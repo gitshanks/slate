@@ -344,4 +344,13 @@ body[data-scroll-locked] {
   ::view-transition-new(*) {
     animation: none !important;
   }
+
+  /* tailwindcss-animate enter/exit utilities (the dialog + command-palette
+     rows) aren't gated on reduced motion by default — content still appears,
+     just without the slide/zoom. Motion (JS) handles its own via the root
+     MotionConfig reducedMotion="user". */
+  .animate-in,
+  .animate-out {
+    animation: none !important;
+  }
 }
