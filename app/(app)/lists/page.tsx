@@ -6,6 +6,7 @@ import { CreateListForm } from "@/components/create-list-form";
 import { DeleteListButton } from "@/components/delete-list-button";
 import { ShareListButton } from "@/components/share-list-button";
 import { ListPlus, Film } from "lucide-react";
+import { MotionGrid, MotionItem } from "@/components/motion-grid";
 
 export const dynamic = "force-dynamic";
 
@@ -73,14 +74,14 @@ export default async function ListsPage() {
           description="Group titles into themed collections — Cozy winter, A24 horror, Long flights…"
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <MotionGrid className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(lists as ListRow[]).map((list) => {
             const covers = posters[list.id] ?? [];
             const count = counts[list.id] ?? 0;
             return (
-              // Wrapper div so we can absolutely position the action buttons
+              // Wrapper so we can absolutely position the action buttons
               // without nesting interactive elements inside <Link>.
-              <div key={list.id} className="relative group/card">
+              <MotionItem key={list.id} className="relative group/card">
                 <Link
                   href={`/lists/${list.slug}`}
                   className="block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)]"
@@ -136,10 +137,10 @@ export default async function ListsPage() {
                   <ShareListButton listSlug={list.slug} listName={list.name} />
                   <DeleteListButton listId={list.id} listName={list.name} iconOnly />
                 </div>
-              </div>
+              </MotionItem>
             );
           })}
-        </div>
+        </MotionGrid>
       )}
     </div>
   );

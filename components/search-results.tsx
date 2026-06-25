@@ -4,6 +4,7 @@ import * as React from "react";
 import { Film, Tv, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MediaGrid } from "@/components/media-grid";
+import { MotionGrid, MotionItem } from "@/components/motion-grid";
 import { TmdbTile } from "@/components/tmdb-tile";
 import { PeopleGrid, type PersonTile } from "@/components/people-grid";
 import type { TitleRow } from "@/lib/types";
@@ -86,16 +87,17 @@ export function SearchResults({
       {filteredMedia.length > 0 && (
         <section className={filteredLibrary.length > 0 ? "mt-12" : undefined}>
           <h2 className={SECTION_HEADING}>{mediaHeading}</h2>
-          <div className={GRID_CLASS}>
+          <MotionGrid className={GRID_CLASS}>
             {filteredMedia.map((item) => (
-              <TmdbTile
-                key={`${item.media_type}-${item.id}`}
-                item={item}
-                variant="grid"
-                saved={savedSet.has(item.id)}
-              />
+              <MotionItem key={`${item.media_type}-${item.id}`}>
+                <TmdbTile
+                  item={item}
+                  variant="grid"
+                  saved={savedSet.has(item.id)}
+                />
+              </MotionItem>
             ))}
-          </div>
+          </MotionGrid>
         </section>
       )}
 

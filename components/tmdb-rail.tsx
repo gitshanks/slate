@@ -1,6 +1,7 @@
 import type { TmdbSearchResult } from "@/lib/tmdb";
 import { RailScroller } from "@/components/rail-scroller";
 import { TmdbTile } from "@/components/tmdb-tile";
+import { MotionGrid, MotionItem } from "@/components/motion-grid";
 import { cn } from "@/lib/utils";
 
 interface TmdbRailProps {
@@ -44,16 +45,17 @@ export function TmdbRail({
       </div>
 
       {layout === "grid" ? (
-        <div className="grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
+        <MotionGrid className="grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
           {items.map((item) => (
-            <TmdbTile
-              key={`${item.media_type}-${item.id}`}
-              item={item}
-              saved={savedTmdbIds?.has(item.id) ?? false}
-              variant="grid"
-            />
+            <MotionItem key={`${item.media_type}-${item.id}`}>
+              <TmdbTile
+                item={item}
+                saved={savedTmdbIds?.has(item.id) ?? false}
+                variant="grid"
+              />
+            </MotionItem>
           ))}
-        </div>
+        </MotionGrid>
       ) : (
         <div>
           <RailScroller>
