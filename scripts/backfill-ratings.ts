@@ -7,53 +7,20 @@
  *
  * Re-runnable — only touches rows where the data is still missing.
  *
- * Reads .env / .env.local on its own (next.js loaders don't run for plain
- * tsx scripts).
+ * Targets whatever the deployment uses: DATABASE_URL (Neon/Postgres, direct
+ * pg) or SUPABASE_URL + service-role key. Reads .env.local / .env on its own
+ * (next.js loaders don't run for plain tsx scripts). See scripts/lib/backfill-db.ts.
  *
  * Throttled to ~3 calls/second to stay well under OMDB's 1k/day free tier.
  */
 
-import { readFileSync } from "node:fs";
+import { loadEnv, openBackend, type Backend } from "./lib/backfill-db";
 
-// Tiny .env loader — no dotenv dependency.
-function loadEnvFile(path: string) {
-  let text: string;
-  try {
-    text = readFileSync(path, "utf8");
-  } catch {
-    return;
-  }
-  for (const raw of text.split("\n")) {
-    const line = raw.trim();
-    if (!line || line.startsWith("#")) continue;
-    const eq = line.indexOf("=");
-    if (eq === -1) continue;
-    const key = line.slice(0, eq).trim();
-    let val = line.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    if (process.env[key] === undefined) process.env[key] = val;
-  }
-}
+loadEnv();
 
-loadEnvFile(".env.local");
-loadEnvFile(".env");
-
-import { createClient } from "@supabase/supabase-js";
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const OMDB_API_KEY = process.env.OMDB_API_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY in env.");
-  process.exit(1);
-}
 if (!TMDB_API_KEY) {
   console.error("Missing TMDB_API_KEY in env.");
   process.exit(1);
@@ -62,10 +29,6 @@ if (!OMDB_API_KEY) {
   console.error("Missing OMDB_API_KEY in env.");
   process.exit(1);
 }
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
 
 interface Row {
   id: string;
@@ -154,18 +117,64 @@ async function fetchOmdb(imdbId: string): Promise<OmdbRatings> {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function main() {
-  const { data, error } = await supabase
+interface RatingsPatch {
+  imdb_id: string | null;
+  imdb_rating: number | null;
+  imdb_votes: number | null;
+  rt_score: number | null;
+  metacritic_score: number | null;
+  ratings_fetched_at: string | null;
+}
+
+// Rows still missing any of imdb_id / the three scores.
+async function readCandidates(backend: Backend): Promise<Row[]> {
+  if (backend.kind === "neon") {
+    const rows = await backend.query(
+      `SELECT id, tmdb_id, media_type, title, imdb_id, imdb_rating, rt_score, metacritic_score
+         FROM titles
+        WHERE imdb_rating IS NULL OR imdb_id IS NULL
+           OR rt_score IS NULL OR metacritic_score IS NULL`
+    );
+    return rows as unknown as Row[];
+  }
+  const { data, error } = await backend.client
     .from("titles")
     .select("id, tmdb_id, media_type, title, imdb_id, imdb_rating, rt_score, metacritic_score")
-    .or(
-      "imdb_rating.is.null,imdb_id.is.null,rt_score.is.null,metacritic_score.is.null"
+    .or("imdb_rating.is.null,imdb_id.is.null,rt_score.is.null,metacritic_score.is.null");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Row[];
+}
+
+async function updateRow(backend: Backend, id: string, patch: RatingsPatch): Promise<void> {
+  if (backend.kind === "neon") {
+    await backend.query(
+      `UPDATE titles
+          SET imdb_id = $1, imdb_rating = $2, imdb_votes = $3,
+              rt_score = $4, metacritic_score = $5, ratings_fetched_at = $6
+        WHERE id = $7`,
+      [
+        patch.imdb_id,
+        patch.imdb_rating,
+        patch.imdb_votes,
+        patch.rt_score,
+        patch.metacritic_score,
+        patch.ratings_fetched_at,
+        id,
+      ]
     );
-  if (error) {
-    console.error("Failed to read titles:", error.message);
-    process.exit(1);
+    return;
   }
-  const rows = (data ?? []) as Row[];
+  const { error } = await backend.client.from("titles").update(patch).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+async function main() {
+  const backend = await openBackend().catch((e: Error) => {
+    console.error(e.message);
+    process.exit(1);
+  });
+
+  const rows = await readCandidates(backend);
   console.log(`Found ${rows.length} titles needing a rating refresh.`);
 
   let touched = 0;
@@ -198,7 +207,7 @@ async function main() {
       ratings.rt_score != null ||
       ratings.metacritic_score != null;
 
-    const patch = {
+    const patch: RatingsPatch = {
       imdb_id: imdbId ?? null,
       imdb_rating: ratings.imdb_rating,
       imdb_votes: ratings.imdb_votes,
@@ -207,13 +216,10 @@ async function main() {
       ratings_fetched_at: gotAny ? new Date().toISOString() : null,
     };
 
-    const { error: updErr } = await supabase
-      .from("titles")
-      .update(patch)
-      .eq("id", row.id);
-
-    if (updErr) {
-      console.error(`  Update failed for ${row.title}:`, updErr.message);
+    try {
+      await updateRow(backend, row.id, patch);
+    } catch (e) {
+      console.error(`  Update failed for ${row.title}:`, (e as Error).message);
       continue;
     }
     touched += 1;
@@ -229,6 +235,7 @@ async function main() {
   }
 
   console.log(`\nDone. Touched ${touched} rows. ${rated} got ratings, ${missing} had none.`);
+  await backend.close();
 }
 
 main().catch((e) => {

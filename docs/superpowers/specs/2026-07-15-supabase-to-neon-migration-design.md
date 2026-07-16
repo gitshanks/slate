@@ -150,13 +150,16 @@ are `ƒ` (Dynamic) and absent from the prerender manifest; a runtime `next start
 with a dummy `DATABASE_URL` loads pg and degrades gracefully (HTTP 200 +
 "Couldn't reach the database"); and the default supabase-js build still passes.
 
-### Known follow-up (out of scope, low severity)
+### Known follow-up (resolved)
 
-`scripts/backfill-ratings.ts` / `scripts/backfill-seasons.ts` build their own
-supabase-js client and hard-require `SUPABASE_URL`; on a Neon-only deployment
-they exit(1). They fail loudly (no data loss), are already-run one-offs, and new
-titles get ratings/seasons at insert time through the seam, so this only bites
-legacy rows. Tracked as a separate task; not required for the migration.
+`scripts/backfill-ratings.ts` / `scripts/backfill-seasons.ts` used to build their
+own supabase-js client and hard-require `SUPABASE_URL`; on a Neon-only deployment
+they exit(1). **Now ported:** both select a backend with the same precedence as
+`lib/supabase.ts` (`DATABASE_URL` → direct `pg`; else `SUPABASE_URL` +
+service-role key → supabase-js) via the shared `scripts/lib/backfill-db.ts`. The
+runtime seam is untouched — the scripts use a direct `pg` connection rather than
+`lib/neon-client.ts`, which depends on `next/server`'s `connection()` and only
+works inside Next.
 
 ## Adapter surface (exact, enumerated from current usage)
 
@@ -259,13 +262,13 @@ One-time Postgres→Postgres copy of three tables: `titles`, `lists`,
 
 ## Backfill scripts
 
-`scripts/backfill-seasons.ts` and `scripts/backfill-ratings.ts` construct their
-own `@supabase/supabase-js` client and hit Supabase directly (they use `.is` and
-`.or`, which the runtime adapter deliberately doesn't implement). They are
-already-run, one-off maintenance tools. **Out of scope** for the adapter; if they
-must be re-run post-migration, point them at Neon with a direct `pg`/`postgres.js`
-connection in a follow-up. Note this in the scripts or README so it isn't a
-surprise.
+`scripts/backfill-seasons.ts` and `scripts/backfill-ratings.ts` are already-run,
+one-off maintenance tools that use `.is` / `.or` (which the runtime adapter
+deliberately doesn't implement). **Out of scope** for the *runtime* adapter, but
+now runnable on Neon: they share `scripts/lib/backfill-db.ts`, which opens a
+direct `pg` connection from `DATABASE_URL` (raw SQL for the `IS NULL` / `OR`
+filters) and falls back to supabase-js when only `SUPABASE_URL` is set — same
+precedence as the seam.
 
 ## Verification plan
 
