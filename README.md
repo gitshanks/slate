@@ -43,6 +43,48 @@ Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · shadcn/ui · Postgres 
 
 <img width="2560" height="1296" alt="slate — title page" src="https://github.com/user-attachments/assets/3247d633-123c-4325-b8be-a0f452b8d89d" />
 
+## Deploy to Vercel
+
+Prefer a managed stack? Slate deploys to Vercel + Neon — free serverless Postgres that never pauses — in a few minutes.
+
+### 1. Clone
+
+```bash
+git clone https://github.com/gitshanks/slate.git
+cd slate && npm install
+```
+
+### 2. Get your keys
+
+| Service | What you need | Where |
+|---|---|---|
+| **TMDB** | v3 API key (free, instant) — required | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
+| **OMDB** | API key (free, 1k lookups/day) — recommended; powers IMDb / RT / Metacritic chips | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) |
+
+The database is **Neon** — free serverless Postgres that (unlike Supabase's hobby tier) never pauses and doesn't cap you at two projects. You provision it from inside Vercel in the next step, so there's no key to grab up front.
+
+### 3. Deploy
+
+Push to GitHub and import at [vercel.com/new](https://vercel.com/new). Then, inside the project:
+
+1. **Add the database.** **Storage → Create Database → Neon** (Vercel Marketplace). Pick the same region as your project — it provisions a free Neon Postgres and sets `DATABASE_URL` for you automatically.
+2. **Load the schema.** In the [Neon console](https://console.neon.tech) → **SQL Editor**, paste [`supabase/schema.sql`](./supabase/schema.sql) and run it. That's the entire database. Re-running is safe — every `create` / `alter` uses `if not exists`, so it picks up new columns without touching your data.
+3. **Add the rest of the environment variables** (Settings → Environment Variables):
+
+| Variable | | Purpose |
+|---|---|---|
+| `TMDB_API_KEY` | required | TMDB v3 key |
+| `DATABASE_URL` | required | Neon Postgres connection — **set automatically** by the Marketplace integration above. Add by hand only if you bring your own Neon/Postgres: use the pooled (`-pooler`) URL with `?sslmode=require`. |
+| `OMDB_API_KEY` | recommended | Powers IMDb / Rotten Tomatoes / Metacritic chips on saved titles. Without it, those stay blank but everything else still works. |
+| `OPENAI_API_KEY` | optional | Unlocks AI search in the ⌘K palette for natural-language queries and live suggestions. Defaults to [Groq](https://console.groq.com/keys)'s free tier running Llama 3.3 70B; works with any OpenAI-compatible endpoint (OpenRouter, Ollama, LM Studio, vLLM, llama.cpp). Override the endpoint with `OPENAI_BASE_URL` and the model with `OPENAI_MODEL`. |
+| `ANTHROPIC_API_KEY` | optional | Alternative AI backend; uses Claude instead of an open model. Set `AI_PROVIDER=anthropic` to prefer it when both keys are present. |
+| `APP_PASSCODE` | optional | Lock the app behind a shared passcode. Omit for public. |
+| `NEXT_PUBLIC_DEMO_MODE` | optional | Set to `1` on a portfolio or public-demo deploy. Skips the `APP_PASSCODE` gate, shows a demo banner, mounts a marketing landing page at `/`, and moves the watchlist to `/app`. Self-host default (unset) keeps the app at `/` so existing bookmarks and PWA installs are unaffected. |
+
+Prefer Supabase, or already have another Postgres? Set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` instead of `DATABASE_URL` — the data layer uses whichever backend is configured.
+
+> **Pro tip:** import the same GitHub repo twice in Vercel to get a public and private copy from one codebase. Set `APP_PASSCODE` on one project for your personal copy; on the public copy add `NEXT_PUBLIC_DEMO_MODE=1` to skip the passcode and mount a marketing landing page at `/`. Both stay in sync on every push.
+
 ## Self-host
 
 Slate is designed to be self-hosted. Everything runs on your machine and your data never leaves it. The only outbound calls are to TMDB for metadata.
@@ -93,58 +135,6 @@ docker compose down -v
 - Set `APP_PASSCODE` in `.env` to gate access behind a shared code.
 - The stack is single-user by design. If you want to expose it publicly, keep the passcode on.
 - PostgREST runs without JWT auth inside the compose network, so don't expose port 3001 to the internet.
-
-## Deploy to Vercel
-
-Prefer a managed stack? Slate deploys to Vercel + Neon — free serverless Postgres that never pauses — in a few minutes.
-
-### 1. Clone
-
-```bash
-git clone https://github.com/gitshanks/slate.git
-cd slate && npm install
-```
-
-### 2. Get your keys
-
-| Service | What you need | Where |
-|---|---|---|
-| **TMDB** | v3 API key (free, instant) — required | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
-| **OMDB** | API key (free, 1k lookups/day) — recommended; powers IMDb / RT / Metacritic chips | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) |
-
-The database is **Neon** — free serverless Postgres that (unlike Supabase's hobby tier) never pauses and doesn't cap you at two projects. You provision it from inside Vercel in the next step, so there's no key to grab up front.
-
-### 3. Deploy
-
-Push to GitHub and import at [vercel.com/new](https://vercel.com/new). Then, inside the project:
-
-1. **Add the database.** **Storage → Create Database → Neon** (Vercel Marketplace). Pick the same region as your project — it provisions a free Neon Postgres and sets `DATABASE_URL` for you automatically.
-2. **Load the schema.** In the [Neon console](https://console.neon.tech) → **SQL Editor**, paste [`supabase/schema.sql`](./supabase/schema.sql) and run it. That's the entire database. Re-running is safe — every `create` / `alter` uses `if not exists`, so it picks up new columns without touching your data.
-3. **Add the rest of the environment variables** (Settings → Environment Variables):
-
-| Variable | | Purpose |
-|---|---|---|
-| `TMDB_API_KEY` | required | TMDB v3 key |
-| `DATABASE_URL` | required | Neon Postgres connection — **set automatically** by the Marketplace integration above. Add by hand only if you bring your own Neon/Postgres: use the pooled (`-pooler`) URL with `?sslmode=require`. |
-| `OMDB_API_KEY` | recommended | Powers IMDb / Rotten Tomatoes / Metacritic chips on saved titles. Without it, those stay blank but everything else still works. |
-| `OPENAI_API_KEY` | optional | Unlocks AI search in the ⌘K palette for natural-language queries and live suggestions. Defaults to [Groq](https://console.groq.com/keys)'s free tier running Llama 3.3 70B; works with any OpenAI-compatible endpoint (OpenRouter, Ollama, LM Studio, vLLM, llama.cpp). Override the endpoint with `OPENAI_BASE_URL` and the model with `OPENAI_MODEL`. |
-| `ANTHROPIC_API_KEY` | optional | Alternative AI backend; uses Claude instead of an open model. Set `AI_PROVIDER=anthropic` to prefer it when both keys are present. |
-| `APP_PASSCODE` | optional | Lock the app behind a shared passcode. Omit for public. |
-| `NEXT_PUBLIC_DEMO_MODE` | optional | Set to `1` on a portfolio or public-demo deploy. Skips the `APP_PASSCODE` gate, shows a demo banner, mounts a marketing landing page at `/`, and moves the watchlist to `/app`. Self-host default (unset) keeps the app at `/` so existing bookmarks and PWA installs are unaffected. |
-
-Prefer Supabase, or already have another Postgres? Set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` instead of `DATABASE_URL` — the data layer uses whichever backend is configured.
-
-### 4. Run locally
-
-Add `DATABASE_URL` to `.env.local` (copy it from the Neon dashboard, or run `vercel env pull .env.local`), then:
-
-```bash
-npm run dev
-```
-
-Open <http://localhost:3000>. Without `APP_PASSCODE`, the unlock screen is skipped.
-
-> **Pro tip:** import the same GitHub repo twice in Vercel to get a public and private copy from one codebase. Set `APP_PASSCODE` on one project for your personal copy; on the public copy add `NEXT_PUBLIC_DEMO_MODE=1` to skip the passcode and mount a marketing landing page at `/`. Both stay in sync on every push.
 
 ## Backfilling an existing library
 
