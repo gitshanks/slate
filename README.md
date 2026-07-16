@@ -39,7 +39,7 @@ Letterboxd is great, but it's social. Slate is the opposite: a single-user watch
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · shadcn/ui · Postgres + PostgREST · TMDB API · Docker / Vercel
+Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · shadcn/ui · Postgres — Neon (Vercel) or PostgREST (self-host) · TMDB API · Docker / Vercel
 
 <img width="2560" height="1296" alt="slate — title page" src="https://github.com/user-attachments/assets/3247d633-123c-4325-b8be-a0f452b8d89d" />
 
@@ -96,7 +96,7 @@ docker compose down -v
 
 ## Deploy to Vercel
 
-Prefer a managed stack? Slate deploys to Vercel + Supabase unchanged.
+Prefer a managed stack? Slate deploys to Vercel + Neon — free serverless Postgres that never pauses — in a few minutes.
 
 ### 1. Clone
 
@@ -111,26 +111,32 @@ cd slate && npm install
 |---|---|---|
 | **TMDB** | v3 API key (free, instant) — required | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
 | **OMDB** | API key (free, 1k lookups/day) — recommended; powers IMDb / RT / Metacritic chips | [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx) |
-| **Supabase** | Project URL + `service_role` key — required | [supabase.com/dashboard](https://supabase.com/dashboard) → **New project** |
 
-Then open the Supabase **SQL editor** and paste in [`supabase/schema.sql`](./supabase/schema.sql). That's the entire database. Already running an older slate? Re-running it is safe: every `create` and `alter` uses `if not exists`, so it picks up new columns without touching your data.
+The database is **Neon** — free serverless Postgres that (unlike Supabase's hobby tier) never pauses and doesn't cap you at two projects. You provision it from inside Vercel in the next step, so there's no key to grab up front.
 
 ### 3. Deploy
 
-Push to GitHub, import at [vercel.com/new](https://vercel.com/new), and add these environment variables:
+Push to GitHub and import at [vercel.com/new](https://vercel.com/new). Then, inside the project:
+
+1. **Add the database.** **Storage → Create Database → Neon** (Vercel Marketplace). Pick the same region as your project — it provisions a free Neon Postgres and sets `DATABASE_URL` for you automatically.
+2. **Load the schema.** In the [Neon console](https://console.neon.tech) → **SQL Editor**, paste [`supabase/schema.sql`](./supabase/schema.sql) and run it. That's the entire database. Re-running is safe — every `create` / `alter` uses `if not exists`, so it picks up new columns without touching your data.
+3. **Add the rest of the environment variables** (Settings → Environment Variables):
 
 | Variable | | Purpose |
 |---|---|---|
 | `TMDB_API_KEY` | required | TMDB v3 key |
-| `SUPABASE_URL` | required | Project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | required | Server-only secret |
+| `DATABASE_URL` | required | Neon Postgres connection — **set automatically** by the Marketplace integration above. Add by hand only if you bring your own Neon/Postgres: use the pooled (`-pooler`) URL with `?sslmode=require`. |
 | `OMDB_API_KEY` | recommended | Powers IMDb / Rotten Tomatoes / Metacritic chips on saved titles. Without it, those stay blank but everything else still works. |
 | `OPENAI_API_KEY` | optional | Unlocks AI search in the ⌘K palette for natural-language queries and live suggestions. Defaults to [Groq](https://console.groq.com/keys)'s free tier running Llama 3.3 70B; works with any OpenAI-compatible endpoint (OpenRouter, Ollama, LM Studio, vLLM, llama.cpp). Override the endpoint with `OPENAI_BASE_URL` and the model with `OPENAI_MODEL`. |
 | `ANTHROPIC_API_KEY` | optional | Alternative AI backend; uses Claude instead of an open model. Set `AI_PROVIDER=anthropic` to prefer it when both keys are present. |
 | `APP_PASSCODE` | optional | Lock the app behind a shared passcode. Omit for public. |
 | `NEXT_PUBLIC_DEMO_MODE` | optional | Set to `1` on a portfolio or public-demo deploy. Skips the `APP_PASSCODE` gate, shows a demo banner, mounts a marketing landing page at `/`, and moves the watchlist to `/app`. Self-host default (unset) keeps the app at `/` so existing bookmarks and PWA installs are unaffected. |
 
+Prefer Supabase, or already have another Postgres? Set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` instead of `DATABASE_URL` — the data layer uses whichever backend is configured.
+
 ### 4. Run locally
+
+Add `DATABASE_URL` to `.env.local` (copy it from the Neon dashboard, or run `vercel env pull .env.local`), then:
 
 ```bash
 npm run dev
@@ -208,7 +214,7 @@ Dockerfile            # Next.js standalone runner image
 
 ## Security
 
-- `SUPABASE_SERVICE_ROLE_KEY` is imported only from `lib/supabase.ts`, which carries `import "server-only"` so it can never leak into a client bundle.
+- The database credential (`DATABASE_URL` for Neon, or `SUPABASE_SERVICE_ROLE_KEY`) is read only inside server-only modules (`lib/supabase.ts`, `lib/neon-client.ts`), so it can never leak into a client bundle.
 - `TMDB_API_KEY` never touches the browser. The command palette routes through `/api/tmdb/search`.
 - The passcode gate uses a signed shared cookie, which is fine for single-user deployments. For multi-user, swap in Supabase Auth + RLS.
 

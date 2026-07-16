@@ -39,7 +39,7 @@ const FEATURES: Feature[] = [
     eyebrow: "Yours, by default",
     title: "No accounts. No tracking. No telemetry.",
     body:
-      "Run it on your laptop in Docker, or on Vercel + Supabase. The only outbound calls are to TMDB. Lock the door with a passcode if you want.",
+      "Run it on your laptop in Docker, or on Vercel + Neon. The only outbound calls are to TMDB. Lock the door with a passcode if you want.",
   },
 ];
 

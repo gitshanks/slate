@@ -46,7 +46,7 @@ const POINTS = [
   {
     icon: Server,
     title: "One docker-compose, three services.",
-    body: "Postgres, PostgREST, and the Next.js app, wired through Caddy so the Supabase client works unchanged.",
+    body: "Postgres, PostgREST, and the Next.js app, wired through Caddy so the app runs against it unchanged.",
   },
   {
     icon: Database,
@@ -61,7 +61,7 @@ const POINTS = [
   {
     icon: Zap,
     title: "Or one-click on Vercel.",
-    body: "Same repo. Vercel + Supabase deployment in five minutes. The schema is a single SQL file.",
+    body: "Same repo. Vercel + Neon deployment in five minutes. The schema is a single SQL file.",
   },
 ];
 
