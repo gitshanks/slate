@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
   // Produce a minimal self-contained server bundle for docker-compose /
   // self-host deploys. On Vercel this flag is a no-op.
   output: "standalone",
+  // node-postgres must load as a real Node module, not be bundled by Turbopack —
+  // bundling mangles its `pg-types` internals (getTypeParser becomes undefined at
+  // module load). Only relevant when the Neon backend (DATABASE_URL) is active.
+  serverExternalPackages: ["pg"],
   env: {
     NEXT_PUBLIC_BUILD_ID: BUILD_ID,
   },
