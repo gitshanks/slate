@@ -309,7 +309,7 @@ function SortablePoster({
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         !disabled &&
           "suppress-touch-callout cursor-grab active:cursor-grabbing",
-        (isDragging || isDropping) && "z-30"
+        (isDragging || isDropping) && "sortable-title-dragging z-30"
       )}
       whileTap={disabled || isDragging ? undefined : { scale: 0.985 }}
       transition={{ duration: DUR.fast, ease: EASE }}
@@ -331,18 +331,18 @@ function FloatingPoster({ title }: { title: TitleRow }) {
   return (
     <motion.div
       inert
-      initial={reduceMotion ? false : { scale: 0.985, rotate: 0 }}
+      initial={reduceMotion ? false : { scale: 0.985 }}
       animate={
         reduceMotion
-          ? { scale: 1, rotate: 0 }
-          : { scale: 1.035, rotate: 0.35 }
+          ? { scale: 1 }
+          : { scale: 1.02 }
       }
       transition={{
         type: "spring",
-        duration: 0.22,
-        bounce: 0.12,
+        duration: 0.18,
+        bounce: 0.06,
       }}
-      className="cursor-grabbing rounded-xl ring-1 ring-white/20 shadow-[0_26px_70px_-18px_rgba(0,0,0,0.7)]"
+      className="cursor-grabbing rounded-xl"
     >
       <PosterCard title={title} dragPreview />
     </motion.div>

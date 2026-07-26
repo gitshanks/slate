@@ -71,6 +71,8 @@ export function PosterCard({
           "relative aspect-[2/3] overflow-hidden rounded-xl",
           "bg-card hairline",
           "transition-all duration-200 ease-out",
+          dragPreview &&
+            "ring-1 ring-black/10 shadow-[0_22px_56px_-18px_rgba(0,0,0,0.85)] dark:ring-white/15",
           "hoverable:group-hover:-translate-y-1 hoverable:group-hover:shadow-[0_24px_60px_-20px_hsl(var(--primary)/0.35)]"
         )}
       >
@@ -149,11 +151,13 @@ export function PosterCard({
         )}
 
         {/* Quick-action strip: status + delete */}
-        <PosterCardActions
-          titleId={title.id}
-          titleName={title.title}
-          currentStatus={title.status}
-        />
+        {!dragPreview && (
+          <PosterCardActions
+            titleId={title.id}
+            titleName={title.title}
+            currentStatus={title.status}
+          />
+        )}
       </div>
 
       {/* Always-visible title under poster on mobile */}

@@ -217,6 +217,13 @@
     -webkit-user-select: none;
     user-select: none;
   }
+  /* The keyboard/touch focus ring belongs to the stationary card. Once the
+     floating drag preview takes over, leaving that ring behind reads as a
+     second selected object underneath it. */
+  .sortable-title-dragging:focus-visible {
+    outline: none;
+    box-shadow: none !important;
+  }
   /* Device-fixed mobile nav. A VisualViewport hook updates the two offsets
      while Safari's browser chrome changes size; translate3d keeps the bar on
      its own compositor layer so it cannot be painted at a stale scroll edge. */
