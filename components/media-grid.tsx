@@ -18,7 +18,6 @@ import {
   KeyboardSensor,
   PointerActivationConstraints,
   PointerSensor,
-  type DropAnimation,
 } from "@dnd-kit/dom";
 import { isSortable, useSortable } from "@dnd-kit/react/sortable";
 import { motion, useReducedMotion } from "motion/react";
@@ -77,68 +76,7 @@ const titleSensors = [
   KeyboardSensor,
 ];
 
-const DROP_ANIMATION_DURATION = 180;
-const DROP_CLEANUP_TIMEOUT = 300;
-const STALLED_DRAG_TIMEOUT = 700;
-
-/**
- * Safari can cancel a Web Animations API animation while the page is
- * scrolling or its browser chrome is settling. dnd-kit's stock drop animation
- * waits only for `animation.finished`, so a rejection can leave the overlay
- * and draggable in their dropping state forever. This animation resolves on
- * finish, cancellation, or a short timeout, guaranteeing dnd-kit can clean up.
- */
-const safeDropAnimation: DropAnimation = ({
-  element,
-  feedbackElement,
-  placeholder,
-}) =>
-  new Promise<void>((resolve) => {
-    let animation: Animation | null = null;
-    let settled = false;
-
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeout);
-      animation?.cancel();
-      resolve();
-    };
-
-    const timeout = window.setTimeout(finish, DROP_CLEANUP_TIMEOUT);
-
-    try {
-      const current = feedbackElement.getBoundingClientRect();
-      const destination =
-        placeholder?.isConnected === true ? placeholder : element;
-      const target = destination.getBoundingClientRect();
-      const scaleX = current.width > 0 ? target.width / current.width : 1;
-      const scaleY = current.height > 0 ? target.height / current.height : 1;
-
-      animation = feedbackElement.animate(
-        [
-          {
-            opacity: 1,
-            transform: "translate3d(0, 0, 0) scale(1)",
-          },
-          {
-            opacity: 0.96,
-            transform: `translate3d(${target.left - current.left}px, ${
-              target.top - current.top
-            }px, 0) scale(${scaleX}, ${scaleY})`,
-          },
-        ],
-        {
-          duration: DROP_ANIMATION_DURATION,
-          easing: "cubic-bezier(0.32, 0.72, 0, 1)",
-          fill: "forwards",
-        },
-      );
-      animation.finished.then(finish, finish);
-    } catch {
-      finish();
-    }
-  });
+const STALLED_DRAG_TIMEOUT = 250;
 
 function moveTitle(
   titles: TitleRow[],
@@ -259,24 +197,32 @@ function MediaGridState({ titles, reorderContext }: MediaGridProps) {
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       suppressClicksUntilRef.current = Date.now() + 350;
+      const { abort: skipPostDropPhase } = event.suspend();
 
-      const { source } = event.operation;
-      if (event.canceled || !isSortable(source)) return;
+      try {
+        const { source } = event.operation;
+        if (event.canceled || !isSortable(source)) return;
 
-      const next = moveTitle(
-        orderedRef.current,
-        source.initialIndex,
-        source.index
-      );
-      if (next === orderedRef.current) return;
+        const next = moveTitle(
+          orderedRef.current,
+          source.initialIndex,
+          source.index
+        );
+        if (next === orderedRef.current) return;
 
-      orderedRef.current = next;
-      setOrderedTitles(next);
-      const moved = next[source.index];
-      setAnnouncement(
-        `${moved.title} moved to position ${source.index + 1} of ${next.length}.`
-      );
-      persistOrder(next);
+        orderedRef.current = next;
+        setOrderedTitles(next);
+        const moved = next[source.index];
+        setAnnouncement(
+          `${moved.title} moved to position ${source.index + 1} of ${next.length}.`
+        );
+        persistOrder(next);
+      } finally {
+        // We render the reordered grid during this drag-end callback, so there
+        // is no post-drop work for dnd-kit to animate. Abort only its finishing
+        // phase to release the overlay and pointer state immediately.
+        skipPostDropPhase();
+      }
     },
     [persistOrder]
   );
@@ -305,7 +251,10 @@ function MediaGridState({ titles, reorderContext }: MediaGridProps) {
 
       <DragOverlay
         className="pointer-events-none z-[100]"
-        dropAnimation={safeDropAnimation}
+        // The sortable grid has already moved the destination tile beneath
+        // the pointer. Hand off to it immediately on release instead of
+        // adding a second "fly home" phase that makes the drop feel delayed.
+        dropAnimation={null}
       >
         {(source) => {
           const title = orderedRef.current.find(
