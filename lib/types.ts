@@ -21,6 +21,8 @@ export interface TitleRow {
   favorite: boolean;
   added_at: string;
   watched_at: string | null;
+  /** User-defined order within the title's current status tab. */
+  position?: number;
   tmdb_rating: number | null;
   tmdb_vote_count: number | null;
   imdb_id: string | null;

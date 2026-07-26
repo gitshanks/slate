@@ -30,6 +30,7 @@ interface DemoState {
   deletedListIds: string[];
   addedListTitles: DemoListTitle[];
   removedListTitleKeys: string[]; // "listId:titleId"
+  listTitlePositions: Record<string, number>; // "listId:titleId" → position
 }
 
 function emptyState(): DemoState {
@@ -41,6 +42,7 @@ function emptyState(): DemoState {
     deletedListIds: [],
     addedListTitles: [],
     removedListTitleKeys: [],
+    listTitlePositions: {},
   };
 }
 
@@ -49,7 +51,7 @@ async function readState(): Promise<DemoState> {
     const jar = await cookies();
     const raw = jar.get(COOKIE_KEY)?.value;
     if (!raw) return emptyState();
-    return JSON.parse(raw) as DemoState;
+    return { ...emptyState(), ...(JSON.parse(raw) as Partial<DemoState>) };
   } catch {
     return emptyState();
   }
@@ -107,9 +109,14 @@ function allListTitles(state: DemoState): DemoListTitle[] {
   const base = DEMO_LIST_TITLES.filter(
     (lt) => !state.removedListTitleKeys.includes(`${lt.list_id}:${lt.title_id}`)
   );
-  return [...base, ...state.addedListTitles].filter(
-    (lt) => !state.removedListTitleKeys.includes(`${lt.list_id}:${lt.title_id}`)
-  );
+  return [...base, ...state.addedListTitles]
+    .filter(
+      (lt) => !state.removedListTitleKeys.includes(`${lt.list_id}:${lt.title_id}`)
+    )
+    .map((lt) => {
+      const position = state.listTitlePositions[`${lt.list_id}:${lt.title_id}`];
+      return position == null ? lt : { ...lt, position };
+    });
 }
 
 // ─── Builder ─────────────────────────────────────────────────────
@@ -330,6 +337,7 @@ async function execInsert(
       favorite: Boolean(row.favorite ?? false),
       added_at: new Date().toISOString(),
       watched_at: (row.watched_at as string | null) ?? null,
+      position: Number(row.position ?? 0),
       tmdb_rating: (row.tmdb_rating as number | null) ?? null,
       tmdb_vote_count: (row.tmdb_vote_count as number | null) ?? null,
       imdb_id: (row.imdb_id as string | null) ?? null,
@@ -386,35 +394,48 @@ async function execUpsert(
   b: BuilderState,
   state: DemoState
 ): Promise<{ data: unknown; error: unknown }> {
-  const row = b.mutData as Record<string, unknown>;
+  const rows = (Array.isArray(b.mutData) ? b.mutData : [b.mutData]) as Record<
+    string,
+    unknown
+  >[];
 
   if (b.table === "titles") {
-    const tmdbId = Number(row.tmdb_id);
-    const mediaType = row.media_type as string;
-
-    // Check if a matching title exists (seed or added)
-    const existingSeed = DEMO_TITLES.find(
-      (t) => t.tmdb_id === tmdbId && t.media_type === mediaType
-    );
-    const existingAdded = state.addedTitles.find(
-      (t) => t.tmdb_id === tmdbId && t.media_type === mediaType
-    );
-    const existing = existingSeed ?? existingAdded;
-
     const next = { ...state };
-    let resultId: string;
+    next.titlePatches = { ...state.titlePatches };
+    next.addedTitles = [...state.addedTitles];
+    next.deletedIds = [...state.deletedIds];
+    const resultIds: string[] = [];
 
-    if (existing && !state.deletedIds.includes(existing.id)) {
-      // Update via patch
-      resultId = existing.id;
-      next.titlePatches = {
-        ...state.titlePatches,
-        [existing.id]: { ...(state.titlePatches[existing.id] ?? {}), ...row } as Partial<TitleRow>,
-      };
-    } else {
-      // Insert new
+    for (const row of rows) {
+      const currentTitles = allTitles(next);
+      const rowId = typeof row.id === "string" ? row.id : null;
+      const tmdbId = Number(row.tmdb_id);
+      const mediaType = row.media_type as string;
+      const existing =
+        (rowId ? currentTitles.find((title) => title.id === rowId) : undefined) ??
+        currentTitles.find(
+          (title) =>
+            title.tmdb_id === tmdbId && title.media_type === mediaType
+        );
+
+      if (existing) {
+        const changed: Partial<TitleRow> = {};
+        for (const [key, value] of Object.entries(row)) {
+          const current = (existing as unknown as Record<string, unknown>)[key];
+          if (JSON.stringify(current) !== JSON.stringify(value)) {
+            (changed as Record<string, unknown>)[key] = value;
+          }
+        }
+        next.titlePatches[existing.id] = {
+          ...(next.titlePatches[existing.id] ?? {}),
+          ...changed,
+        };
+        resultIds.push(existing.id);
+        continue;
+      }
+
       const newTitle: TitleRow = {
-        id: nanoid(),
+        id: rowId ?? nanoid(),
         tmdb_id: tmdbId,
         media_type: mediaType as TitleRow["media_type"],
         title: String(row.title ?? ""),
@@ -429,8 +450,9 @@ async function execUpsert(
         rating: (row.rating as number | null) ?? null,
         review: (row.review as string | null) ?? null,
         favorite: Boolean(row.favorite ?? false),
-        added_at: new Date().toISOString(),
+        added_at: (row.added_at as string | null) ?? new Date().toISOString(),
         watched_at: (row.watched_at as string | null) ?? null,
+        position: Number(row.position ?? 0),
         tmdb_rating: (row.tmdb_rating as number | null) ?? null,
         tmdb_vote_count: (row.tmdb_vote_count as number | null) ?? null,
         imdb_id: (row.imdb_id as string | null) ?? null,
@@ -443,19 +465,54 @@ async function execUpsert(
         current_episode: (row.current_episode as number | null) ?? null,
         seasons: (row.seasons as TitleRow["seasons"]) ?? null,
       };
-      next.addedTitles = [...state.addedTitles, newTitle];
-      // Un-delete if previously deleted
-      next.deletedIds = state.deletedIds.filter((id) => id !== newTitle.id);
-      resultId = newTitle.id;
+      next.addedTitles.push(newTitle);
+      next.deletedIds = next.deletedIds.filter((id) => id !== newTitle.id);
+      resultIds.push(newTitle.id);
     }
 
     await writeState(next);
 
     // Handle chained .select("id").single()
     if (b.postMutCols && b.postMutSingle) {
-      return { data: { id: resultId }, error: null };
+      return { data: { id: resultIds[0] }, error: null };
     }
-    return { data: { id: resultId }, error: null };
+    return { data: resultIds.map((id) => ({ id })), error: null };
+  }
+
+  if (b.table === "list_titles") {
+    const next = {
+      ...state,
+      addedListTitles: [...state.addedListTitles],
+      removedListTitleKeys: [...state.removedListTitleKeys],
+      listTitlePositions: { ...state.listTitlePositions },
+    };
+    const existing = new Set(
+      allListTitles(state).map((lt) => `${lt.list_id}:${lt.title_id}`)
+    );
+
+    for (const row of rows) {
+      const listId = String(row.list_id);
+      const titleId = String(row.title_id);
+      const key = `${listId}:${titleId}`;
+      const position = Number(row.position ?? 0);
+
+      if (!existing.has(key)) {
+        next.addedListTitles.push({
+          list_id: listId,
+          title_id: titleId,
+          position,
+          added_at: new Date().toISOString(),
+        });
+        existing.add(key);
+      }
+      next.listTitlePositions[key] = position;
+      next.removedListTitleKeys = next.removedListTitleKeys.filter(
+        (removedKey) => removedKey !== key
+      );
+    }
+
+    await writeState(next);
+    return { data: null, error: null };
   }
 
   return { data: null, error: { message: `Upsert not supported for table: ${b.table}` } };

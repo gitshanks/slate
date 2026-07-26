@@ -2,10 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { supabase, type TitleStatus } from "@/lib/supabase";
+import { supabase, type TitleRow, type TitleStatus } from "@/lib/supabase";
 import { getMovie, getTv, normalizeForStorage } from "@/lib/tmdb";
 import { getOmdbRatings } from "@/lib/omdb";
 import { slugify } from "@/lib/utils";
+
+async function nextStatusPosition(status: TitleStatus): Promise<number> {
+  const { data } = await supabase
+    .from("titles")
+    .select("position")
+    .eq("status", status)
+    .order("position", { ascending: true })
+    .limit(1);
+  const current = Number(data?.[0]?.position);
+  return Number.isFinite(current) ? current - 1 : 0;
+}
 
 /**
  * Add a TMDB title to the library. If it already exists, no-op
@@ -24,6 +35,7 @@ export async function addTitle(input: {
     : { imdb_rating: null, imdb_votes: null, rt_score: null, metacritic_score: null };
 
   const status = input.status ?? "want";
+  const position = await nextStatusPosition(status);
   const patch: Record<string, unknown> = {
     ...normalized,
     ...omdb,
@@ -34,6 +46,7 @@ export async function addTitle(input: {
         ? new Date().toISOString()
         : null,
     status,
+    position,
   };
   if (status === "watched") patch.watched_at = new Date().toISOString();
 
@@ -86,7 +99,10 @@ export async function addTitleWithStatus(formData: FormData) {
 }
 
 export async function setStatus(titleId: string, status: TitleStatus) {
-  const patch: Record<string, unknown> = { status };
+  const patch: Record<string, unknown> = {
+    status,
+    position: await nextStatusPosition(status),
+  };
   if (status === "watched") patch.watched_at = new Date().toISOString();
   if (status !== "watched") patch.watched_at = null;
 
@@ -136,6 +152,95 @@ export async function removeTitle(titleId: string) {
   revalidatePath("/", "layout");
 }
 
+// ─── Reordering ───────────────────────────────────────────────────
+
+const REORDERABLE_STATUSES = ["want", "watching", "watched"] as const;
+type ReorderableStatus = (typeof REORDERABLE_STATUSES)[number];
+
+function validateOrder(ids: string[]): string[] {
+  if (ids.length > 5000) throw new Error("Too many titles to reorder");
+  if (ids.some((id) => typeof id !== "string" || id.length === 0)) {
+    throw new Error("Invalid title order");
+  }
+  if (new Set(ids).size !== ids.length) {
+    throw new Error("Title order contains duplicates");
+  }
+  return ids;
+}
+
+function hasSameIds(actualIds: string[], orderedIds: string[]): boolean {
+  if (actualIds.length !== orderedIds.length) return false;
+  const actual = new Set(actualIds);
+  return orderedIds.every((id) => actual.has(id));
+}
+
+export async function reorderStatusTitles(
+  status: ReorderableStatus,
+  orderedTitleIds: string[]
+) {
+  if (!REORDERABLE_STATUSES.includes(status)) {
+    throw new Error("Invalid title collection");
+  }
+  const order = validateOrder(orderedTitleIds);
+
+  const { data, error: readError } = await supabase
+    .from("titles")
+    .select("*")
+    .eq("status", status);
+  if (readError) throw new Error(readError.message);
+
+  const titles = (data ?? []) as TitleRow[];
+  if (!hasSameIds(titles.map((title) => title.id), order)) {
+    throw new Error("This collection changed. Refresh and try again.");
+  }
+
+  const byId = new Map(titles.map((title) => [title.id, title]));
+  const rows = order.map((id, position) => ({
+    ...byId.get(id)!,
+    position,
+  }));
+  const { error } = await supabase
+    .from("titles")
+    .upsert(rows, { onConflict: "id", ignoreDuplicates: false });
+  if (error) throw new Error(error.message);
+
+  revalidatePath(status === "want" ? "/" : `/${status}`);
+}
+
+export async function reorderListTitles(
+  listId: string,
+  orderedTitleIds: string[]
+) {
+  if (!listId) throw new Error("Invalid list");
+  const order = validateOrder(orderedTitleIds);
+
+  const { data, error: readError } = await supabase
+    .from("list_titles")
+    .select("title_id")
+    .eq("list_id", listId);
+  if (readError) throw new Error(readError.message);
+
+  const actualIds = (data ?? []).map((row) => String(row.title_id));
+  if (!hasSameIds(actualIds, order)) {
+    throw new Error("This list changed. Refresh and try again.");
+  }
+
+  const rows = order.map((titleId, position) => ({
+    list_id: listId,
+    title_id: titleId,
+    position,
+  }));
+  const { error } = await supabase
+    .from("list_titles")
+    .upsert(rows, {
+      onConflict: "list_id,title_id",
+      ignoreDuplicates: false,
+    });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/lists", "layout");
+}
+
 // ─── Lists ────────────────────────────────────────────────────────
 
 export async function createList(formData: FormData) {
@@ -179,6 +284,7 @@ export async function createListAndAddTitle(
   const { error: linkErr } = await supabase.from("list_titles").insert({
     list_id: list.id,
     title_id: titleId,
+    position: 0,
   });
   if (linkErr && !linkErr.message.includes("duplicate")) {
     throw new Error(linkErr.message);
@@ -189,9 +295,17 @@ export async function createListAndAddTitle(
 }
 
 export async function addTitleToList(listId: string, titleId: string) {
+  const { data: lastRows } = await supabase
+    .from("list_titles")
+    .select("position")
+    .eq("list_id", listId)
+    .order("position", { ascending: false })
+    .limit(1);
+  const lastPosition = Number(lastRows?.[0]?.position);
   const { error } = await supabase.from("list_titles").insert({
     list_id: listId,
     title_id: titleId,
+    position: Number.isFinite(lastPosition) ? lastPosition + 1 : 0,
   });
   if (error && !error.message.includes("duplicate")) throw new Error(error.message);
   revalidatePath("/lists");

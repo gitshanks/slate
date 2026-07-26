@@ -9,7 +9,11 @@ export async function fetchTitlesByStatus(status: TitleStatus) {
   const { data, error } = await supabase
     .from("titles")
     .select("*")
-    .eq("status", status);
+    .eq("status", status)
+    .order("position", { ascending: true })
+    .order(status === "watched" ? "watched_at" : "added_at", {
+      ascending: false,
+    });
   if (error) {
     return { titles: [] as TitleRow[], allGenres: [], error };
   }

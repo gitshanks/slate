@@ -74,7 +74,13 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
           description="Add titles from your library above."
         />
       ) : (
-        <MediaGrid titles={titles} />
+        <MediaGrid
+          titles={titles}
+          reorderContext={{
+            kind: "list",
+            listId: (list as ListRow).id,
+          }}
+        />
       )}
     </div>
   );

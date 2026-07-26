@@ -54,7 +54,11 @@ export default async function WatchedPage() {
 
       <WatchedStats titles={allTitles} />
 
-      <FilterBar genres={allGenres} showSentiment />
+      <FilterBar
+        genres={allGenres}
+        showSentiment
+        recentSortLabel="Recently watched"
+      />
 
       {allTitles.length === 0 ? (
         <EmptyState

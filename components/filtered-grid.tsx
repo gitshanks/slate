@@ -7,7 +7,7 @@ import type { TitleRow, TitleStatus } from "@/lib/types";
 
 interface FilteredGridProps {
   allTitles: TitleRow[];
-  status: TitleStatus;
+  status: Exclude<TitleStatus, "dropped">;
 }
 
 /**
@@ -24,6 +24,9 @@ export function FilteredGrid({ allTitles, status }: FilteredGridProps) {
     sentiment: sp.get("sentiment") ?? undefined,
   };
   const titles = filterAndSort(allTitles, status, params);
+  const customOrderIds = filterAndSort(allTitles, status, {}).map(
+    (title) => title.id
+  );
 
   if (titles.length === 0 && allTitles.length > 0) {
     return (
@@ -33,5 +36,18 @@ export function FilteredGrid({ allTitles, status }: FilteredGridProps) {
     );
   }
 
-  return <MediaGrid titles={titles} />;
+  return (
+    <MediaGrid
+      titles={titles}
+      reorderContext={
+        params.sort
+          ? undefined
+          : {
+              kind: "status",
+              status,
+              allTitleIds: customOrderIds,
+            }
+      }
+    />
+  );
 }

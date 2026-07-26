@@ -17,6 +17,8 @@ export interface FilterBarProps {
   showYearSort?: boolean;
   /** Whether to show the sentiment (loved/liked/disliked) filter. */
   showSentiment?: boolean;
+  /** Label for the chronological sort on this page. */
+  recentSortLabel?: string;
 }
 
 const TYPE_OPTIONS = [
@@ -40,13 +42,12 @@ const SENTIMENT_OPTIONS = [
   { value: "disliked", label: "Disliked", icon: ThumbsDown },
 ] as const;
 
-const SORT_OPTIONS = [
-  { value: "", label: "Recently added" },
-  { value: "rating", label: "Highest rated" },
-  { value: "year", label: "Newest release" },
-] as const;
-
-export function FilterBar({ genres, showYearSort = true, showSentiment = false }: FilterBarProps) {
+export function FilterBar({
+  genres,
+  showYearSort = true,
+  showSentiment = false,
+  recentSortLabel = "Recently added",
+}: FilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -75,10 +76,17 @@ export function FilterBar({ genres, showYearSort = true, showSentiment = false }
 
   const hasAny = currentType || currentGenre || currentYear || currentSort || currentSentiment;
 
-  const sortOptions = React.useMemo(
-    () => (showYearSort ? SORT_OPTIONS : SORT_OPTIONS.filter((o) => o.value !== "year")),
-    [showYearSort]
-  );
+  const sortOptions = React.useMemo(() => {
+    const options = [
+      { value: "", label: "Your order" },
+      { value: "recent", label: recentSortLabel },
+      { value: "rating", label: "Highest rated" },
+      { value: "year", label: "Newest release" },
+    ];
+    return showYearSort
+      ? options
+      : options.filter((option) => option.value !== "year");
+  }, [recentSortLabel, showYearSort]);
 
   return (
     <div className={cn("mb-8 flex flex-wrap items-center gap-2 transition-opacity duration-150", isPending && "opacity-60 pointer-events-none")}>

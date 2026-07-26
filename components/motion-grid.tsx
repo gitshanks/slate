@@ -32,15 +32,20 @@ export function MotionGrid({
 export function MotionItem({
   children,
   className,
+  layout = false,
+  pressable = true,
 }: {
   children: React.ReactNode;
   className?: string;
+  layout?: boolean;
+  pressable?: boolean;
 }) {
   return (
     <motion.div
       className={className}
+      layout={layout}
       variants={staggerChild}
-      whileTap={{ scale: 0.97 }}
+      whileTap={pressable ? { scale: 0.97 } : undefined}
       transition={{ duration: DUR.fast, ease: EASE }}
     >
       {children}
