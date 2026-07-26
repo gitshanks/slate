@@ -30,9 +30,10 @@ interface PosterCardProps {
     | "rating"
   >;
   priority?: boolean;
+  dragPreview?: boolean;
 }
 
-export function PosterCard({ title, priority }: PosterCardProps) {
+export function PosterCard({ title, priority, dragPreview = false }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
   const imdb = formatImdbRating(title.imdb_rating);
@@ -45,6 +46,7 @@ export function PosterCard({ title, priority }: PosterCardProps) {
     <Link
       href={`/title/${title.id}`}
       prefetch
+      draggable={false}
       className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-xl"
     >
       <div
@@ -56,16 +58,28 @@ export function PosterCard({ title, priority }: PosterCardProps) {
         )}
       >
         {src ? (
-          <ViewTransition name={`poster-${title.id}`}>
+          dragPreview ? (
             <Image
               src={src}
-              alt={title.title}
+              alt=""
               fill
-              priority={priority}
+              draggable={false}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
-              className="object-cover transition-transform duration-300 ease-out hoverable:group-hover:scale-[1.04]"
+              className="object-cover"
             />
-          </ViewTransition>
+          ) : (
+            <ViewTransition name={`poster-${title.id}`}>
+              <Image
+                src={src}
+                alt={title.title}
+                fill
+                draggable={false}
+                priority={priority}
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
+                className="object-cover transition-transform duration-300 ease-out hoverable:group-hover:scale-[1.04]"
+              />
+            </ViewTransition>
+          )
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
             {title.title}
