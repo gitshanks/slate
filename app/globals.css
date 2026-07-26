@@ -217,6 +217,27 @@
     -webkit-user-select: none;
     user-select: none;
   }
+  /* Device-fixed mobile nav. A VisualViewport hook updates the two offsets
+     while Safari's browser chrome changes size; translate3d keeps the bar on
+     its own compositor layer so it cannot be painted at a stale scroll edge. */
+  .bottom-nav-device-fixed {
+    --bottom-nav-offset-x: 0px;
+    --bottom-nav-offset-y: 0px;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform: translate3d(
+      var(--bottom-nav-offset-x),
+      var(--bottom-nav-offset-y),
+      0
+    );
+    transform: translate3d(
+      var(--bottom-nav-offset-x),
+      var(--bottom-nav-offset-y),
+      0
+    );
+    transform-origin: left bottom;
+    will-change: transform;
+  }
 }
 
 /* Hero poster-wall columns: vertical infinite scroll. The list inside each
