@@ -209,6 +209,14 @@
     mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 100%);
     -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 100%);
   }
+  /* Let reorderable links use a long press without Safari/installed PWAs
+     replacing the gesture with the native Open / Open in Browser callout. */
+  .suppress-touch-callout {
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 /* Hero poster-wall columns: vertical infinite scroll. The list inside each

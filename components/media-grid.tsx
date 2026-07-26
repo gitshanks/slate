@@ -299,17 +299,27 @@ function SortablePoster({
           event.stopPropagation();
         }
       }}
+      onContextMenuCapture={(event) => {
+        if (!disabled) {
+          event.preventDefault();
+        }
+      }}
       className={cn(
         "relative touch-manipulation rounded-xl outline-none",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        !disabled && "cursor-grab active:cursor-grabbing",
+        !disabled &&
+          "suppress-touch-callout cursor-grab active:cursor-grabbing",
         (isDragging || isDropping) && "z-30"
       )}
       whileTap={disabled || isDragging ? undefined : { scale: 0.985 }}
       transition={{ duration: DUR.fast, ease: EASE }}
     >
       <div className={cn((isDragging || isDropping) && "opacity-0")}>
-        <PosterCard title={title} priority={priority} />
+        <PosterCard
+          title={title}
+          priority={priority}
+          suppressLongPressMenu={!disabled}
+        />
       </div>
     </motion.div>
   );

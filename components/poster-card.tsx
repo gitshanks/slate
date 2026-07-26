@@ -31,9 +31,15 @@ interface PosterCardProps {
   >;
   priority?: boolean;
   dragPreview?: boolean;
+  suppressLongPressMenu?: boolean;
 }
 
-export function PosterCard({ title, priority, dragPreview = false }: PosterCardProps) {
+export function PosterCard({
+  title,
+  priority,
+  dragPreview = false,
+  suppressLongPressMenu = false,
+}: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
   const imdb = formatImdbRating(title.imdb_rating);
@@ -47,7 +53,18 @@ export function PosterCard({ title, priority, dragPreview = false }: PosterCardP
       href={`/title/${title.id}`}
       prefetch
       draggable={false}
-      className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-xl"
+      onContextMenu={
+        suppressLongPressMenu
+          ? (event) => {
+              event.preventDefault();
+            }
+          : undefined
+      }
+      className={cn(
+        "group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        suppressLongPressMenu &&
+          "suppress-touch-callout"
+      )}
     >
       <div
         className={cn(
