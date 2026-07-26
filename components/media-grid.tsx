@@ -1,16 +1,24 @@
 "use client";
 
-import { useCallback, useRef, useState, type MutableRefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
 import {
   DragDropProvider,
   DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
+  useDragDropManager,
 } from "@dnd-kit/react";
 import {
   KeyboardSensor,
   PointerActivationConstraints,
   PointerSensor,
+  type DropAnimation,
 } from "@dnd-kit/dom";
 import { isSortable, useSortable } from "@dnd-kit/react/sortable";
 import { motion, useReducedMotion } from "motion/react";
@@ -68,6 +76,69 @@ const titleSensors = [
   }),
   KeyboardSensor,
 ];
+
+const DROP_ANIMATION_DURATION = 180;
+const DROP_CLEANUP_TIMEOUT = 300;
+const STALLED_DRAG_TIMEOUT = 700;
+
+/**
+ * Safari can cancel a Web Animations API animation while the page is
+ * scrolling or its browser chrome is settling. dnd-kit's stock drop animation
+ * waits only for `animation.finished`, so a rejection can leave the overlay
+ * and draggable in their dropping state forever. This animation resolves on
+ * finish, cancellation, or a short timeout, guaranteeing dnd-kit can clean up.
+ */
+const safeDropAnimation: DropAnimation = ({
+  element,
+  feedbackElement,
+  placeholder,
+}) =>
+  new Promise<void>((resolve) => {
+    let animation: Animation | null = null;
+    let settled = false;
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      animation?.cancel();
+      resolve();
+    };
+
+    const timeout = window.setTimeout(finish, DROP_CLEANUP_TIMEOUT);
+
+    try {
+      const current = feedbackElement.getBoundingClientRect();
+      const destination =
+        placeholder?.isConnected === true ? placeholder : element;
+      const target = destination.getBoundingClientRect();
+      const scaleX = current.width > 0 ? target.width / current.width : 1;
+      const scaleY = current.height > 0 ? target.height / current.height : 1;
+
+      animation = feedbackElement.animate(
+        [
+          {
+            opacity: 1,
+            transform: "translate3d(0, 0, 0) scale(1)",
+          },
+          {
+            opacity: 0.96,
+            transform: `translate3d(${target.left - current.left}px, ${
+              target.top - current.top
+            }px, 0) scale(${scaleX}, ${scaleY})`,
+          },
+        ],
+        {
+          duration: DROP_ANIMATION_DURATION,
+          easing: "cubic-bezier(0.32, 0.72, 0, 1)",
+          fill: "forwards",
+        },
+      );
+      animation.finished.then(finish, finish);
+    } catch {
+      finish();
+    }
+  });
 
 function moveTitle(
   titles: TitleRow[],
@@ -216,6 +287,8 @@ function MediaGridState({ titles, reorderContext }: MediaGridProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
+      <DragSessionRecovery />
+
       <MotionGrid className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
         {orderedTitles.map((title, index) => (
           <SortablePoster
@@ -232,10 +305,7 @@ function MediaGridState({ titles, reorderContext }: MediaGridProps) {
 
       <DragOverlay
         className="pointer-events-none z-[100]"
-        dropAnimation={{
-          duration: 180,
-          easing: "cubic-bezier(0.32, 0.72, 0, 1)",
-        }}
+        dropAnimation={safeDropAnimation}
       >
         {(source) => {
           const title = orderedRef.current.find(
@@ -250,6 +320,100 @@ function MediaGridState({ titles, reorderContext }: MediaGridProps) {
       </p>
     </DragDropProvider>
   );
+}
+
+/**
+ * Pointer capture can be lost without a final pointerup when iOS changes
+ * browser chrome, backgrounds the PWA, or interrupts a touch gesture. End the
+ * operation from the corresponding fallback events, and keep a final watchdog
+ * in case a browser/library animation still fails to release its state.
+ */
+function DragSessionRecovery() {
+  const manager = useDragDropManager();
+
+  useEffect(() => {
+    if (!manager) return;
+
+    let recoveryTimer = 0;
+
+    const clearRecoveryTimer = () => {
+      window.clearTimeout(recoveryTimer);
+      recoveryTimer = 0;
+    };
+
+    const forceIdle = () => {
+      const { dragOperation } = manager;
+      if (dragOperation.status.idle) return;
+
+      const source = dragOperation.source;
+      if (source) source.status = "idle";
+      dragOperation.reset();
+    };
+
+    const scheduleRecovery = () => {
+      clearRecoveryTimer();
+      recoveryTimer = window.setTimeout(forceIdle, STALLED_DRAG_TIMEOUT);
+    };
+
+    const cancelActiveDrag = (event: Event) => {
+      const { dragOperation } = manager;
+      if (dragOperation.status.idle) return;
+
+      manager.actions.stop({ event, canceled: true });
+      scheduleRecovery();
+    };
+
+    const finishLastTouch = (event: TouchEvent) => {
+      if (event.touches.length > 0) return;
+      if (!manager.dragOperation.status.dragging) return;
+
+      manager.actions.stop({ event });
+      scheduleRecovery();
+    };
+
+    const handleVisibilityChange = (event: Event) => {
+      if (document.visibilityState === "hidden") {
+        cancelActiveDrag(event);
+      }
+    };
+
+    const removeDragStartMonitor = manager.monitor.addEventListener(
+      "dragstart",
+      clearRecoveryTimer,
+    );
+    const removeDragEndMonitor = manager.monitor.addEventListener(
+      "dragend",
+      scheduleRecovery,
+    );
+
+    document.addEventListener("touchend", finishLastTouch, true);
+    document.addEventListener("touchcancel", cancelActiveDrag, true);
+    document.addEventListener("lostpointercapture", cancelActiveDrag, true);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", cancelActiveDrag);
+    window.addEventListener("pagehide", cancelActiveDrag);
+
+    return () => {
+      clearRecoveryTimer();
+      removeDragStartMonitor();
+      removeDragEndMonitor();
+      document.removeEventListener("touchend", finishLastTouch, true);
+      document.removeEventListener("touchcancel", cancelActiveDrag, true);
+      document.removeEventListener(
+        "lostpointercapture",
+        cancelActiveDrag,
+        true,
+      );
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
+      window.removeEventListener("blur", cancelActiveDrag);
+      window.removeEventListener("pagehide", cancelActiveDrag);
+    };
+  }, [manager]);
+
+  return null;
 }
 
 interface SortablePosterProps {
