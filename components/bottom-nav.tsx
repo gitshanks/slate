@@ -64,11 +64,13 @@ export function BottomNav() {
     }
   }, [pathname]);
 
-  // iOS 26 can intermittently paint `position: fixed; bottom: 0` against a
-  // stale layout viewport while the browser chrome expands/collapses. Track
-  // the actual visual viewport and translate the composited nav layer by the
-  // difference. The fixed probe gives us the layout viewport height without
-  // relying on window.innerHeight, which is the stale value in that WebKit bug.
+  // iOS can intermittently paint `position: fixed; bottom: 0` against a stale
+  // layout viewport while the browser chrome expands/collapses. Track the
+  // actual visual viewport and translate the composited nav layer down when
+  // that stale viewport would leave it above the device edge. Never translate
+  // it upward: a shorter visual viewport is normally the soft keyboard, and
+  // retaining that negative offset after search closes strands the nav midway
+  // up the screen. The fixed probe avoids relying on window.innerHeight.
   React.useEffect(() => {
     const nav = navRef.current;
     const layoutViewport = layoutViewportRef.current;
@@ -76,6 +78,7 @@ export function BottomNav() {
     if (!nav || !layoutViewport || !viewport) return;
 
     let frame = 0;
+    const settleTimers = new Set<number>();
 
     const syncToVisualViewport = () => {
       window.cancelAnimationFrame(frame);
@@ -84,8 +87,10 @@ export function BottomNav() {
 
         const layoutHeight = layoutViewport.getBoundingClientRect().height;
         const offsetX = viewport.offsetLeft;
-        const offsetY =
-          viewport.height - layoutHeight + viewport.offsetTop;
+        const offsetY = Math.max(
+          0,
+          viewport.height - layoutHeight + viewport.offsetTop,
+        );
 
         nav.style.setProperty(
           "--bottom-nav-offset-x",
@@ -98,20 +103,45 @@ export function BottomNav() {
       });
     };
 
+    // WebKit can finish restoring the viewport in several stages after an
+    // input blurs. Re-measure across that short settling window so closing
+    // search, adding a title, and dismissing the keyboard cannot leave a stale
+    // correction on the nav.
+    const settleToVisualViewport = () => {
+      for (const timer of settleTimers) window.clearTimeout(timer);
+      settleTimers.clear();
+      syncToVisualViewport();
+
+      for (const delay of [80, 240, 500]) {
+        const timer = window.setTimeout(() => {
+          settleTimers.delete(timer);
+          syncToVisualViewport();
+        }, delay);
+        settleTimers.add(timer);
+      }
+    };
+
     syncToVisualViewport();
     window.addEventListener("resize", syncToVisualViewport);
     window.addEventListener("scroll", syncToVisualViewport, {
       passive: true,
     });
-    window.addEventListener("pageshow", syncToVisualViewport);
+    window.addEventListener("pageshow", settleToVisualViewport);
+    window.addEventListener("orientationchange", settleToVisualViewport);
+    document.addEventListener("focusin", settleToVisualViewport);
+    document.addEventListener("focusout", settleToVisualViewport);
     viewport.addEventListener("resize", syncToVisualViewport);
     viewport.addEventListener("scroll", syncToVisualViewport);
 
     return () => {
       window.cancelAnimationFrame(frame);
+      for (const timer of settleTimers) window.clearTimeout(timer);
       window.removeEventListener("resize", syncToVisualViewport);
       window.removeEventListener("scroll", syncToVisualViewport);
-      window.removeEventListener("pageshow", syncToVisualViewport);
+      window.removeEventListener("pageshow", settleToVisualViewport);
+      window.removeEventListener("orientationchange", settleToVisualViewport);
+      document.removeEventListener("focusin", settleToVisualViewport);
+      document.removeEventListener("focusout", settleToVisualViewport);
       viewport.removeEventListener("resize", syncToVisualViewport);
       viewport.removeEventListener("scroll", syncToVisualViewport);
     };
