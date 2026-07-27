@@ -1,11 +1,13 @@
 import "server-only";
 import { searchAll, type TmdbMediaResult, type TmdbPersonResult } from "@/lib/tmdb";
-import { supabase, type TitleRow } from "@/lib/supabase";
+import { type TitleRow } from "@/lib/supabase";
+import { getLibraryClient } from "@/lib/library-db";
 
 /** Titles in the user's library whose name matches the query. */
 async function searchLibrary(q: string): Promise<TitleRow[]> {
   try {
-    const { data } = await supabase
+    const db = await getLibraryClient();
+    const { data } = await db
       .from("titles")
       .select("*")
       .ilike("title", `%${q}%`)
@@ -21,7 +23,8 @@ async function searchLibrary(q: string): Promise<TitleRow[]> {
 export async function savedAmong(tmdbIds: number[]): Promise<Set<number>> {
   if (tmdbIds.length === 0) return new Set();
   try {
-    const { data } = await supabase
+    const db = await getLibraryClient();
+    const { data } = await db
       .from("titles")
       .select("tmdb_id")
       .in("tmdb_id", tmdbIds);

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { GithubMark } from "@/components/landing/icons";
+import { SLATE_HOSTED } from "@/lib/public-mode";
 
 export function FinalCta() {
+  const hosted = SLATE_HOSTED;
   return (
     <section className="relative border-t border-border/60 overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
@@ -18,15 +20,16 @@ export function FinalCta() {
             </span>
           </h2>
           <p className="mx-auto mt-5 max-w-md text-pretty text-muted-foreground">
-            Try the live demo with seeded data, or pull the repo and have your
-            own copy running before the kettle boils.
+            {hosted
+              ? "Sign in with Google and start your shelf. Keep it private, or give friends one clean link when you’re ready."
+              : "Try the live demo with seeded data, or pull the repo and have your own copy running before the kettle boils."}
           </p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/app"
+              href={hosted ? "/login" : "/app"}
               className="group inline-flex h-11 items-center gap-2 rounded-full bg-foreground px-6 text-sm font-medium text-background shadow-lg shadow-primary/10 transition-transform hover:-translate-y-px"
             >
-              Open the demo
+              {hosted ? "Create your slate" : "Open the demo"}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <a

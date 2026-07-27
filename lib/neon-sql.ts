@@ -66,7 +66,7 @@ export function makeState(
 
 // ─── Allowlists ─────────────────────────────────────────────────────
 
-const ALLOWED_TABLES = new Set(["titles", "lists", "list_titles"]);
+const ALLOWED_TABLES = new Set(["titles", "lists", "list_titles", "profiles"]);
 const IDENT = /^[a-z_][a-z0-9_]*$/;
 
 /** jsonb columns need JSON.stringify + a ::jsonb cast on write. */

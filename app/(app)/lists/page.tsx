@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { supabase, type ListRow } from "@/lib/supabase";
+import { type ListRow } from "@/lib/supabase";
+import { getLibraryClient } from "@/lib/library-db";
 import { EmptyState } from "@/components/empty-state";
 import { CreateListForm } from "@/components/create-list-form";
 import { DeleteListButton } from "@/components/delete-list-button";
@@ -15,7 +16,8 @@ export const metadata: Metadata = {
 };
 
 export default async function ListsPage() {
-  const { data: lists, error } = await supabase
+  const db = await getLibraryClient();
+  const { data: lists, error } = await db
     .from("lists")
     .select("*")
     .order("created_at", { ascending: false });
@@ -35,7 +37,7 @@ export default async function ListsPage() {
   const counts: Record<string, number> = {};
   const posters: Record<string, string[]> = {};
   if (ids.length > 0) {
-    const { data: rows } = await supabase
+    const { data: rows } = await db
       .from("list_titles")
       .select("list_id, titles(poster_path)")
       .in("list_id", ids);

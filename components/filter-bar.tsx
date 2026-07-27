@@ -74,6 +74,17 @@ export function FilterBar({
     [pathname, router, searchParams]
   );
 
+  const clearFilters = React.useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const key of ["type", "genre", "year", "sort", "sentiment"]) {
+      params.delete(key);
+    }
+    const qs = params.toString();
+    startTransition(() => {
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    });
+  }, [pathname, router, searchParams]);
+
   const hasAny = currentType || currentGenre || currentYear || currentSort || currentSentiment;
 
   const sortOptions = React.useMemo(() => {
@@ -275,7 +286,7 @@ export function FilterBar({
       {hasAny && (
         <button
           type="button"
-          onClick={() => startTransition(() => router.replace(pathname, { scroll: false }))}
+          onClick={clearFilters}
           className="inline-flex h-9 items-center gap-1 rounded-full px-2 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
         >
           <X className="h-3 w-3" />

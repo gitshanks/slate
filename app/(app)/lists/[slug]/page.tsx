@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { supabase, type ListRow, type TitleRow } from "@/lib/supabase";
+import { type ListRow, type TitleRow } from "@/lib/supabase";
+import { getLibraryClient } from "@/lib/library-db";
 import { MediaGrid } from "@/components/media-grid";
 import { EmptyState } from "@/components/empty-state";
 import { AddToListPicker } from "@/components/add-to-list-picker";
@@ -11,15 +12,16 @@ export const dynamic = "force-dynamic";
 
 export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) {
   const { slug } = await props.params;
+  const db = await getLibraryClient();
 
-  const { data: list, error: listErr } = await supabase
+  const { data: list, error: listErr } = await db
     .from("lists")
     .select("*")
     .eq("slug", slug)
     .single();
   if (listErr || !list) notFound();
 
-  const { data: rows } = await supabase
+  const { data: rows } = await db
     .from("list_titles")
     .select("title_id, position, titles(*)")
     .eq("list_id", list.id)
@@ -33,7 +35,7 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
   });
 
   // Library titles not yet in this list, for the picker
-  const { data: libRows } = await supabase
+  const { data: libRows } = await db
     .from("titles")
     .select("id, title, poster_path, release_date, media_type, rating")
     .order("added_at", { ascending: false });

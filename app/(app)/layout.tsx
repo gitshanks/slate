@@ -4,15 +4,31 @@ import { TopNav } from "@/components/top-nav";
 import { BottomNav } from "@/components/bottom-nav";
 import { DemoBanner } from "@/components/demo-banner";
 import { aiSearchEnabled } from "@/lib/ai-search";
+import { getLibraryOwnerId } from "@/lib/library-db";
+import { getProfileById } from "@/lib/profiles";
+import { SLATE_HOSTED } from "@/lib/public-mode";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const profile = SLATE_HOSTED
+    ? await getProfileById(await getLibraryOwnerId())
+    : null;
+
   return (
     // AiConversationProvider wraps everything so the command palette and the
     // /discover page share one live AI thread across client-side navigation.
     <AiConversationProvider>
       <CommandPaletteProvider aiEnabled={aiSearchEnabled}>
         {process.env.NEXT_PUBLIC_DEMO_MODE === "1" && <DemoBanner />}
-        <TopNav />
+        <TopNav
+          profile={
+            profile
+              ? {
+                  displayName: profile.display_name,
+                  avatarUrl: profile.avatar_url,
+                }
+              : null
+          }
+        />
         {/* Mobile reserves bottom padding for the fixed BottomNav (~56px tall
             plus iOS safe-area-inset-bottom). Desktop falls back to the
             standard py-6 / lg:py-8 since BottomNav is md:hidden. */}

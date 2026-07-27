@@ -6,7 +6,9 @@ import path from "node:path";
 // switches Supabase to the live read-only path — so the public deploy is
 // configured by a single env var. Self-host default (flag unset) keeps the
 // app at /, so existing bookmarks and PWA installs are unaffected.
-const PUBLIC_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
+const PUBLIC_MODE =
+  process.env.NEXT_PUBLIC_DEMO_MODE === "1" ||
+  process.env.NEXT_PUBLIC_SLATE_HOSTED === "1";
 
 // Stable per-deploy identifier surfaced to the client and to /api/version.
 // On Vercel we get the commit SHA for free; everywhere else we fall back to

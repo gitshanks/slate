@@ -8,15 +8,14 @@ import {
   type TmdbMediaResult,
 } from "@/lib/tmdb";
 import { getOmdbRatings } from "@/lib/omdb";
-import { supabase } from "@/lib/supabase";
+import { getLibraryClient } from "@/lib/library-db";
 import { parseCsv, type ParsedRow } from "@/lib/import-parse";
 
 /**
  * Single-shot library import. Accepts a CSV the user exported from Letterboxd
  * or Trakt, matches each row against TMDB, and upserts `status='watched'`
- * rows into `titles`. Idempotent — re-running against the same CSV is a
- * no-op because of the `(tmdb_id, media_type)` unique constraint and
- * `ignoreDuplicates:true` (a title already in the library keeps its state).
+ * rows into `titles`. Idempotent — existing library keys are removed before
+ * insert, so a title already in the library keeps its state.
  *
  * One action, no review step: bad matches can be removed individually from
  * the grid just like any other title. This is the "no-mess" version of the
@@ -38,6 +37,7 @@ export async function runImport(
   _prev: ImportResult | null,
   formData: FormData
 ): Promise<ImportResult> {
+  const db = await getLibraryClient();
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { ...EMPTY, error: "Pick a CSV file to import." };
@@ -66,12 +66,30 @@ export async function runImport(
   const deduped = dedupeByTmdbId(upserts);
 
   if (deduped.length > 0) {
-    const { error } = await supabase
+    const { data: existing, error: readError } = await db
       .from("titles")
-      // ignoreDuplicates:true so we don't stomp existing rows' status /
-      // rating / review if the user re-imports over a library they've
-      // already curated. New titles land as status='watched'.
-      .upsert(deduped, { onConflict: "tmdb_id,media_type", ignoreDuplicates: true });
+      .select("tmdb_id, media_type");
+    if (readError) {
+      return { ...EMPTY, error: `Database error: ${readError.message}` };
+    }
+    const existingKeys = new Set(
+      (existing ?? []).map((row) => `${row.tmdb_id}:${row.media_type}`)
+    );
+    const newRows = deduped.filter(
+      (row) => !existingKeys.has(`${row.tmdb_id}:${row.media_type}`)
+    );
+
+    if (newRows.length === 0) {
+      return {
+        ok: true,
+        imported: deduped.length,
+        unmatched,
+      };
+    }
+
+    const { error } = await db
+      .from("titles")
+      .insert(newRows);
     if (error) {
       return { ...EMPTY, error: `Database error: ${error.message}` };
     }

@@ -9,13 +9,13 @@ import { FinalCta } from "@/components/landing/cta";
 import { LandingFooter } from "@/components/landing/footer";
 
 export const metadata: Metadata = {
-  title: "slate · a private Letterboxd for one",
+  title: "slate · your watchlist, shared your way",
   description:
-    "Track everything you want to watch, are watching, and have loved. One fast, self-hostable app. No social network. No algorithm. Just your shelf.",
+    "Build a personal watchlist, keep it synced, and share it with friends when you choose. Slate remains fully self-hostable.",
   openGraph: {
-    title: "slate · a private Letterboxd for one",
+    title: "slate · your watchlist, shared your way",
     description:
-      "Track everything you want to watch, are watching, and have loved. One fast, self-hostable app.",
+      "Build a personal watchlist, keep it synced, and share it with friends when you choose.",
     type: "website",
   },
 };

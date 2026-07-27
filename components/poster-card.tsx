@@ -32,6 +32,7 @@ interface PosterCardProps {
   priority?: boolean;
   dragPreview?: boolean;
   suppressLongPressMenu?: boolean;
+  readOnly?: boolean;
 }
 
 export function PosterCard({
@@ -39,6 +40,7 @@ export function PosterCard({
   priority,
   dragPreview = false,
   suppressLongPressMenu = false,
+  readOnly = false,
 }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
@@ -48,24 +50,8 @@ export function PosterCard({
   const hasRating = Boolean(imdb || rt || mc);
   const genre = title.genres?.[0]?.name ?? null;
 
-  return (
-    <Link
-      href={`/title/${title.id}`}
-      prefetch
-      draggable={false}
-      onContextMenu={
-        suppressLongPressMenu
-          ? (event) => {
-              event.preventDefault();
-            }
-          : undefined
-      }
-      className={cn(
-        "group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        suppressLongPressMenu &&
-          "suppress-touch-callout"
-      )}
-    >
+  const content = (
+    <>
       <div
         className={cn(
           "relative aspect-[2/3] overflow-hidden rounded-xl",
@@ -151,7 +137,7 @@ export function PosterCard({
         )}
 
         {/* Quick-action strip: status + delete */}
-        {!dragPreview && (
+        {!dragPreview && !readOnly && (
           <PosterCardActions
             titleId={title.id}
             titleName={title.title}
@@ -173,6 +159,31 @@ export function PosterCard({
           )}
         </div>
       </div>
+    </>
+  );
+
+  const className = cn(
+    "group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    suppressLongPressMenu && "suppress-touch-callout"
+  );
+
+  if (readOnly) return <div className={className}>{content}</div>;
+
+  return (
+    <Link
+      href={`/title/${title.id}`}
+      prefetch
+      draggable={false}
+      onContextMenu={
+        suppressLongPressMenu
+          ? (event) => {
+              event.preventDefault();
+            }
+          : undefined
+      }
+      className={className}
+    >
+      {content}
     </Link>
   );
 }

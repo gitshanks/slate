@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { supabase } from "@/lib/supabase";
+import { getLibraryClient } from "@/lib/library-db";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { TmdbRailAsync } from "@/components/tmdb-rail-async";
@@ -15,9 +15,10 @@ export const metadata: Metadata = {
 };
 
 export default async function WatchlistPage() {
+  const db = await getLibraryClient();
   const [libResult, savedRowsRes] = await Promise.all([
     fetchTitlesByStatus("want"),
-    supabase
+    db
       .from("titles")
       .select("tmdb_id")
       .then(({ data }) => (data ?? []) as { tmdb_id: number }[]),

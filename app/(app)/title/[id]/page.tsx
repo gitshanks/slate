@@ -1,7 +1,8 @@
 import { Suspense, Fragment } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { supabase, type TitleRow } from "@/lib/supabase";
+import { type TitleRow } from "@/lib/supabase";
+import { getLibraryClient } from "@/lib/library-db";
 import { getTitleMeta } from "@/lib/tmdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import { BackdropHero } from "@/components/backdrop-hero";
@@ -47,7 +48,8 @@ export async function generateMetadata(
   props: PageProps<"/title/[id]">
 ): Promise<Metadata> {
   const { id } = await props.params;
-  const { data } = await supabase
+  const db = await getLibraryClient();
+  const { data } = await db
     .from("titles")
     .select("title")
     .eq("id", id)
@@ -136,8 +138,9 @@ async function TitleCastAndRecs({
 
 export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   const { id } = await props.params;
+  const db = await getLibraryClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("titles")
     .select("*")
     .eq("id", id)
@@ -172,7 +175,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
         })
       : null;
 
-  const { data: listsData } = await supabase
+  const { data: listsData } = await db
     .from("lists")
     .select("id, name")
     .order("name", { ascending: true });

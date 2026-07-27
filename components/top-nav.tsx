@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { Search } from "lucide-react";
+import { Search, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EASE, DUR } from "@/lib/motion";
 import { APP_ROOT } from "@/lib/public-mode";
@@ -27,7 +27,11 @@ const LINKS = [
  * header keeps just the logo + the actions cluster, so the whole thing
  * reads as a native-app shell rather than a stacked toolbar.
  */
-export function TopNav() {
+export function TopNav({
+  profile,
+}: {
+  profile?: { displayName: string; avatarUrl: string | null } | null;
+}) {
   const pathname = usePathname();
   const { open } = useCommandPalette();
 
@@ -96,6 +100,25 @@ export function TopNav() {
         <div className="flex items-center gap-1">
           <PwaInstallButton />
           <ThemeToggle />
+          {profile && (
+            <Link
+              href="/profile"
+              aria-label={`${profile.displayName} profile`}
+              className="ml-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+            >
+              {profile.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={profile.avatarUrl}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <UserRound className="h-4 w-4" />
+              )}
+            </Link>
+          )}
           <button
             type="button"
             onClick={open}

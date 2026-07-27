@@ -46,6 +46,7 @@ export type MediaGridReorderContext =
 interface MediaGridProps {
   titles: TitleRow[];
   reorderContext?: MediaGridReorderContext;
+  readOnly?: boolean;
 }
 
 const titleSensors = [
@@ -121,7 +122,7 @@ export function MediaGrid(props: MediaGridProps) {
   return <MediaGridState key={collectionKey} {...props} />;
 }
 
-function MediaGridState({ titles, reorderContext }: MediaGridProps) {
+function MediaGridState({ titles, reorderContext, readOnly = false }: MediaGridProps) {
   const [orderedTitles, setOrderedTitles] = useState(titles);
   const [announcement, setAnnouncement] = useState("");
   const orderedRef = useRef(titles);
@@ -226,6 +227,18 @@ function MediaGridState({ titles, reorderContext }: MediaGridProps) {
     },
     [persistOrder]
   );
+
+  if (readOnly) {
+    return (
+      <MotionGrid className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
+        {orderedTitles.map((title, index) => (
+          <motion.article key={title.id} variants={staggerChild}>
+            <PosterCard title={title} priority={index < 8} readOnly />
+          </motion.article>
+        ))}
+      </MotionGrid>
+    );
+  }
 
   return (
     <DragDropProvider

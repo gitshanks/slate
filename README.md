@@ -2,7 +2,7 @@
 
 # slate
 
-**Your personal Letterboxd.** A fast, private watchlist for everything you want to watch and everything you've loved.
+**Your personal Letterboxd.** A fast watchlist for everything you want to watch and everything you've loved — private by default, shareable when you choose.
 
 <p>
   <a href="#self-host"><img alt="Self-host" src="https://img.shields.io/badge/self--host-docker-2496ED?style=flat-square"></a>
@@ -21,13 +21,15 @@
 
 ## Why slate
 
-Letterboxd is great, but it's social. Slate is the opposite: a single-user watchlist that feels like a personal app, not a network. Run it in Docker on your own box, or deploy it to Vercel in five minutes. Either way, the data is yours.
+Letterboxd is great, but the feed can get in the way of the shelf. Slate keeps the personal-app feeling: sign in with Google on the hosted version, or run a single-user copy in Docker. Either way, your library starts private and stays focused.
 
 ## Features
 
 - **⌘K command palette:** search TMDB and add anything to your library in one keystroke
 - **AI search:** flip the "Ask AI" pill (or ⌘⇧K) and type plain English like _"cozy autumn mysteries"_, _"A24 horror after 2020"_, or _"Nolan thrillers"_. Live query suggestions surface as you type. Powered by any OpenAI-compatible endpoint (Groq's free tier running Llama 3.3 70B by default) or Claude. Optional; drop in one key to enable
 - **Three clean states:** Watchlist, Watching, Watched, with Love / Like / Dislike ratings and private notes
+- **Google accounts:** the hosted app keeps each person's titles, lists, ratings, imports, recommendations, and ordering isolated in Neon
+- **Shareable profiles:** opt in to a read-only public URL for your Watchlist, Watching, and Watched shelves; profiles are private by default
 - **Episode tracking without the chore:** for the shows you're watching, slate stores where you are (S2·E5), not every episode you've ticked off. Tap the chip on the card to advance one episode; on the title page, tap any episode in the season grid to set "I'm caught up to here." Two clicks to recover after a binge
 - **Critic scores you can trust:** IMDb rating + Rotten Tomatoes Tomatometer (with Metacritic fallback) on every saved title, fetched once via OMDB and cached
 - **Custom lists:** curate collections like _"Cozy winter"_ or _"A24 horror"_
@@ -80,10 +82,22 @@ Push to GitHub and import at [vercel.com/new](https://vercel.com/new). Then, ins
 | `ANTHROPIC_API_KEY` | optional | Alternative AI backend; uses Claude instead of an open model. Set `AI_PROVIDER=anthropic` to prefer it when both keys are present. |
 | `APP_PASSCODE` | optional | Lock the app behind a shared passcode. Omit for public. |
 | `NEXT_PUBLIC_DEMO_MODE` | optional | Set to `1` on a portfolio or public-demo deploy. Skips the `APP_PASSCODE` gate, shows a demo banner, mounts a marketing landing page at `/`, and moves the watchlist to `/app`. Self-host default (unset) keeps the app at `/` so existing bookmarks and PWA installs are unaffected. |
+| `NEXT_PUBLIC_SLATE_HOSTED` | optional | Set to `1` for the Google-account hosted product. Mounts the marketing page at `/`, the private library at `/app`, and enables public profiles at `/u/:username`. |
+| `AUTH_SECRET` | hosted | Auth.js session secret. Generate with `npx auth secret`. |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | hosted | Google OAuth web-client credentials. Add `https://your-domain/api/auth/callback/google` as an authorized redirect URI. |
+| `NEXT_PUBLIC_SITE_URL` | hosted | Canonical origin used for public profile links, such as `https://slate.nishh.dev`. |
+| `SLATE_LEGACY_OWNER_EMAIL` | optional | Google email allowed to claim rows created before account support on its first sign-in. |
 
 Prefer Supabase, or already have another Postgres? Set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` instead of `DATABASE_URL` — the data layer uses whichever backend is configured.
 
-> **Pro tip:** import the same GitHub repo twice in Vercel to get a public and private copy from one codebase. Set `APP_PASSCODE` on one project for your personal copy; on the public copy add `NEXT_PUBLIC_DEMO_MODE=1` to skip the passcode and mount a marketing landing page at `/`. Both stay in sync on every push.
+### Google account mode
+
+1. Set `NEXT_PUBLIC_SLATE_HOSTED=1`, `AUTH_SECRET`, the two Google OAuth variables, and `NEXT_PUBLIC_SITE_URL`.
+2. In Google Cloud, authorize `https://your-domain/api/auth/callback/google`.
+3. For an existing database, run `npm run db:migrate:accounts`. A new database gets the same ownership/profile schema from `supabase/schema.sql`.
+4. If the deployment already contains your pre-account library, set `SLATE_LEGACY_OWNER_EMAIL` to your Google email before the first sign-in. Only that account can claim the legacy rows.
+
+Leave every hosted-account variable unset to retain the original self-hosted/single-user behavior, including the optional `APP_PASSCODE` gate.
 
 ## Self-host
 
@@ -196,7 +210,7 @@ lib/
   ai-search.ts        # natural-language query parsing
   accent-theme.ts     # accent color palette config
   ...
-proxy.ts              # passcode gate (Next.js proxy)
+proxy.ts              # hosted auth routing + self-hosted passcode gate
 supabase/schema.sql   # one-shot DB setup
 docker-compose.yml    # self-host stack
 Dockerfile            # Next.js standalone runner image
@@ -206,7 +220,9 @@ Dockerfile            # Next.js standalone runner image
 
 - The database credential (`DATABASE_URL` for Neon, or `SUPABASE_SERVICE_ROLE_KEY`) is read only inside server-only modules (`lib/supabase.ts`, `lib/neon-client.ts`), so it can never leak into a client bundle.
 - `TMDB_API_KEY` never touches the browser. The command palette routes through `/api/tmdb/search`.
-- The passcode gate uses a signed shared cookie, which is fine for single-user deployments. For multi-user, swap in Supabase Auth + RLS.
+- Hosted sessions use Auth.js with Google OAuth. Every owned query and Server Action is scoped in the server-side data access layer; Proxy redirects are only the fast outer gate.
+- Public profile pages first verify the profile's `is_public` flag and expose only read-only library fields.
+- Self-hosted mode retains the optional shared passcode gate and stable `self-hosted` database owner.
 
 ## Credits
 
@@ -218,7 +234,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB. Poster 
 
 ## What slate doesn't do (yet)
 
-- **Multi-user accounts:** slate is single-user by design. A passcode is the only access control.
+- **Following or a social feed:** public profiles are direct-link, read-only shelves rather than another engagement network.
 - **Plex library integration.**
 - **Trakt / MyAnimeList sync:** CSV one-shot import only.
 - **Native mobile apps:** PWA install is supported on iOS Safari and Chromium.

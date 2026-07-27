@@ -11,7 +11,7 @@ import {
 } from "@/lib/tmdb";
 import { getOmdbRatings } from "@/lib/omdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
-import { supabase } from "@/lib/supabase";
+import { getLibraryClient } from "@/lib/library-db";
 import { BackdropHero } from "@/components/backdrop-hero";
 import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
@@ -49,11 +49,12 @@ export default async function DiscoverTitlePage(
   if (type !== "movie" && type !== "tv") notFound();
   const tmdbId = Number(tmdbIdStr);
   if (!Number.isFinite(tmdbId) || tmdbId <= 0) notFound();
+  const db = await getLibraryClient();
 
   // Fetch TMDB detail + meta, and check for an existing library row, in parallel.
   async function fetchExisting() {
     try {
-      const { data } = await supabase
+      const { data } = await db
         .from("titles")
         .select("id, status")
         .eq("tmdb_id", tmdbId)

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { searchMultiWithFallback } from "@/lib/tmdb";
-import { supabase, type TitleRow } from "@/lib/supabase";
+import { type TitleRow } from "@/lib/supabase";
+import { getLibraryClient } from "@/lib/library-db";
 
 /** Shape we return for library hits — just enough for the palette row. */
 type LibraryHit = Pick<
@@ -19,7 +20,8 @@ type LibraryHit = Pick<
 
 async function searchLibrary(q: string): Promise<LibraryHit[]> {
   try {
-    const { data } = await supabase
+    const db = await getLibraryClient();
+    const { data } = await db
       .from("titles")
       .select(
         "id, tmdb_id, media_type, title, poster_path, release_date, imdb_rating, rt_score, metacritic_score, status"

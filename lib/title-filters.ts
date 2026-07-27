@@ -1,12 +1,28 @@
 import "server-only";
-import { supabase, type TitleRow, type TitleStatus } from "@/lib/supabase";
+import { type TitleRow, type TitleStatus } from "@/lib/supabase";
+import { getLibraryClient, libraryClientForOwner } from "@/lib/library-db";
 import { extractGenres } from "@/lib/filter-utils";
 
 // Re-export so callers that previously imported TitleFilterParams from here still work.
 export type { TitleFilterParams } from "@/lib/filter-utils";
 
 export async function fetchTitlesByStatus(status: TitleStatus) {
-  const { data, error } = await supabase
+  const db = await getLibraryClient();
+  return fetchTitlesByStatusFromClient(db, status);
+}
+
+export async function fetchTitlesByStatusForOwner(
+  ownerId: string,
+  status: TitleStatus
+) {
+  return fetchTitlesByStatusFromClient(libraryClientForOwner(ownerId), status);
+}
+
+async function fetchTitlesByStatusFromClient(
+  db: Awaited<ReturnType<typeof getLibraryClient>>,
+  status: TitleStatus
+) {
+  const { data, error } = await db
     .from("titles")
     .select("*")
     .eq("status", status)

@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { GithubMark } from "@/components/landing/icons";
+import { SLATE_HOSTED } from "@/lib/public-mode";
 
 export function LandingNav() {
+  const hosted = SLATE_HOSTED;
   return (
     <header className="sticky top-0 z-40 w-full glass border-b border-border/40">
       <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-5 sm:h-16 sm:px-8">
@@ -36,10 +38,10 @@ export function LandingNav() {
             <span className="hidden sm:inline">GitHub</span>
           </a>
           <Link
-            href="/app"
+            href={hosted ? "/login" : "/app"}
             className="inline-flex h-9 items-center rounded-full bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90"
           >
-            Open slate
+            {hosted ? "Sign in" : "Open slate"}
           </Link>
         </nav>
       </div>

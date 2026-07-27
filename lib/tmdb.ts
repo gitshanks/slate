@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import { supabase, type TitleRow } from "@/lib/supabase";
+import { type TitleRow } from "@/lib/supabase";
+import { getLibraryClient } from "@/lib/library-db";
 
 export { posterUrl, backdropUrl, TMDB_IMG } from "@/lib/tmdb-image";
 
@@ -596,12 +597,13 @@ export async function getRecommendationsFor(
  */
 export async function getRecommendedFromWatched(): Promise<TmdbSearchResult[]> {
   try {
+    const db = await getLibraryClient();
     const [{ data: watched }, { data: saved }] = await Promise.all([
-      supabase
+      db
         .from("titles")
         .select("tmdb_id, media_type, rating, tmdb_rating")
         .eq("status", "watched"),
-      supabase.from("titles").select("tmdb_id"),
+      db.from("titles").select("tmdb_id"),
     ]);
 
     const seeds = (watched ?? []) as Pick<

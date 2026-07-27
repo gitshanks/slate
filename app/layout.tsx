@@ -21,7 +21,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "slate · your watchlist",
-  description: "A private Letterboxd for the things you want to watch.",
+  description:
+    "A personal watchlist for everything you want to watch — private by default and shareable when you choose.",
   manifest: "/manifest.webmanifest",
 };
 

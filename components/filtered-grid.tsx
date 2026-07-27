@@ -8,13 +8,14 @@ import type { TitleRow, TitleStatus } from "@/lib/types";
 interface FilteredGridProps {
   allTitles: TitleRow[];
   status: Exclude<TitleStatus, "dropped">;
+  readOnly?: boolean;
 }
 
 /**
  * Client component — reads URL search params and filters/sorts the full title
  * list in memory. Filter changes are instant: no server roundtrip, no skeleton.
  */
-export function FilteredGrid({ allTitles, status }: FilteredGridProps) {
+export function FilteredGrid({ allTitles, status, readOnly = false }: FilteredGridProps) {
   const sp = useSearchParams();
   const params = {
     type: sp.get("type") ?? undefined,
@@ -39,8 +40,9 @@ export function FilteredGrid({ allTitles, status }: FilteredGridProps) {
   return (
     <MediaGrid
       titles={titles}
+      readOnly={readOnly}
       reorderContext={
-        params.sort
+        readOnly || params.sort
           ? undefined
           : {
               kind: "status",

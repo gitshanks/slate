@@ -5,6 +5,7 @@ export type TitleStatus = "want" | "watching" | "watched" | "dropped";
 
 export interface TitleRow {
   id: string;
+  owner_id?: string;
   tmdb_id: number;
   media_type: MediaType;
   title: string;
@@ -38,6 +39,7 @@ export interface TitleRow {
 
 export interface ListRow {
   id: string;
+  owner_id?: string;
   slug: string;
   name: string;
   description: string | null;

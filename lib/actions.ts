@@ -2,13 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { supabase, type TitleRow, type TitleStatus } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { type TitleRow, type TitleStatus } from "@/lib/supabase";
+import { getLibraryClient } from "@/lib/library-db";
+import { APP_ROOT } from "@/lib/public-mode";
 import { getMovie, getTv, normalizeForStorage } from "@/lib/tmdb";
 import { getOmdbRatings } from "@/lib/omdb";
 import { slugify } from "@/lib/utils";
 
-async function nextStatusPosition(status: TitleStatus): Promise<number> {
-  const { data } = await supabase
+async function nextStatusPosition(
+  db: SupabaseClient,
+  status: TitleStatus
+): Promise<number> {
+  const { data } = await db
     .from("titles")
     .select("position")
     .eq("status", status)
@@ -27,6 +33,19 @@ export async function addTitle(input: {
   mediaType: "movie" | "tv";
   status?: TitleStatus;
 }) {
+  const db = await getLibraryClient();
+  const { data: existingRows, error: existingError } = await db
+    .from("titles")
+    .select("id")
+    .eq("tmdb_id", input.tmdbId)
+    .eq("media_type", input.mediaType)
+    .limit(1);
+  if (existingError) throw new Error(existingError.message);
+  if (existingRows?.[0]?.id) {
+    revalidateLibrary();
+    return existingRows[0] as { id: string };
+  }
+
   const detail =
     input.mediaType === "movie" ? await getMovie(input.tmdbId) : await getTv(input.tmdbId);
   const normalized = normalizeForStorage(input.mediaType, detail);
@@ -35,7 +54,7 @@ export async function addTitle(input: {
     : { imdb_rating: null, imdb_votes: null, rt_score: null, metacritic_score: null };
 
   const status = input.status ?? "want";
-  const position = await nextStatusPosition(status);
+  const position = await nextStatusPosition(db, status);
   const patch: Record<string, unknown> = {
     ...normalized,
     ...omdb,
@@ -50,14 +69,28 @@ export async function addTitle(input: {
   };
   if (status === "watched") patch.watched_at = new Date().toISOString();
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("titles")
-    .upsert(patch, { onConflict: "tmdb_id,media_type", ignoreDuplicates: false })
+    .insert(patch)
     .select("id")
     .single();
 
-  if (error) throw new Error(error.message);
-  revalidatePath("/", "layout");
+  if (error) {
+    // A second request may have inserted the same title between our read and
+    // write. Resolve that benign race without relying on a particular
+    // single-user vs hosted unique-constraint shape.
+    if (error.message.toLowerCase().includes("duplicate")) {
+      const { data: racedRows } = await db
+        .from("titles")
+        .select("id")
+        .eq("tmdb_id", input.tmdbId)
+        .eq("media_type", input.mediaType)
+        .limit(1);
+      if (racedRows?.[0]?.id) return racedRows[0] as { id: string };
+    }
+    throw new Error(error.message);
+  }
+  revalidateLibrary();
   return data;
 }
 
@@ -99,21 +132,23 @@ export async function addTitleWithStatus(formData: FormData) {
 }
 
 export async function setStatus(titleId: string, status: TitleStatus) {
+  const db = await getLibraryClient();
   const patch: Record<string, unknown> = {
     status,
-    position: await nextStatusPosition(status),
+    position: await nextStatusPosition(db, status),
   };
   if (status === "watched") patch.watched_at = new Date().toISOString();
   if (status !== "watched") patch.watched_at = null;
 
-  const { error } = await supabase.from("titles").update(patch).eq("id", titleId);
+  const { error } = await db.from("titles").update(patch).eq("id", titleId);
   if (error) throw new Error(error.message);
 
-  revalidatePath("/", "layout");
+  revalidateLibrary();
 }
 
 export async function setRating(titleId: string, rating: number | null) {
-  const { error } = await supabase
+  const db = await getLibraryClient();
+  const { error } = await db
     .from("titles")
     .update({ rating })
     .eq("id", titleId);
@@ -122,7 +157,8 @@ export async function setRating(titleId: string, rating: number | null) {
 }
 
 export async function setReview(titleId: string, review: string) {
-  const { error } = await supabase
+  const db = await getLibraryClient();
+  const { error } = await db
     .from("titles")
     .update({ review: review.trim() || null })
     .eq("id", titleId);
@@ -131,14 +167,15 @@ export async function setReview(titleId: string, review: string) {
 }
 
 export async function toggleFavorite(titleId: string) {
-  const { data, error: readErr } = await supabase
+  const db = await getLibraryClient();
+  const { data, error: readErr } = await db
     .from("titles")
     .select("favorite")
     .eq("id", titleId)
     .single();
   if (readErr) throw new Error(readErr.message);
 
-  const { error } = await supabase
+  const { error } = await db
     .from("titles")
     .update({ favorite: !data?.favorite })
     .eq("id", titleId);
@@ -147,9 +184,10 @@ export async function toggleFavorite(titleId: string) {
 }
 
 export async function removeTitle(titleId: string) {
-  const { error } = await supabase.from("titles").delete().eq("id", titleId);
+  const db = await getLibraryClient();
+  const { error } = await db.from("titles").delete().eq("id", titleId);
   if (error) throw new Error(error.message);
-  revalidatePath("/", "layout");
+  revalidateLibrary();
 }
 
 // ─── Reordering ───────────────────────────────────────────────────
@@ -178,12 +216,13 @@ export async function reorderStatusTitles(
   status: ReorderableStatus,
   orderedTitleIds: string[]
 ) {
+  const db = await getLibraryClient();
   if (!REORDERABLE_STATUSES.includes(status)) {
     throw new Error("Invalid title collection");
   }
   const order = validateOrder(orderedTitleIds);
 
-  const { data, error: readError } = await supabase
+  const { data, error: readError } = await db
     .from("titles")
     .select("*")
     .eq("status", status);
@@ -194,27 +233,27 @@ export async function reorderStatusTitles(
     throw new Error("This collection changed. Refresh and try again.");
   }
 
-  const byId = new Map(titles.map((title) => [title.id, title]));
-  const rows = order.map((id, position) => ({
-    ...byId.get(id)!,
-    position,
-  }));
-  const { error } = await supabase
-    .from("titles")
-    .upsert(rows, { onConflict: "id", ignoreDuplicates: false });
-  if (error) throw new Error(error.message);
+  const results = await Promise.all(
+    order.map((id, position) =>
+      db.from("titles").update({ position }).eq("id", id)
+    )
+  );
+  const failed = results.find((result) => result.error);
+  if (failed?.error) throw new Error(failed.error.message);
 
-  revalidatePath(status === "want" ? "/" : `/${status}`);
+  if (status === "want") revalidateLibrary();
+  else revalidatePath(`/${status}`);
 }
 
 export async function reorderListTitles(
   listId: string,
   orderedTitleIds: string[]
 ) {
+  const db = await getLibraryClient();
   if (!listId) throw new Error("Invalid list");
   const order = validateOrder(orderedTitleIds);
 
-  const { data, error: readError } = await supabase
+  const { data, error: readError } = await db
     .from("list_titles")
     .select("title_id")
     .eq("list_id", listId);
@@ -225,18 +264,17 @@ export async function reorderListTitles(
     throw new Error("This list changed. Refresh and try again.");
   }
 
-  const rows = order.map((titleId, position) => ({
-    list_id: listId,
-    title_id: titleId,
-    position,
-  }));
-  const { error } = await supabase
-    .from("list_titles")
-    .upsert(rows, {
-      onConflict: "list_id,title_id",
-      ignoreDuplicates: false,
-    });
-  if (error) throw new Error(error.message);
+  const results = await Promise.all(
+    order.map((titleId, position) =>
+      db
+        .from("list_titles")
+        .update({ position })
+        .eq("list_id", listId)
+        .eq("title_id", titleId)
+    )
+  );
+  const failed = results.find((result) => result.error);
+  if (failed?.error) throw new Error(failed.error.message);
 
   revalidatePath("/lists", "layout");
 }
@@ -244,12 +282,13 @@ export async function reorderListTitles(
 // ─── Lists ────────────────────────────────────────────────────────
 
 export async function createList(formData: FormData) {
+  const db = await getLibraryClient();
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   if (!name) throw new Error("Name required");
 
   const slug = slugify(name);
-  const { error } = await supabase.from("lists").insert({
+  const { error } = await db.from("lists").insert({
     name,
     slug,
     description: description || null,
@@ -269,11 +308,19 @@ export async function createListAndAddTitle(
   name: string,
   titleId: string
 ): Promise<{ id: string; name: string }> {
+  const db = await getLibraryClient();
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Name required");
 
   const slug = slugify(trimmed);
-  const { data, error } = await supabase
+  const { data: ownedTitle, error: titleError } = await db
+    .from("titles")
+    .select("id")
+    .eq("id", titleId)
+    .maybeSingle();
+  if (titleError || !ownedTitle) throw new Error("Title not found");
+
+  const { data, error } = await db
     .from("lists")
     .insert({ name: trimmed, slug, description: null })
     .select("id, name")
@@ -281,7 +328,7 @@ export async function createListAndAddTitle(
   if (error) throw new Error(error.message);
   const list = data as { id: string; name: string };
 
-  const { error: linkErr } = await supabase.from("list_titles").insert({
+  const { error: linkErr } = await db.from("list_titles").insert({
     list_id: list.id,
     title_id: titleId,
     position: 0,
@@ -295,14 +342,21 @@ export async function createListAndAddTitle(
 }
 
 export async function addTitleToList(listId: string, titleId: string) {
-  const { data: lastRows } = await supabase
+  const db = await getLibraryClient();
+  const [{ data: list }, { data: title }] = await Promise.all([
+    db.from("lists").select("id").eq("id", listId).maybeSingle(),
+    db.from("titles").select("id").eq("id", titleId).maybeSingle(),
+  ]);
+  if (!list || !title) throw new Error("List or title not found");
+
+  const { data: lastRows } = await db
     .from("list_titles")
     .select("position")
     .eq("list_id", listId)
     .order("position", { ascending: false })
     .limit(1);
   const lastPosition = Number(lastRows?.[0]?.position);
-  const { error } = await supabase.from("list_titles").insert({
+  const { error } = await db.from("list_titles").insert({
     list_id: listId,
     title_id: titleId,
     position: Number.isFinite(lastPosition) ? lastPosition + 1 : 0,
@@ -312,7 +366,8 @@ export async function addTitleToList(listId: string, titleId: string) {
 }
 
 export async function removeTitleFromList(listId: string, titleId: string) {
-  const { error } = await supabase
+  const db = await getLibraryClient();
+  const { error } = await db
     .from("list_titles")
     .delete()
     .eq("list_id", listId)
@@ -322,8 +377,14 @@ export async function removeTitleFromList(listId: string, titleId: string) {
 }
 
 export async function deleteList(listId: string) {
-  const { error } = await supabase.from("lists").delete().eq("id", listId);
+  const db = await getLibraryClient();
+  const { error } = await db.from("lists").delete().eq("id", listId);
   if (error) throw new Error(error.message);
   revalidatePath("/lists");
   redirect("/lists");
+}
+
+function revalidateLibrary() {
+  revalidatePath("/", "layout");
+  if (APP_ROOT !== "/") revalidatePath(APP_ROOT, "layout");
 }

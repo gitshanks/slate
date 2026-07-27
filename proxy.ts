@@ -1,10 +1,45 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { auth } from "@/auth";
 
 const COOKIE = "slate-unlocked";
 
-export function proxy(request: NextRequest) {
+function isHostedPublicRoute(pathname: string) {
+  return (
+    pathname === "/" ||
+    pathname === "/landing" ||
+    pathname === "/login" ||
+    pathname === "/apple-icon" ||
+    pathname === "/api/auth" ||
+    pathname.startsWith("/api/auth/") ||
+    pathname === "/api/version" ||
+    pathname === "/u" ||
+    pathname.startsWith("/u/")
+  );
+}
+
+export const proxy = auth((request: NextRequest & { auth: unknown }) => {
   const { pathname } = request.nextUrl;
+
+  if (process.env.NEXT_PUBLIC_SLATE_HOSTED === "1") {
+    const signedIn = Boolean(
+      request.auth &&
+        typeof request.auth === "object" &&
+        "user" in request.auth &&
+        request.auth.user
+    );
+
+    if (pathname === "/login" && signedIn) {
+      return NextResponse.redirect(new URL("/app", request.url));
+    }
+    if (isHostedPublicRoute(pathname)) return NextResponse.next();
+    if (!signedIn) {
+      const url = new URL("/login", request.url);
+      url.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
 
   // Allow the unlock page itself, the unlock POST, and Next internals.
   if (
@@ -32,7 +67,7 @@ export function proxy(request: NextRequest) {
   url.pathname = "/unlock";
   url.searchParams.set("from", pathname);
   return NextResponse.redirect(url);
-}
+});
 
 export const config = {
   // Run on every path except static assets, image optimizer, and the
