@@ -12,26 +12,12 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-function safeNext(value: string | undefined) {
-  return value?.startsWith("/") &&
-    !value.startsWith("//") &&
-    !value.includes("\\")
-    ? value
-    : "/app";
-}
-
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ next?: string; error?: string }>;
-}) {
+export default function LoginPage() {
   if (!SLATE_HOSTED) redirect("/");
-  const params = await searchParams;
-  const next = safeNext(params.next);
 
   async function continueWithGoogle() {
     "use server";
-    await signIn("google", { redirectTo: next });
+    await signIn("google", { redirectTo: "/app" });
   }
 
   return (
@@ -72,12 +58,6 @@ export default async function LoginPage({
             Sign in to build your watchlist, keep it in sync, and share it with
             friends whenever you choose.
           </p>
-
-          {params.error && (
-            <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Google sign-in didn&apos;t finish. Please try again.
-            </p>
-          )}
 
           <form action={continueWithGoogle} className="mt-7">
             <button

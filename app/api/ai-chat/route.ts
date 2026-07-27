@@ -1,4 +1,5 @@
 import { aiChatEnabled, streamChat, type ChatMessage } from "@/lib/ai-chat";
+import { appApiUnauthorizedResponse } from "@/lib/app-access";
 
 // Force the Node runtime — the Anthropic and OpenAI SDKs use Node streams
 // internally. Edge would also work but Node has fewer surprises.
@@ -8,6 +9,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const unauthorized = await appApiUnauthorizedResponse();
+  if (unauthorized) return unauthorized;
+
   if (!aiChatEnabled) {
     return new Response(
       JSON.stringify({ error: "AI chat is not configured" }),

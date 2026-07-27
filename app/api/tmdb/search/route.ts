@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { appApiUnauthorizedResponse } from "@/lib/app-access";
 import { searchMultiWithFallback } from "@/lib/tmdb";
 import { type TitleRow } from "@/lib/supabase";
 import { getLibraryClient } from "@/lib/library-db";
@@ -36,6 +37,9 @@ async function searchLibrary(q: string): Promise<LibraryHit[]> {
 }
 
 export async function GET(request: Request) {
+  const unauthorized = await appApiUnauthorizedResponse();
+  if (unauthorized) return unauthorized;
+
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") ?? "";
   if (!q.trim()) return NextResponse.json({ library: [], results: [] });

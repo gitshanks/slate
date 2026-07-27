@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { auth } from "@/auth";
+import { getAppSession, requireAppAccess } from "@/lib/app-access";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { supabase } from "@/lib/supabase";
 
@@ -72,8 +72,9 @@ export function libraryClientForOwner(ownerId: string): SupabaseClient {
 }
 
 export const getLibraryOwnerId = cache(async () => {
+  await requireAppAccess();
   if (!SLATE_HOSTED) return SELF_HOSTED_OWNER_ID;
-  const session = await auth();
+  const session = await getAppSession();
   if (!session?.user?.id) redirect("/login");
   return session.user.id;
 });
@@ -82,6 +83,9 @@ export async function getLibraryClient(): Promise<SupabaseClient> {
   // Preserve the original single-user data contract exactly. In particular,
   // an existing Docker volume does not rerun schema.sql on upgrade, so it may
   // not have owner_id yet. Account scoping is a hosted-mode concern only.
-  if (!SLATE_HOSTED) return supabase;
+  if (!SLATE_HOSTED) {
+    await requireAppAccess();
+    return supabase;
+  }
   return libraryClientForOwner(await getLibraryOwnerId());
 }

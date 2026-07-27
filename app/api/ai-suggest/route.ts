@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { aiSearchEnabled, suggestQueries } from "@/lib/ai-search";
+import { appApiUnauthorizedResponse } from "@/lib/app-access";
 
 export async function GET(request: Request) {
+  const unauthorized = await appApiUnauthorizedResponse();
+  if (unauthorized) return unauthorized;
+
   if (!aiSearchEnabled) {
     return NextResponse.json({ suggestions: [] });
   }

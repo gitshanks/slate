@@ -5,6 +5,7 @@ import { RefreshCw, X } from "lucide-react";
 
 const LOADED_BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? "dev";
 const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
+const IS_HOSTED = process.env.NEXT_PUBLIC_SLATE_HOSTED === "1";
 
 export function UpdateBanner() {
   const [stale, setStale] = useState(false);
@@ -27,10 +28,11 @@ export function UpdateBanner() {
   }, []);
 
   useEffect(() => {
-    // Anonymous visitors on the public-portfolio deploy can't act on a
-    // version-update nag and shouldn't fund the per-visit edge requests
-    // it generates from focus / visibility / pageshow / online events.
-    if (LOADED_BUILD_ID === "dev" || IS_DEMO) return;
+    // Vercel deployments atomically serve one build and normal navigations
+    // pick up the newest client bundle. Keep the stale-tab helper for
+    // self-hosted installs, but do not make slate.nishh.dev pay for a version
+    // request on mount and every overlapping focus/visibility/pageshow event.
+    if (LOADED_BUILD_ID === "dev" || IS_DEMO || IS_HOSTED) return;
 
     // No timer — we only check on user-activity signals. A user who keeps
     // the tab open forever and never leaves it won't see the banner until
@@ -38,7 +40,7 @@ export function UpdateBanner() {
     // restores the page, which covers every realistic "I'm back" moment.
     // Dropping the 45s interval is the biggest reduction in function /
     // edge-request load by an order of magnitude.
-    check();
+    const initialCheck = window.setTimeout(check, 0);
 
     const onVisibility = () => {
       if (document.visibilityState === "visible") check();
@@ -53,6 +55,7 @@ export function UpdateBanner() {
     window.addEventListener("online", check);
 
     return () => {
+      window.clearTimeout(initialCheck);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pageshow", onPageShow);
       window.removeEventListener("focus", check);

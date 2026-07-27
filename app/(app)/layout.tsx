@@ -9,8 +9,11 @@ import { getProfileById } from "@/lib/profiles";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  // This layout and the data-access layer are the authorization boundary.
+  // Keeping the check here avoids a billable Proxy invocation on every route.
+  const ownerId = await getLibraryOwnerId();
   const profile = SLATE_HOSTED
-    ? await getProfileById(await getLibraryOwnerId())
+    ? await getProfileById(ownerId)
     : null;
 
   return (
