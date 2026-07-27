@@ -141,6 +141,11 @@ create table if not exists profiles (
                   check (username ~ '^[a-z0-9][a-z0-9-]{2,29}$'),
   display_name  text not null,
   avatar_url    text,
+  avatar_data   bytea,
+  avatar_mime   text
+                  check (avatar_mime in ('image/jpeg', 'image/png', 'image/webp')),
+  avatar_updated_at timestamptz,
+  identity_customized boolean not null default false,
   is_public     boolean not null default false,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()

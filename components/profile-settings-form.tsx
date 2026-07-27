@@ -16,22 +16,28 @@ import {
 } from "@/lib/profile-actions";
 import { cn } from "@/lib/utils";
 
-const INITIAL: ProfileActionState = { ok: false, message: "" };
-
 export function ProfileSettingsForm({
+  displayName,
   username,
   isPublic,
   origin,
 }: {
+  displayName: string;
   username: string;
   isPublic: boolean;
   origin: string;
 }) {
-  const [state, action, pending] = useActionState(updateProfile, INITIAL);
+  const [state, action, pending] = useActionState(updateProfile, {
+    ok: false,
+    message: "",
+    displayName,
+    username,
+    isPublic,
+  } satisfies ProfileActionState);
   const [copied, setCopied] = useState(false);
-  const savedUsername = state.ok && state.username ? state.username : username;
-  const savedPublic =
-    state.ok && typeof state.isPublic === "boolean" ? state.isPublic : isPublic;
+  const savedUsername = state.username ?? username;
+  const savedPublic = state.isPublic ?? isPublic;
+  const [draftDisplayName, setDraftDisplayName] = useState(displayName);
   const [draftUsername, setDraftUsername] = useState(savedUsername);
   const [publicEnabled, setPublicEnabled] = useState(savedPublic);
   const publicUrl = `${origin}/u/${savedUsername}`;
@@ -51,6 +57,29 @@ export function ProfileSettingsForm({
 
   return (
     <form action={action} className="mt-7 space-y-7">
+      <div>
+        <label
+          htmlFor="display-name"
+          className="text-xs font-medium text-foreground"
+        >
+          Display name
+        </label>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          This is the name friends see on your shared slate.
+        </p>
+        <input
+          id="display-name"
+          name="displayName"
+          value={draftDisplayName}
+          onChange={(event) => setDraftDisplayName(event.target.value)}
+          minLength={2}
+          maxLength={60}
+          required
+          autoComplete="name"
+          className="mt-3 h-12 w-full rounded-2xl border border-border bg-background/60 px-3 text-sm font-medium outline-none transition-[border-color,box-shadow] focus:border-primary/60 focus:ring-2 focus:ring-primary/15"
+        />
+      </div>
+
       <div>
         <label
           htmlFor="username"

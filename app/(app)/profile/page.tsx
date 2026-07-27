@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { LogOut, UserRound } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { signOut } from "@/auth";
 import { getLibraryOwnerId } from "@/lib/library-db";
-import { getProfileById } from "@/lib/profiles";
+import { getProfileById, profileAvatarUrl } from "@/lib/profiles";
+import { ProfileAvatarEditor } from "@/components/profile-avatar-editor";
 import { ProfileSettingsForm } from "@/components/profile-settings-form";
 import { APP_ROOT, SLATE_HOSTED } from "@/lib/public-mode";
 import { redirect } from "next/navigation";
@@ -30,6 +31,7 @@ export default async function ProfilePage() {
   const origin =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
     "https://slate.nishh.dev";
+  const avatarUrl = profileAvatarUrl(profile);
 
   return (
     <div className="mx-auto max-w-2xl pb-4 sm:pb-8">
@@ -46,21 +48,12 @@ export default async function ProfilePage() {
       </header>
 
       <section className="mt-7 overflow-hidden rounded-[1.75rem] border border-border bg-card/70 shadow-[0_18px_60px_-44px_hsl(var(--foreground)/0.45)] sm:mt-9">
-        <div className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-border/70 p-5 sm:flex sm:p-6">
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.avatar_url}
-              alt={`${profile.display_name} profile photo`}
-              referrerPolicy="no-referrer"
-              className="h-14 w-14 shrink-0 rounded-2xl border border-border object-cover sm:h-16 sm:w-16"
-            />
-          ) : (
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-border bg-background text-muted-foreground sm:h-16 sm:w-16">
-              <UserRound className="h-6 w-6" />
-            </span>
-          )}
-          <div className="min-w-0">
+        <div className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] items-start gap-x-4 gap-y-3 border-b border-border/70 p-5 sm:flex sm:items-center sm:p-6">
+          <ProfileAvatarEditor
+            avatarUrl={avatarUrl}
+            displayName={profile.display_name}
+          />
+          <div className="min-w-0 pt-1 sm:pt-0">
             <h2 className="truncate text-lg font-semibold sm:text-xl">
               {profile.display_name}
             </h2>
@@ -82,17 +75,18 @@ export default async function ProfilePage() {
         <div className="p-5 sm:p-6">
           <div>
             <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
-              Sharing
+              Profile details
             </p>
             <h2 className="mt-1 text-xl font-semibold tracking-tight">
-              Your public slate
+              Make it yours
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Your library stays private until you switch on its public link.
+              Update the name, address, and visibility of your slate.
             </p>
           </div>
 
           <ProfileSettingsForm
+            displayName={profile.display_name}
             username={profile.username}
             isPublic={profile.is_public}
             origin={origin}

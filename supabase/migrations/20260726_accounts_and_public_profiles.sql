@@ -7,10 +7,38 @@ create table if not exists profiles (
                   check (username ~ '^[a-z0-9][a-z0-9-]{2,29}$'),
   display_name  text not null,
   avatar_url    text,
+  avatar_data   bytea,
+  avatar_mime   text
+                  check (avatar_mime in ('image/jpeg', 'image/png', 'image/webp')),
+  avatar_updated_at timestamptz,
+  identity_customized boolean not null default false,
   is_public     boolean not null default false,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+-- Existing hosted installs already have the profiles table. Keep this
+-- migration rerunnable so deploying the profile editor is a safe additive
+-- schema change rather than a coordinated cutover.
+alter table profiles add column if not exists avatar_data bytea;
+alter table profiles add column if not exists avatar_mime text;
+alter table profiles add column if not exists avatar_updated_at timestamptz;
+alter table profiles
+  add column if not exists identity_customized boolean not null default false;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'profiles_avatar_mime_check'
+      and conrelid = 'profiles'::regclass
+  ) then
+    alter table profiles
+      add constraint profiles_avatar_mime_check
+      check (avatar_mime in ('image/jpeg', 'image/png', 'image/webp'));
+  end if;
+end
+$$;
 
 create index if not exists profiles_public_username_idx
   on profiles (username) where is_public;

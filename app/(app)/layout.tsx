@@ -5,7 +5,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { DemoBanner } from "@/components/demo-banner";
 import { aiSearchEnabled } from "@/lib/ai-search";
 import { getLibraryOwnerId } from "@/lib/library-db";
-import { getProfileById } from "@/lib/profiles";
+import { getProfileById, profileAvatarUrl } from "@/lib/profiles";
 import { SLATE_HOSTED, SLATE_PUBLIC } from "@/lib/public-mode";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             profile
               ? {
                   displayName: profile.display_name,
-                  avatarUrl: profile.avatar_url,
+                  avatarUrl: profileAvatarUrl(profile),
                 }
               : null
           }

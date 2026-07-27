@@ -7,7 +7,7 @@ import { Check, Clock, Eye, Film, UserRound } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { FilteredGrid } from "@/components/filtered-grid";
-import { getPublicProfile } from "@/lib/profiles";
+import { getPublicProfile, profileAvatarUrl } from "@/lib/profiles";
 import { fetchTitlesByStatusForOwner } from "@/lib/title-filters";
 import { cn } from "@/lib/utils";
 import type { TitleStatus } from "@/lib/types";
@@ -39,6 +39,10 @@ export async function generateMetadata({
   const { username } = await params;
   const profile = await getPublicProfile(username);
   if (!profile) return { title: "Profile not found — slate", robots: { index: false } };
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    "https://slate.nishh.dev";
+  const avatarUrl = profileAvatarUrl(profile, origin);
 
   return {
     title: `${profile.display_name}'s watchlist — slate`,
@@ -47,7 +51,7 @@ export async function generateMetadata({
       title: `${profile.display_name}'s watchlist`,
       description: `Browse ${profile.display_name}'s shelves on slate.`,
       type: "profile",
-      images: profile.avatar_url ? [profile.avatar_url] : undefined,
+      images: avatarUrl ? [avatarUrl] : undefined,
     },
   };
 }
@@ -63,6 +67,7 @@ export default async function PublicProfilePage({
   const [{ username }, query] = await Promise.all([params, searchParams]);
   const profile = await getPublicProfile(username);
   if (!profile) notFound();
+  const avatarUrl = profileAvatarUrl(profile);
 
   const activeId = publicTab(query.tab);
   const [watchlist, watching, watched] = await Promise.all([
@@ -107,10 +112,10 @@ export default async function PublicProfilePage({
 
       <main className="mx-auto w-full max-w-[1600px] px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-10 lg:pt-12">
         <section className="grid grid-cols-[4rem_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-5">
-          {profile.avatar_url ? (
+          {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={profile.avatar_url}
+              src={avatarUrl}
               alt={`${profile.display_name} profile photo`}
               referrerPolicy="no-referrer"
               className="h-16 w-16 rounded-2xl border border-border object-cover sm:h-20 sm:w-20 sm:rounded-[1.35rem]"

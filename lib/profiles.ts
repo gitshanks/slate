@@ -9,6 +9,9 @@ export interface ProfileRow {
   username: string;
   display_name: string;
   avatar_url: string | null;
+  avatar_mime: string | null;
+  avatar_updated_at: string | null;
+  identity_customized: boolean;
   is_public: boolean;
   created_at: string;
   updated_at: string;
@@ -46,15 +49,20 @@ export async function ensureGoogleProfile(identity: GoogleIdentity) {
   if (readError) throw new Error(readError.message);
 
   if (existing) {
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        display_name: identity.name || existing.display_name,
-        avatar_url: identity.image || existing.avatar_url,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", identity.id);
-    if (error) throw new Error(error.message);
+    // Keep Google as the default identity source until the person edits their
+    // name or photo in Slate. From that point on, their explicit choice wins
+    // over future OAuth refreshes.
+    if (!existing.identity_customized) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          display_name: identity.name || existing.display_name,
+          avatar_url: identity.image || existing.avatar_url,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", identity.id);
+      if (error) throw new Error(error.message);
+    }
   } else {
     const { error } = await supabase.from("profiles").insert({
       id: identity.id,
@@ -95,7 +103,9 @@ async function claimLegacyLibrary(identity: GoogleIdentity) {
 export const getProfileById = cache(async (id: string) => {
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
+    .select(
+      "id, username, display_name, avatar_url, avatar_mime, avatar_updated_at, identity_customized, is_public, created_at, updated_at"
+    )
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -105,10 +115,27 @@ export const getProfileById = cache(async (id: string) => {
 export const getPublicProfile = cache(async (username: string) => {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, username, display_name, avatar_url, is_public, created_at, updated_at")
+    .select(
+      "id, username, display_name, avatar_url, avatar_mime, avatar_updated_at, identity_customized, is_public, created_at, updated_at"
+    )
     .eq("username", username.toLowerCase())
     .eq("is_public", true)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data as ProfileRow | null;
 });
+
+export function profileAvatarUrl(
+  profile: Pick<
+    ProfileRow,
+    "id" | "avatar_url" | "avatar_mime" | "avatar_updated_at"
+  >,
+  origin = ""
+): string | null {
+  if (!profile.avatar_mime || !profile.avatar_updated_at) {
+    return profile.avatar_url;
+  }
+
+  const version = new Date(profile.avatar_updated_at).getTime();
+  return `${origin}/api/profile/avatar/${encodeURIComponent(profile.id)}?v=${version}`;
+}
