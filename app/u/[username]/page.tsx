@@ -98,7 +98,7 @@ export default async function PublicProfilePage({
           </Link>
           <Link
             href="/login"
-            className="inline-flex h-9 items-center rounded-full border border-border bg-card px-4 text-sm font-medium transition-colors hover:bg-accent"
+            className="inline-flex h-9 items-center rounded-full border border-border bg-card px-3.5 text-xs font-medium transition-colors hover:bg-accent sm:px-4 sm:text-sm"
           >
             Make your own
           </Link>
@@ -106,31 +106,34 @@ export default async function PublicProfilePage({
       </header>
 
       <main className="mx-auto w-full max-w-[1600px] px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-10 lg:pt-12">
-        <section className="flex items-center gap-4">
+        <section className="grid grid-cols-[4rem_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-5">
           {profile.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profile.avatar_url}
-              alt=""
+              alt={`${profile.display_name} profile photo`}
               referrerPolicy="no-referrer"
-              className="h-16 w-16 rounded-full border border-border object-cover sm:h-20 sm:w-20"
+              className="h-16 w-16 rounded-2xl border border-border object-cover sm:h-20 sm:w-20 sm:rounded-[1.35rem]"
             />
           ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-full border border-border bg-card text-muted-foreground sm:h-20 sm:w-20">
+            <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground sm:h-20 sm:w-20 sm:rounded-[1.35rem]">
               <UserRound className="h-7 w-7" />
             </span>
           )}
           <div className="min-w-0">
-            <p className="text-xs font-mono tracking-[0.12em] text-muted-foreground">
+            <p className="truncate font-mono text-[11px] tracking-[0.08em] text-muted-foreground sm:text-xs sm:tracking-[0.12em]">
               @{profile.username}
             </p>
-            <h1 className="mt-1 truncate text-3xl font-semibold tracking-tight sm:text-4xl">
+            <h1 className="mt-1 break-words text-[1.75rem] font-semibold leading-[1.05] tracking-[-0.04em] sm:text-4xl">
               {profile.display_name}&rsquo;s slate
             </h1>
           </div>
         </section>
 
-        <nav className="mt-9 flex w-fit max-w-full gap-1 overflow-x-auto rounded-full border border-border bg-card/70 p-1" aria-label="Library shelves">
+        <nav
+          className="mt-8 grid w-full grid-cols-3 gap-1 rounded-2xl border border-border bg-card/70 p-1 sm:mt-9 sm:flex sm:w-fit sm:rounded-full"
+          aria-label="Library shelves"
+        >
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const selected = tab.id === activeId;
@@ -141,14 +144,14 @@ export default async function PublicProfilePage({
                 href={tab.id === "watchlist" ? `/u/${profile.username}` : `/u/${profile.username}?tab=${tab.id}`}
                 aria-current={selected ? "page" : undefined}
                 className={cn(
-                  "inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm transition-colors",
+                  "inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl px-1.5 text-xs transition-colors sm:h-9 sm:shrink-0 sm:gap-2 sm:rounded-full sm:px-3.5 sm:text-sm",
                   selected
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {tab.label}
+                <Icon className="hidden h-4 w-4 sm:block" />
+                <span className="truncate">{tab.label}</span>
                 <span className={cn("font-mono text-[11px]", selected ? "opacity-75" : "opacity-60")}>
                   {count}
                 </span>
@@ -157,7 +160,7 @@ export default async function PublicProfilePage({
           })}
         </nav>
 
-        <div className="mt-9">
+        <div className="mt-8 sm:mt-9">
           <div className="mb-6">
             <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
               {active.id === "watchlist"
