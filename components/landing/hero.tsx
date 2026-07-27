@@ -1,75 +1,62 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { GithubMark } from "@/components/landing/icons";
+import { ArrowDown, ArrowRight } from "lucide-react";
 import { PosterWall } from "@/components/landing/poster-wall";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 
 export function Hero() {
   const hosted = SLATE_HOSTED;
+
   return (
-    <section className="relative isolate overflow-hidden bg-[hsl(var(--hero-bg))] text-foreground">
+    <section className="relative isolate flex min-h-[100svh] overflow-hidden bg-[#060607] text-white">
       <PosterWall />
 
-      <div className="relative mx-auto flex max-w-[1200px] flex-col items-center px-5 pt-28 pb-32 text-center sm:px-8 sm:pt-40 sm:pb-44 lg:pt-48 lg:pb-52">
-        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-mono backdrop-blur-md">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          {hosted ? "Your watchlist · share when you want" : "A private Letterboxd · for one"}
-        </span>
-
-        <h1 className="mt-7 max-w-[1100px] text-balance text-[44px] font-extrabold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-6xl lg:text-[72px] xl:text-[80px]">
-          The watchlist that&apos;s
-          <br className="hidden sm:block" />{" "}
-          <span className="text-primary">
-            actually yours.
-          </span>
-        </h1>
-
-        <p className="mx-auto mt-7 max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
-          Track everything you want to watch, are watching, and have loved.
-          One fast app. No noisy social feed, no algorithm. Just your shelf
-          {hosted ? ", synced and private until you share it." : ", on your machine."}
+      <div className="relative mx-auto flex w-full max-w-[1440px] flex-col items-center justify-center px-5 pb-24 pt-28 text-center sm:px-8 sm:pb-28 sm:pt-32 lg:px-12">
+        <p className="landing-hero-enter font-mono text-[10px] uppercase tracking-[0.28em] text-white/55 sm:text-[11px]">
+          Your private cinema shelf
         </p>
 
-        <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <h1 className="landing-hero-enter landing-hero-enter-delay mt-6 max-w-[1120px] text-balance text-[clamp(3.3rem,8.7vw,8.2rem)] font-extrabold leading-[0.88] tracking-[-0.065em]">
+          Keep what calls
+          <br />
+          <span className="text-[#a78bfa]">to you.</span>
+        </h1>
+
+        <p className="landing-hero-enter landing-hero-enter-delay-2 mx-auto mt-7 max-w-[580px] text-pretty text-[15px] leading-relaxed text-white/62 sm:mt-8 sm:text-lg">
+          One beautiful place for what you want to watch, what you&apos;re in
+          the middle of, and everything you never want to forget.
+        </p>
+
+        <div className="landing-hero-enter landing-hero-enter-delay-3 mt-8 flex flex-col items-center gap-4 sm:mt-10 sm:flex-row">
           <Link
             href={hosted ? "/login" : "/app"}
-            className="group inline-flex h-12 items-center gap-2 rounded-full bg-foreground px-6 text-sm font-semibold text-background shadow-lg shadow-primary/15 transition-transform hover:-translate-y-px"
+            className="group inline-flex h-13 items-center gap-2 rounded-full bg-white px-6 text-sm font-semibold text-black shadow-[0_14px_50px_rgba(255,255,255,0.12)] transition-transform hover:scale-[1.025] active:scale-[0.98]"
           >
-            {hosted ? "Build your slate" : "Try the live demo"}
+            {hosted ? "Start your slate" : "Open the demo"}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <a
-            href="https://github.com/gitshanks/slate"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-12 items-center gap-2 rounded-full border border-border bg-card/70 px-5 text-sm font-medium text-foreground backdrop-blur-md transition-colors hover:bg-card"
+            href="#inside"
+            className="inline-flex h-13 items-center rounded-full border border-white/15 bg-black/25 px-6 text-sm font-medium text-white backdrop-blur-xl transition-colors hover:bg-white/10"
           >
-            <GithubMark className="h-4 w-4" />
-            Self-host on GitHub
+            See how it feels
           </a>
         </div>
 
-        <p className="mt-6 text-xs text-muted-foreground">
+        <p className="landing-hero-enter landing-hero-enter-delay-3 mt-5 text-[11px] text-white/38">
           {hosted
-            ? "Private by default · Public only when you choose · Still self-hostable"
-            : "MIT licensed · Docker or Vercel · Your data never leaves your box."}
-        </p>
-
-        <p className="mt-3 text-xs text-muted-foreground">
-          <a
-            href="https://www.nishh.dev/slate"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 underline decoration-dotted underline-offset-4 hover:text-foreground"
-          >
-            Read the case study
-            <ArrowRight className="h-3 w-3" />
-          </a>
+            ? "Free to start · Private by default · Share only when you choose"
+            : "MIT licensed · Runs on your machine · Your data stays yours"}
         </p>
       </div>
 
-      {/* Hairline transition into the page background below. */}
-      <div aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-border/60" />
+      <a
+        href="#inside"
+        aria-label="Explore Slate"
+        className="absolute bottom-7 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2 font-mono text-[9px] uppercase tracking-[0.22em] text-white/35 transition-colors hover:text-white/70 sm:bottom-9"
+      >
+        Explore
+        <ArrowDown className="h-3.5 w-3.5 animate-bounce" />
+      </a>
     </section>
   );
 }

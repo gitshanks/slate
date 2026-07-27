@@ -2,33 +2,47 @@ import Image from "next/image";
 
 export function LandingFooter() {
   return (
-    <footer className="border-t border-border/60 bg-background">
-      <div className="mx-auto flex max-w-[1200px] flex-col gap-4 px-5 py-8 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-8">
-        <div className="flex shrink-0 items-center gap-3">
+    <footer className="bg-[#080809] text-white">
+      <div className="mx-auto grid max-w-[1440px] gap-8 px-5 py-10 text-xs text-white/36 sm:grid-cols-[1fr_auto] sm:items-end sm:px-8 lg:px-12">
+        <div>
           <Image
             src="/brand/logo-light.svg"
             alt="Slate"
-            width={48}
-            height={13}
-            // Optical nudge: the wordmark baseline sits a hair high against the
-            // license text when box-centered, so drop it 1px to align baselines.
-            className="relative top-px hidden h-[13px] w-auto opacity-70 dark:block"
+            width={62}
+            height={17}
+            className="h-[17px] w-auto opacity-80"
           />
-          <Image
-            src="/brand/logo-dark.svg"
-            alt="Slate"
-            width={48}
-            height={13}
-            className="relative top-px h-[13px] w-auto opacity-70 dark:hidden"
-          />
-          <span className="whitespace-nowrap">MIT licensed · single-user by design</span>
+          <p className="mt-4 max-w-sm leading-relaxed">
+            A calmer place for everything worth watching.
+            <br />
+            Hosted for convenience. Open source by conviction.
+          </p>
         </div>
-        {/* Single line on desktop; wraps to full text on mobile so the TMDB
-            attribution is never clipped. */}
-        <p className="leading-relaxed sm:text-right">
-          This product uses the TMDB API but is not endorsed or certified by
-          TMDB. Poster artwork served from TMDB's CDN.
-        </p>
+
+        <div className="sm:text-right">
+          <div className="flex gap-5 sm:justify-end">
+            <a
+              href="https://github.com/gitshanks/slate"
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors hover:text-white"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://www.nishh.dev/slate"
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors hover:text-white"
+            >
+              Case study
+            </a>
+          </div>
+          <p className="mt-4 max-w-lg leading-relaxed">
+            TMDB artwork is used under its API terms. Slate is not endorsed or
+            certified by TMDB.
+          </p>
+        </div>
       </div>
     </footer>
   );

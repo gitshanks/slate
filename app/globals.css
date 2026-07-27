@@ -209,6 +209,27 @@
     mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 100%);
     -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 100%);
   }
+  .landing-kicker {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.625rem;
+    line-height: 1rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.42);
+  }
+  .landing-grain {
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    mix-blend-mode: soft-light;
+  }
+  .landing-paper-grain {
+    background-image:
+      radial-gradient(rgb(20 18 15 / 0.1) 0.55px, transparent 0.55px),
+      radial-gradient(rgb(255 255 255 / 0.45) 0.55px, transparent 0.55px);
+    background-position: 0 0, 5px 5px;
+    background-size: 10px 10px;
+  }
   /* Let reorderable links use a long press without Safari/installed PWAs
      replacing the gesture with the native Open / Open in Browser callout. */
   .suppress-touch-callout {
@@ -258,9 +279,75 @@
   from { transform: translateY(-50%); }
   to   { transform: translateY(0); }
 }
+
+@keyframes landing-drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-2deg); }
+  50% { transform: translate3d(0, -12px, 0) rotate(-1.1deg); }
+}
+@keyframes landing-drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(2.2deg); }
+  50% { transform: translate3d(0, 10px, 0) rotate(1.4deg); }
+}
+@keyframes landing-drift-c {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-0.8deg); }
+  50% { transform: translate3d(5px, -8px, 0) rotate(0.4deg); }
+}
+@keyframes landing-hero-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+@keyframes landing-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+.landing-drift-a,
+.landing-drift-b,
+.landing-drift-c {
+  will-change: transform;
+}
+.landing-drift-a {
+  animation: landing-drift-a 9s ease-in-out infinite;
+}
+.landing-drift-b {
+  animation: landing-drift-b 11s ease-in-out infinite;
+}
+.landing-drift-c {
+  animation: landing-drift-c 13s ease-in-out infinite;
+}
+.landing-hero-enter {
+  animation: landing-hero-enter 850ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.landing-hero-enter-delay {
+  animation-delay: 90ms;
+}
+.landing-hero-enter-delay-2 {
+  animation-delay: 180ms;
+}
+.landing-hero-enter-delay-3 {
+  animation-delay: 270ms;
+}
+.landing-marquee {
+  animation: landing-marquee 34s linear infinite;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [style*="col-scroll-up"],
-  [style*="col-scroll-down"] {
+  [style*="col-scroll-down"],
+  .landing-drift-a,
+  .landing-drift-b,
+  .landing-drift-c,
+  .landing-hero-enter,
+  .landing-marquee {
     animation: none !important;
   }
 }

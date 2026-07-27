@@ -26,8 +26,8 @@ export default function LandingPage() {
       <LandingNav />
       <main>
         <Hero />
-        <FeatureGrid />
         <Showcase />
+        <FeatureGrid />
         <SelfHost />
         <StackStrip />
         <FinalCta />

@@ -1,310 +1,316 @@
 import Image from "next/image";
-import { Sparkles, Search, BookmarkPlus, Eye, Heart, ThumbsUp } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bookmark,
+  Check,
+  Eye,
+  Film,
+  Heart,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
+
+const LIBRARY_TITLES = [
+  {
+    title: "Past Lives",
+    year: "2023",
+    path: "/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg",
+    rating: "8.0",
+  },
+  {
+    title: "Dune: Part Two",
+    year: "2024",
+    path: "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
+    rating: "8.5",
+  },
+  {
+    title: "The Holdovers",
+    year: "2023",
+    path: "/VHSzNBTwxV8vh7wylo7O9CLdac.jpg",
+    rating: "7.9",
+  },
+  {
+    title: "Knives Out",
+    year: "2019",
+    path: "/pThyQovXQrw2m0s9x82twj48Jq4.jpg",
+    rating: "7.9",
+  },
+  {
+    title: "La La Land",
+    year: "2016",
+    path: "/uDO8zWDhfWwoFdKS4fzkUJt0Rf0.jpg",
+    rating: "8.0",
+  },
+  {
+    title: "Spirited Away",
+    year: "2001",
+    path: "/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg",
+    rating: "8.6",
+  },
+];
+
+const AI_RESULTS = [
+  {
+    title: "Perfect Days",
+    meta: "2023 · Drama",
+    path: "/mjEk5Wwx6TYVqw29zSaUHclMIgp.jpg",
+    match: "97%",
+  },
+  {
+    title: "Past Lives",
+    meta: "2023 · Drama",
+    path: "/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg",
+    match: "94%",
+  },
+  {
+    title: "The Holdovers",
+    meta: "2023 · Comedy drama",
+    path: "/VHSzNBTwxV8vh7wylo7O9CLdac.jpg",
+    match: "91%",
+  },
+];
 
 export function Showcase() {
   return (
-    <section className="relative border-t border-border/60 bg-gradient-to-b from-background to-accent/30 dark:to-card/40">
-      <div className="mx-auto max-w-[1200px] px-5 py-20 sm:px-8 sm:py-28">
-        {/* AI search row */}
-        <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-20">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-mono">
-              Plain-English search
-            </p>
-            <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-              Stop typing titles. Start typing moods.
-            </h2>
-            <p className="mt-4 text-pretty text-muted-foreground sm:text-lg">
-              Flip the “Ask AI” pill in the command palette and type the way you
-              actually think. Slate turns vibes into a real shortlist. Pulled
-              from TMDB, scored on critic data, deduped against what you've
-              already seen.
-            </p>
-            <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
-              {AI_BULLETS.map((b) => (
-                <li key={b.label} className="flex gap-3">
-                  <span className="mt-1 inline-flex h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                  <span>
-                    <strong className="text-foreground">{b.label}.</strong> {b.body}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-6 text-xs text-muted-foreground">
-              Defaults to Groq's free tier (Llama 3.3 70B). Bring your own
-              OpenAI-compatible endpoint, or set <code className="rounded bg-card px-1 py-0.5 font-mono text-[11px] ring-1 ring-border">AI_PROVIDER=anthropic</code> for Claude.
-            </p>
-          </div>
+    <section
+      id="inside"
+      className="relative overflow-hidden bg-[#080809] text-white"
+    >
+      <div className="landing-grain pointer-events-none absolute inset-0 opacity-15" />
 
-          <AiPaletteMock />
+      <div className="relative mx-auto max-w-[1440px] px-5 pb-28 pt-28 sm:px-8 sm:pb-40 sm:pt-40 lg:px-12">
+        <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.5fr)] lg:gap-20">
+          <div>
+            <p className="landing-kicker">Inside slate</p>
+            <h2 className="mt-5 max-w-[980px] text-balance text-[clamp(3rem,7vw,7.25rem)] font-bold leading-[0.92] tracking-[-0.06em]">
+              Your taste,
+              <br />
+              <span className="text-white/35">not a content feed.</span>
+            </h2>
+          </div>
+          <p className="max-w-md text-pretty text-base leading-relaxed text-white/52 sm:text-lg lg:pb-2">
+            Slate turns an endless catalog into three calm shelves. Save in a
+            second, drag things into your order, and get back to watching.
+          </p>
         </div>
 
-        {/* Three states row */}
-        <div className="mt-24 grid items-center gap-12 lg:mt-32 lg:grid-cols-[1fr_1.05fr] lg:gap-20">
-          <ThreeStatesMock />
+        <div className="mt-14 sm:mt-20">
+          <LibraryPreview />
+        </div>
 
-          <div className="lg:order-2">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-mono">
-              Three shelves, no friction
+        <div className="mt-32 grid items-center gap-12 sm:mt-44 lg:grid-cols-[0.72fr_1.28fr] lg:gap-24">
+          <div className="max-w-lg">
+            <p className="landing-kicker">Search by instinct</p>
+            <h3 className="mt-5 text-balance text-[clamp(2.5rem,5vw,5rem)] font-semibold leading-[0.96] tracking-[-0.055em]">
+              Name the title.
+              <br />
+              <span className="text-[#a78bfa]">Or name the feeling.</span>
+            </h3>
+            <p className="mt-6 text-pretty text-base leading-relaxed text-white/52 sm:text-lg">
+              Search the whole TMDB catalog, or ask for “something quiet and
+              strange for a rainy Sunday.” Slate finds real titles and skips
+              what is already on your shelf.
             </p>
-            <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-              Want, watching, watched. That's the whole app.
-            </h2>
-            <p className="mt-4 text-pretty text-muted-foreground sm:text-lg">
-              Move titles between shelves with a click. Add a private note. Mark
-              it Loved, Liked, or Disliked. Nothing public to maintain, no one
-              to follow. Slate is the opposite of a feed.
-            </p>
-            <div className="mt-6 grid grid-cols-3 gap-3 text-xs">
-              {STATE_CHIPS.map((c) => (
-                <div
-                  key={c.label}
-                  className="flex flex-col items-start gap-2 rounded-lg border border-border bg-card p-3"
-                >
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/15">
-                    <c.icon className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="font-medium text-foreground">{c.label}</span>
-                  <span className="text-muted-foreground">{c.body}</span>
-                </div>
-              ))}
+
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-xs text-white/45">
+              <span className="inline-flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-[#a78bfa]" />
+                Live suggestions
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-[#a78bfa]" />
+                Library-aware
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-[#a78bfa]" />
+                Bring your own model
+              </span>
             </div>
           </div>
+
+          <AiSearchStage />
         </div>
       </div>
     </section>
   );
 }
 
-const AI_BULLETS = [
-  {
-    label: "Live suggestions",
-    body: "Real titles surface as you type. No waiting for a full response.",
-  },
-  {
-    label: "Library-aware",
-    body: "Already saved? Slate skips it. Recommendations stay fresh.",
-  },
-  {
-    label: "Bring your own model",
-    body: "Llama, Claude, GPT, or self-hosted via Ollama. One env var.",
-  },
-];
-
-const STATE_CHIPS = [
-  {
-    icon: BookmarkPlus,
-    label: "Want",
-    body: "Saved for later. Sortable by genre, year, rating.",
-  },
-  {
-    icon: Eye,
-    label: "Watching",
-    body: "In progress. Episodic shows, slow-burn series.",
-  },
-  {
-    icon: Heart,
-    label: "Watched",
-    body: "Loved, Liked, or Disliked. With a private note.",
-  },
-];
-
-function AiPaletteMock() {
+function LibraryPreview() {
   return (
     <div className="relative">
-      <div className="overflow-hidden rounded-xl border border-border bg-popover shadow-2xl shadow-primary/10 ring-1 ring-foreground/5">
-        <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm text-foreground">A24 horror after 2020</span>
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-            Ask AI
-          </span>
-        </div>
-        <ul className="divide-y divide-border/60">
-          {AI_RESULTS.map((r, i) => (
-            <li
-              key={r.title}
-              className={
-                "flex items-center gap-3 px-4 py-3 " +
-                (i === 0 ? "bg-foreground/[0.03]" : "")
-              }
-            >
-              <span className="relative h-10 w-7 shrink-0 overflow-hidden rounded-sm bg-card ring-1 ring-foreground/10">
-                {posterUrl(r.posterPath, "w185") ? (
-                  <Image
-                    src={posterUrl(r.posterPath, "w185")!}
-                    alt={r.title}
-                    fill
-                    sizes="28px"
-                    className="object-cover"
-                  />
-                ) : null}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {r.title}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {r.meta}
-                </p>
-              </div>
-              <span className="hidden shrink-0 rounded-md bg-foreground/[0.04] px-2 py-1 font-mono text-[10px] text-muted-foreground sm:inline">
-                {r.score}
-              </span>
-              <kbd
-                className={
-                  "hidden shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline " +
-                  (i === 0 ? "" : "invisible")
-                }
-                aria-hidden={i !== 0}
-              >
-                ↵
-              </kbd>
-            </li>
-          ))}
-        </ul>
-        <div className="flex items-center justify-between border-t border-border/60 bg-background/50 px-4 py-2 text-[10px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Search className="h-3 w-3" /> {AI_RESULTS.length} suggestions
-          </span>
-          <span className="font-mono">Llama 3.3 · 240ms</span>
-        </div>
-      </div>
-      <div
-        aria-hidden
-        className="absolute -bottom-6 left-10 right-10 -z-10 h-24 rounded-full bg-primary/30 blur-3xl"
-      />
-    </div>
-  );
-}
+      <div className="absolute -inset-16 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(140,105,255,0.16),transparent_68%)] blur-2xl" />
 
-const AI_RESULTS = [
-  {
-    title: "Pearl (2022)",
-    meta: "Slasher · Ti West",
-    posterPath: "/z5uIG81pXyHKg7cUFIu84Wjn4NS.jpg",
-    score: "RT 91%",
-  },
-  {
-    title: "Talk to Me (2023)",
-    meta: "Supernatural · Philippou",
-    posterPath: "/kdPMUMJzyYAc4roD52qavX0nLIC.jpg",
-    score: "RT 94%",
-  },
-  {
-    title: "Men (2022)",
-    meta: "Folk horror · Garland",
-    posterPath: "/jo1Kv3P3UgDVk7JnUFr2Cl8WWUM.jpg",
-    score: "RT 68%",
-  },
-  {
-    title: "X (2022)",
-    meta: "Slasher · Ti West",
-    posterPath: "/lopZSVtXzhFY603E9OqF7O1YKsh.jpg",
-    score: "RT 94%",
-  },
-  {
-    title: "I Saw the TV Glow (2024)",
-    meta: "Surreal · Schoenbrun",
-    posterPath: "/hS4GYkYpN1rfl4GIxyc02sCyfAj.jpg",
-    score: "RT 95%",
-  },
-];
-
-function ThreeStatesMock() {
-  return (
-    <div className="grid grid-cols-3 gap-3 sm:gap-4">
-      {STATE_COLUMNS.map((col) => (
-        <div
-          key={col.label}
-          className="rounded-xl border border-border bg-card p-3 shadow-sm sm:p-4"
-        >
-          <div className="mb-3 flex items-center gap-1.5">
-            <col.icon className="h-3.5 w-3.5 text-primary" />
-            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground font-mono">
-              {col.label}
-            </span>
+      <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#0d0d0f] shadow-[0_45px_120px_rgba(0,0,0,0.65)] sm:rounded-[34px]">
+        <div className="flex h-12 items-center border-b border-white/[0.07] px-4 sm:h-14 sm:px-6">
+          <div className="flex gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-white/16" />
+            <span className="h-2 w-2 rounded-full bg-white/10" />
+            <span className="h-2 w-2 rounded-full bg-white/10" />
           </div>
-          <div className="space-y-2">
-            {col.items.map((it) => (
-              <div
-                key={it.title}
-                className="overflow-hidden rounded-md ring-1 ring-foreground/5"
+          <div className="mx-auto hidden items-center gap-2 rounded-full border border-white/[0.07] bg-black/20 px-4 py-1.5 font-mono text-[9px] tracking-wide text-white/30 sm:flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/70" />
+            slate.nishh.dev
+          </div>
+          <div className="flex w-8 justify-end">
+            <span className="h-6 w-6 rounded-full bg-[#a78bfa]/25 ring-1 ring-[#a78bfa]/35" />
+          </div>
+        </div>
+
+        <div className="px-4 pb-6 pt-7 sm:px-8 sm:pb-10 sm:pt-10 lg:px-12 lg:pb-14">
+          <div className="flex items-end justify-between gap-6">
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-white/35 sm:text-[10px]">
+                Your watchlist
+              </p>
+              <h3 className="mt-1.5 text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
+                Up next
+              </h3>
+            </div>
+            <div className="hidden items-center gap-2 sm:flex">
+              <span className="rounded-full bg-[#a78bfa] px-3 py-1.5 text-xs font-semibold text-[#100b1e]">
+                All
+              </span>
+              <span className="rounded-full px-3 py-1.5 text-xs text-white/45">
+                Films
+              </span>
+              <span className="rounded-full px-3 py-1.5 text-xs text-white/45">
+                Series
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-7 grid grid-cols-2 gap-x-3 gap-y-7 sm:mt-9 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-6 lg:gap-x-5">
+            {LIBRARY_TITLES.map((item, index) => (
+              <article
+                key={item.title}
+                className={
+                  index > 3
+                    ? "hidden sm:block"
+                    : index > 1
+                      ? "hidden min-[470px]:block"
+                      : ""
+                }
               >
-                <div className="relative aspect-[2/3] w-full bg-card">
-                  {posterUrl(it.posterPath, "w185") ? (
-                    <Image
-                      src={posterUrl(it.posterPath, "w185")!}
-                      alt={it.title}
-                      fill
-                      sizes="(max-width: 640px) 30vw, 110px"
-                      className="object-cover"
-                    />
-                  ) : null}
+                <div className="group relative aspect-[2/3] overflow-hidden rounded-[13px] bg-white/5 ring-1 ring-white/10 sm:rounded-[16px]">
+                  <Image
+                    src={posterUrl(item.path, "w342")!}
+                    alt={item.title}
+                    fill
+                    sizes="(max-width: 640px) 44vw, (max-width: 1024px) 28vw, 15vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.025]"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/85 to-transparent px-3 pb-3 pt-8">
+                    <span className="rounded-full bg-black/50 px-2 py-1 font-mono text-[9px] text-white/75 backdrop-blur">
+                      IMDb {item.rating}
+                    </span>
+                    {index === 0 ? (
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-black">
+                        <Bookmark className="h-3 w-3 fill-current" />
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="px-2 py-1.5">
-                  <p className="line-clamp-1 text-[11px] font-medium text-foreground">
-                    {it.title}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">{it.meta}</p>
-                </div>
-              </div>
+                <h4 className="mt-3 truncate text-sm font-medium sm:text-base">
+                  {item.title}
+                </h4>
+                <p className="mt-0.5 text-xs text-white/35">{item.year}</p>
+              </article>
             ))}
           </div>
         </div>
-      ))}
+      </div>
+
+      <div className="absolute -bottom-5 left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-[#18171c]/90 px-4 py-2.5 text-[11px] text-white/65 shadow-2xl backdrop-blur-xl sm:flex">
+        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#a78bfa]/20 text-[#c4b5fd]">
+          <ArrowUpRight className="h-3 w-3" />
+        </span>
+        Press and hold any title to reorder
+      </div>
     </div>
   );
 }
 
-const STATE_COLUMNS = [
-  {
-    label: "Want",
-    icon: BookmarkPlus,
-    items: [
-      {
-        title: "Anora",
-        meta: "2024",
-        posterPath: "/oN0o3owobFjePDc5vMdLRAd0jkd.jpg",
-      },
-      {
-        title: "Conclave",
-        meta: "2024",
-        posterPath: "/vYEyxF1UT779RiEalpMjUT6kfdf.jpg",
-      },
-    ],
-  },
-  {
-    label: "Watching",
-    icon: Eye,
-    items: [
-      {
-        title: "Severance",
-        meta: "S2 · E5",
-        posterPath: "/pPHpeI2X1qEd1CS1SeyrdhZ4qnT.jpg",
-      },
-      {
-        title: "Slow Horses",
-        meta: "S4 · E1",
-        posterPath: "/dnpatlJrEPiDSn5fzgzvxtiSnMo.jpg",
-      },
-    ],
-  },
-  {
-    label: "Watched",
-    icon: ThumbsUp,
-    items: [
-      {
-        title: "The Holdovers",
-        meta: "Loved",
-        posterPath: "/VHSzNBTwxV8vh7wylo7O9CLdac.jpg",
-      },
-      {
-        title: "Past Lives",
-        meta: "Liked",
-        posterPath: "/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg",
-      },
-    ],
-  },
-];
+function AiSearchStage() {
+  return (
+    <div className="relative min-h-[500px] overflow-hidden rounded-[28px] border border-white/10 bg-[#111014] p-5 shadow-[0_40px_100px_rgba(0,0,0,0.45)] sm:min-h-[590px] sm:rounded-[36px] sm:p-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(167,139,250,0.18),transparent_36%)]" />
+      <div className="absolute inset-x-6 bottom-0 grid translate-y-[28%] grid-cols-3 gap-3 opacity-35 blur-[1px] sm:inset-x-10 sm:gap-5">
+        {LIBRARY_TITLES.slice(0, 3).map((item) => (
+          <div
+            key={item.title}
+            className="relative aspect-[2/3] overflow-hidden rounded-xl"
+          >
+            <Image
+              src={posterUrl(item.path, "w342")!}
+              alt=""
+              fill
+              sizes="180px"
+              className="object-cover"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="relative mx-auto mt-12 max-w-[570px] overflow-hidden rounded-[20px] border border-white/12 bg-[#151419]/95 shadow-[0_28px_80px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:mt-20">
+        <div className="flex items-center gap-3 border-b border-white/[0.07] px-4 py-4 sm:px-5">
+          <Sparkles className="h-4 w-4 shrink-0 text-[#bba6ff]" />
+          <p className="min-w-0 flex-1 truncate text-sm text-white/88 sm:text-base">
+            quiet, beautiful films about ordinary life
+          </p>
+          <span className="rounded-full bg-[#a78bfa]/15 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#c4b5fd]">
+            Ask AI
+          </span>
+        </div>
+
+        <ul className="divide-y divide-white/[0.07]">
+          {AI_RESULTS.map((item, index) => (
+            <li
+              key={item.title}
+              className={`flex items-center gap-3 px-4 py-3.5 sm:px-5 ${
+                index === 0 ? "bg-white/[0.045]" : ""
+              }`}
+            >
+              <span className="relative h-12 w-9 shrink-0 overflow-hidden rounded-md bg-white/5">
+                <Image
+                  src={posterUrl(item.path, "w185")!}
+                  alt={item.title}
+                  fill
+                  sizes="36px"
+                  className="object-cover"
+                />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">
+                  {item.title}
+                </span>
+                <span className="mt-0.5 block text-xs text-white/35">
+                  {item.meta}
+                </span>
+              </span>
+              <span className="font-mono text-[10px] text-[#bba6ff]">
+                {item.match} match
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex items-center justify-between border-t border-white/[0.07] px-4 py-3 font-mono text-[9px] uppercase tracking-[0.12em] text-white/28 sm:px-5">
+          <span className="inline-flex items-center gap-1.5">
+            <Search className="h-3 w-3" /> 3 suggestions
+          </span>
+          <span>Enter to save</span>
+        </div>
+      </div>
+
+      <div className="absolute left-7 top-7 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/28 sm:left-9 sm:top-9">
+        <Film className="h-3.5 w-3.5" />
+        Discovery mode
+      </div>
+      <div className="absolute bottom-6 right-6 hidden items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-2 text-[10px] text-white/45 backdrop-blur sm:flex">
+        <Eye className="h-3.5 w-3.5" /> Knows what you&apos;ve seen
+        <Heart className="ml-1 h-3.5 w-3.5 text-[#a78bfa]" />
+      </div>
+    </div>
+  );
+}

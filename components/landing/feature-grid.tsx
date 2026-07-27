@@ -1,86 +1,112 @@
-interface Feature {
-  eyebrow: string;
-  title: string;
-  body: string;
-}
+import Image from "next/image";
+import { Copy, Globe2, Link2, LockKeyhole } from "lucide-react";
+import { posterUrl } from "@/lib/tmdb-image";
 
-const FEATURES: Feature[] = [
+const PROFILE_TITLES = [
   {
-    eyebrow: "Command palette",
-    title: "Add anything in one keystroke.",
-    body:
-      "Press ⌘K, search the entire TMDB catalog, hit enter. Films, shows, episodes, all in your library before the keystroke fades.",
+    title: "Parasite",
+    path: "/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
   },
   {
-    eyebrow: "AI search",
-    title: "Type the vibe, not the title.",
-    body:
-      "“Cozy autumn mysteries.” “A24 horror after 2020.” “Nolan thrillers.” Powered by Llama 3.3, Claude, or whatever endpoint you point it at.",
+    title: "Aftersun",
+    path: "/jeXmhP2zbUkREMRqFOYIwQOk49T.jpg",
   },
   {
-    eyebrow: "Critic scores",
-    title: "IMDb and Rotten Tomatoes, baked in.",
-    body:
-      "Every saved title carries an IMDb rating and a Tomatometer (with a Metacritic fallback). Fetched once, cached, surfaced everywhere.",
+    title: "Past Lives",
+    path: "/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg",
   },
   {
-    eyebrow: "Three states",
-    title: "Want · Watching · Watched.",
-    body:
-      "Three clean shelves with Love / Like / Dislike ratings and a private notes field. No followers, no public timeline, no thumbs you don't want.",
+    title: "The Holdovers",
+    path: "/VHSzNBTwxV8vh7wylo7O9CLdac.jpg",
   },
   {
-    eyebrow: "One-step import",
-    title: "Bring your Letterboxd or Trakt history.",
-    body:
-      "Drop in a CSV. Slate matches every row against TMDB, dedupes against your library, and drops it into the right state with ratings preserved.",
+    title: "Perfect Days",
+    path: "/mjEk5Wwx6TYVqw29zSaUHclMIgp.jpg",
+  },
+];
+
+const DETAILS = [
+  {
+    index: "01",
+    title: "Save in a breath",
+    body: "Press ⌘K, find any film or series, and put it on a shelf before the thought disappears.",
   },
   {
-    eyebrow: "Yours, by default",
-    title: "No accounts. No tracking. No telemetry.",
-    body:
-      "Run it on your laptop in Docker, or on Vercel + Neon. The only outbound calls are to TMDB. Lock the door with a passcode if you want.",
+    index: "02",
+    title: "Order it your way",
+    body: "Press, hold, and drag any title. Your order stays exactly where you leave it.",
+  },
+  {
+    index: "03",
+    title: "Remember the feeling",
+    body: "Loved, liked, or disliked—with a private note for the part a star rating misses.",
+  },
+  {
+    index: "04",
+    title: "Bring your history",
+    body: "Import Letterboxd or Trakt CSVs. Slate matches, deduplicates, and preserves your ratings.",
   },
 ];
 
 export function FeatureGrid() {
   return (
-    <section className="relative isolate overflow-hidden border-t border-border/60 bg-background">
-      {/* Accent shimmer on the seam + an ambient glow, echoing the hero. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[340px] w-[760px] -translate-x-1/2 -translate-y-1/3 rounded-full bg-primary/10 blur-3xl"
-      />
+    <section
+      id="share"
+      className="relative overflow-hidden bg-[#e9e6de] text-[#111113]"
+    >
+      <div className="landing-paper-grain pointer-events-none absolute inset-0 opacity-45" />
 
-      <div className="mx-auto max-w-[1200px] px-5 py-24 sm:px-8 sm:py-32">
-        <div className="max-w-2xl md:mx-auto md:text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-mono backdrop-blur-md">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            Why slate
-          </span>
+      <div className="relative mx-auto max-w-[1440px] px-5 py-28 sm:px-8 sm:py-40 lg:px-12">
+        <div className="grid items-center gap-14 lg:grid-cols-[0.72fr_1.28fr] lg:gap-24">
+          <div className="max-w-lg">
+            <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-black/45">
+              Your profile, your call
+            </p>
+            <h2 className="mt-5 text-balance text-[clamp(3rem,5.8vw,6rem)] font-semibold leading-[0.93] tracking-[-0.06em]">
+              Private until
+              <br />
+              <span className="text-[#7957df]">you say otherwise.</span>
+            </h2>
+            <p className="mt-6 max-w-md text-pretty text-base leading-relaxed text-black/55 sm:text-lg">
+              Your shelves start private. When you want recommendations from a
+              friend—or just want to show off impeccable taste—turn on one
+              public link.
+            </p>
 
-          <h2 className="mt-6 text-balance text-4xl font-extrabold leading-[1.05] tracking-[-0.03em] text-foreground sm:text-5xl">
-            Everything Letterboxd does well,{" "}
-            <span className="text-primary">without the social part.</span>
-          </h2>
+            <div className="mt-8 flex items-center gap-5 text-xs font-medium text-black/52">
+              <span className="inline-flex items-center gap-2">
+                <LockKeyhole className="h-3.5 w-3.5" />
+                Private by default
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Globe2 className="h-3.5 w-3.5" />
+                Revoke anytime
+              </span>
+            </div>
+          </div>
 
-          <p className="mt-5 max-w-xl text-pretty text-muted-foreground sm:text-lg md:mx-auto">
-            Slate is a single-user app. It optimizes for one thing: helping you
-            decide what to watch tonight, and remembering what you thought of it
-            tomorrow.
-          </p>
+          <PublicProfilePreview />
         </div>
 
-        {/* Editorial index: hairline-ruled rows, ghosted numerals, an accent
-            tick that tracks the cursor like a selected row in the app itself. */}
-        <ol className="mt-16 sm:mt-20">
-          {FEATURES.map((f, i) => (
-            <li key={f.title}>
-              <FeatureRow feature={f} index={i} />
+        <ol className="mt-28 border-t border-black/15 sm:mt-40 lg:grid lg:grid-cols-4">
+          {DETAILS.map((detail) => (
+            <li
+              key={detail.index}
+              className="group border-b border-black/15 py-7 lg:border-b-0 lg:border-r lg:px-7 lg:py-9 lg:first:pl-0 lg:last:border-r-0 lg:last:pr-0"
+            >
+              <div className="flex gap-6 lg:block">
+                <span className="font-mono text-[10px] tracking-[0.18em] text-black/35 transition-colors group-hover:text-[#7957df]">
+                  {detail.index}
+                </span>
+                <div className="flex-1 lg:mt-8">
+                  <h3 className="text-xl font-semibold tracking-[-0.025em]">
+                    {detail.title}
+                  </h3>
+                  <p className="mt-2 max-w-sm text-sm leading-relaxed text-black/52">
+                    {detail.body}
+                  </p>
+                </div>
+              </div>
             </li>
           ))}
         </ol>
@@ -89,32 +115,73 @@ export function FeatureGrid() {
   );
 }
 
-function FeatureRow({ feature, index }: { feature: Feature; index: number }) {
+function PublicProfilePreview() {
   return (
-    <article className="group relative grid grid-cols-1 gap-x-10 gap-y-3 border-t border-border py-8 transition-colors duration-200 last:border-b hover:bg-card/40 md:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1.35fr)] md:items-start md:py-9 md:pl-6 md:pr-4">
-      {/* Selection tick — grows from the row's vertical center on hover, the
-          same cue the app uses when you arrow through a list. */}
-      <span
-        aria-hidden
-        className="absolute left-0 top-1/2 hidden h-0 w-[2px] -translate-y-1/2 bg-primary transition-all duration-300 ease-out group-hover:h-[60%] md:block"
-      />
+    <div className="relative pb-8 sm:pb-12">
+      <div className="overflow-hidden rounded-[26px] border border-black/10 bg-[#f8f7f3] shadow-[0_40px_90px_rgba(44,36,25,0.18)] sm:rounded-[34px]">
+        <div className="flex items-center justify-between border-b border-black/[0.08] px-5 py-4 sm:px-8 sm:py-5">
+          <span className="text-sm font-bold tracking-[-0.03em]">▰ slate</span>
+          <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.14em] text-black/38">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Public profile
+          </div>
+        </div>
 
-      <span className="font-mono text-3xl font-light leading-none tabular-nums text-foreground/20 transition-colors duration-200 group-hover:text-primary sm:text-[2.5rem] md:self-center">
-        {String(index + 1).padStart(2, "0")}
-      </span>
+        <div className="px-5 pb-6 pt-7 sm:px-8 sm:pb-9 sm:pt-9">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#19181c] text-sm font-semibold text-white sm:h-14 sm:w-14">
+              MJ
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold tracking-[-0.03em] sm:text-2xl">
+                Maya&apos;s slate
+              </h3>
+              <p className="mt-0.5 text-xs text-black/42">
+                126 watched · 34 up next
+              </p>
+            </div>
+          </div>
 
-      <div className="md:pt-1.5">
-        <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground font-mono">
-          {feature.eyebrow}
-        </p>
-        <h3 className="mt-2 text-xl font-semibold tracking-tight text-foreground transition-transform duration-200 group-hover:translate-x-0.5 sm:text-2xl">
-          {feature.title}
-        </h3>
+          <div className="mt-7 flex items-center justify-between">
+            <p className="text-sm font-semibold">Recently loved</p>
+            <span className="text-[10px] text-black/38">View all</span>
+          </div>
+
+          <div className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-5 sm:gap-3">
+            {PROFILE_TITLES.map((item, index) => (
+              <div
+                key={item.title}
+                className={`relative aspect-[2/3] overflow-hidden rounded-[10px] bg-black/5 ring-1 ring-black/10 ${
+                  index > 2 ? "hidden sm:block" : ""
+                }`}
+              >
+                <Image
+                  src={posterUrl(item.path, "w342")!}
+                  alt={item.title}
+                  fill
+                  sizes="(max-width: 640px) 28vw, 120px"
+                  className="object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <p className="text-sm leading-relaxed text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80 md:pt-2">
-        {feature.body}
-      </p>
-    </article>
+      <div className="absolute bottom-0 left-1/2 flex w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-2xl border border-black/10 bg-white/90 px-4 py-3 shadow-[0_18px_50px_rgba(44,36,25,0.17)] backdrop-blur-xl sm:left-auto sm:right-6 sm:w-auto sm:translate-x-0 sm:px-5">
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#7957df]/12 text-[#7957df]">
+          <Link2 className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1 sm:min-w-[190px]">
+          <p className="font-mono text-[9px] uppercase tracking-[0.13em] text-black/35">
+            Share link
+          </p>
+          <p className="mt-0.5 truncate text-xs font-medium">
+            slate.nishh.dev/maya
+          </p>
+        </div>
+        <Copy className="h-3.5 w-3.5 text-black/35" />
+      </div>
+    </div>
   );
 }

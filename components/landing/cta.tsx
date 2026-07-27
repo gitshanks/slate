@@ -5,43 +5,40 @@ import { SLATE_HOSTED } from "@/lib/public-mode";
 
 export function FinalCta() {
   const hosted = SLATE_HOSTED;
+
   return (
-    <section className="relative border-t border-border/60 overflow-hidden">
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-1/2 h-[500px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-3xl" />
-      </div>
-      <div className="mx-auto max-w-[1200px] px-5 py-24 sm:px-8 sm:py-32">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-balance text-4xl font-semibold tracking-[-0.025em] sm:text-5xl">
-            Decide what to watch tonight.
-            <br />
-            <span className="text-muted-foreground">
-              Remember it tomorrow.
-            </span>
-          </h2>
-          <p className="mx-auto mt-5 max-w-md text-pretty text-muted-foreground">
-            {hosted
-              ? "Sign in with Google and start your shelf. Keep it private, or give friends one clean link when you’re ready."
-              : "Try the live demo with seeded data, or pull the repo and have your own copy running before the kettle boils."}
-          </p>
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href={hosted ? "/login" : "/app"}
-              className="group inline-flex h-11 items-center gap-2 rounded-full bg-foreground px-6 text-sm font-medium text-background shadow-lg shadow-primary/10 transition-transform hover:-translate-y-px"
-            >
-              {hosted ? "Create your slate" : "Open the demo"}
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-            <a
-              href="https://github.com/gitshanks/slate"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card/60 px-5 text-sm font-medium text-foreground backdrop-blur transition-colors hover:bg-card"
-            >
-              <GithubMark className="h-4 w-4" />
-              Star on GitHub
-            </a>
-          </div>
+    <section className="relative isolate overflow-hidden bg-[#a78bfa] text-[#100d17]">
+      <div className="landing-paper-grain pointer-events-none absolute inset-0 opacity-25 mix-blend-overlay" />
+      <div className="absolute -right-[12%] -top-[65%] h-[700px] w-[700px] rounded-full border border-black/10" />
+      <div className="absolute -right-[2%] -top-[45%] h-[500px] w-[500px] rounded-full border border-black/10" />
+
+      <div className="relative mx-auto max-w-[1440px] px-5 py-28 sm:px-8 sm:py-40 lg:px-12">
+        <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-black/52">
+          Your next watch starts here
+        </p>
+        <h2 className="mt-5 max-w-[1100px] text-balance text-[clamp(3.5rem,8vw,8.4rem)] font-bold leading-[0.88] tracking-[-0.07em]">
+          Make a little room
+          <br />
+          for what&apos;s next.
+        </h2>
+
+        <div className="mt-10 flex flex-col gap-4 sm:mt-12 sm:flex-row sm:items-center">
+          <Link
+            href={hosted ? "/login" : "/app"}
+            className="group inline-flex h-13 w-fit items-center gap-2 rounded-full bg-[#111113] px-6 text-sm font-semibold text-white transition-transform hover:scale-[1.025] active:scale-[0.98]"
+          >
+            {hosted ? "Create your slate" : "Open the demo"}
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+          <a
+            href="https://github.com/gitshanks/slate"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-13 w-fit items-center gap-2 rounded-full border border-black/20 px-6 text-sm font-semibold transition-colors hover:bg-black/5"
+          >
+            <GithubMark className="h-4 w-4" />
+            Self-host on GitHub
+          </a>
         </div>
       </div>
     </section>
