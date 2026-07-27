@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { SLATE_PUBLIC } from "@/lib/public-mode";
 export type { MediaType, TitleStatus, TitleRow, ListRow } from "@/lib/types";
 
 /**
@@ -47,12 +48,13 @@ function buildNeonClient(): SupabaseClient {
 }
 
 // Backend selection, in precedence order:
-//   NEXT_PUBLIC_DEMO_MODE=1  → cookie-backed demo sandbox
+//   Hosted mode + DATABASE_URL → Neon/Postgres
+//   Demo-only mode             → cookie-backed demo sandbox
 //   DATABASE_URL             → Neon/Postgres (the non-pausing primary)
 //   SUPABASE_URL + key       → hosted Supabase / self-host PostgREST
 //   otherwise                → no-op stub (renders empty states)
 function buildClient(): SupabaseClient {
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === "1") return buildDemoClient();
+  if (SLATE_PUBLIC) return buildDemoClient();
   if (process.env.DATABASE_URL) return buildNeonClient();
   const url = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -81,4 +83,3 @@ function client(): SupabaseClient {
 export const supabase: SupabaseClient = {
   from: (table: string) => client().from(table),
 } as unknown as SupabaseClient;
-

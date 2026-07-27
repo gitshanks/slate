@@ -6,7 +6,7 @@ import { DemoBanner } from "@/components/demo-banner";
 import { aiSearchEnabled } from "@/lib/ai-search";
 import { getLibraryOwnerId } from "@/lib/library-db";
 import { getProfileById } from "@/lib/profiles";
-import { SLATE_HOSTED } from "@/lib/public-mode";
+import { SLATE_HOSTED, SLATE_PUBLIC } from "@/lib/public-mode";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // This layout and the data-access layer are the authorization boundary.
@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // /discover page share one live AI thread across client-side navigation.
     <AiConversationProvider>
       <CommandPaletteProvider aiEnabled={aiSearchEnabled}>
-        {process.env.NEXT_PUBLIC_DEMO_MODE === "1" && <DemoBanner />}
+        {SLATE_PUBLIC && <DemoBanner />}
         <TopNav
           profile={
             profile
