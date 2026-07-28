@@ -55,7 +55,7 @@ export async function generateMetadata(
     .eq("id", id)
     .single();
   const name = (data as { title: string } | null)?.title;
-  return { title: name ? `slate — ${name}` : "slate — Title" };
+  return { title: name ? `slate · ${name}` : "slate · Title" };
 }
 
 // ─── Async sub-components (all share one cached getTitleMeta call) ──

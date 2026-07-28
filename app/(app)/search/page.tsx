@@ -7,7 +7,7 @@ import type { PersonTile } from "@/components/people-grid";
 import type { TmdbPersonResult } from "@/lib/tmdb";
 
 export const metadata: Metadata = {
-  title: "slate — Search",
+  title: "slate · Search",
 };
 
 function pick(value: string | string[] | undefined): string {

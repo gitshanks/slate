@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ImportWidget } from "@/components/import-widget";
 
 export const metadata: Metadata = {
-  title: "slate — Import",
+  title: "slate · Import",
 };
 
 export default function ImportPage() {

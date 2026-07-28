@@ -9,7 +9,7 @@ import { APP_ROOT, SLATE_HOSTED } from "@/lib/public-mode";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "Profile — slate",
+  title: "Profile · slate",
   robots: { index: false, follow: false },
 };
 

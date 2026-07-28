@@ -16,7 +16,7 @@ import { SLATE_HOSTED } from "@/lib/public-mode";
 import { posterUrl } from "@/lib/tmdb-image";
 
 export const metadata: Metadata = {
-  title: "Welcome back — slate",
+  title: "Welcome back · slate",
   description:
     "Sign in with Google to pick up your Slate watchlist on any device.",
   robots: { index: false, follow: false },

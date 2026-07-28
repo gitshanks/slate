@@ -12,7 +12,7 @@ import { MotionGrid, MotionItem } from "@/components/motion-grid";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "slate — Lists",
+  title: "slate · Lists",
 };
 
 export default async function ListsPage() {

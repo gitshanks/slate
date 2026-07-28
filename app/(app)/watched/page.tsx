@@ -9,7 +9,7 @@ import { fetchTitlesByStatus } from "@/lib/title-filters";
 import { formatImdbRating } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "slate — Watched",
+  title: "slate · Watched",
 };
 
 export default async function WatchedPage() {

@@ -5,7 +5,7 @@ import type { SearchIntent } from "@/lib/ai-search";
 import { DiscoverView } from "@/components/discover-view";
 
 export const metadata: Metadata = {
-  title: "slate — AI search",
+  title: "slate · AI search",
 };
 
 function pickStr(v: string | string[] | undefined): string {

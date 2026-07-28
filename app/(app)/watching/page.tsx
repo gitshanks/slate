@@ -7,7 +7,7 @@ import { Play } from "lucide-react";
 import { fetchTitlesByStatus } from "@/lib/title-filters";
 
 export const metadata: Metadata = {
-  title: "slate — Watching",
+  title: "slate · Watching",
 };
 
 export default async function WatchingPage() {

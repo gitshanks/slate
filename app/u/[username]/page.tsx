@@ -35,17 +35,17 @@ export async function generateMetadata({
 }: {
   params: Promise<{ username: string }>;
 }): Promise<Metadata> {
-  if (!SLATE_HOSTED) return { title: "Profile not found — slate", robots: { index: false } };
+  if (!SLATE_HOSTED) return { title: "Profile not found · slate", robots: { index: false } };
   const { username } = await params;
   const profile = await getPublicProfile(username);
-  if (!profile) return { title: "Profile not found — slate", robots: { index: false } };
+  if (!profile) return { title: "Profile not found · slate", robots: { index: false } };
   const origin =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
     "https://slate.nishh.dev";
   const avatarUrl = profileAvatarUrl(profile, origin);
 
   return {
-    title: `${profile.display_name}'s watchlist — slate`,
+    title: `${profile.display_name}'s watchlist · slate`,
     description: `See what ${profile.display_name} wants to watch, is watching, and has watched.`,
     openGraph: {
       title: `${profile.display_name}'s watchlist`,

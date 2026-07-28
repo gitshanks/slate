@@ -11,7 +11,7 @@ import { fetchTitlesByStatus } from "@/lib/title-filters";
 import { getTrending, getNowPlaying, getRecommendedFromWatched } from "@/lib/tmdb";
 
 export const metadata: Metadata = {
-  title: "slate — Watchlist",
+  title: "slate · Watchlist",
 };
 
 export default async function WatchlistPage() {
