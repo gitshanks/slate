@@ -45,8 +45,6 @@ function findCurrentTab(pathname: string): string | null {
 export function BottomNav() {
   const pathname = usePathname();
   const [rememberedTab, setRememberedTab] = React.useState<string | null>(null);
-  const navRef = React.useRef<HTMLElement>(null);
-  const layoutViewportRef = React.useRef<HTMLDivElement>(null);
 
   // Hydrate from sessionStorage on mount so a hard reload on a detail
   // route still highlights the last tab from the previous session.
@@ -64,103 +62,17 @@ export function BottomNav() {
     }
   }, [pathname]);
 
-  // iOS can intermittently paint `position: fixed; bottom: 0` against a stale
-  // layout viewport while the browser chrome expands/collapses. Track the
-  // actual visual viewport and translate the composited nav layer down when
-  // that stale viewport would leave it above the device edge. Never translate
-  // it upward: a shorter visual viewport is normally the soft keyboard, and
-  // retaining that negative offset after search closes strands the nav midway
-  // up the screen. The fixed probe avoids relying on window.innerHeight.
-  React.useEffect(() => {
-    const nav = navRef.current;
-    const layoutViewport = layoutViewportRef.current;
-    const viewport = window.visualViewport;
-    if (!nav || !layoutViewport || !viewport) return;
-
-    let frame = 0;
-    const settleTimers = new Set<number>();
-
-    const syncToVisualViewport = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        if (getComputedStyle(nav).display === "none") return;
-
-        const layoutHeight = layoutViewport.getBoundingClientRect().height;
-        const offsetX = viewport.offsetLeft;
-        const offsetY = Math.max(
-          0,
-          viewport.height - layoutHeight + viewport.offsetTop,
-        );
-
-        nav.style.setProperty(
-          "--bottom-nav-offset-x",
-          `${offsetX.toFixed(2)}px`
-        );
-        nav.style.setProperty(
-          "--bottom-nav-offset-y",
-          `${offsetY.toFixed(2)}px`
-        );
-      });
-    };
-
-    // WebKit can finish restoring the viewport in several stages after an
-    // input blurs. Re-measure across that short settling window so closing
-    // search, adding a title, and dismissing the keyboard cannot leave a stale
-    // correction on the nav.
-    const settleToVisualViewport = () => {
-      for (const timer of settleTimers) window.clearTimeout(timer);
-      settleTimers.clear();
-      syncToVisualViewport();
-
-      for (const delay of [80, 240, 500]) {
-        const timer = window.setTimeout(() => {
-          settleTimers.delete(timer);
-          syncToVisualViewport();
-        }, delay);
-        settleTimers.add(timer);
-      }
-    };
-
-    syncToVisualViewport();
-    window.addEventListener("resize", syncToVisualViewport);
-    window.addEventListener("scroll", syncToVisualViewport, {
-      passive: true,
-    });
-    window.addEventListener("pageshow", settleToVisualViewport);
-    window.addEventListener("orientationchange", settleToVisualViewport);
-    document.addEventListener("focusin", settleToVisualViewport);
-    document.addEventListener("focusout", settleToVisualViewport);
-    viewport.addEventListener("resize", syncToVisualViewport);
-    viewport.addEventListener("scroll", syncToVisualViewport);
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      for (const timer of settleTimers) window.clearTimeout(timer);
-      window.removeEventListener("resize", syncToVisualViewport);
-      window.removeEventListener("scroll", syncToVisualViewport);
-      window.removeEventListener("pageshow", settleToVisualViewport);
-      window.removeEventListener("orientationchange", settleToVisualViewport);
-      document.removeEventListener("focusin", settleToVisualViewport);
-      document.removeEventListener("focusout", settleToVisualViewport);
-      viewport.removeEventListener("resize", syncToVisualViewport);
-      viewport.removeEventListener("scroll", syncToVisualViewport);
-    };
-  }, []);
-
   // If the user is on a tab, the URL wins. Otherwise fall back to the
   // remembered tab so the bar shows their origin.
   const activeHref = findCurrentTab(pathname) ?? rememberedTab;
 
+  // Anchor from the stable top edge and let the dynamic viewport define the
+  // device bottom. Keeping scroll listeners and transforms out of this layer
+  // prevents stale iOS viewport measurements from ever stranding the bar.
   return (
-    <>
-      <div
-        ref={layoutViewportRef}
-        aria-hidden
-        className="pointer-events-none invisible fixed inset-0 md:hidden"
-      />
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-40 h-dvh md:hidden">
       <nav
-        ref={navRef}
-        className="bottom-nav-device-fixed fixed inset-x-0 bottom-0 z-40 glass border-t border-border/60 md:hidden"
+        className="pointer-events-auto absolute inset-x-0 bottom-0 glass border-t border-border/60"
         aria-label="Primary"
         style={{
           // Lift the inner row above the iOS home indicator AND add a notch
@@ -210,6 +122,6 @@ export function BottomNav() {
           })}
         </ul>
       </nav>
-    </>
+    </div>
   );
 }
