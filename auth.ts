@@ -3,6 +3,8 @@ import Google from "next-auth/providers/google";
 import { ensureGoogleProfile } from "@/lib/profiles";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 
+const SESSION_MAX_AGE = 90 * 24 * 60 * 60;
+
 function googleOwnerId(providerAccountId: string) {
   return `google:${providerAccountId}`;
 }
@@ -13,7 +15,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // secret; hosted mode intentionally requires AUTH_SECRET.
   secret: process.env.AUTH_SECRET || (SLATE_HOSTED ? undefined : "slate-self-hosted-auth-disabled"),
   trustHost: true,
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: SESSION_MAX_AGE,
+  },
+  jwt: {
+    maxAge: SESSION_MAX_AGE,
+  },
   pages: {
     signIn: "/login",
     error: "/login",

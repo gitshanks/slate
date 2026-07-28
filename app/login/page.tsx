@@ -11,8 +11,9 @@ import {
 } from "lucide-react";
 import { signIn } from "@/auth";
 import { GoogleSignInButton } from "@/components/login/google-sign-in-button";
-import { posterUrl } from "@/lib/tmdb-image";
+import { getAppSession } from "@/lib/app-access";
 import { SLATE_HOSTED } from "@/lib/public-mode";
+import { posterUrl } from "@/lib/tmdb-image";
 
 export const metadata: Metadata = {
   title: "Welcome back — slate",
@@ -62,6 +63,12 @@ const LOGIN_POSTERS = [
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (!SLATE_HOSTED) redirect("/");
+
+  const session = await getAppSession();
+
+  if (session?.user?.id) {
+    redirect("/app");
+  }
 
   const query = await searchParams;
   const rawError = Array.isArray(query.error) ? query.error[0] : query.error;

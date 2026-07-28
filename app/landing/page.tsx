@@ -7,6 +7,9 @@ import { SelfHost } from "@/components/landing/self-host";
 import { StackStrip } from "@/components/landing/stack-strip";
 import { FinalCta } from "@/components/landing/cta";
 import { LandingFooter } from "@/components/landing/footer";
+import { getAppSession } from "@/lib/app-access";
+import { SLATE_HOSTED } from "@/lib/public-mode";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "slate · your watchlist, shared your way",
@@ -20,7 +23,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  if (SLATE_HOSTED) {
+    const session = await getAppSession();
+
+    if (session?.user?.id) {
+      redirect("/app");
+    }
+  }
+
   return (
     <>
       <LandingNav />
