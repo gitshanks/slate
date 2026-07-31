@@ -75,23 +75,27 @@ export function Showcase() {
   return (
     <section
       id="inside"
-      className="relative overflow-hidden bg-[#080809] text-white"
+      className="relative overflow-hidden bg-[#e8dfd1] text-[#18130f]"
     >
-      <div className="landing-grain pointer-events-none absolute inset-0 opacity-15" />
+      <div className="landing-paper-grain pointer-events-none absolute inset-0 opacity-40" />
 
       <div className="relative mx-auto max-w-[1440px] px-5 pb-28 pt-28 sm:px-8 sm:pb-40 sm:pt-40 lg:px-12">
         <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.5fr)] lg:gap-20">
           <div>
-            <p className="landing-kicker">Your library</p>
-            <h2 className="mt-5 max-w-[980px] text-balance text-[clamp(3rem,7vw,7.25rem)] font-bold leading-[0.92] tracking-[-0.06em]">
-              Everything you want to watch.
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-black/42">
+              01 / The library
+            </p>
+            <h2 className="mt-5 max-w-[980px] text-balance text-[clamp(3.3rem,7vw,7.25rem)] font-medium leading-[0.87] tracking-[-0.065em]">
+              Three shelves.
               <br />
-              <span className="text-white/35">In the order you want it.</span>
+              <span className="landing-serif font-normal italic text-[#b8502f]">
+                One less decision.
+              </span>
             </h2>
           </div>
-          <p className="max-w-md text-pretty text-base leading-relaxed text-white/52 sm:text-lg lg:pb-2">
-            Add a film or show, drag it where you want it, then move on. No
-            algorithm gets a vote.
+          <p className="max-w-md text-pretty text-base leading-relaxed text-black/55 sm:text-lg lg:pb-2">
+            Up next, watching, watched. Add a film or show, put it exactly where
+            you want it, then get on with your night.
           </p>
         </div>
 
@@ -101,30 +105,34 @@ export function Showcase() {
 
         <div className="mt-32 grid items-center gap-12 sm:mt-44 lg:grid-cols-[0.72fr_1.28fr] lg:gap-24">
           <div className="max-w-lg">
-            <p className="landing-kicker">Search</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-black/42">
+              02 / Find something
+            </p>
             <h3 className="mt-5 text-balance text-[clamp(2.5rem,5vw,5rem)] font-semibold leading-[0.96] tracking-[-0.055em]">
-              Type a title.
+              Name the title.
               <br />
-              <span className="text-[#a78bfa]">Or describe the mood.</span>
+              <span className="landing-serif font-normal italic text-[#b8502f]">
+                Or just name the mood.
+              </span>
             </h3>
-            <p className="mt-6 text-pretty text-base leading-relaxed text-white/52 sm:text-lg">
+            <p className="mt-6 text-pretty text-base leading-relaxed text-black/55 sm:text-lg">
               Try “something quiet and strange for Sunday night.” Slate
               searches TMDB and leaves out anything you&apos;ve already saved or
               watched.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-xs text-white/45">
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-xs text-black/48">
               <span className="inline-flex items-center gap-2">
-                <Check className="h-3.5 w-3.5 text-[#a78bfa]" />
+                <Check className="h-3.5 w-3.5 text-[#b8502f]" />
                 Search as you type
               </span>
               <span className="inline-flex items-center gap-2">
-                <Check className="h-3.5 w-3.5 text-[#a78bfa]" />
+                <Check className="h-3.5 w-3.5 text-[#b8502f]" />
                 Checks your library
               </span>
               <span className="inline-flex items-center gap-2">
-                <Check className="h-3.5 w-3.5 text-[#a78bfa]" />
-                Use your own model
+                <Check className="h-3.5 w-3.5 text-[#b8502f]" />
+                Natural language search
               </span>
             </div>
           </div>
@@ -139,22 +147,17 @@ export function Showcase() {
 function LibraryPreview() {
   return (
     <div className="relative">
-      <div className="absolute -inset-16 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(140,105,255,0.16),transparent_68%)] blur-2xl" />
+      <div className="absolute -inset-16 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(184,80,47,0.16),transparent_68%)] blur-2xl" />
 
-      <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#0d0d0f] shadow-[0_45px_120px_rgba(0,0,0,0.65)] sm:rounded-[34px]">
-        <div className="flex h-12 items-center border-b border-white/[0.07] px-4 sm:h-14 sm:px-6">
-          <div className="flex gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-white/16" />
-            <span className="h-2 w-2 rounded-full bg-white/10" />
-            <span className="h-2 w-2 rounded-full bg-white/10" />
-          </div>
-          <div className="mx-auto hidden items-center gap-2 rounded-full border border-white/[0.07] bg-black/20 px-4 py-1.5 font-mono text-[9px] tracking-wide text-white/30 sm:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/70" />
-            slate.nishh.dev
-          </div>
-          <div className="flex w-8 justify-end">
-            <span className="h-6 w-6 rounded-full bg-[#a78bfa]/25 ring-1 ring-[#a78bfa]/35" />
-          </div>
+      <div className="overflow-hidden border border-black/20 bg-[#12100d] text-white shadow-[0_35px_90px_rgba(69,48,31,0.24)]">
+        <div className="flex h-12 items-center justify-between border-b border-white/[0.09] px-4 text-white sm:h-14 sm:px-6">
+          <span className="text-sm font-bold tracking-[-0.03em]">▰ slate</span>
+          <span className="hidden font-mono text-[9px] uppercase tracking-[0.18em] text-white/32 sm:inline">
+            Library / Maya
+          </span>
+          <span className="flex h-7 w-7 items-center justify-center border border-white/12 text-[10px] text-white/60">
+            M
+          </span>
         </div>
 
         <div className="px-4 pb-6 pt-7 sm:px-8 sm:pb-10 sm:pt-10 lg:px-12 lg:pb-14">
@@ -168,13 +171,13 @@ function LibraryPreview() {
               </h3>
             </div>
             <div className="hidden items-center gap-2 sm:flex">
-              <span className="rounded-full bg-[#a78bfa] px-3 py-1.5 text-xs font-semibold text-[#100b1e]">
+              <span className="rounded-[2px] bg-[#de7548] px-3 py-1.5 text-xs font-semibold text-[#160d08]">
                 All
               </span>
-              <span className="rounded-full px-3 py-1.5 text-xs text-white/45">
+              <span className="px-3 py-1.5 text-xs text-white/45">
                 Films
               </span>
-              <span className="rounded-full px-3 py-1.5 text-xs text-white/45">
+              <span className="px-3 py-1.5 text-xs text-white/45">
                 Series
               </span>
             </div>
@@ -192,7 +195,7 @@ function LibraryPreview() {
                       : ""
                 }
               >
-                <div className="group relative aspect-[2/3] overflow-hidden rounded-[13px] bg-white/5 ring-1 ring-white/10 sm:rounded-[16px]">
+                <div className="group relative aspect-[2/3] overflow-hidden rounded-[2px] bg-white/5 ring-1 ring-white/10">
                   <Image
                     src={posterUrl(item.path, "w342")!}
                     alt={item.title}
@@ -201,11 +204,11 @@ function LibraryPreview() {
                     className="object-cover transition-transform duration-500 group-hover:scale-[1.025]"
                   />
                   <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/85 to-transparent px-3 pb-3 pt-8">
-                    <span className="rounded-full bg-black/50 px-2 py-1 font-mono text-[9px] text-white/75 backdrop-blur">
+                    <span className="bg-black/55 px-2 py-1 font-mono text-[9px] text-white/75 backdrop-blur">
                       IMDb {item.rating}
                     </span>
                     {index === 0 ? (
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-black">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-[2px] bg-[#de7548] text-[#160d08]">
                         <Bookmark className="h-3 w-3 fill-current" />
                       </span>
                     ) : null}
@@ -221,8 +224,8 @@ function LibraryPreview() {
         </div>
       </div>
 
-      <div className="absolute -bottom-5 left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-[#18171c]/90 px-4 py-2.5 text-[11px] text-white/65 shadow-2xl backdrop-blur-xl sm:flex">
-        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#a78bfa]/20 text-[#c4b5fd]">
+      <div className="mt-4 hidden items-center justify-end gap-2 font-mono text-[9px] uppercase tracking-[0.14em] text-black/42 sm:flex">
+        <span className="inline-flex h-5 w-5 items-center justify-center text-[#b8502f]">
           <ArrowUpRight className="h-3 w-3" />
         </span>
         Press and hold any title to reorder
@@ -233,13 +236,13 @@ function LibraryPreview() {
 
 function AiSearchStage() {
   return (
-    <div className="relative min-h-[500px] overflow-hidden rounded-[28px] border border-white/10 bg-[#111014] p-5 shadow-[0_40px_100px_rgba(0,0,0,0.45)] sm:min-h-[590px] sm:rounded-[36px] sm:p-8">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(167,139,250,0.18),transparent_36%)]" />
+    <div className="relative min-h-[500px] overflow-hidden border border-black/20 bg-[#17120e] p-5 text-white shadow-[0_35px_90px_rgba(69,48,31,0.24)] sm:min-h-[590px] sm:p-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(222,117,72,0.2),transparent_36%)]" />
       <div className="absolute inset-x-6 bottom-0 grid translate-y-[28%] grid-cols-3 gap-3 opacity-35 blur-[1px] sm:inset-x-10 sm:gap-5">
         {LIBRARY_TITLES.slice(0, 3).map((item) => (
           <div
             key={item.title}
-            className="relative aspect-[2/3] overflow-hidden rounded-xl"
+            className="relative aspect-[2/3] overflow-hidden rounded-[2px]"
           >
             <Image
               src={posterUrl(item.path, "w342")!}
@@ -252,13 +255,13 @@ function AiSearchStage() {
         ))}
       </div>
 
-      <div className="relative mx-auto mt-12 max-w-[570px] overflow-hidden rounded-[20px] border border-white/12 bg-[#151419]/95 shadow-[0_28px_80px_rgba(0,0,0,0.65)] backdrop-blur-xl sm:mt-20">
+      <div className="relative mx-auto mt-12 max-w-[570px] overflow-hidden border border-white/12 bg-[#15110e]/96 shadow-[0_28px_80px_rgba(0,0,0,0.52)] backdrop-blur-xl sm:mt-20">
         <div className="flex items-center gap-3 border-b border-white/[0.07] px-4 py-4 sm:px-5">
-          <Sparkles className="h-4 w-4 shrink-0 text-[#bba6ff]" />
+          <Sparkles className="h-4 w-4 shrink-0 text-[#e99a76]" />
           <p className="min-w-0 flex-1 truncate text-sm text-white/88 sm:text-base">
             slow films where not much happens, in a good way
           </p>
-          <span className="rounded-full bg-[#a78bfa]/15 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#c4b5fd]">
+          <span className="border border-[#de7548]/35 bg-[#de7548]/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#e99a76]">
             Ask AI
           </span>
         </div>
@@ -288,7 +291,7 @@ function AiSearchStage() {
                   {item.meta}
                 </span>
               </span>
-              <span className="font-mono text-[10px] text-[#bba6ff]">
+              <span className="font-mono text-[10px] text-[#e99a76]">
                 {item.match} match
               </span>
             </li>
@@ -307,9 +310,9 @@ function AiSearchStage() {
         <Film className="h-3.5 w-3.5" />
         Browse by mood
       </div>
-      <div className="absolute bottom-6 right-6 hidden items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-2 text-[10px] text-white/45 backdrop-blur sm:flex">
+      <div className="absolute bottom-6 right-6 hidden items-center gap-2 border border-white/10 bg-black/30 px-3 py-2 text-[10px] text-white/45 backdrop-blur sm:flex">
         <Eye className="h-3.5 w-3.5" /> Already watched? Skipped.
-        <Heart className="ml-1 h-3.5 w-3.5 text-[#a78bfa]" />
+                <Heart className="ml-1 h-3.5 w-3.5 text-[#de7548]" />
       </div>
     </div>
   );

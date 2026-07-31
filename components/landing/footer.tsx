@@ -6,15 +6,15 @@ export function LandingFooter() {
   const hosted = SLATE_HOSTED;
 
   return (
-    <footer className="bg-[#080809] text-white">
-      <div className="mx-auto grid max-w-[1440px] gap-8 px-5 py-10 text-xs text-white/36 sm:grid-cols-[1fr_auto] sm:items-end sm:px-8 lg:px-12">
+    <footer className="border-t border-white/10 bg-[#0c0a08] text-[#f3eadc]">
+      <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-12 text-xs text-white/36 sm:grid-cols-[1fr_auto] sm:items-end sm:px-8 lg:px-12">
         <div>
           <Image
             src="/brand/logo-light.svg"
             alt="Slate"
             width={62}
             height={17}
-            className="h-[17px] w-auto opacity-80"
+            className="opacity-80"
           />
           <p className="mt-4 max-w-sm leading-relaxed">
             Keep films and shows in order. Share your profile when you feel

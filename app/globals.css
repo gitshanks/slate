@@ -213,9 +213,19 @@
     font-family: var(--font-mono), ui-monospace, monospace;
     font-size: 0.625rem;
     line-height: 1rem;
-    letter-spacing: 0.26em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
     color: rgb(255 255 255 / 0.42);
+  }
+  .landing-serif {
+    font-family: var(--font-landing-serif), "Iowan Old Style", "Baskerville", serif;
+    letter-spacing: -0.045em;
+  }
+  .landing-projector {
+    background:
+      radial-gradient(ellipse at 72% 34%, rgb(222 117 72 / 0.34), transparent 23%),
+      conic-gradient(from 236deg at 87% 20%, transparent 0deg, rgb(222 117 72 / 0.14) 18deg, transparent 39deg);
+    filter: blur(18px);
   }
   .landing-grain {
     background-image:
