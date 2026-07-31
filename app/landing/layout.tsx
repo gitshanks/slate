@@ -3,7 +3,7 @@
 // design-token surfaces.
 //
 // The .dark class forces the dark CSS variables for the whole landing
-// subtree regardless of the user's chosen theme — the marketing page
+// subtree regardless of the user's chosen theme. The marketing page
 // is always presented in the cinematic dark variant.
 export default function LandingLayout({
   children,

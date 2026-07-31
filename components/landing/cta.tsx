@@ -14,12 +14,12 @@ export function FinalCta() {
 
       <div className="relative mx-auto max-w-[1440px] px-5 py-28 sm:px-8 sm:py-40 lg:px-12">
         <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-black/52">
-          Your next watch starts here
+          Start with one title
         </p>
         <h2 className="mt-5 max-w-[1100px] text-balance text-[clamp(3.5rem,8vw,8.4rem)] font-bold leading-[0.88] tracking-[-0.07em]">
-          Make a little room
+          Remember that thing
           <br />
-          for what&apos;s next.
+          you meant to watch?
         </h2>
 
         <div className="mt-10 flex flex-col gap-4 sm:mt-12 sm:flex-row sm:items-center">
@@ -27,7 +27,7 @@ export function FinalCta() {
             href={hosted ? "/login" : "/app"}
             className="group inline-flex h-13 w-fit items-center gap-2 rounded-full bg-[#111113] px-6 text-sm font-semibold text-white transition-transform hover:scale-[1.025] active:scale-[0.98]"
           >
-            {hosted ? "Create your slate" : "Open the demo"}
+            {hosted ? "Make a watchlist" : "Try the demo"}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <a
@@ -37,7 +37,7 @@ export function FinalCta() {
             className="inline-flex h-13 w-fit items-center gap-2 rounded-full border border-black/20 px-6 text-sm font-semibold transition-colors hover:bg-black/5"
           >
             <GithubMark className="h-4 w-4" />
-            Self-host on GitHub
+            Get the code
           </a>
         </div>
       </div>

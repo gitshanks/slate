@@ -12,13 +12,13 @@ import { SLATE_HOSTED } from "@/lib/public-mode";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "slate · your watchlist, shared your way",
+  title: "slate · keep track of what you watch",
   description:
-    "Build a personal watchlist, keep it synced, and share it with friends when you choose. Slate remains fully self-hostable.",
+    "Keep track of what you want to watch and what you've seen. Share your profile with friends, or keep the whole thing private.",
   openGraph: {
-    title: "slate · your watchlist, shared your way",
+    title: "slate · keep track of what you watch",
     description:
-      "Build a personal watchlist, keep it synced, and share it with friends when you choose.",
+      "Keep track of what you want to watch and what you've seen. Share your profile with friends, or keep the whole thing private.",
     type: "website",
   },
 };

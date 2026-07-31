@@ -112,9 +112,9 @@ export function PosterWall() {
       </div>
       <div className="absolute right-[9%] top-[42%] hidden rounded-2xl border border-white/10 bg-black/45 px-4 py-3 text-white backdrop-blur-xl lg:block landing-drift-a">
         <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/45">
-          Tonight&apos;s mood
+          Tonight
         </p>
-        <p className="mt-1 text-xs font-medium">Quiet, strange, beautiful</p>
+        <p className="mt-1 text-xs font-medium">Something quiet and strange</p>
       </div>
     </div>
   );

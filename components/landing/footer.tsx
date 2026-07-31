@@ -13,9 +13,9 @@ export function LandingFooter() {
             className="h-[17px] w-auto opacity-80"
           />
           <p className="mt-4 max-w-sm leading-relaxed">
-            A calmer place for everything worth watching.
+            A watchlist for films and shows that stays out of the way.
             <br />
-            Hosted for convenience. Open source by conviction.
+            Use the hosted app or run it yourself.
           </p>
         </div>
 

@@ -82,16 +82,16 @@ export function Showcase() {
       <div className="relative mx-auto max-w-[1440px] px-5 pb-28 pt-28 sm:px-8 sm:pb-40 sm:pt-40 lg:px-12">
         <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.5fr)] lg:gap-20">
           <div>
-            <p className="landing-kicker">Inside slate</p>
+            <p className="landing-kicker">The app</p>
             <h2 className="mt-5 max-w-[980px] text-balance text-[clamp(3rem,7vw,7.25rem)] font-bold leading-[0.92] tracking-[-0.06em]">
-              Your taste,
+              Everything you want to watch.
               <br />
-              <span className="text-white/35">not a content feed.</span>
+              <span className="text-white/35">In the order you want it.</span>
             </h2>
           </div>
           <p className="max-w-md text-pretty text-base leading-relaxed text-white/52 sm:text-lg lg:pb-2">
-            Slate turns an endless catalog into three calm shelves. Save in a
-            second, drag things into your order, and get back to watching.
+            Add a film or show, drag it where you want it, then move on. No
+            algorithm gets a vote.
           </p>
         </div>
 
@@ -101,30 +101,30 @@ export function Showcase() {
 
         <div className="mt-32 grid items-center gap-12 sm:mt-44 lg:grid-cols-[0.72fr_1.28fr] lg:gap-24">
           <div className="max-w-lg">
-            <p className="landing-kicker">Search by instinct</p>
+            <p className="landing-kicker">Search</p>
             <h3 className="mt-5 text-balance text-[clamp(2.5rem,5vw,5rem)] font-semibold leading-[0.96] tracking-[-0.055em]">
-              Name the title.
+              Type a title.
               <br />
-              <span className="text-[#a78bfa]">Or name the feeling.</span>
+              <span className="text-[#a78bfa]">Or describe the mood.</span>
             </h3>
             <p className="mt-6 text-pretty text-base leading-relaxed text-white/52 sm:text-lg">
-              Search the whole TMDB catalog, or ask for “something quiet and
-              strange for a rainy Sunday.” Slate finds real titles and skips
-              what is already on your shelf.
+              Try “something quiet and strange for Sunday night.” Slate
+              searches TMDB and leaves out anything you&apos;ve already saved or
+              watched.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-xs text-white/45">
               <span className="inline-flex items-center gap-2">
                 <Check className="h-3.5 w-3.5 text-[#a78bfa]" />
-                Live suggestions
+                Search as you type
               </span>
               <span className="inline-flex items-center gap-2">
                 <Check className="h-3.5 w-3.5 text-[#a78bfa]" />
-                Library-aware
+                Checks your library
               </span>
               <span className="inline-flex items-center gap-2">
                 <Check className="h-3.5 w-3.5 text-[#a78bfa]" />
-                Bring your own model
+                Use your own model
               </span>
             </div>
           </div>
@@ -256,7 +256,7 @@ function AiSearchStage() {
         <div className="flex items-center gap-3 border-b border-white/[0.07] px-4 py-4 sm:px-5">
           <Sparkles className="h-4 w-4 shrink-0 text-[#bba6ff]" />
           <p className="min-w-0 flex-1 truncate text-sm text-white/88 sm:text-base">
-            quiet, beautiful films about ordinary life
+            slow films where not much happens, in a good way
           </p>
           <span className="rounded-full bg-[#a78bfa]/15 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#c4b5fd]">
             Ask AI
@@ -305,10 +305,10 @@ function AiSearchStage() {
 
       <div className="absolute left-7 top-7 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/28 sm:left-9 sm:top-9">
         <Film className="h-3.5 w-3.5" />
-        Discovery mode
+        Browse by mood
       </div>
       <div className="absolute bottom-6 right-6 hidden items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-2 text-[10px] text-white/45 backdrop-blur sm:flex">
-        <Eye className="h-3.5 w-3.5" /> Knows what you&apos;ve seen
+        <Eye className="h-3.5 w-3.5" /> Already watched? Skipped.
         <Heart className="ml-1 h-3.5 w-3.5 text-[#a78bfa]" />
       </div>
     </div>

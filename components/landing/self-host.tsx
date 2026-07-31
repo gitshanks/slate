@@ -21,16 +21,16 @@ export function SelfHost() {
       <div className="relative mx-auto max-w-[1440px] px-5 py-28 sm:px-8 sm:py-40 lg:px-12">
         <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end lg:gap-20">
           <div>
-            <p className="landing-kicker">No false choice</p>
+            <p className="landing-kicker">Hosted or self-hosted</p>
             <h2 className="mt-5 max-w-[980px] text-balance text-[clamp(3rem,7vw,7.1rem)] font-semibold leading-[0.91] tracking-[-0.065em]">
-              Use ours.
+              Sign in here.
               <br />
-              <span className="text-white/32">Or own every byte.</span>
+              <span className="text-white/32">Or run it yourself.</span>
             </h2>
           </div>
           <p className="max-w-md text-pretty text-base leading-relaxed text-white/52 sm:text-lg lg:pb-2">
-            Sign in and start in seconds, or run the exact same app on your own
-            infrastructure. Slate stays open source either way.
+            The hosted app is ready with a Google account. Prefer your own
+            server? The full stack is on GitHub under the MIT license.
           </p>
         </div>
 
@@ -40,18 +40,18 @@ export function SelfHost() {
               <Cloud className="h-5 w-5" />
             </div>
             <p className="mt-10 font-mono text-[9px] uppercase tracking-[0.24em] text-white/35">
-              The easy path
+              Hosted
             </p>
             <h3 className="mt-3 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
-              Hosted Slate
+              Slate on the web
             </h3>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/48 sm:text-base">
-              Google sign-in, a synced Neon library, and a shareable profile.
-              No setup, maintenance, or server-shaped decisions.
+              Sign in with Google and your library syncs across devices. You
+              can make your profile public whenever you want.
             </p>
 
             <ul className="mt-7 space-y-3 text-sm text-white/58">
-              {["Google account", "Private by default", "Public link on demand"].map(
+              {["Google sign-in", "Synced library", "Optional public profile"].map(
                 (item) => (
                   <li key={item} className="flex items-center gap-2.5">
                     <Check className="h-3.5 w-3.5 text-[#a78bfa]" />
@@ -65,7 +65,7 @@ export function SelfHost() {
               href="/login"
               className="group mt-10 inline-flex w-fit items-center gap-2 text-sm font-semibold text-white transition-colors hover:text-[#c4b5fd]"
             >
-              Start your slate
+              Create an account
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
@@ -102,7 +102,7 @@ export function SelfHost() {
                   <span className="text-[#a78bfa]">$</span>{" "}
                   <span>docker compose up -d</span>
                   {"\n\n"}
-                  <span className="text-white/30"># Four services. One command.</span>
+                  <span className="text-white/30"># Up in one command.</span>
                   {"\n"}
                   <span className="text-emerald-400">✓</span>{" "}
                   <span className="text-white/50">postgres</span>

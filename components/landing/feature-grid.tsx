@@ -28,23 +28,23 @@ const PROFILE_TITLES = [
 const DETAILS = [
   {
     index: "01",
-    title: "Save in a breath",
-    body: "Press ⌘K, find any film or series, and put it on a shelf before the thought disappears.",
+    title: "Add it fast",
+    body: "Open search, type a few letters, and save the title before you forget why you opened the app.",
   },
   {
     index: "02",
-    title: "Order it your way",
-    body: "Press, hold, and drag any title. Your order stays exactly where you leave it.",
+    title: "Put it in order",
+    body: "Hold a card and drag it where you want it. That order follows you on every device.",
   },
   {
     index: "03",
-    title: "Remember the feeling",
-    body: "Loved, liked, or disliked—with a private note for the part a star rating misses.",
+    title: "Save your take",
+    body: "Mark it loved, liked, or disliked. Add a note when the rating needs context.",
   },
   {
     index: "04",
-    title: "Bring your history",
-    body: "Import Letterboxd or Trakt CSVs. Slate matches, deduplicates, and preserves your ratings.",
+    title: "Bring your old lists",
+    body: "Upload your Letterboxd or Trakt CSV. Slate carries over the titles and ratings without making duplicates.",
   },
 ];
 
@@ -60,27 +60,26 @@ export function FeatureGrid() {
         <div className="grid items-center gap-14 lg:grid-cols-[0.72fr_1.28fr] lg:gap-24">
           <div className="max-w-lg">
             <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-black/45">
-              Your profile, your call
+              Share when you want
             </p>
             <h2 className="mt-5 text-balance text-[clamp(3rem,5.8vw,6rem)] font-semibold leading-[0.93] tracking-[-0.06em]">
-              Private until
+              Private by default.
               <br />
-              <span className="text-[#7957df]">you say otherwise.</span>
+              <span className="text-[#7957df]">Public in one tap.</span>
             </h2>
             <p className="mt-6 max-w-md text-pretty text-base leading-relaxed text-black/55 sm:text-lg">
-              Your shelves start private. When you want recommendations from a
-              friend—or just want to show off impeccable taste—turn on one
-              public link.
+              Send friends one link to everything you&apos;ve saved and watched.
+              Turn it off whenever you like.
             </p>
 
             <div className="mt-8 flex items-center gap-5 text-xs font-medium text-black/52">
               <span className="inline-flex items-center gap-2">
                 <LockKeyhole className="h-3.5 w-3.5" />
-                Private by default
+                Starts private
               </span>
               <span className="inline-flex items-center gap-2">
                 <Globe2 className="h-3.5 w-3.5" />
-                Revoke anytime
+                Turn off anytime
               </span>
             </div>
           </div>
