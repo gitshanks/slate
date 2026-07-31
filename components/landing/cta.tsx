@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { GithubMark } from "@/components/landing/icons";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 
 export function FinalCta() {
@@ -27,17 +26,14 @@ export function FinalCta() {
             href={hosted ? "/login" : "/app"}
             className="group inline-flex h-13 w-fit items-center gap-2 rounded-full bg-[#111113] px-6 text-sm font-semibold text-white transition-transform hover:scale-[1.025] active:scale-[0.98]"
           >
-            {hosted ? "Make a watchlist" : "Try the demo"}
+            {hosted ? "Join Slate" : "Try the demo"}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <a
-            href="https://github.com/gitshanks/slate"
-            target="_blank"
-            rel="noreferrer"
+            href="#inside"
             className="inline-flex h-13 w-fit items-center gap-2 rounded-full border border-black/20 px-6 text-sm font-semibold transition-colors hover:bg-black/5"
           >
-            <GithubMark className="h-4 w-4" />
-            Get the code
+            See what&apos;s inside
           </a>
         </div>
       </div>

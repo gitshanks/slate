@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { GithubMark } from "@/components/landing/icons";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 
 export function LandingNav() {
@@ -29,34 +28,33 @@ export function LandingNav() {
             href="#inside"
             className="hidden rounded-full px-3 py-2 transition-colors hover:text-white md:inline-flex"
           >
-            Inside
+            Features
           </a>
           <a
             href="#share"
             className="hidden rounded-full px-3 py-2 transition-colors hover:text-white md:inline-flex"
           >
-            Share
+            Profiles
           </a>
           <a
-            href="#self-host"
+            href="#account"
             className="hidden rounded-full px-3 py-2 transition-colors hover:text-white md:inline-flex"
           >
-            Self-host
+            Your library
           </a>
-          <a
-            href="https://github.com/gitshanks/slate"
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Slate on GitHub"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <GithubMark className="h-4 w-4" />
-          </a>
+          {hosted ? (
+            <Link
+              href="/login"
+              className="inline-flex h-9 items-center rounded-full px-2.5 font-medium text-white/70 transition-colors hover:text-white sm:px-3"
+            >
+              Sign in
+            </Link>
+          ) : null}
           <Link
             href={hosted ? "/login" : "/app"}
             className="inline-flex h-9 items-center rounded-full bg-white px-4 font-medium text-black transition-transform hover:scale-[1.02] active:scale-[0.98] sm:px-5"
           >
-            {hosted ? "Sign in" : "Open slate"}
+            {hosted ? "Join Slate" : "Open Slate"}
           </Link>
         </nav>
       </div>

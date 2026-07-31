@@ -82,7 +82,7 @@ export function Showcase() {
       <div className="relative mx-auto max-w-[1440px] px-5 pb-28 pt-28 sm:px-8 sm:pb-40 sm:pt-40 lg:px-12">
         <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.5fr)] lg:gap-20">
           <div>
-            <p className="landing-kicker">The app</p>
+            <p className="landing-kicker">Your library</p>
             <h2 className="mt-5 max-w-[980px] text-balance text-[clamp(3rem,7vw,7.25rem)] font-bold leading-[0.92] tracking-[-0.06em]">
               Everything you want to watch.
               <br />

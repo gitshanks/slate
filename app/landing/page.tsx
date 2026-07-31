@@ -3,7 +3,7 @@ import { LandingNav } from "@/components/landing/landing-nav";
 import { Hero } from "@/components/landing/hero";
 import { FeatureGrid } from "@/components/landing/feature-grid";
 import { Showcase } from "@/components/landing/showcase";
-import { SelfHost } from "@/components/landing/self-host";
+import { AccountSection } from "@/components/landing/account-section";
 import { StackStrip } from "@/components/landing/stack-strip";
 import { FinalCta } from "@/components/landing/cta";
 import { LandingFooter } from "@/components/landing/footer";
@@ -12,13 +12,13 @@ import { SLATE_HOSTED } from "@/lib/public-mode";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "slate · keep track of what you watch",
+  title: "slate · your watchlist for films and shows",
   description:
-    "Keep track of what you want to watch and what you've seen. Share your profile with friends, or keep the whole thing private.",
+    "Save films and shows, track what you're watching, rate what you've seen, and share your Slate profile with friends.",
   openGraph: {
-    title: "slate · keep track of what you watch",
+    title: "slate · your watchlist for films and shows",
     description:
-      "Keep track of what you want to watch and what you've seen. Share your profile with friends, or keep the whole thing private.",
+      "Save films and shows, track what you're watching, rate what you've seen, and share your Slate profile with friends.",
     type: "website",
   },
 };
@@ -39,7 +39,7 @@ export default async function LandingPage() {
         <Hero />
         <Showcase />
         <FeatureGrid />
-        <SelfHost />
+        <AccountSection />
         <StackStrip />
         <FinalCta />
       </main>

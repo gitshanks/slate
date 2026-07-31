@@ -60,7 +60,7 @@ export function FeatureGrid() {
         <div className="grid items-center gap-14 lg:grid-cols-[0.72fr_1.28fr] lg:gap-24">
           <div className="max-w-lg">
             <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-black/45">
-              Share when you want
+              Your profile
             </p>
             <h2 className="mt-5 text-balance text-[clamp(3rem,5.8vw,6rem)] font-semibold leading-[0.93] tracking-[-0.06em]">
               Private by default.
