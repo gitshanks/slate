@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
-import { LandingNav } from "@/components/landing/landing-nav";
-import { Hero } from "@/components/landing/hero";
-import { FeatureGrid } from "@/components/landing/feature-grid";
-import { Showcase } from "@/components/landing/showcase";
-import { AccountSection } from "@/components/landing/account-section";
-import { StackStrip } from "@/components/landing/stack-strip";
-import { FinalCta } from "@/components/landing/cta";
-import { LandingFooter } from "@/components/landing/footer";
+import { IndexLanding } from "@/components/landing/index-landing";
 import { getAppSession } from "@/lib/app-access";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { redirect } from "next/navigation";
@@ -32,18 +25,5 @@ export default async function LandingPage() {
     }
   }
 
-  return (
-    <>
-      <LandingNav />
-      <main>
-        <Hero />
-        <Showcase />
-        <FeatureGrid />
-        <AccountSection />
-        <StackStrip />
-        <FinalCta />
-      </main>
-      <LandingFooter />
-    </>
-  );
+  return <IndexLanding />;
 }
