@@ -78,7 +78,6 @@
   letter-spacing: -.068em;
   text-align: center;
   text-shadow: 0 6px 48px #000;
-  animation: heroEnter 800ms cubic-bezier(.16,1,.3,1) both;
 }
 
 .headlineLine {
@@ -94,7 +93,6 @@
   font-size: clamp(1.05rem, 1.65vw, 1.45rem);
   font-weight: 520;
   letter-spacing: -.025em;
-  animation: heroEnter 800ms cubic-bezier(.16,1,.3,1) 90ms both;
 }
 
 .actions {
@@ -102,7 +100,6 @@
   justify-content: center;
   gap: 12px;
   margin-top: 34px;
-  animation: heroEnter 800ms cubic-bezier(.16,1,.3,1) 160ms both;
 }
 
 .primaryAction,
@@ -213,11 +210,6 @@
 .footer a:active { transform: scale(.97); }
 .footer svg { width: 13px; height: 13px; }
 
-@keyframes heroEnter {
-  from { opacity: 0; transform: translate3d(0, 18px, 0); filter: blur(7px); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
-}
-
 @media (max-width: 640px) {
   .header { padding-right: 18px; padding-left: 18px; }
   .hero { padding: 110px 20px 104px; }
@@ -237,9 +229,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero h1,
-  .hero p,
-  .actions { animation: none; }
   .primaryAction,
   .secondaryAction { transition: none; }
 }

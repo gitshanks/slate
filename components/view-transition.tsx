@@ -15,8 +15,14 @@ import * as React from "react";
  * to wrap router navigations in `document.startViewTransition`.
  */
 
+type ViewTransitionClass = string | Record<string, string>;
+
 interface ViewTransitionProps {
   name?: string;
+  default?: ViewTransitionClass;
+  enter?: ViewTransitionClass;
+  exit?: ViewTransitionClass;
+  share?: ViewTransitionClass;
   children: React.ReactNode;
 }
 
@@ -26,7 +32,24 @@ const RuntimeViewTransition = (
   }
 ).ViewTransition;
 
-export function ViewTransition({ name, children }: ViewTransitionProps) {
+export function ViewTransition({
+  name,
+  default: defaultClass,
+  enter,
+  exit,
+  share,
+  children,
+}: ViewTransitionProps) {
   if (!RuntimeViewTransition) return <>{children}</>;
-  return <RuntimeViewTransition name={name}>{children}</RuntimeViewTransition>;
+  return (
+    <RuntimeViewTransition
+      name={name}
+      default={defaultClass}
+      enter={enter}
+      exit={exit}
+      share={share}
+    >
+      {children}
+    </RuntimeViewTransition>
+  );
 }

@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { PosterCarousel } from "@/components/landing/poster-carousel";
 import { GoogleSignInButton } from "@/components/login/google-sign-in-button";
+import { LoginDismissButton } from "@/components/login/login-dismiss-button";
+import { ViewTransition } from "@/components/view-transition";
 import { getAppSession } from "@/lib/app-access";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import styles from "./login.module.css";
@@ -44,52 +46,74 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className={styles.page}>
-      <PosterCarousel quiet className={styles.background} />
-      <div className={styles.grain} aria-hidden="true" />
+      <ViewTransition name="slate-marketing-backdrop">
+        <PosterCarousel quiet className={styles.background} />
+      </ViewTransition>
+      <ViewTransition name="slate-marketing-grain">
+        <div className={styles.grain} aria-hidden="true" />
+      </ViewTransition>
 
       <header className={styles.header}>
-        <Link href="/" className={styles.logo} aria-label="slate home">
-          <Image
-            src="/brand/logo-light.svg"
-            alt="slate"
-            width={78}
-            height={22}
-            preload
-          />
-        </Link>
+        <ViewTransition name="slate-marketing-logo">
+          <Link
+            href="/"
+            className={styles.logo}
+            aria-label="slate home"
+            transitionTypes={["slate-auth-back"]}
+          >
+            <Image
+              src="/brand/logo-light.svg"
+              alt="slate"
+              width={82}
+              height={23}
+              preload
+            />
+          </Link>
+        </ViewTransition>
       </header>
 
       <section className={styles.auth} aria-labelledby="auth-title">
-        <form action="/" className={styles.dismissForm}>
-          <button
-            type="submit"
-            className={styles.dismissArea}
-            aria-label="Back to slate"
-            tabIndex={-1}
-          />
-        </form>
-        <div className={styles.authInner}>
-          <p className={styles.eyebrow}>{creating ? "New account" : "Welcome back"}</p>
-          <h1 id="auth-title">
-            {creating ? "Create your slate" : "Sign in to slate"}
-          </h1>
+        <LoginDismissButton className={styles.dismissArea} />
+        <ViewTransition
+          name="slate-marketing-content"
+          enter={{
+            "slate-auth-forward": "slate-auth-forward",
+            "slate-auth-switch": "slate-auth-switch",
+            default: "none",
+          }}
+          exit={{
+            "slate-auth-back": "slate-auth-back",
+            "slate-auth-switch": "slate-auth-switch",
+            default: "none",
+          }}
+          default="none"
+        >
+          <div className={styles.authInner}>
+            <p className={styles.eyebrow}>{creating ? "New account" : "Welcome back"}</p>
+            <h1 id="auth-title">
+              {creating ? "Create your slate" : "Sign in to slate"}
+            </h1>
 
-          {error ? <LoginError title={error.title} body={error.body} /> : null}
+            {error ? <LoginError title={error.title} body={error.body} /> : null}
 
-          <form action={continueWithGoogle} className={styles.form}>
-            <GoogleSignInButton
-              label={creating ? "Sign up with Google" : "Sign in with Google"}
-            />
-          </form>
+            <form action={continueWithGoogle} className={styles.form}>
+              <GoogleSignInButton
+                label={creating ? "Sign up with Google" : "Sign in with Google"}
+              />
+            </form>
 
-          <p className={styles.switchMode}>
-            {creating ? "Already have a slate?" : "New to slate?"}{" "}
-            <Link href={creating ? "/login" : "/login?mode=create"}>
-              {creating ? "Sign in" : "Create one"}
-            </Link>
-          </p>
+            <p className={styles.switchMode}>
+              {creating ? "Already have a slate?" : "New to slate?"}{" "}
+              <Link
+                href={creating ? "/login" : "/login?mode=create"}
+                transitionTypes={["slate-auth-switch"]}
+              >
+                {creating ? "Sign in" : "Create one"}
+              </Link>
+            </p>
 
-        </div>
+          </div>
+        </ViewTransition>
       </section>
     </main>
   );
