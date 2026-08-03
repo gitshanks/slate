@@ -45,7 +45,6 @@ export function IndexLanding() {
               <span className={styles.headlineLine}>Never lose a good</span>{" "}
               <span className={styles.headlineLine}>recommendation again.</span>
             </h1>
-            <p>Save it. Watch it. Share it.</p>
             <div className={styles.actions}>
               <Link
                 className={styles.primaryAction}

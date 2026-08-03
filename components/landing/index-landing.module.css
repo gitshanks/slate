@@ -87,14 +87,6 @@
   white-space: nowrap;
 }
 
-.hero p {
-  margin-top: 28px;
-  color: rgb(255 255 255 / .62);
-  font-size: clamp(1.05rem, 1.65vw, 1.45rem);
-  font-weight: 520;
-  letter-spacing: -.025em;
-}
-
 .actions {
   display: flex;
   justify-content: center;
@@ -215,7 +207,6 @@
   .hero { padding: 110px 20px 104px; }
   .heroCopy { transform: translateY(4vh); }
   .hero h1 { font-size: clamp(1.9rem, 8vw, 3.2rem); line-height: .94; }
-  .hero p { margin-top: 22px; }
   .actions { margin-top: 30px; }
   .primaryAction,
   .secondaryAction { min-height: 48px; padding: 0 20px; font-size: 13px; }
