@@ -6,7 +6,10 @@ import { posterUrl } from "@/lib/tmdb-image";
 import styles from "./poster-carousel.module.css";
 
 const COLUMN_COUNT = 8;
-const POSTERS_PER_COLUMN = 5;
+// Each repeated sequence must be taller than the transformed wall. Five
+// posters left a real gap at the end of the loop on tall mobile viewports,
+// which flashed to the carousel background before the animation restarted.
+const POSTERS_PER_COLUMN = 8;
 const WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
 
 const FALLBACK_COLUMNS = [
@@ -152,7 +155,12 @@ async function getPosterColumns(): Promise<readonly (readonly string[])[]> {
       ),
     );
   } catch {
-    return FALLBACK_COLUMNS;
+    return FALLBACK_COLUMNS.map((posters) =>
+      Array.from(
+        { length: POSTERS_PER_COLUMN },
+        (_, index) => posters[index % posters.length],
+      ),
+    );
   }
 }
 
@@ -168,9 +176,9 @@ function PosterColumn({
       <div className={styles.track}>
         {[0, 1].map((copyIndex) => (
           <div className={styles.sequence} key={copyIndex}>
-            {posters.map((path) => (
+            {posters.map((path, posterIndex) => (
               <PosterTile
-                key={`${path}-${copyIndex}`}
+                key={`${path}-${copyIndex}-${posterIndex}`}
                 path={path}
               />
             ))}

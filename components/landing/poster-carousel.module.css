@@ -9,7 +9,7 @@
 
 .wall {
   position: absolute;
-  inset: -28% -15%;
+  inset: -12% -15%;
   transform: rotate(-5.5deg) scale(1.08);
   transform-origin: center;
   backface-visibility: hidden;
@@ -124,7 +124,7 @@
 
 @media (max-width: 700px) {
   .wall {
-    inset: -17% -64%;
+    inset: -8% -64%;
     transform: rotate(-5deg) scale(1.04);
   }
 
