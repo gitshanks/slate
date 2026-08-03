@@ -112,14 +112,43 @@ function mergeVisibleOrder(
 }
 
 export function MediaGrid(props: MediaGridProps) {
-  // Reset local ordering only when filtering/add/remove changes membership.
-  // A saved reorder keeps the same members, so its optimistic state stays put
-  // while the refreshed Server Component payload arrives.
-  const collectionKey = props.titles
-    .map((title) => title.id)
-    .sort()
-    .join("|");
+  const titleIds = props.titles.map((title) => title.id);
+
+  if (!props.reorderContext) {
+    return <OrderedMediaGrid {...props} />;
+  }
+
+  // Sortable grids own an optimistic order, so keep their state through the
+  // Server Component refresh that follows a saved drag. Membership changes
+  // still remount the grid when a filter is applied or a title is added.
+  const collectionKey = [...titleIds].sort().join("|");
   return <MediaGridState key={collectionKey} {...props} />;
+}
+
+/**
+ * Keep sorted/read-only rendering in a separate component tree from the
+ * optimistic drag-order tree. It renders directly from the incoming order so
+ * sort changes are reflected immediately, while returning to "Your order"
+ * mounts a fresh sortable grid from the canonical order supplied by the server.
+ */
+function OrderedMediaGrid(props: MediaGridProps) {
+  return (
+    <MotionGrid className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
+      {props.titles.map((title, index) => (
+        <motion.article
+          key={title.id}
+          variants={staggerChild}
+          className="relative rounded-xl"
+        >
+          <PosterCard
+            title={title}
+            priority={index < 8}
+            readOnly={props.readOnly}
+          />
+        </motion.article>
+      ))}
+    </MotionGrid>
+  );
 }
 
 function MediaGridState({ titles, reorderContext, readOnly = false }: MediaGridProps) {

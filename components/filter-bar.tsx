@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { Film, Tv, LayoutGrid, ChevronDown, X, Heart, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -48,10 +48,8 @@ export function FilterBar({
   showSentiment = false,
   recentSortLabel = "Recently added",
 }: FilterBarProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = React.useTransition();
 
   const currentType = searchParams.get("type") ?? "";
   const currentGenre = searchParams.get("genre") ?? "";
@@ -67,11 +65,13 @@ export function FilterBar({
       if (value) params.set(key, value);
       else params.delete(key);
       const qs = params.toString();
-      startTransition(() => {
-        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-      });
+      window.history.replaceState(
+        null,
+        "",
+        qs ? `${pathname}?${qs}` : pathname
+      );
     },
-    [pathname, router, searchParams]
+    [pathname, searchParams]
   );
 
   const clearFilters = React.useCallback(() => {
@@ -80,10 +80,12 @@ export function FilterBar({
       params.delete(key);
     }
     const qs = params.toString();
-    startTransition(() => {
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    });
-  }, [pathname, router, searchParams]);
+    window.history.replaceState(
+      null,
+      "",
+      qs ? `${pathname}?${qs}` : pathname
+    );
+  }, [pathname, searchParams]);
 
   const hasAny = currentType || currentGenre || currentYear || currentSort || currentSentiment;
 
@@ -100,7 +102,7 @@ export function FilterBar({
   }, [recentSortLabel, showYearSort]);
 
   return (
-    <div className={cn("mb-8 flex flex-wrap items-center gap-2 transition-opacity duration-150", isPending && "opacity-60 pointer-events-none")}>
+    <div className="mb-8 flex flex-wrap items-center gap-2">
       {/* Type segmented */}
       <div className="inline-flex h-9 items-center rounded-full border border-border bg-card p-1 shadow-sm">
         {TYPE_OPTIONS.map(({ value, label, icon: Icon }) => {
