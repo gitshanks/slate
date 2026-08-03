@@ -1,9 +1,16 @@
 import Image from "next/image";
+import { unstable_cache } from "next/cache";
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
+import { getTrending } from "@/lib/tmdb";
 import { posterUrl } from "@/lib/tmdb-image";
 import styles from "./poster-carousel.module.css";
 
-const COLUMNS = [
+const COLUMN_COUNT = 8;
+const POSTERS_PER_COLUMN = 5;
+const WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
+
+const FALLBACK_COLUMNS = [
   [
     "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
     "/pPHpeI2X1qEd1CS1SeyrdhZ4qnT.jpg",
@@ -62,6 +69,32 @@ const COLUMNS = [
   ],
 ] as const;
 
+const getWeeklyTrendingPosterPaths = unstable_cache(
+  async () => {
+    const trending = await getTrending();
+    const seen = new Set<string>();
+    const posters: string[] = [];
+
+    for (const title of trending) {
+      const path = title.poster_path;
+      if (!path || seen.has(path)) continue;
+      seen.add(path);
+      posters.push(path);
+    }
+
+    if (posters.length < COLUMN_COUNT) {
+      throw new Error("TMDB returned too few weekly trending posters.");
+    }
+
+    return posters.slice(0, COLUMN_COUNT * POSTERS_PER_COLUMN);
+  },
+  ["slate-weekly-trending-poster-wall-v1", "tmdb-trending-all-week"],
+  {
+    revalidate: WEEK_IN_SECONDS,
+    tags: ["slate-weekly-trending-poster-wall"],
+  },
+);
+
 const COLUMN_STYLES = [
   styles.columnOne,
   styles.columnTwo,
@@ -73,13 +106,15 @@ const COLUMN_STYLES = [
   styles.columnEight,
 ];
 
-export function PosterCarousel({
+export async function PosterCarousel({
   quiet = false,
   className,
 }: {
   quiet?: boolean;
   className?: string;
 }) {
+  const columns = await getPosterColumns();
+
   return (
     <div
       aria-hidden="true"
@@ -87,7 +122,7 @@ export function PosterCarousel({
     >
       <div className={styles.wall}>
         <div className={styles.columns}>
-          {COLUMNS.map((posters, columnIndex) => (
+          {columns.map((posters, columnIndex) => (
             <PosterColumn
               key={columnIndex}
               posters={posters}
@@ -100,6 +135,26 @@ export function PosterCarousel({
       <div className={styles.edgeFade} />
     </div>
   );
+}
+
+async function getPosterColumns(): Promise<readonly (readonly string[])[]> {
+  try {
+    const trending = await getWeeklyTrendingPosterPaths();
+    const posterCount = COLUMN_COUNT * POSTERS_PER_COLUMN;
+    const wall = Array.from(
+      { length: posterCount },
+      (_, index) => trending[index % trending.length],
+    );
+
+    return Array.from({ length: COLUMN_COUNT }, (_, columnIndex) =>
+      Array.from(
+        { length: POSTERS_PER_COLUMN },
+        (_, rowIndex) => wall[rowIndex * COLUMN_COUNT + columnIndex],
+      ),
+    );
+  } catch {
+    return FALLBACK_COLUMNS;
+  }
 }
 
 function PosterColumn({
@@ -129,10 +184,14 @@ function PosterColumn({
 }
 
 function PosterTile({ path, eager }: { path: string; eager: boolean }) {
+  const previewStyle = {
+    "--poster-preview": `url("${posterUrl(path, "w185")}")`,
+  } as CSSProperties;
+
   return (
-    <div className={styles.poster}>
+    <div className={styles.poster} style={previewStyle}>
       <Image
-        src={posterUrl(path, "w342")!}
+        src={posterUrl(path, "w780")!}
         alt=""
         fill
         sizes="(max-width: 640px) 29vw, (max-width: 1024px) 17vw, 12vw"

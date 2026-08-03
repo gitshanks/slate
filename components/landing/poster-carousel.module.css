@@ -57,6 +57,15 @@
   box-shadow: 0 12px 34px rgb(0 0 0 / .42);
 }
 
+.poster::before {
+  position: absolute;
+  inset: -3px;
+  background: #171717 var(--poster-preview) center / cover no-repeat;
+  content: "";
+  filter: blur(2px) saturate(.78) contrast(.96);
+  transform: scale(1.025);
+}
+
 .poster::after {
   content: "";
   position: absolute;
