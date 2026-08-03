@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { signIn } from "@/auth";
 import { PosterCarousel } from "@/components/landing/poster-carousel";
 import { GoogleSignInButton } from "@/components/login/google-sign-in-button";
@@ -49,9 +48,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <div className={styles.grain} aria-hidden="true" />
 
       <header className={styles.header}>
-        <Link href="/" className={styles.back} aria-label="Back to Slate">
-          <ArrowLeft aria-hidden="true" />
-        </Link>
         <Link href="/" className={styles.logo} aria-label="Slate home">
           <Image
             src="/brand/logo-light.svg"
@@ -64,6 +60,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </header>
 
       <section className={styles.auth} aria-labelledby="auth-title">
+        <Link
+          href="/"
+          replace
+          className={styles.dismissArea}
+          aria-label="Back to Slate"
+          tabIndex={-1}
+        />
         <div className={styles.authInner}>
           <p className={styles.eyebrow}>{creating ? "New account" : "Welcome back"}</p>
           <h1 id="auth-title">
