@@ -51,9 +51,6 @@
   display: inline-flex;
   border-radius: 999px;
   padding: 8px 10px;
-  background: rgb(0 0 0 / .44);
-  box-shadow: 0 10px 34px rgb(0 0 0 / .4);
-  backdrop-filter: blur(10px);
   transition: opacity 180ms ease;
 }
 
