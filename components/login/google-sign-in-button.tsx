@@ -32,9 +32,9 @@ export function GoogleSignInButton() {
         }`}
       >
         <span className="flex items-center gap-1" aria-hidden>
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#7957df] [animation-delay:-180ms]" />
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#7957df] [animation-delay:-90ms]" />
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#7957df]" />
+          <span className="loading-dot h-1.5 w-1.5 rounded-full bg-[#7957df] [animation-delay:-180ms]" />
+          <span className="loading-dot h-1.5 w-1.5 rounded-full bg-[#7957df] [animation-delay:-90ms]" />
+          <span className="loading-dot h-1.5 w-1.5 rounded-full bg-[#7957df]" />
         </span>
         Opening Google
       </span>

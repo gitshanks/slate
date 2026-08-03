@@ -156,7 +156,7 @@ function FollowUpForm({
             : "bg-muted text-muted-foreground/50",
         )}
       >
-        {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+        {streaming ? <Loader2 className="loading-spinner h-4 w-4" /> : <ArrowUp className="h-4 w-4" />}
       </button>
     </form>
   );

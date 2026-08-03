@@ -389,7 +389,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                   : "text-muted-foreground/70 hover:text-foreground hover:bg-accent"
               )}
             >
-              <Mic className={cn("h-3.5 w-3.5", listening && "animate-pulse")} />
+              <Mic className={cn("h-3.5 w-3.5", listening && "loading-breathe")} />
             </button>
           )}
           {aiEnabled && (
@@ -509,7 +509,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
             )}
             {loading && (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="loading-spinner h-4 w-4" />
               </div>
             )}
             {!loading && query && results.length === 0 && library.length === 0 && (
@@ -661,7 +661,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                         </span>
                       ) : isAdding ? (
                         <span className="ml-auto inline-flex shrink-0 items-center">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                          <Loader2 className="loading-spinner h-3.5 w-3.5 text-muted-foreground" />
                         </span>
                       ) : (
                         <div

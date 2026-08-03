@@ -115,7 +115,7 @@ export function MediaGrid(props: MediaGridProps) {
   const titleIds = props.titles.map((title) => title.id);
 
   if (!props.reorderContext) {
-    return <OrderedMediaGrid {...props} />;
+    return <OrderedMediaGrid key={titleIds.join("|")} {...props} />;
   }
 
   // Sortable grids own an optimistic order, so keep their state through the

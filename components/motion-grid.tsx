@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { motion } from "motion/react";
 import { EASE, DUR, staggerContainer, staggerChild } from "@/lib/motion";
 
@@ -13,10 +14,15 @@ export function MotionGrid({
   children: React.ReactNode;
   className?: string;
 }) {
+  const variants = React.useMemo(
+    () => staggerContainer(React.Children.count(children)),
+    [children]
+  );
+
   return (
     <motion.div
       className={className}
-      variants={staggerContainer}
+      variants={variants}
       initial="hidden"
       animate="visible"
     >

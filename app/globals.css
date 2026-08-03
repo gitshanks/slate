@@ -7,6 +7,9 @@
 /* HSL triplets so we can use opacity modifiers like bg-primary/60   */
 
 :root {
+  --ease-ui-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-ui-move: cubic-bezier(0.32, 0.72, 0, 1);
+
   /* Light mode — cool, paper-like. Cards lift off the background, type
      reads as deep navy rather than flat black. */
   --background: 220 30% 98.5%;     /* very subtle cool off-white */
@@ -257,6 +260,95 @@
   }
 }
 
+/* ─── Interaction + loading motion ─────────────────────────────── */
+/* Keep frequent controls fast and interruptible. These classes are shared by
+   every library filter so touch, pointer, and popover choices feel identical. */
+.filter-chip,
+.filter-segment,
+.filter-menu-option {
+  transition:
+    transform 140ms var(--ease-ui-out),
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease,
+    opacity 140ms ease;
+}
+
+.filter-chip:active,
+.filter-segment:active,
+.filter-menu-option:active {
+  transform: scale(0.97);
+}
+
+/* A transform-only shimmer is steadier than opacity pulsing on poster-sized
+   blocks, especially while Safari is decoding images behind the fallback. */
+.skeleton {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: hsl(var(--muted) / 0.78);
+  animation: skeleton-enter 180ms var(--ease-ui-out) 70ms both;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    hsl(var(--foreground) / 0.065) 48%,
+    transparent 76%
+  );
+  transform: translateX(-120%);
+  animation: skeleton-shimmer 1.15s linear 160ms infinite;
+  will-change: transform;
+}
+
+.loading-spinner {
+  animation: loading-spin 650ms linear infinite;
+  will-change: transform;
+}
+
+.loading-breathe {
+  animation: loading-fade 900ms ease-in-out infinite;
+}
+
+.loading-dot {
+  animation: loading-dot 780ms var(--ease-ui-move) infinite;
+  will-change: transform;
+}
+
+@keyframes skeleton-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes skeleton-shimmer {
+  to { transform: translateX(120%); }
+}
+
+@keyframes loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes loading-fade {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+@keyframes loading-dot {
+  0%, 100% {
+    opacity: 0.35;
+    transform: translateY(1px) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1);
+  }
+}
+
 /* Hero poster-wall columns: vertical infinite scroll. The list inside each
    column is rendered twice; translating by -50% lands on an identical frame
    so the loop seams disappear. */
@@ -451,6 +543,32 @@ body[data-scroll-locked] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .filter-chip,
+  .filter-segment,
+  .filter-menu-option {
+    transition-duration: 0ms;
+  }
+
+  .filter-chip:active,
+  .filter-segment:active,
+  .filter-menu-option:active {
+    transform: none;
+  }
+
+  .skeleton {
+    animation: skeleton-enter 160ms ease-out 70ms both;
+  }
+
+  .skeleton::after {
+    animation: none;
+  }
+
+  .loading-spinner,
+  .loading-breathe,
+  .loading-dot {
+    animation: loading-fade 1s ease-in-out infinite;
+  }
+
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {

@@ -68,7 +68,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {loading ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 className="loading-spinner mr-2 h-4 w-4" />
         ) : leftIcon ? (
           <span className="mr-2 flex shrink-0 items-center">{leftIcon}</span>
         ) : null}

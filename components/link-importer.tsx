@@ -242,7 +242,7 @@ function ResolvingState() {
     <div className="border-t border-border/60 px-4 py-5 sm:px-5">
       <div className="mb-4 flex items-center gap-3">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <LoaderCircle className="h-4 w-4 animate-spin" />
+          <LoaderCircle className="loading-spinner h-4 w-4" />
         </span>
         <div>
           <p className="text-sm font-medium text-foreground">Reading the recommendation</p>

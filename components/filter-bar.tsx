@@ -6,9 +6,11 @@ import { Film, Tv, LayoutGrid, ChevronDown, X, Heart, ThumbsUp, ThumbsDown } fro
 import { cn } from "@/lib/utils";
 import {
   Popover,
+  PopoverClose,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { SegmentedFilter } from "@/components/segmented-filter";
 
 export interface FilterBarProps {
   /** Distinct genres found in the current result set. */
@@ -104,51 +106,21 @@ export function FilterBar({
   return (
     <div className="mb-8 flex flex-wrap items-center gap-2">
       {/* Type segmented */}
-      <div className="inline-flex h-9 items-center rounded-full border border-border bg-card p-1 shadow-sm">
-        {TYPE_OPTIONS.map(({ value, label, icon: Icon }) => {
-          const active = currentType === value;
-          return (
-            <button
-              key={value || "all"}
-              type="button"
-              onClick={() => setParam("type", value)}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {label}
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedFilter
+        id="library-type-filter"
+        options={TYPE_OPTIONS}
+        value={currentType}
+        onValueChange={(value) => setParam("type", value)}
+      />
 
       {/* Sentiment segmented — only on watched page */}
       {showSentiment && (
-        <div className="inline-flex h-9 items-center rounded-full border border-border bg-card p-1 shadow-sm">
-          {SENTIMENT_OPTIONS.map(({ value, label, icon: Icon }) => {
-            const active = currentSentiment === value;
-            return (
-              <button
-                key={value || "all-sentiment"}
-                type="button"
-                onClick={() => setParam("sentiment", value)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        <SegmentedFilter
+          id="library-sentiment-filter"
+          options={SENTIMENT_OPTIONS}
+          value={currentSentiment}
+          onValueChange={(value) => setParam("sentiment", value)}
+        />
       )}
 
       {/* Genre popover — only show if we have any genres */}
@@ -158,7 +130,7 @@ export function FilterBar({
             <button
               type="button"
               className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors",
+                "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
                 activeGenre
                   ? "border-primary/50 text-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -170,34 +142,37 @@ export function FilterBar({
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" align="start">
             <div className="flex max-h-72 flex-col overflow-y-auto">
-              <button
-                type="button"
-                onClick={() => setParam("genre", "")}
-                className={cn(
-                  "rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                  !currentGenre
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-                )}
-              >
-                All genres
-              </button>
+              <PopoverClose asChild>
+                <button
+                  type="button"
+                  onClick={() => setParam("genre", "")}
+                  className={cn(
+                    "filter-menu-option rounded-md px-2 py-1.5 text-left text-xs",
+                    !currentGenre
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                  )}
+                >
+                  All genres
+                </button>
+              </PopoverClose>
               {genres.map((g) => {
                 const active = String(g.id) === currentGenre;
                 return (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => setParam("genre", String(g.id))}
-                    className={cn(
-                      "rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                      active
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-                    )}
-                  >
-                    {g.name}
-                  </button>
+                  <PopoverClose asChild key={g.id}>
+                    <button
+                      type="button"
+                      onClick={() => setParam("genre", String(g.id))}
+                      className={cn(
+                        "filter-menu-option rounded-md px-2 py-1.5 text-left text-xs",
+                        active
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                      )}
+                    >
+                      {g.name}
+                    </button>
+                  </PopoverClose>
                 );
               })}
             </div>
@@ -211,7 +186,7 @@ export function FilterBar({
           <button
             type="button"
             className={cn(
-              "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors",
+              "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
               currentYear
                 ? "border-primary/50 text-foreground"
                 : "text-muted-foreground hover:text-foreground"
@@ -226,19 +201,20 @@ export function FilterBar({
             {YEAR_OPTIONS.map((o) => {
               const active = o.value === currentYear;
               return (
-                <button
-                  key={o.value || "any"}
-                  type="button"
-                  onClick={() => setParam("year", o.value)}
-                  className={cn(
-                    "rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                    active
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-                  )}
-                >
-                  {o.label}
-                </button>
+                <PopoverClose asChild key={o.value || "any"}>
+                  <button
+                    type="button"
+                    onClick={() => setParam("year", o.value)}
+                    className={cn(
+                      "filter-menu-option rounded-md px-2 py-1.5 text-left text-xs",
+                      active
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                </PopoverClose>
               );
             })}
           </div>
@@ -251,7 +227,7 @@ export function FilterBar({
           <button
             type="button"
             className={cn(
-              "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors",
+              "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
               currentSort
                 ? "border-primary/50 text-foreground"
                 : "text-muted-foreground hover:text-foreground"
@@ -266,19 +242,20 @@ export function FilterBar({
             {sortOptions.map((o) => {
               const active = o.value === currentSort;
               return (
-                <button
-                  key={o.value || "default"}
-                  type="button"
-                  onClick={() => setParam("sort", o.value)}
-                  className={cn(
-                    "rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                    active
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-                  )}
-                >
-                  {o.label}
-                </button>
+                <PopoverClose asChild key={o.value || "default"}>
+                  <button
+                    type="button"
+                    onClick={() => setParam("sort", o.value)}
+                    className={cn(
+                      "filter-menu-option rounded-md px-2 py-1.5 text-left text-xs",
+                      active
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                </PopoverClose>
               );
             })}
           </div>
@@ -289,7 +266,7 @@ export function FilterBar({
         <button
           type="button"
           onClick={clearFilters}
-          className="inline-flex h-9 items-center gap-1 rounded-full px-2 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+          className="filter-chip inline-flex h-9 items-center gap-1 rounded-full px-2 text-[11px] text-muted-foreground hover:text-foreground"
         >
           <X className="h-3 w-3" />
           Clear

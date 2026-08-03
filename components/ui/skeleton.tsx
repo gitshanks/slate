@@ -2,7 +2,7 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
-const skeletonVariants = cva("skeleton animate-pulse bg-muted", {
+const skeletonVariants = cva("skeleton", {
   variants: {
     shape: {
       text:   "h-4 w-full rounded",
@@ -25,6 +25,7 @@ interface SkeletonProps
 function Skeleton({ className, shape, width, height, style, ...props }: SkeletonProps) {
   return (
     <div
+      aria-hidden="true"
       className={cn(skeletonVariants({ shape }), className)}
       style={{ width, height, ...style }}
       {...props}

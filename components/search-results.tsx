@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import { Film, Tv, LayoutGrid } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { MediaGrid } from "@/components/media-grid";
 import { MotionGrid, MotionItem } from "@/components/motion-grid";
 import { TmdbTile } from "@/components/tmdb-tile";
 import { PeopleGrid, type PersonTile } from "@/components/people-grid";
+import { SegmentedFilter } from "@/components/segmented-filter";
 import type { TitleRow } from "@/lib/types";
 import type { TmdbMediaResult } from "@/lib/tmdb";
 
@@ -54,27 +54,13 @@ export function SearchResults({
   return (
     <>
       {hasTitleResults && (
-        <div className="mb-8 inline-flex h-9 items-center rounded-full border border-border bg-card p-1 shadow-sm">
-          {TYPE_OPTIONS.map(({ value, label, icon: Icon }) => {
-            const active = type === value;
-            return (
-              <button
-                key={value || "all"}
-                type="button"
-                onClick={() => setType(value)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        <SegmentedFilter
+          id="search-type-filter"
+          options={TYPE_OPTIONS}
+          value={type}
+          onValueChange={(value) => setType(value as TypeFilter)}
+          className="mb-8"
+        />
       )}
 
       {filteredLibrary.length > 0 && (

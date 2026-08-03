@@ -185,7 +185,7 @@ export function AssistantBubble({
             <span className="whitespace-pre-wrap">
               {turn.content}
               {!turn.done && !turn.error && (
-                <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-foreground/40 align-middle" />
+                <span className="loading-breathe ml-0.5 inline-block h-3 w-1.5 bg-foreground/40 align-middle" />
               )}
             </span>
           ) : turn.error ? (
@@ -193,12 +193,12 @@ export function AssistantBubble({
             <span className="text-destructive">{turn.error}</span>
           ) : turn.searching ? (
             <span className="inline-flex items-center gap-2 text-muted-foreground">
-              <Search className="h-3.5 w-3.5 animate-pulse" />
+              <Search className="loading-breathe h-3.5 w-3.5" />
               Searching…
             </span>
           ) : !turn.done ? (
             <span className="inline-flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="loading-spinner h-3.5 w-3.5" />
               Thinking…
             </span>
           ) : turn.results && turn.results.length > 0 ? null : (
@@ -212,7 +212,7 @@ export function AssistantBubble({
 
       {turn.searching && turn.content && (
         <div className="ml-8 inline-flex items-center gap-2 text-[11px] text-muted-foreground">
-          <Search className="h-3 w-3 animate-pulse" />
+          <Search className="loading-breathe h-3 w-3" />
           Searching…
         </div>
       )}

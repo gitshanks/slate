@@ -235,7 +235,7 @@ export function ProfileAvatarEditor({
           )}
         >
           {uploading ? (
-            <LoaderCircle className="h-5 w-5 animate-spin" />
+            <LoaderCircle className="loading-spinner h-5 w-5" />
           ) : (
             <Camera className="h-5 w-5" />
           )}
@@ -266,7 +266,7 @@ export function ProfileAvatarEditor({
           className="inline-flex items-center gap-1 text-[10px] text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
         >
           {removing ? (
-            <LoaderCircle className="h-2.5 w-2.5 animate-spin" />
+            <LoaderCircle className="loading-spinner h-2.5 w-2.5" />
           ) : (
             <Trash2 className="h-2.5 w-2.5" />
           )}
