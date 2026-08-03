@@ -20,8 +20,9 @@ export default async function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="mx-auto max-w-2xl rounded-2xl border border-border p-6">
-        <p className="text-sm text-muted-foreground">
+      <div className="mx-auto max-w-xl rounded-[1.5rem] border border-border/70 bg-card/50 p-6 sm:p-8">
+        <h1 className="text-2xl font-semibold tracking-tight">Profile unavailable</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
           Profile settings are available on the hosted Google-account version of slate.
         </p>
       </div>
@@ -30,90 +31,84 @@ export default async function ProfilePage() {
 
   const origin =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    "https://slate.nishh.dev";
+    "https://www.s1ate.space";
   const avatarUrl = profileAvatarUrl(profile);
 
   return (
-    <div className="mx-auto max-w-2xl pb-4 sm:pb-8">
-      <header>
-        <p className="text-[11px] font-mono uppercase tracking-[0.22em] text-muted-foreground">
-          Your account
-        </p>
-        <h1 className="mt-1 text-[2.5rem] font-semibold leading-none tracking-[-0.045em] sm:text-5xl">
-          Your profile
+    <div className="mx-auto w-full max-w-5xl pb-4 sm:pb-8">
+      <header className="max-w-2xl">
+        <h1 className="text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">
+          Profile
         </h1>
-        <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-          Choose how your corner of slate appears when you share it.
+        <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-[15px]">
+          Manage how you appear on slate and what friends can see.
         </p>
       </header>
 
-      <section className="mt-7 overflow-hidden rounded-[1.75rem] border border-border bg-card/70 shadow-[0_18px_60px_-44px_hsl(var(--foreground)/0.45)] sm:mt-9">
-        <div className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] items-start gap-x-4 gap-y-3 border-b border-border/70 p-5 sm:flex sm:items-center sm:p-6">
-          <ProfileAvatarEditor
-            avatarUrl={avatarUrl}
-            displayName={profile.display_name}
-          />
-          <div className="min-w-0 pt-1 sm:pt-0">
-            <h2 className="truncate text-lg font-semibold sm:text-xl">
-              {profile.display_name}
-            </h2>
-            <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
-              @{profile.username}
-            </p>
+      <div className="mt-7 grid items-start gap-5 sm:mt-9 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-7">
+        <aside className="rounded-[1.75rem] border border-border/70 bg-card/55 p-5 shadow-[0_22px_70px_-56px_hsl(var(--foreground)/0.5)] sm:p-6 lg:sticky lg:top-24">
+          <div className="flex min-w-0 items-center gap-5 lg:flex-col lg:text-center">
+            <ProfileAvatarEditor
+              avatarUrl={avatarUrl}
+              displayName={profile.display_name}
+            />
+            <div className="min-w-0 flex-1 lg:w-full">
+              <div className="flex items-center gap-2 lg:justify-center">
+                <span
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    profile.is_public ? "bg-success" : "bg-muted-foreground/55"
+                  }`}
+                  aria-hidden
+                />
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  {profile.is_public ? "Public profile" : "Private profile"}
+                </span>
+              </div>
+              <h2 className="mt-2 break-words text-2xl font-semibold leading-tight tracking-[-0.035em]">
+                {profile.display_name}
+              </h2>
+              <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                @{profile.username}
+              </p>
+              <p className="mt-4 hidden text-xs leading-5 text-muted-foreground lg:block">
+                This is how your name and photo appear when friends open your slate.
+              </p>
+            </div>
           </div>
-          <span
-            className={`col-start-2 w-fit shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] sm:ml-auto ${
-              profile.is_public
-                ? "bg-success/10 text-success"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {profile.is_public ? "Public" : "Private"}
-          </span>
-        </div>
+        </aside>
 
-        <div className="p-5 sm:p-6">
-          <div>
-            <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
-              Profile details
-            </p>
-            <h2 className="mt-1 text-xl font-semibold tracking-tight">
-              Make it yours
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Update the name, address, and visibility of your slate.
-            </p>
-          </div>
-
+        <div className="min-w-0 space-y-5">
           <ProfileSettingsForm
             displayName={profile.display_name}
             username={profile.username}
             isPublic={profile.is_public}
             origin={origin}
           />
-        </div>
-      </section>
 
-      <form
-        action={async () => {
-          "use server";
-          await signOut({ redirectTo: "/" });
-        }}
-        className="mt-4"
-      >
-        <button
-          type="submit"
-          className="inline-flex h-11 w-full items-center justify-between rounded-2xl px-4 text-sm text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive sm:w-auto sm:justify-center sm:gap-2 sm:rounded-full"
-        >
-          <span className="inline-flex items-center gap-2">
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.14em] sm:hidden">
-            Google account
-          </span>
-        </button>
-      </form>
+          <section className="flex flex-col gap-4 rounded-[1.5rem] border border-border/70 bg-card/40 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div>
+              <h2 className="text-sm font-semibold">Account</h2>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Sign out of slate on this device.
+              </p>
+            </div>
+            <form
+              action={async () => {
+                "use server";
+                await signOut({ redirectTo: "/" });
+              }}
+            >
+              <button
+                type="submit"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-border/80 px-4 text-xs font-medium text-muted-foreground transition-[background-color,border-color,color,transform] hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive active:scale-[0.98] sm:w-auto"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign out
+              </button>
+            </form>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

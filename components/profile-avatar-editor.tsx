@@ -207,13 +207,13 @@ export function ProfileAvatarEditor({
   const removing = busy === "remove";
 
   return (
-    <div className="flex shrink-0 flex-col items-center gap-1.5">
+    <div className="flex shrink-0 flex-col items-center gap-3">
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={busy !== null}
         aria-label={currentAvatar ? "Change profile photo" : "Add profile photo"}
-        className="group relative h-14 w-14 overflow-hidden rounded-2xl border border-border bg-background text-muted-foreground outline-none transition-[border-color,transform] hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-[0.97] disabled:pointer-events-none sm:h-16 sm:w-16"
+        className="group relative h-[5.5rem] w-[5.5rem] overflow-hidden rounded-[1.6rem] border border-border bg-background text-muted-foreground outline-none transition-[border-color,transform] hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-[0.98] disabled:pointer-events-none sm:h-24 sm:w-24 lg:h-28 lg:w-28 lg:rounded-[2rem]"
       >
         {currentAvatar ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -225,7 +225,7 @@ export function ProfileAvatarEditor({
           />
         ) : (
           <span className="flex h-full w-full items-center justify-center">
-            <UserRound className="h-6 w-6" />
+            <UserRound className="h-8 w-8" />
           </span>
         )}
         <span
@@ -235,14 +235,14 @@ export function ProfileAvatarEditor({
           )}
         >
           {uploading ? (
-            <LoaderCircle className="loading-spinner h-5 w-5" />
+            <LoaderCircle className="loading-spinner h-6 w-6" />
           ) : (
-            <Camera className="h-5 w-5" />
+            <Camera className="h-6 w-6" />
           )}
         </span>
         {!uploading && (
-          <span className="absolute -right-px -bottom-px flex h-5 w-5 items-center justify-center rounded-tl-lg bg-foreground text-background group-hover:opacity-0 group-focus-visible:opacity-0">
-            <Camera className="h-3 w-3" />
+          <span className="absolute right-1.5 bottom-1.5 flex h-7 w-7 items-center justify-center rounded-xl border border-background/70 bg-foreground text-background shadow-sm group-hover:opacity-0 group-focus-visible:opacity-0">
+            <Camera className="h-3.5 w-3.5" />
           </span>
         )}
       </button>
@@ -258,21 +258,39 @@ export function ProfileAvatarEditor({
         }}
       />
 
-      {currentAvatar && (
+      <div className="flex h-5 items-center justify-center gap-2.5">
         <button
           type="button"
-          onClick={() => void remove()}
+          onClick={() => inputRef.current?.click()}
           disabled={busy !== null}
-          className="inline-flex items-center gap-1 text-[10px] text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
         >
-          {removing ? (
+          {uploading ? (
             <LoaderCircle className="loading-spinner h-2.5 w-2.5" />
           ) : (
-            <Trash2 className="h-2.5 w-2.5" />
+            <Camera className="h-2.5 w-2.5" />
           )}
-          Remove
+          {uploading ? "Uploading" : "Change photo"}
         </button>
-      )}
+        {currentAvatar ? (
+          <>
+            <span className="h-3 w-px bg-border" aria-hidden />
+            <button
+              type="button"
+              onClick={() => void remove()}
+              disabled={busy !== null}
+              className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+            >
+              {removing ? (
+                <LoaderCircle className="loading-spinner h-2.5 w-2.5" />
+              ) : (
+                <Trash2 className="h-2.5 w-2.5" />
+              )}
+              {removing ? "Removing" : "Remove"}
+            </button>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
