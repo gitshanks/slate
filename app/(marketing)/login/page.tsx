@@ -49,7 +49,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       closingClassName={styles.closing}
     >
       <div className={styles.authInner}>
-        <p className={styles.eyebrow}>{creating ? "New account" : "Welcome back"}</p>
         <h1 id="auth-title">
           {creating ? "Create your slate" : "Sign in to slate"}
         </h1>
