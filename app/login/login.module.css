@@ -51,10 +51,19 @@
   padding: 112px 22px 72px;
 }
 
-.dismissArea {
+.dismissForm {
   position: absolute;
   z-index: 0;
   inset: 0;
+}
+
+.dismissArea {
+  width: 100%;
+  height: 100%;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
   cursor: pointer;
 }
 
@@ -104,17 +113,6 @@
 
 .switchMode a:hover { color: #fff; }
 
-.note {
-  margin-top: 42px;
-  color: rgb(255 255 255 / .62);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: -.01em;
-  line-height: 1.45;
-  text-align: center;
-  text-shadow: 0 1px 18px rgb(0 0 0 / .72);
-}
-
 .error {
   margin-top: 24px;
   border: 1px solid rgb(255 255 255 / .11);
@@ -142,7 +140,6 @@
 @media (max-width: 640px) {
   .background { opacity: .5; }
   .auth { padding-bottom: max(54px, env(safe-area-inset-bottom)); }
-  .note { margin-top: 34px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -60,13 +60,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </header>
 
       <section className={styles.auth} aria-labelledby="auth-title">
-        <Link
-          href="/"
-          replace
-          className={styles.dismissArea}
-          aria-label="Back to slate"
-          tabIndex={-1}
-        />
+        <form action="/" className={styles.dismissForm}>
+          <button
+            type="submit"
+            className={styles.dismissArea}
+            aria-label="Back to slate"
+            tabIndex={-1}
+          />
+        </form>
         <div className={styles.authInner}>
           <p className={styles.eyebrow}>{creating ? "New account" : "Welcome back"}</p>
           <h1 id="auth-title">
@@ -88,9 +89,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </Link>
           </p>
 
-          <p id="google-sign-in-note" className={styles.note}>
-            Google only identifies your account.
-          </p>
         </div>
       </section>
     </main>
