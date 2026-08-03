@@ -53,7 +53,7 @@ export function TopNav({
               width={62}
               height={17}
               priority
-              className="hidden h-[17px] w-auto dark:block"
+              className="hidden dark:block"
             />
             <Image
               src="/brand/logo-dark.svg"
@@ -61,7 +61,7 @@ export function TopNav({
               width={62}
               height={17}
               priority
-              className="h-[17px] w-auto dark:hidden"
+              className="dark:hidden"
             />
           </Link>
 

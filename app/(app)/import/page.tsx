@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ImportWidget } from "@/components/import-widget";
+import { LinkImporter } from "@/components/link-importer";
 
 export const metadata: Metadata = {
   title: "slate · Import",
@@ -7,23 +8,44 @@ export const metadata: Metadata = {
 
 export default function ImportPage() {
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-3xl">
       {/* Header */}
       <div className="mb-6 sm:mb-10">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
           Import
         </p>
         <h1 className="mt-1 text-4xl font-semibold tracking-tight">
-          Bring your library
+          Bring it into Slate
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Drop a Letterboxd or Trakt CSV. Slate matches each row on TMDB and
-          saves it as watched. Safe to re-import — already-saved titles keep
-          their state.
+          Add recommendations from a link, or move an existing watch history
+          over from Letterboxd or Trakt.
         </p>
       </div>
 
-      <ImportWidget />
+      <section>
+        <p className="mb-3 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+          From anywhere on the web
+        </p>
+        <h2 className="text-xl font-semibold tracking-tight">Add from a link</h2>
+        <p className="mb-4 mt-1 text-sm leading-relaxed text-muted-foreground">
+          Paste a public Instagram, YouTube, TikTok, article, IMDb, or TMDB
+          link. Slate finds the movies and shows mentioned inside it.
+        </p>
+        <LinkImporter />
+      </section>
+
+      <section className="mt-12 border-t border-border/70 pt-10 sm:mt-16 sm:pt-12">
+        <p className="mb-3 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
+          From another service
+        </p>
+        <h2 className="text-xl font-semibold tracking-tight">Import a CSV</h2>
+        <p className="mb-4 mt-1 text-sm leading-relaxed text-muted-foreground">
+          Slate matches each row on TMDB and saves it as watched. Safe to
+          re-import; titles already in your library keep their state.
+        </p>
+        <ImportWidget />
+      </section>
 
       {/* Where to find your CSV — primary helper, not a footnote, so it sits
           right under the widget at the same visual weight. */}

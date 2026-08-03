@@ -7,11 +7,19 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export default function ShareLoading() {
   return (
-    <div className="mx-auto max-w-xl py-16">
-      <div className="flex flex-col items-center gap-4 text-center">
-        <Skeleton className="h-12 w-12 rounded-full" />
-        <Skeleton shape="text" className="h-5 w-48" />
-        <Skeleton shape="text" className="h-3 w-64" />
+    <div className="mx-auto max-w-4xl">
+      <div className="mb-8 space-y-3">
+        <Skeleton className="h-11 w-11 rounded-xl" />
+        <Skeleton shape="text" className="h-3 w-32" />
+        <Skeleton shape="text" className="h-10 w-3/4 max-w-lg" />
+        <Skeleton shape="text" className="h-4 w-full max-w-xl" />
+      </div>
+      <div className="rounded-2xl border border-border/70 bg-card/45 p-5">
+        <Skeleton shape="text" className="h-4 w-36" />
+        <Skeleton className="mt-3 h-20 w-full rounded-xl" />
+        <div className="mt-3 flex justify-end">
+          <Skeleton shape="button" className="h-10 w-28" />
+        </div>
       </div>
     </div>
   );

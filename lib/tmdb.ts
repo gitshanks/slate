@@ -241,6 +241,26 @@ export async function getTv(id: number) {
   return { ...raw, imdb_id } as TmdbTvDetail;
 }
 
+/** Resolve an IMDb title URL to the corresponding TMDB movie or series. */
+export async function findByImdbId(
+  imdbId: string,
+): Promise<TmdbMediaResult | null> {
+  if (!/^tt\d{5,12}$/.test(imdbId)) return null;
+  const result = await tmdb<{
+    movie_results: TmdbSearchResult[];
+    tv_results: TmdbSearchResult[];
+  }>(`/find/${imdbId}`, {
+    external_source: "imdb_id",
+    language: "en-US",
+  });
+
+  const movie = result.movie_results?.[0];
+  if (movie) return { ...movie, media_type: "movie" } as TmdbMediaResult;
+  const tv = result.tv_results?.[0];
+  if (tv) return { ...tv, media_type: "tv" } as TmdbMediaResult;
+  return null;
+}
+
 export interface TmdbCastMember {
   id: number;
   name: string;

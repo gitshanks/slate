@@ -1,76 +1,55 @@
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { addTitle } from "@/lib/actions";
-import { APP_ROOT } from "@/lib/public-mode";
-import { EmptyState } from "@/components/empty-state";
-import { Share2 } from "lucide-react";
+import type { Metadata } from "next";
+import { Link2, Share2 } from "lucide-react";
+import { LinkImporter } from "@/components/link-importer";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Entry point for "Send to slate" — from PWA share targets, Apple Shortcuts,
- * bookmarklets, or any external deep link.
- *
- * Supports:
- *   /share?url=https://www.themoviedb.org/movie/603
- *   /share?url=https://www.themoviedb.org/tv/1399
- *   /share?title=...&text=...
- *
- * TMDB URLs auto-add to the library and forward to the title page.
- * Anything else falls through to a manual search prompt.
- */
+export const metadata: Metadata = {
+  title: "slate · Add from a link",
+};
 
-const TMDB_URL_RE =
-  /themoviedb\.org\/(movie|tv)\/(\d+)/i;
-
-function pick(value: string | string[] | undefined): string | null {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value ?? null;
+function pick(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 export default async function SharePage(props: PageProps<"/share">) {
-  const sp = await props.searchParams;
-  const url = pick(sp.url);
-  const title = pick(sp.title);
-  const text = pick(sp.text);
-
-  // 1. TMDB URL — extract id + media_type, add, redirect to detail page
-  const fromUrl = url ?? text ?? title ?? "";
-  const tmdbMatch = fromUrl.match(TMDB_URL_RE);
-  if (tmdbMatch) {
-    const mediaType = tmdbMatch[1].toLowerCase() as "movie" | "tv";
-    const tmdbId = Number(tmdbMatch[2]);
-    if (Number.isFinite(tmdbId)) {
-      try {
-        const row = await addTitle({ tmdbId, mediaType });
-        if (row?.id) redirect(`/title/${row.id}`);
-      } catch {
-        // fall through to manual prompt
-      }
-    }
-  }
-
-  // 2. Anything else — show a lightweight landing that lets the user
-  //    open the command palette pre-filled.
-  const hint = title || text || url || "";
+  const searchParams = await props.searchParams;
+  const initialShare = {
+    title: pick(searchParams.title),
+    text: pick(searchParams.text),
+    url: pick(searchParams.url),
+  };
+  const sharedIn = Boolean(
+    initialShare.title?.trim() ||
+      initialShare.text?.trim() ||
+      initialShare.url?.trim(),
+  );
 
   return (
-    <div className="mx-auto max-w-xl py-16">
-      <EmptyState
-        icon={<Share2 className="h-6 w-6" />}
-        title="Couldn't auto-detect a title"
-        description={
-          hint
-            ? `We couldn't turn "${hint}" into a TMDB entry automatically. Press ⌘K and search for it.`
-            : "Send a TMDB URL to /share?url=… and we'll add it for you. Or press ⌘K to search."
-        }
-        action={
-          <Button asChild variant="outline">
-            <Link href={APP_ROOT}>Back to slate</Link>
-          </Button>
-        }
-      />
+    <div className="mx-auto max-w-4xl">
+      <header className="mb-6 sm:mb-8">
+        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
+          {sharedIn ? <Share2 className="h-5 w-5" /> : <Link2 className="h-5 w-5" />}
+        </div>
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          {sharedIn ? "Shared with Slate" : "Add from a link"}
+        </p>
+        <h1 className="mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">
+          {sharedIn ? "Keep the good part" : "Saw something worth watching?"}
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          Slate reads the recommendation, finds the films and shows on TMDB,
+          and waits for you to confirm the matches before saving anything.
+        </p>
+      </header>
+
+      <LinkImporter initialShare={initialShare} autoStart={sharedIn} />
+
+      <p className="mt-4 px-1 text-xs leading-relaxed text-muted-foreground">
+        On an installed Android or ChromeOS app, choose Slate directly from
+        the system share sheet. Everywhere else, copy the link and paste it
+        here.
+      </p>
     </div>
   );
 }
