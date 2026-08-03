@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { signIn } from "@/auth";
-import { PosterConstellation } from "@/components/landing/poster-constellation";
+import { PosterCarousel } from "@/components/landing/poster-carousel";
 import { GoogleSignInButton } from "@/components/login/google-sign-in-button";
 import { getAppSession } from "@/lib/app-access";
 import { SLATE_HOSTED } from "@/lib/public-mode";
@@ -45,7 +45,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className={styles.page}>
-      <PosterConstellation quiet className={styles.background} />
+      <PosterCarousel quiet className={styles.background} />
       <div className={styles.grain} aria-hidden="true" />
 
       <header className={styles.header}>

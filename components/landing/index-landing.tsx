@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { PosterConstellation } from "@/components/landing/poster-constellation";
+import { PosterCarousel } from "@/components/landing/poster-carousel";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import styles from "./index-landing.module.css";
 
@@ -11,7 +11,7 @@ export function IndexLanding() {
 
   return (
     <main className={styles.page}>
-      <PosterConstellation />
+      <PosterCarousel />
       <div className={styles.grain} aria-hidden="true" />
 
       <header className={styles.header}>
