@@ -69,14 +69,14 @@
   background: linear-gradient(135deg, rgb(255 255 255 / .07), transparent 24%, rgb(0 0 0 / .12));
 }
 
-.columnOne .track { animation-name: scrollUp; animation-duration: 180s; animation-delay: -17s; }
-.columnTwo .track { animation-name: scrollDown; animation-duration: 216s; animation-delay: -31s; }
-.columnThree .track { animation-name: scrollUp; animation-duration: 198s; animation-delay: -43s; }
-.columnFour .track { animation-name: scrollDown; animation-duration: 228s; animation-delay: -12s; }
-.columnFive .track { animation-name: scrollUp; animation-duration: 210s; animation-delay: -38s; }
-.columnSix .track { animation-name: scrollDown; animation-duration: 186s; animation-delay: -24s; }
-.columnSeven .track { animation-name: scrollUp; animation-duration: 222s; animation-delay: -51s; }
-.columnEight .track { animation-name: scrollDown; animation-duration: 204s; animation-delay: -8s; }
+.columnOne .track { animation-name: scrollUp; animation-duration: 360s; animation-delay: -17s; }
+.columnTwo .track { animation-name: scrollDown; animation-duration: 432s; animation-delay: -31s; }
+.columnThree .track { animation-name: scrollUp; animation-duration: 396s; animation-delay: -43s; }
+.columnFour .track { animation-name: scrollDown; animation-duration: 456s; animation-delay: -12s; }
+.columnFive .track { animation-name: scrollUp; animation-duration: 420s; animation-delay: -38s; }
+.columnSix .track { animation-name: scrollDown; animation-duration: 372s; animation-delay: -24s; }
+.columnSeven .track { animation-name: scrollUp; animation-duration: 444s; animation-delay: -51s; }
+.columnEight .track { animation-name: scrollDown; animation-duration: 408s; animation-delay: -8s; }
 
 .centerScrim {
   position: absolute;

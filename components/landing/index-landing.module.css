@@ -43,13 +43,12 @@
   left: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: max(24px, env(safe-area-inset-top)) 24px 0;
 }
 
 .logo {
   display: inline-flex;
-  margin-left: -10px;
   border-radius: 999px;
   padding: 8px 10px;
   background: rgb(0 0 0 / .44);
