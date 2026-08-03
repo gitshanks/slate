@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { IndexLanding } from "@/components/landing/index-landing";
+import { redirect } from "next/navigation";
 import { getAppSession } from "@/lib/app-access";
 import { SLATE_HOSTED } from "@/lib/public-mode";
-import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "slate · never lose a good recommendation",
@@ -23,5 +22,5 @@ export default async function LandingPage() {
     }
   }
 
-  return <IndexLanding />;
+  return null;
 }

@@ -36,8 +36,15 @@
 .footer,
 .hero { position: relative; z-index: 3; }
 
+.landingContent {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+}
+
 .header {
   position: absolute;
+  z-index: 7;
   top: 0;
   right: 0;
   left: 0;
@@ -63,6 +70,10 @@
   place-items: center;
   padding: 124px 22px 110px;
   text-align: center;
+  transition:
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(.16, 1, .3, 1),
+    filter 180ms ease;
 }
 
 .heroCopy {
@@ -184,6 +195,10 @@
   font-size: 9px;
   letter-spacing: .08em;
   text-transform: uppercase;
+  transition:
+    opacity 160ms ease,
+    transform 200ms cubic-bezier(.16, 1, .3, 1),
+    filter 160ms ease;
 }
 
 .footer a {
@@ -201,6 +216,27 @@
 .footer a:hover { color: rgb(255 255 255 / .92); transform: translateY(-1px); }
 .footer a:active { transform: scale(.97); }
 .footer svg { width: 13px; height: 13px; }
+
+.page[data-auth-open="true"] .hero {
+  opacity: 0;
+  filter: blur(4px);
+  transform: translate3d(0, -8px, 0) scale(.99);
+}
+
+.page[data-auth-open="true"] .footer {
+  opacity: 0;
+  filter: blur(3px);
+  transform: translate3d(0, 5px, 0);
+}
+
+.routeOverlay {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  pointer-events: none;
+}
+
+.routeOverlay > * { pointer-events: auto; }
 
 @media (max-width: 640px) {
   .header { padding-right: 18px; padding-left: 18px; }
@@ -220,6 +256,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero,
+  .footer,
   .primaryAction,
   .secondaryAction { transition: none; }
 }

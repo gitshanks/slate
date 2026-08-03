@@ -120,6 +120,7 @@ export async function PosterCarousel({
   return (
     <div
       aria-hidden="true"
+      data-marketing-poster-wall=""
       className={cn(styles.carousel, quiet && styles.quiet, className)}
     >
       <div className={styles.wall}>
