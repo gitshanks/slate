@@ -24,7 +24,7 @@
 
 .column {
   position: relative;
-  width: clamp(116px, 11.5vw, 180px);
+  width: max(116px, 12.5vw);
   height: 100%;
   flex: 0 0 auto;
 }

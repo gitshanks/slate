@@ -1,15 +1,23 @@
 .page {
-  position: relative;
+  position: fixed;
   isolation: isolate;
-  width: 100%;
+  inset: 0;
   height: 100dvh;
-  min-height: 100dvh;
-  overflow: hidden;
+  min-height: 100svh;
+  overflow: clip;
   background: #000;
   color: #fff;
 }
 
 .page a { text-decoration: none; }
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100svh;
+}
 
 .grain {
   position: absolute;
@@ -100,74 +108,68 @@
   position: relative;
   isolation: isolate;
   display: inline-flex;
-  min-height: 58px;
+  min-height: 50px;
   align-items: center;
   justify-content: center;
-  gap: 18px;
   overflow: hidden;
-  border-radius: 17px;
-  padding: 0 10px 0 21px;
+  border: 1px solid rgb(255 255 255 / .2);
+  border-radius: 999px;
+  padding: 0 23px;
   font-size: 14px;
-  font-weight: 690;
+  font-weight: 680;
   letter-spacing: -.012em;
-  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(20px) saturate(135%);
+  backdrop-filter: blur(20px) saturate(135%);
   transition: transform 200ms cubic-bezier(.2,.8,.2,1), background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease, color 200ms ease;
 }
 
+.primaryAction::before,
+.secondaryAction::before {
+  position: absolute;
+  z-index: -1;
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgb(255 255 255 / .12), transparent 46%);
+  content: "";
+  pointer-events: none;
+}
+
 .primaryAction {
-  border: 1px solid rgb(255 255 255 / .2);
-  background: #7554ee;
+  border-color: rgb(218 210 255 / .34);
+  background: rgb(103 75 214 / .72);
   color: #fff;
   box-shadow:
-    0 16px 48px rgb(70 43 192 / .38),
-    inset 0 1px rgb(255 255 255 / .26),
-    inset 0 -1px rgb(30 12 96 / .34);
+    0 14px 42px rgb(49 31 126 / .3),
+    inset 0 1px rgb(255 255 255 / .28),
+    inset 0 -1px rgb(30 17 88 / .28);
 }
 
 .primaryAction:hover {
-  border-color: rgb(255 255 255 / .32);
-  background: #8062f3;
+  border-color: rgb(230 225 255 / .48);
+  background: rgb(119 91 229 / .8);
   box-shadow:
-    0 20px 58px rgb(70 43 192 / .48),
-    inset 0 1px rgb(255 255 255 / .3),
-    inset 0 -1px rgb(30 12 96 / .3);
+    0 18px 48px rgb(49 31 126 / .4),
+    inset 0 1px rgb(255 255 255 / .34),
+    inset 0 -1px rgb(30 17 88 / .24);
   transform: translateY(-2px);
 }
 
 .secondaryAction {
-  border: 1px solid rgb(255 255 255 / .17);
-  background: rgb(18 18 20 / .78);
+  border-color: rgb(255 255 255 / .18);
+  background: rgb(24 24 26 / .54);
   color: rgb(255 255 255 / .88);
   box-shadow:
-    0 16px 42px rgb(0 0 0 / .28),
-    inset 0 1px rgb(255 255 255 / .08);
+    0 14px 38px rgb(0 0 0 / .24),
+    inset 0 1px rgb(255 255 255 / .16),
+    inset 0 -1px rgb(0 0 0 / .18);
 }
 
 .secondaryAction:hover {
-  border-color: rgb(255 255 255 / .27);
-  background: rgb(34 34 38 / .9);
+  border-color: rgb(255 255 255 / .3);
+  background: rgb(45 45 48 / .64);
   color: #fff;
   transform: translateY(-2px);
 }
-
-.actionArrow {
-  display: inline-flex;
-  width: 34px;
-  height: 34px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgb(255 255 255 / .12);
-  border-radius: 11px;
-  background: rgb(255 255 255 / .11);
-  font-size: 16px;
-  font-weight: 520;
-  line-height: 1;
-  transition: transform 200ms cubic-bezier(.2,.8,.2,1), background-color 200ms ease;
-}
-
-.secondaryAction .actionArrow { background: rgb(255 255 255 / .07); }
-.primaryAction:hover .actionArrow,
-.secondaryAction:hover .actionArrow { background: rgb(255 255 255 / .16); transform: translateX(2px); }
 .primaryAction:active,
 .secondaryAction:active { transform: scale(.97); }
 
@@ -210,15 +212,14 @@
   .hero p { margin-top: 22px; }
   .actions { margin-top: 30px; }
   .primaryAction,
-  .secondaryAction { min-height: 54px; gap: 14px; padding: 0 9px 0 18px; font-size: 13px; }
-  .actionArrow { width: 32px; height: 32px; border-radius: 10px; }
+  .secondaryAction { min-height: 48px; padding: 0 20px; font-size: 13px; }
   .footer { right: 18px; left: 18px; }
 }
 
 @media (max-width: 390px) {
   .actions { align-items: center; flex-direction: column; gap: 8px; }
   .primaryAction,
-  .secondaryAction { width: min(100%, 218px); }
+  .secondaryAction { width: min(100%, 190px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -226,6 +227,5 @@
   .hero p,
   .actions { animation: none; }
   .primaryAction,
-  .secondaryAction,
-  .actionArrow { transition: none; }
+  .secondaryAction { transition: none; }
 }

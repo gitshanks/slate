@@ -11,7 +11,7 @@ export function IndexLanding() {
 
   return (
     <main className={styles.page}>
-      <PosterCarousel />
+      <PosterCarousel className={styles.backdrop} />
       <div className={styles.grain} aria-hidden="true" />
 
       <header className={styles.header}>
@@ -35,13 +35,11 @@ export function IndexLanding() {
           <p>Save it. Watch it. Share it.</p>
           <div className={styles.actions}>
             <Link className={styles.primaryAction} href={createHref}>
-              <span>{SLATE_HOSTED ? "Create your Slate" : "Open Slate"}</span>
-              <span className={styles.actionArrow} aria-hidden="true">→</span>
+              {SLATE_HOSTED ? "Create your Slate" : "Open Slate"}
             </Link>
             {SLATE_HOSTED ? (
               <Link className={styles.secondaryAction} href={signInHref}>
-                <span>Sign in</span>
-                <span className={styles.actionArrow} aria-hidden="true">→</span>
+                Sign in
               </Link>
             ) : null}
           </div>
