@@ -75,7 +75,7 @@
 
 .eyebrow {
   margin-bottom: 13px;
-  color: rgb(255 255 255 / .36);
+  color: rgb(255 255 255 / .56);
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 9px;
   font-weight: 600;
@@ -97,13 +97,13 @@
 
 .switchMode {
   margin-top: 22px;
-  color: rgb(255 255 255 / .38);
+  color: rgb(255 255 255 / .62);
   font-size: 12px;
   text-align: center;
 }
 
 .switchMode a {
-  color: rgb(255 255 255 / .82);
+  color: rgb(255 255 255 / .94);
   font-weight: 620;
   text-decoration: none;
   transition: color 180ms ease;
@@ -113,9 +113,13 @@
 
 .note {
   margin-top: 42px;
-  color: rgb(255 255 255 / .2);
-  font-size: 10px;
+  color: rgb(255 255 255 / .62);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  line-height: 1.45;
   text-align: center;
+  text-shadow: 0 1px 18px rgb(0 0 0 / .72);
 }
 
 .error {
@@ -129,7 +133,7 @@
 }
 
 .error p { color: rgb(255 255 255 / .88); font-size: 12px; font-weight: 620; }
-.error span { display: block; margin-top: 3px; color: rgb(255 255 255 / .4); font-size: 11px; line-height: 1.45; }
+.error span { display: block; margin-top: 3px; color: rgb(255 255 255 / .66); font-size: 11px; line-height: 1.45; }
 
 .back:focus-visible,
 .logo:focus-visible,
