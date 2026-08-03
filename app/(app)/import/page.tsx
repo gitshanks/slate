@@ -15,7 +15,7 @@ export default function ImportPage() {
           Import
         </p>
         <h1 className="mt-1 text-4xl font-semibold tracking-tight">
-          Bring it into Slate
+          Bring it into slate
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
           Add recommendations from a link, or move an existing watch history
@@ -30,7 +30,7 @@ export default function ImportPage() {
         <h2 className="text-xl font-semibold tracking-tight">Add from a link</h2>
         <p className="mb-4 mt-1 text-sm leading-relaxed text-muted-foreground">
           Paste a public Instagram, YouTube, TikTok, article, IMDb, or TMDB
-          link. Slate finds the movies and shows mentioned inside it.
+          link. slate finds the movies and shows mentioned inside it.
         </p>
         <LinkImporter />
       </section>
@@ -41,7 +41,7 @@ export default function ImportPage() {
         </p>
         <h2 className="text-xl font-semibold tracking-tight">Import a CSV</h2>
         <p className="mb-4 mt-1 text-sm leading-relaxed text-muted-foreground">
-          Slate matches each row on TMDB and saves it as watched. Safe to
+          slate matches each row on TMDB and saves it as watched. Safe to
           re-import; titles already in your library keep their state.
         </p>
         <ImportWidget />

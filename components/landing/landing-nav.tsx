@@ -11,11 +11,11 @@ export function LandingNav() {
         <Link
           href="/"
           className="relative z-10 flex items-center py-2"
-          aria-label="Slate home"
+          aria-label="slate home"
         >
           <Image
             src="/brand/logo-light.svg"
-            alt="Slate"
+            alt="slate"
             width={72}
             height={20}
             priority
@@ -53,7 +53,7 @@ export function LandingNav() {
             href={hosted ? "/login" : "/app"}
             className="inline-flex h-9 items-center rounded-[3px] bg-[#de7548] px-4 font-semibold text-[#160d08] transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-[#eb8557] active:translate-y-0 sm:px-5"
           >
-            {hosted ? "Join Slate" : "Open Slate"}
+            {hosted ? "Join slate" : "Open slate"}
           </Link>
         </nav>
       </div>

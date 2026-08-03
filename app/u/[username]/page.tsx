@@ -83,10 +83,10 @@ export default async function PublicProfilePage({
     <>
       <header className="border-b border-border/60">
         <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
-          <Link href="/" aria-label="Slate home" className="flex items-center">
+          <Link href="/" aria-label="slate home" className="flex items-center">
             <Image
               src="/brand/logo-light.svg"
-              alt="Slate"
+              alt="slate"
               width={62}
               height={17}
               priority
@@ -94,7 +94,7 @@ export default async function PublicProfilePage({
             />
             <Image
               src="/brand/logo-dark.svg"
-              alt="Slate"
+              alt="slate"
               width={62}
               height={17}
               priority

@@ -46,10 +46,10 @@ export function TopNav({
       <header className="fixed inset-x-0 top-0 z-40 w-full glass border-b border-border/60">
       <div className="flex h-14 w-full items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
         <div className="flex items-center gap-3">
-          <Link href={APP_ROOT} prefetch className="group flex items-center pt-1 pb-2" aria-label="Slate home">
+          <Link href={APP_ROOT} prefetch className="group flex items-center pt-1 pb-2" aria-label="slate home">
             <Image
               src="/brand/logo-light.svg"
-              alt="Slate"
+              alt="slate"
               width={62}
               height={17}
               priority
@@ -57,7 +57,7 @@ export function TopNav({
             />
             <Image
               src="/brand/logo-dark.svg"
-              alt="Slate"
+              alt="slate"
               width={62}
               height={17}
               priority

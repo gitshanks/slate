@@ -15,10 +15,10 @@ export function IndexLanding() {
       <div className={styles.grain} aria-hidden="true" />
 
       <header className={styles.header}>
-        <Link href="/" className={styles.logo} aria-label="Slate home">
+        <Link href="/" className={styles.logo} aria-label="slate home">
           <Image
             src="/brand/logo-light.svg"
-            alt="Slate"
+            alt="slate"
             width={82}
             height={23}
             preload
@@ -35,7 +35,7 @@ export function IndexLanding() {
           <p>Save it. Watch it. Share it.</p>
           <div className={styles.actions}>
             <Link className={styles.primaryAction} href={createHref}>
-              {SLATE_HOSTED ? "Create your slate" : "Open Slate"}
+              {SLATE_HOSTED ? "Create your slate" : "Open slate"}
             </Link>
             {SLATE_HOSTED ? (
               <Link className={styles.secondaryAction} href={signInHref}>

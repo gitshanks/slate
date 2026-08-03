@@ -116,7 +116,7 @@ export function Showcase() {
               </span>
             </h3>
             <p className="mt-6 text-pretty text-base leading-relaxed text-black/55 sm:text-lg">
-              Try “something quiet and strange for Sunday night.” Slate
+              Try “something quiet and strange for Sunday night.” slate
               searches TMDB and leaves out anything you&apos;ve already saved or
               watched.
             </p>

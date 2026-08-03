@@ -29,7 +29,7 @@ const DETAILS = [
   {
     index: "04",
     title: "Bring the old list",
-    body: "Upload your Letterboxd or Trakt CSV. Slate carries over the titles and ratings without duplicates.",
+    body: "Upload your Letterboxd or Trakt CSV. slate carries over the titles and ratings without duplicates.",
   },
 ];
 
@@ -55,7 +55,7 @@ export function FeatureGrid() {
               </span>
             </h2>
             <p className="mt-7 max-w-md text-pretty text-base leading-relaxed text-black/60 sm:text-lg">
-              Slate starts private. When you want to show a friend what you
+              slate starts private. When you want to show a friend what you
               loved, send one link to the whole profile.
             </p>
 

@@ -70,7 +70,7 @@ export function LinkImporter({
         error?: string;
       };
       if (!response.ok) {
-        throw new Error(body.error || "Slate could not read that link.");
+        throw new Error(body.error || "slate could not read that link.");
       }
       const defaults = new Set(
         body.candidates
@@ -82,7 +82,7 @@ export function LinkImporter({
       setPhase("review");
     } catch (reason) {
       setError(
-        reason instanceof Error ? reason.message : "Slate could not read that link.",
+        reason instanceof Error ? reason.message : "slate could not read that link.",
       );
       setPhase("idle");
     }
@@ -189,7 +189,7 @@ export function LinkImporter({
         </div>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Slate reads public page text, captions, and video descriptions. You
+            slate reads public page text, captions, and video descriptions. You
             choose what gets saved.
           </p>
           <Button
@@ -379,7 +379,7 @@ function ReviewState({
               </h3>
               <p className="mt-0.5 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
                 <span>{candidate.year ?? "Year unknown"} · {candidate.mediaType === "tv" ? "Series" : "Film"}</span>
-                {candidate.inLibrary ? <span>In Slate</span> : null}
+                {candidate.inLibrary ? <span>In slate</span> : null}
               </p>
             </button>
           );
@@ -391,7 +391,7 @@ function ReviewState({
           {selectedCount > 0
             ? `${selectedCount} selected`
             : existingCount > 0 && selectable.length === 0
-              ? "Everything here is already in Slate"
+              ? "Everything here is already in slate"
               : "Choose at least one title"}
         </p>
         <Button
@@ -424,7 +424,7 @@ function SavedState({
       <h2 className="mt-4 text-xl font-semibold text-foreground">
         {result.added > 0
           ? `${result.added} ${result.added === 1 ? "title" : "titles"} added`
-          : "Already in Slate"}
+          : "Already in slate"}
       </h2>
       <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
         {result.failed > 0

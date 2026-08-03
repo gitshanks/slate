@@ -11,7 +11,7 @@ export function LandingFooter() {
         <div>
           <Image
             src="/brand/logo-light.svg"
-            alt="Slate"
+            alt="slate"
             width={62}
             height={17}
             className="opacity-80"
@@ -28,7 +28,7 @@ export function LandingFooter() {
               href={hosted ? "/login" : "/app"}
               className="transition-colors hover:text-white"
             >
-              {hosted ? "Join Slate" : "Open Slate"}
+              {hosted ? "Join slate" : "Open slate"}
             </Link>
             <a
               href="https://www.nishh.dev/slate"
@@ -40,7 +40,7 @@ export function LandingFooter() {
             </a>
           </div>
           <p className="mt-4 max-w-lg leading-relaxed">
-            Want to run your own copy? Slate is{" "}
+            Want to run your own copy? slate is{" "}
             <a
               href="https://github.com/gitshanks/slate"
               target="_blank"

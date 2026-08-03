@@ -11,7 +11,7 @@ import styles from "./login.module.css";
 
 export const metadata: Metadata = {
   title: "Sign in or join · slate",
-  description: "Use your Google account to create or open your Slate.",
+  description: "Use your Google account to create or open your slate.",
   robots: { index: false, follow: false },
 };
 
@@ -48,10 +48,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <div className={styles.grain} aria-hidden="true" />
 
       <header className={styles.header}>
-        <Link href="/" className={styles.logo} aria-label="Slate home">
+        <Link href="/" className={styles.logo} aria-label="slate home">
           <Image
             src="/brand/logo-light.svg"
-            alt="Slate"
+            alt="slate"
             width={78}
             height={22}
             preload
@@ -64,13 +64,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           href="/"
           replace
           className={styles.dismissArea}
-          aria-label="Back to Slate"
+          aria-label="Back to slate"
           tabIndex={-1}
         />
         <div className={styles.authInner}>
           <p className={styles.eyebrow}>{creating ? "New account" : "Welcome back"}</p>
           <h1 id="auth-title">
-            {creating ? "Create your slate" : "Sign in to Slate"}
+            {creating ? "Create your slate" : "Sign in to slate"}
           </h1>
 
           {error ? <LoginError title={error.title} body={error.body} /> : null}
@@ -82,7 +82,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </form>
 
           <p className={styles.switchMode}>
-            {creating ? "Already have a Slate?" : "New to Slate?"}{" "}
+            {creating ? "Already have a slate?" : "New to slate?"}{" "}
             <Link href={creating ? "/login" : "/login?mode=create"}>
               {creating ? "Sign in" : "Create one"}
             </Link>
@@ -110,7 +110,7 @@ function loginErrorMessage(error: string) {
   if (error === "AccessDenied") {
     return {
       title: "Google couldn’t finish the sign-in.",
-      body: "Try again with the Google account you want to use for Slate.",
+      body: "Try again with the Google account you want to use for slate.",
     };
   }
 

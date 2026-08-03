@@ -32,13 +32,13 @@ export default async function SharePage(props: PageProps<"/share">) {
           {sharedIn ? <Share2 className="h-5 w-5" /> : <Link2 className="h-5 w-5" />}
         </div>
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          {sharedIn ? "Shared with Slate" : "Add from a link"}
+          {sharedIn ? "Shared with slate" : "Add from a link"}
         </p>
         <h1 className="mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">
           {sharedIn ? "Keep the good part" : "Saw something worth watching?"}
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Slate reads the recommendation, finds the films and shows on TMDB,
+          slate reads the recommendation, finds the films and shows on TMDB,
           and waits for you to confirm the matches before saving anything.
         </p>
       </header>
@@ -46,7 +46,7 @@ export default async function SharePage(props: PageProps<"/share">) {
       <LinkImporter initialShare={initialShare} autoStart={sharedIn} />
 
       <p className="mt-4 px-1 text-xs leading-relaxed text-muted-foreground">
-        On an installed Android or ChromeOS app, choose Slate directly from
+        On an installed Android or ChromeOS app, choose slate directly from
         the system share sheet. Everywhere else, copy the link and paste it
         here.
       </p>

@@ -22,7 +22,7 @@ export default async function ProfilePage() {
     return (
       <div className="mx-auto max-w-2xl rounded-2xl border border-border p-6">
         <p className="text-sm text-muted-foreground">
-          Profile settings are available on the hosted Google-account version of Slate.
+          Profile settings are available on the hosted Google-account version of slate.
         </p>
       </div>
     );
@@ -43,7 +43,7 @@ export default async function ProfilePage() {
           Your profile
         </h1>
         <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-          Choose how your corner of Slate appears when you share it.
+          Choose how your corner of slate appears when you share it.
         </p>
       </header>
 

@@ -67,7 +67,7 @@ export async function ensureGoogleProfile(identity: GoogleIdentity) {
     const { error } = await supabase.from("profiles").insert({
       id: identity.id,
       username: usernameFor(identity),
-      display_name: identity.name || identity.email.split("@")[0] || "Slate viewer",
+      display_name: identity.name || identity.email.split("@")[0] || "slate viewer",
       avatar_url: identity.image,
     });
     if (error) throw new Error(error.message);

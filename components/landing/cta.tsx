@@ -31,7 +31,7 @@ export function FinalCta() {
             href={hosted ? "/login" : "/app"}
             className="group inline-flex h-13 items-center gap-3 rounded-[3px] bg-[#17120e] px-6 text-sm font-semibold text-[#f3eadc] transition-transform hover:-translate-y-0.5 active:translate-y-0"
           >
-            {hosted ? "Join Slate" : "Try the demo"}
+            {hosted ? "Join slate" : "Try the demo"}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <a

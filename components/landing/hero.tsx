@@ -39,7 +39,7 @@ export function Hero() {
                   href={hosted ? "/login" : "/app"}
                   className="group inline-flex h-12 items-center gap-3 rounded-[3px] bg-[#de7548] px-5 text-sm font-semibold text-[#160d08] transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-[#eb8557] active:translate-y-0"
                 >
-                  {hosted ? "Join Slate" : "Try the demo"}
+                  {hosted ? "Join slate" : "Try the demo"}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
@@ -50,7 +50,7 @@ export function Hero() {
             <span>{hosted ? "Free · Private by default" : "Open source · Self hostable"}</span>
             <a
               href="#inside"
-              aria-label="Explore Slate"
+              aria-label="Explore slate"
               className="inline-flex items-center gap-2 transition-colors hover:text-[#f3eadc]"
             >
               Scroll to explore

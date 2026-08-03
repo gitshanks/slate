@@ -46,7 +46,7 @@ export function AccountSection() {
         <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-end lg:gap-24">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/38">
-              04 / Same Slate everywhere
+              04 / Same slate everywhere
             </p>
             <h2 className="mt-5 max-w-[900px] text-balance text-[clamp(3.5rem,7vw,7.4rem)] font-medium leading-[0.84] tracking-[-0.07em]">
               One account.
@@ -85,7 +85,7 @@ export function AccountSection() {
                 href={hosted ? "/login" : "/app"}
                 className="group mt-8 inline-flex items-center gap-3 text-sm font-semibold text-[#f3eadc] underline decoration-white/20 underline-offset-4 transition-colors hover:text-[#de7548]"
               >
-                {hosted ? "Create your account" : "Open Slate"}
+                {hosted ? "Create your account" : "Open slate"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
             </div>

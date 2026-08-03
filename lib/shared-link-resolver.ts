@@ -87,7 +87,7 @@ export async function resolveSharedLink(
       page = await readPageSignals(url);
     } catch {
       pageWarning =
-        "Slate could not read the page itself. It matched against the text shared by the app instead.";
+        "slate could not read the page itself. It matched against the text shared by the app instead.";
     }
   }
 
@@ -121,7 +121,7 @@ export async function resolveSharedLink(
 
   if (candidates.length === 0) {
     throw new Error(
-      "Slate found some names, but none matched a film or TV show on TMDB.",
+      "slate found some names, but none matched a film or TV show on TMDB.",
     );
   }
 

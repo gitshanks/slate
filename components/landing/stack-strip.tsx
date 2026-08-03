@@ -14,7 +14,7 @@ const FEATURES = [
 export function StackStrip() {
   return (
     <section
-      aria-label="What you can do with Slate"
+      aria-label="What you can do with slate"
       className="relative overflow-hidden border-y border-black/15 bg-[#e8dfd1] text-[#18130f]"
     >
       <div className="landing-paper-grain pointer-events-none absolute inset-0 opacity-36" />
