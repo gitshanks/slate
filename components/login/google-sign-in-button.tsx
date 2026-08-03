@@ -3,16 +3,20 @@
 import { useFormStatus } from "react-dom";
 import { ArrowRight } from "lucide-react";
 
-export function GoogleSignInButton() {
+export function GoogleSignInButton({
+  label = "Continue with Google",
+}: {
+  label?: string;
+}) {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
       disabled={pending}
-      aria-label={pending ? "Opening Google" : "Continue with Google"}
+      aria-label={pending ? "Opening Google" : label}
       aria-describedby="google-sign-in-note"
-      className="group relative flex h-14 w-full items-center justify-center overflow-hidden rounded-full bg-white px-6 text-sm font-semibold text-[#101012] shadow-[0_18px_55px_rgba(255,255,255,0.1)] transition-[transform,background-color] duration-200 hover:scale-[1.015] hover:bg-[#f4f1ff] active:scale-[0.985] disabled:cursor-wait disabled:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a78bfa] focus-visible:ring-offset-4 focus-visible:ring-offset-[#09090b]"
+      className="group relative flex h-[58px] w-full items-center justify-center overflow-hidden rounded-2xl border border-white/[0.1] bg-[#1b1b1b] px-6 text-sm font-semibold text-white shadow-[0_18px_55px_rgba(0,0,0,0.38),inset_0_1px_rgba(255,255,255,0.04)] transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:border-white/[0.17] hover:bg-[#232323] active:translate-y-0 active:scale-[0.985] disabled:cursor-wait disabled:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a78bfa] focus-visible:ring-offset-4 focus-visible:ring-offset-black"
     >
       <span
         aria-hidden
@@ -21,7 +25,7 @@ export function GoogleSignInButton() {
         }`}
       >
         <GoogleMark />
-        Continue with Google
+        {label}
         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
       </span>
 

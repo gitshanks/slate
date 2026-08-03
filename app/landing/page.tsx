@@ -5,13 +5,11 @@ import { SLATE_HOSTED } from "@/lib/public-mode";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "slate · your watchlist for films and shows",
-  description:
-    "Save films and shows, track what you're watching, rate what you've seen, and share your Slate profile with friends.",
+  title: "slate · never lose a good recommendation",
+  description: "Save what you want to watch. Share it when you want.",
   openGraph: {
-    title: "slate · your watchlist for films and shows",
-    description:
-      "Save films and shows, track what you're watching, rate what you've seen, and share your Slate profile with friends.",
+    title: "slate · never lose a good recommendation",
+    description: "Save what you want to watch. Share it when you want.",
     type: "website",
   },
 };
