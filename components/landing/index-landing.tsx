@@ -24,29 +24,24 @@ export function IndexLanding() {
             preload
           />
         </Link>
-
-        {SLATE_HOSTED ? (
-          <Link className={styles.headerSignIn} href={signInHref}>
-            Sign in
-          </Link>
-        ) : null}
       </header>
 
       <section className={styles.hero} aria-labelledby="landing-title">
         <div className={styles.heroCopy}>
           <h1 id="landing-title">
-            Never lose a good
-            <br />
-            recommendation again.
+            <span className={styles.headlineLine}>Never lose a good</span>{" "}
+            <span className={styles.headlineLine}>recommendation again.</span>
           </h1>
           <p>Save it. Watch it. Share it.</p>
           <div className={styles.actions}>
             <Link className={styles.primaryAction} href={createHref}>
-              {SLATE_HOSTED ? "Create your Slate" : "Open Slate"}
+              <span>{SLATE_HOSTED ? "Create your Slate" : "Open Slate"}</span>
+              <span className={styles.actionArrow} aria-hidden="true">→</span>
             </Link>
             {SLATE_HOSTED ? (
               <Link className={styles.secondaryAction} href={signInHref}>
-                Sign in
+                <span>Sign in</span>
+                <span className={styles.actionArrow} aria-hidden="true">→</span>
               </Link>
             ) : null}
           </div>
