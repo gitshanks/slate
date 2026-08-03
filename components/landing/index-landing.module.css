@@ -195,9 +195,21 @@
   text-transform: uppercase;
 }
 
-.footer a { display: inline-flex; align-items: center; gap: 4px; color: inherit; transition: color 180ms ease; }
-.footer a:hover { color: rgb(255 255 255 / .72); }
-.footer svg { width: 11px; height: 11px; }
+.footer a {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  color: rgb(255 255 255 / .62);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: .04em;
+  transition: color 180ms ease, transform 180ms cubic-bezier(.2,.8,.2,1);
+}
+.footer a:hover { color: rgb(255 255 255 / .92); transform: translateY(-1px); }
+.footer a:active { transform: scale(.97); }
+.footer svg { width: 13px; height: 13px; }
 
 @keyframes heroEnter {
   from { opacity: 0; transform: translate3d(0, 18px, 0); filter: blur(7px); }
