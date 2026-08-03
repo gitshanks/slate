@@ -94,6 +94,13 @@
   position: absolute;
   inset: 0;
   background:
+    radial-gradient(
+      ellipse clamp(130px, 14vw, 200px) 68px at 50% calc(max(24px, env(safe-area-inset-top)) + 20px),
+      rgb(0 0 0 / .82) 0%,
+      rgb(0 0 0 / .54) 42%,
+      rgb(0 0 0 / .18) 70%,
+      transparent 100%
+    ),
     linear-gradient(to bottom, rgb(0 0 0 / .58), transparent 19%, transparent 77%, rgb(0 0 0 / .66)),
     linear-gradient(to right, rgb(0 0 0 / .32), transparent 12%, transparent 88%, rgb(0 0 0 / .32));
 }
