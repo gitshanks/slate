@@ -66,11 +66,13 @@ export function BottomNav() {
   // remembered tab so the bar shows their origin.
   const activeHref = findCurrentTab(pathname) ?? rememberedTab;
 
-  // Anchor from the stable top edge and let the dynamic viewport define the
-  // device bottom. Keeping scroll listeners and transforms out of this layer
-  // prevents stale iOS viewport measurements from ever stranding the bar.
+  // Use the fixed-position containing block itself instead of a viewport unit.
+  // iOS can leave 100dvh at its keyboard-shrunken value after search closes,
+  // which strands an absolutely-positioned child above the device bottom.
+  // `inset-0` has no cached dynamic measurement: the stable fixed layer owns
+  // both viewport edges and the nav stays pinned to its real bottom edge.
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-40 h-dvh md:hidden">
+    <div className="pointer-events-none fixed inset-0 z-40 md:hidden">
       <nav
         className="pointer-events-auto absolute inset-x-0 bottom-0 glass border-t border-border/60"
         aria-label="Primary"
