@@ -67,7 +67,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <div className={styles.authInner}>
           <p className={styles.eyebrow}>{creating ? "New account" : "Welcome back"}</p>
           <h1 id="auth-title">
-            {creating ? "Create your Slate" : "Sign in to Slate"}
+            {creating ? "Create your slate" : "Sign in to Slate"}
           </h1>
 
           {error ? <LoginError title={error.title} body={error.body} /> : null}

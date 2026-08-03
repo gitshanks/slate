@@ -35,7 +35,7 @@ export function IndexLanding() {
           <p>Save it. Watch it. Share it.</p>
           <div className={styles.actions}>
             <Link className={styles.primaryAction} href={createHref}>
-              {SLATE_HOSTED ? "Create your Slate" : "Open Slate"}
+              {SLATE_HOSTED ? "Create your slate" : "Open Slate"}
             </Link>
             {SLATE_HOSTED ? (
               <Link className={styles.secondaryAction} href={signInHref}>
