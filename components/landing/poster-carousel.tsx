@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { unstable_cache } from "next/cache";
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
@@ -169,11 +168,10 @@ function PosterColumn({
       <div className={styles.track}>
         {[0, 1].map((copyIndex) => (
           <div className={styles.sequence} key={copyIndex}>
-            {posters.map((path, posterIndex) => (
+            {posters.map((path) => (
               <PosterTile
                 key={`${path}-${copyIndex}`}
                 path={path}
-                eager={copyIndex === 0 && posterIndex === 0}
               />
             ))}
           </div>
@@ -183,21 +181,10 @@ function PosterColumn({
   );
 }
 
-function PosterTile({ path, eager }: { path: string; eager: boolean }) {
-  const previewStyle = {
-    "--poster-preview": `url("${posterUrl(path, "w185")}")`,
+function PosterTile({ path }: { path: string }) {
+  const posterStyle = {
+    "--poster-image": `url("${posterUrl(path, "w500")}")`,
   } as CSSProperties;
 
-  return (
-    <div className={styles.poster} style={previewStyle}>
-      <Image
-        src={posterUrl(path, "w780")!}
-        alt=""
-        fill
-        sizes="(max-width: 640px) 29vw, (max-width: 1024px) 17vw, 12vw"
-        loading={eager ? "eager" : "lazy"}
-        className={styles.image}
-      />
-    </div>
-  );
+  return <div className={styles.poster} style={posterStyle} />;
 }
