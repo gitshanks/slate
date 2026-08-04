@@ -4,10 +4,10 @@ import { getAppSession } from "@/lib/app-access";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 
 export const metadata: Metadata = {
-  title: "slate · never lose a good recommendation",
+  title: "slate",
   description: "Save what you want to watch. Share it when you want.",
   openGraph: {
-    title: "slate · never lose a good recommendation",
+    title: "slate",
     description: "Save what you want to watch. Share it when you want.",
     type: "website",
   },
