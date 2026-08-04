@@ -386,7 +386,7 @@ function ReviewState({
         })}
       </div>
 
-      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-10 flex items-center justify-between gap-4 border-t border-border/70 bg-background/95 px-4 py-3 backdrop-blur-xl sm:static sm:px-5 md:bottom-0">
+      <div className="sticky bottom-0 z-10 flex items-center justify-between gap-4 border-t border-border/70 bg-background/95 px-4 py-3 backdrop-blur-xl sm:static sm:px-5">
         <p className="text-xs text-muted-foreground">
           {selectedCount > 0
             ? `${selectedCount} selected`

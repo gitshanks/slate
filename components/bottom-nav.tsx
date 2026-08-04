@@ -66,65 +66,60 @@ export function BottomNav() {
   // remembered tab so the bar shows their origin.
   const activeHref = findCurrentTab(pathname) ?? rememberedTab;
 
-  // Anchor only from the stable top edge and size the layer with the small
-  // viewport. On iOS 26, a fixed bottom edge can intermittently keep the
-  // keyboard-shortened viewport after search closes, which paints the whole
-  // nav above the screen bottom even though its CSS geometry looks correct.
-  // `svh` never follows the keyboard, so the nav's absolute bottom is derived
-  // from one stable, top-anchored screen instead of WebKit's drifting bottom.
+  // This is an ordinary, non-shrinking row in the mobile app shell. The middle
+  // content region scrolls independently, so the bar never uses fixed/sticky
+  // positioning and cannot be stranded by iOS after search closes.
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-40 h-svh md:hidden">
-      <nav
-        className="pointer-events-auto absolute inset-x-0 bottom-0 glass border-t border-border/60"
-        aria-label="Primary"
-        style={{
-          // Lift the inner row above the iOS home indicator AND add a notch
-          // of breathing on top of it. Floor at 1.5rem so Android / desktop
-          // browsers (no safe-area) still get the same generous gap from
-          // the bar's bottom edge to the labels.
-          paddingBottom: "max(calc(env(safe-area-inset-bottom) + 0.5rem), 1.5rem)",
-        }}
-      >
-        <ul className="flex items-stretch px-1 pt-3">
-          {TABS.map((t) => {
-            const active = t.href === activeHref;
-            const Icon = t.icon;
-            return (
-              <li key={t.href} className="relative flex-1">
-                <Link
-                  href={t.href}
-                  prefetch
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "flex flex-col items-center gap-1.5 rounded-md px-1 py-1 text-[11px] font-medium tracking-tight transition-colors",
-                    active
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {/* Sliding top indicator — one bar shared across tabs, Motion
+    <nav
+      className="relative z-40 w-full shrink-0 glass border-t border-border/60 md:hidden"
+      aria-label="Primary"
+      style={{
+        // Lift the inner row above the iOS home indicator AND add a notch
+        // of breathing on top of it. Floor at 1.5rem so Android / desktop
+        // browsers (no safe-area) still get the same generous gap from
+        // the bar's bottom edge to the labels.
+        paddingBottom: "max(calc(env(safe-area-inset-bottom) + 0.5rem), 1.5rem)",
+      }}
+    >
+      <ul className="flex items-stretch px-1 pt-3">
+        {TABS.map((t) => {
+          const active = t.href === activeHref;
+          const Icon = t.icon;
+          return (
+            <li key={t.href} className="relative flex-1">
+              <Link
+                href={t.href}
+                prefetch
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 rounded-md px-1 py-1 text-[11px] font-medium tracking-tight transition-colors",
+                  active
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {/* Sliding top indicator — one bar shared across tabs, Motion
                       glides it to the active tab. */}
-                  {active && (
-                    <motion.span
-                      layoutId="bottomnav-active"
-                      transition={{ duration: DUR.base, ease: EASE }}
-                      className="absolute -top-3 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary"
-                    />
-                  )}
-                  <Icon
-                    className={cn(
-                      "h-[22px] w-[22px] transition-transform",
-                      active && "scale-[1.05]",
-                    )}
-                    aria-hidden
+                {active && (
+                  <motion.span
+                    layoutId="bottomnav-active"
+                    transition={{ duration: DUR.base, ease: EASE }}
+                    className="absolute -top-3 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary"
                   />
-                  <span>{t.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-    </div>
+                )}
+                <Icon
+                  className={cn(
+                    "h-[22px] w-[22px] transition-transform",
+                    active && "scale-[1.05]",
+                  )}
+                  aria-hidden
+                />
+                <span>{t.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }

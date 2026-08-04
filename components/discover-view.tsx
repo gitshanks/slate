@@ -97,9 +97,14 @@ function useChatShellHeight(ref: React.RefObject<HTMLDivElement | null>) {
       const el = ref.current;
       if (!el || getComputedStyle(el).display === "none") return; // desktop
       const viewportBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+      const appScrollArea = el.closest("#app-scroll-area");
+      const contentBottom = appScrollArea
+        ? appScrollArea.getBoundingClientRect().bottom
+        : viewportBottom;
       const top = el.getBoundingClientRect().top;
-      const BOTTOM_RESERVE = 80; // bottom nav + safe area (approx)
-      setHeight(Math.max(260, Math.round(viewportBottom - top - BOTTOM_RESERVE)));
+      setHeight(
+        Math.max(260, Math.round(Math.min(viewportBottom, contentBottom) - top))
+      );
     };
     compute();
     const t = window.setTimeout(compute, 120);
