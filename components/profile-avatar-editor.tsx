@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, LoaderCircle, Trash2, UserRound } from "lucide-react";
+import { LoaderCircle, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
 const MAX_UPLOAD_BYTES = 650 * 1024;
@@ -126,7 +125,7 @@ export function ProfileAvatarEditor({
   const inputRef = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | null>(null);
   const [currentAvatar, setCurrentAvatar] = useState(avatarUrl);
-  const [busy, setBusy] = useState<"upload" | "remove" | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(
     () => () => {
@@ -143,7 +142,7 @@ export function ProfileAvatarEditor({
 
   async function upload(file: File) {
     const previousAvatar = currentAvatar;
-    setBusy("upload");
+    setUploading(true);
 
     try {
       const prepared = await prepareAvatar(file);
@@ -172,48 +171,20 @@ export function ProfileAvatarEditor({
           : "We couldn't save that profile photo."
       );
     } finally {
-      setBusy(null);
+      setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
 
-  async function remove() {
-    const previousAvatar = currentAvatar;
-    setBusy("remove");
-    try {
-      const response = await fetch("/api/profile/avatar", { method: "DELETE" });
-      const result = await responseMessage(
-        response,
-        "We couldn't remove that profile photo."
-      );
-      if (!response.ok) throw new Error(result.message);
-
-      replaceObjectUrl(null);
-      toast.success("Profile photo removed.");
-      router.refresh();
-    } catch (error) {
-      replaceObjectUrl(previousAvatar);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "We couldn't remove that profile photo."
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  const uploading = busy === "upload";
-  const removing = busy === "remove";
-
   return (
-    <div className="flex shrink-0 flex-col items-center gap-3">
+    <div className="shrink-0">
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        disabled={busy !== null}
+        disabled={uploading}
         aria-label={currentAvatar ? "Change profile photo" : "Add profile photo"}
-        className="group relative h-[5.5rem] w-[5.5rem] overflow-hidden rounded-[1.6rem] border border-border bg-background text-muted-foreground outline-none transition-[border-color,transform] hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-[0.98] disabled:pointer-events-none sm:h-24 sm:w-24 lg:h-28 lg:w-28 lg:rounded-[2rem]"
+        title={currentAvatar ? "Change profile photo" : "Add profile photo"}
+        className="relative h-[5.25rem] w-[5.25rem] overflow-hidden rounded-[1.55rem] border border-border/80 bg-background text-muted-foreground outline-none transition-[border-color,opacity,transform] hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-[0.98] disabled:pointer-events-none sm:h-24 sm:w-24 sm:rounded-[1.75rem]"
       >
         {currentAvatar ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -228,23 +199,11 @@ export function ProfileAvatarEditor({
             <UserRound className="h-8 w-8" />
           </span>
         )}
-        <span
-          className={cn(
-            "absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition-[background-color,opacity] group-hover:bg-black/45 group-hover:opacity-100 group-focus-visible:bg-black/45 group-focus-visible:opacity-100",
-            uploading && "bg-black/55 opacity-100"
-          )}
-        >
-          {uploading ? (
+        {uploading ? (
+          <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-white">
             <LoaderCircle className="loading-spinner h-6 w-6" />
-          ) : (
-            <Camera className="h-6 w-6" />
-          )}
-        </span>
-        {!uploading && (
-          <span className="absolute right-1.5 bottom-1.5 flex h-7 w-7 items-center justify-center rounded-xl border border-background/70 bg-foreground text-background shadow-sm group-hover:opacity-0 group-focus-visible:opacity-0">
-            <Camera className="h-3.5 w-3.5" />
           </span>
-        )}
+        ) : null}
       </button>
 
       <input
@@ -257,40 +216,6 @@ export function ProfileAvatarEditor({
           if (file) void upload(file);
         }}
       />
-
-      <div className="flex h-5 items-center justify-center gap-2.5">
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={busy !== null}
-          className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-        >
-          {uploading ? (
-            <LoaderCircle className="loading-spinner h-2.5 w-2.5" />
-          ) : (
-            <Camera className="h-2.5 w-2.5" />
-          )}
-          {uploading ? "Uploading" : "Change photo"}
-        </button>
-        {currentAvatar ? (
-          <>
-            <span className="h-3 w-px bg-border" aria-hidden />
-            <button
-              type="button"
-              onClick={() => void remove()}
-              disabled={busy !== null}
-              className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-            >
-              {removing ? (
-                <LoaderCircle className="loading-spinner h-2.5 w-2.5" />
-              ) : (
-                <Trash2 className="h-2.5 w-2.5" />
-              )}
-              {removing ? "Removing" : "Remove"}
-            </button>
-          </>
-        ) : null}
-      </div>
     </div>
   );
 }

@@ -1,18 +1,13 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import {
-  Check,
-  Copy,
-  ExternalLink,
-  Globe2,
-  Lock,
-} from "lucide-react";
+import { Check, Copy, ExternalLink, Globe2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import {
   updateProfile,
   type ProfileActionState,
 } from "@/lib/profile-actions";
+import { ProfileAvatarEditor } from "@/components/profile-avatar-editor";
 import { cn } from "@/lib/utils";
 
 export function ProfileSettingsForm({
@@ -20,11 +15,13 @@ export function ProfileSettingsForm({
   username,
   isPublic,
   origin,
+  avatarUrl,
 }: {
   displayName: string;
   username: string;
   isPublic: boolean;
   origin: string;
+  avatarUrl: string | null;
 }) {
   const [state, action, pending] = useActionState(updateProfile, {
     ok: false,
@@ -41,8 +38,6 @@ export function ProfileSettingsForm({
   const [draftUsername, setDraftUsername] = useState(savedUsername);
   const [publicEnabled, setPublicEnabled] = useState(savedPublic);
   const publicUrl = `${origin}/u/${savedUsername}`;
-  const displayOrigin = origin.replace(/^https?:\/\/(?:www\.)?/, "");
-  const draftPublicUrl = `${displayOrigin}/u/${draftUsername || "username"}`;
   const hasChanges =
     draftDisplayName !== savedDisplayName ||
     draftUsername !== savedUsername ||
@@ -62,30 +57,30 @@ export function ProfileSettingsForm({
 
   return (
     <form action={action} className="space-y-5">
-      <section className="rounded-[1.5rem] border border-border/70 bg-card/55 p-5 shadow-[0_22px_70px_-58px_hsl(var(--foreground)/0.42)] sm:p-6">
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">Identity</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              The name and address friends will recognize.
-            </p>
-          </div>
-          <span className="pt-1 font-mono text-[10px] tracking-[0.16em] text-muted-foreground/60">
-            01
-          </span>
-        </header>
+      <section className="rounded-[1.75rem] border border-border/70 bg-card/55 p-5 shadow-[0_24px_80px_-62px_hsl(var(--foreground)/0.5)] sm:p-7">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <ProfileAvatarEditor
+            avatarUrl={avatarUrl}
+            displayName={draftDisplayName || displayName}
+          />
 
-        <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="display-name"
-              className="text-xs font-medium text-foreground"
-            >
+          <div className="min-w-0 flex-1">
+            <div className="mb-1.5 flex items-center gap-2">
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 shrink-0 rounded-full",
+                  publicEnabled ? "bg-success" : "bg-muted-foreground/55"
+                )}
+                aria-hidden
+              />
+              <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                {publicEnabled ? "Public" : "Private"}
+              </span>
+            </div>
+
+            <label htmlFor="display-name" className="sr-only">
               Display name
             </label>
-            <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
-              Shown at the top of your shared profile.
-            </p>
             <input
               id="display-name"
               name="displayName"
@@ -100,22 +95,15 @@ export function ProfileSettingsForm({
               maxLength={60}
               required
               autoComplete="name"
-              className="mt-3 h-12 w-full rounded-xl border border-border bg-background/55 px-3.5 text-sm font-medium outline-none transition-[border-color,box-shadow,background-color] focus:border-primary/60 focus:bg-background focus:ring-2 focus:ring-primary/15"
+              aria-label="Display name"
+              className="-mx-2 block h-10 w-[calc(100%+1rem)] truncate rounded-lg border border-transparent bg-transparent px-2 text-[1.65rem] font-semibold leading-none tracking-[-0.045em] outline-none transition-[border-color,background-color,box-shadow] hover:bg-background/35 focus:border-border/80 focus:bg-background/65 focus:ring-2 focus:ring-primary/10 sm:h-12 sm:text-[2rem]"
             />
-          </div>
 
-          <div>
-            <label
-              htmlFor="username"
-              className="text-xs font-medium text-foreground"
-            >
+            <label htmlFor="username" className="sr-only">
               Username
             </label>
-            <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
-              Lowercase letters, numbers, and hyphens.
-            </p>
-            <div className="relative mt-3">
-              <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center font-mono text-sm text-muted-foreground">
+            <div className="-mx-2 mt-0.5 flex h-8 max-w-full items-center rounded-lg border border-transparent px-2 text-muted-foreground transition-[border-color,background-color,box-shadow] focus-within:border-border/80 focus-within:bg-background/65 focus-within:ring-2 focus-within:ring-primary/10 hover:bg-background/35 sm:mt-1">
+              <span className="shrink-0 font-mono text-sm" aria-hidden>
                 @
               </span>
               <input
@@ -134,37 +122,18 @@ export function ProfileSettingsForm({
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
-                className="h-12 w-full rounded-xl border border-border bg-background/55 pr-3.5 pl-8 font-mono text-sm outline-none transition-[border-color,box-shadow,background-color] focus:border-primary/60 focus:bg-background focus:ring-2 focus:ring-primary/15"
+                aria-label="Username"
+                className="min-w-0 flex-1 bg-transparent font-mono text-sm text-muted-foreground outline-none"
               />
             </div>
           </div>
         </div>
 
-        <div className="mt-5 border-t border-border/70 pt-4">
-          <p className="text-[10px] font-medium uppercase tracking-[0.13em] text-muted-foreground">
-            Profile address
-          </p>
-          <p className="mt-1.5 truncate font-mono text-[11px] text-foreground/75">
-            {draftPublicUrl}
-          </p>
-        </div>
       </section>
 
-      <section className="rounded-[1.5rem] border border-border/70 bg-card/55 p-5 shadow-[0_22px_70px_-58px_hsl(var(--foreground)/0.42)] sm:p-6">
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">Sharing</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Decide whether friends can browse your shelves.
-            </p>
-          </div>
-          <span className="pt-1 font-mono text-[10px] tracking-[0.16em] text-muted-foreground/60">
-            02
-          </span>
-        </header>
-
-        <label className="mt-6 flex cursor-pointer items-center gap-3 border-y border-border/70 py-5 sm:gap-4">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-muted-foreground">
+      <section className="overflow-hidden rounded-[1.5rem] border border-border/70 bg-card/45">
+        <label className="flex cursor-pointer items-center gap-3 p-5 sm:gap-4 sm:p-6">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background/70 text-muted-foreground">
             {publicEnabled ? (
               <Globe2 className="h-[18px] w-[18px] text-primary" />
             ) : (
@@ -173,12 +142,12 @@ export function ProfileSettingsForm({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium">
-              {publicEnabled ? "Public profile" : "Private profile"}
+              Share your slate
             </span>
             <span className="mt-1 block text-[11px] leading-5 text-muted-foreground sm:text-xs">
               {publicEnabled
-                ? "Anyone with your link can browse Watchlist, Watching, and Watched."
-                : "Your shelves are visible only to you."}
+                ? "Anyone with the link can browse your shelves."
+                : "Only you can see your shelves."}
             </span>
           </span>
           <span className="relative inline-flex shrink-0">
@@ -194,32 +163,19 @@ export function ProfileSettingsForm({
           </span>
         </label>
 
-        <div className="mt-5">
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-medium">Public link</p>
-              <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
-                {savedPublic
-                  ? publicEnabled
-                    ? "Your saved link is live."
-                    : "This link stays live until you save your changes."
-                  : publicEnabled
-                    ? "Save your changes to make this link live."
-                    : "Publish your profile to create a shareable link."}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-3 grid grid-cols-[minmax(0,1fr)_2.75rem] gap-2">
+        <div className="border-t border-border/60 p-3 sm:p-4">
+          <div className="grid grid-cols-[minmax(0,1fr)_2.75rem] gap-2">
             <button
               type="button"
               onClick={copyLink}
               disabled={!savedPublic}
-              aria-label={copied ? "Public profile link copied" : "Copy public profile link"}
+              aria-label={
+                copied ? "Public profile link copied" : "Copy public profile link"
+              }
               className={cn(
-                "inline-flex h-11 min-w-0 items-center justify-start gap-2 rounded-xl border border-border bg-background/45 px-3.5 text-left text-xs font-medium transition-[background-color,border-color,transform] active:scale-[0.99]",
+                "inline-flex h-11 min-w-0 items-center justify-start gap-2 rounded-xl bg-background/55 px-3.5 text-left text-xs font-medium transition-[background-color,opacity,transform] active:scale-[0.99]",
                 savedPublic
-                  ? "hover:border-primary/30 hover:bg-background"
+                  ? "hover:bg-background"
                   : "cursor-not-allowed text-muted-foreground opacity-45"
               )}
             >
@@ -242,14 +198,14 @@ export function ProfileSettingsForm({
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Open public profile"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background/45 transition-[background-color,border-color,transform] hover:border-primary/30 hover:bg-background active:scale-[0.97]"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-background/55 transition-[background-color,transform] hover:bg-background active:scale-[0.97]"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             ) : (
               <span
                 aria-hidden
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background/25 text-muted-foreground opacity-45"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-background/25 text-muted-foreground opacity-45"
               >
                 <Lock className="h-3.5 w-3.5" />
               </span>
