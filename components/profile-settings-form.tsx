@@ -323,28 +323,23 @@ export function ProfileSettingsForm({
       </section>
 
       <div className="flex h-5 items-center justify-end px-1">
-        <p
-          className={cn(
-            "inline-flex items-center gap-1.5 text-[11px] text-muted-foreground transition-opacity",
-            !pending && !hasChanges && "text-muted-foreground/70"
-          )}
-          aria-live="polite"
-        >
-          {pending || (hasChanges && draftIsValid && !saveFailed) ? (
-            <LoaderCircle className="loading-spinner h-3 w-3" />
-          ) : !hasChanges ? (
-            <Check className="h-3 w-3" />
-          ) : null}
-          {pending
-            ? "Saving…"
-            : hasChanges
-              ? draftIsValid
+        {pending || hasChanges ? (
+          <p
+            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground transition-opacity"
+            aria-live="polite"
+          >
+            {pending || (draftIsValid && !saveFailed) ? (
+              <LoaderCircle className="loading-spinner h-3 w-3" />
+            ) : null}
+            {pending
+              ? "Saving…"
+              : draftIsValid
                 ? saveFailed
                   ? "Couldn't save"
                   : "Saving…"
-                : "Finish editing to save"
-              : "Saved"}
-        </p>
+                : "Finish editing to save"}
+          </p>
+        ) : null}
       </div>
     </form>
   );
