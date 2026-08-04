@@ -9,13 +9,19 @@ interface FilteredGridProps {
   allTitles: TitleRow[];
   status: Exclude<TitleStatus, "dropped">;
   readOnly?: boolean;
+  titleHrefBase?: string;
 }
 
 /**
  * Client component — reads URL search params and filters/sorts the full title
  * list in memory. Filter changes are instant: no server roundtrip, no skeleton.
  */
-export function FilteredGrid({ allTitles, status, readOnly = false }: FilteredGridProps) {
+export function FilteredGrid({
+  allTitles,
+  status,
+  readOnly = false,
+  titleHrefBase,
+}: FilteredGridProps) {
   const sp = useSearchParams();
   const params = {
     type: sp.get("type") ?? undefined,
@@ -41,6 +47,7 @@ export function FilteredGrid({ allTitles, status, readOnly = false }: FilteredGr
     <MediaGrid
       titles={titles}
       readOnly={readOnly}
+      titleHrefBase={titleHrefBase}
       reorderContext={
         readOnly || params.sort
           ? undefined

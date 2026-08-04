@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, Clock, Eye, Film, UserRound } from "lucide-react";
@@ -80,37 +79,7 @@ export default async function PublicProfilePage({
   const result = shelves[activeId];
 
   return (
-    <>
-      <header className="border-b border-border/60">
-        <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
-          <Link href="/" aria-label="slate home" className="flex items-center">
-            <Image
-              src="/brand/logo-light.svg"
-              alt="slate"
-              width={62}
-              height={17}
-              priority
-              className="hidden h-[17px] w-auto dark:block"
-            />
-            <Image
-              src="/brand/logo-dark.svg"
-              alt="slate"
-              width={62}
-              height={17}
-              priority
-              className="h-[17px] w-auto dark:hidden"
-            />
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex h-9 items-center rounded-full border border-border bg-card px-3.5 text-xs font-medium transition-colors hover:bg-accent sm:px-4 sm:text-sm"
-          >
-            Make your own
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-[1600px] px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-10 lg:pt-12">
+    <main className="mx-auto w-full max-w-[1600px] px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-10 lg:pt-12">
         <section className="grid grid-cols-[4rem_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-5">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -195,11 +164,11 @@ export default async function PublicProfilePage({
                 allTitles={result.titles}
                 status={active.status}
                 readOnly
+                titleHrefBase={`/u/${profile.username}/title`}
               />
             </Suspense>
           )}
         </div>
-      </main>
-    </>
+    </main>
   );
 }

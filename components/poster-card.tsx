@@ -33,6 +33,7 @@ interface PosterCardProps {
   dragPreview?: boolean;
   suppressLongPressMenu?: boolean;
   readOnly?: boolean;
+  href?: string;
 }
 
 export function PosterCard({
@@ -41,6 +42,7 @@ export function PosterCard({
   dragPreview = false,
   suppressLongPressMenu = false,
   readOnly = false,
+  href,
 }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
@@ -167,11 +169,13 @@ export function PosterCard({
     suppressLongPressMenu && "suppress-touch-callout"
   );
 
-  if (readOnly) return <div className={className}>{content}</div>;
+  const targetHref = href ?? (readOnly ? null : `/title/${title.id}`);
+
+  if (!targetHref) return <div className={className}>{content}</div>;
 
   return (
     <Link
-      href={`/title/${title.id}`}
+      href={targetHref}
       prefetch
       draggable={false}
       onContextMenu={
