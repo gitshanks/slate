@@ -187,8 +187,9 @@
   justify-content: space-between;
   color: rgb(255 255 255 / .28);
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 9px;
-  letter-spacing: .08em;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: .04em;
   text-transform: uppercase;
 }
 
@@ -199,9 +200,6 @@
   gap: 6px;
   padding: 8px 0;
   color: rgb(255 255 255 / .62);
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: .04em;
   transition: color 180ms ease, transform 180ms cubic-bezier(.2,.8,.2,1);
 }
 .footer a:hover { color: rgb(255 255 255 / .92); transform: translateY(-1px); }
