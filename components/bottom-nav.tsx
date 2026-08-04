@@ -66,13 +66,14 @@ export function BottomNav() {
   // remembered tab so the bar shows their origin.
   const activeHref = findCurrentTab(pathname) ?? rememberedTab;
 
-  // Use the fixed-position containing block itself instead of a viewport unit.
-  // iOS can leave 100dvh at its keyboard-shrunken value after search closes,
-  // which strands an absolutely-positioned child above the device bottom.
-  // `inset-0` has no cached dynamic measurement: the stable fixed layer owns
-  // both viewport edges and the nav stays pinned to its real bottom edge.
+  // Anchor only from the stable top edge and size the layer with the small
+  // viewport. On iOS 26, a fixed bottom edge can intermittently keep the
+  // keyboard-shortened viewport after search closes, which paints the whole
+  // nav above the screen bottom even though its CSS geometry looks correct.
+  // `svh` never follows the keyboard, so the nav's absolute bottom is derived
+  // from one stable, top-anchored screen instead of WebKit's drifting bottom.
   return (
-    <div className="pointer-events-none fixed inset-0 z-40 md:hidden">
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-40 h-svh md:hidden">
       <nav
         className="pointer-events-auto absolute inset-x-0 bottom-0 glass border-t border-border/60"
         aria-label="Primary"
