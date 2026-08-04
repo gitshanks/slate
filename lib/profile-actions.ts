@@ -11,6 +11,7 @@ export interface ProfileActionState {
   displayName?: string;
   username?: string;
   isPublic?: boolean;
+  attemptSnapshot?: string;
 }
 
 const USERNAME = /^[a-z0-9][a-z0-9-]{2,29}$/;
@@ -21,10 +22,6 @@ export async function updateProfile(
   _previous: ProfileActionState,
   formData: FormData
 ): Promise<ProfileActionState> {
-  const ownerId = await getLibraryOwnerId();
-  const current = await getProfileById(ownerId);
-  if (!current) return { ok: false, message: "Profile not found." };
-
   const displayName = String(formData.get("displayName") ?? "")
     .replace(/\s+/g, " ")
     .trim();
@@ -32,6 +29,16 @@ export async function updateProfile(
     .trim()
     .toLowerCase();
   const isPublic = formData.get("isPublic") === "on";
+  const attemptSnapshot = JSON.stringify([displayName, username, isPublic]);
+  const ownerId = await getLibraryOwnerId();
+  const current = await getProfileById(ownerId);
+  if (!current) {
+    return {
+      ok: false,
+      message: "Profile not found.",
+      attemptSnapshot,
+    };
+  }
 
   const currentState = {
     displayName: current.display_name,
@@ -46,6 +53,7 @@ export async function updateProfile(
     return {
       ok: false,
       message: "Use a display name between 2 and 60 characters.",
+      attemptSnapshot,
       ...currentState,
     };
   }
@@ -54,6 +62,7 @@ export async function updateProfile(
     return {
       ok: false,
       message: "Use 3–30 lowercase letters, numbers, or hyphens.",
+      attemptSnapshot,
       ...currentState,
     };
   }
@@ -76,6 +85,7 @@ export async function updateProfile(
       message: error.message.toLowerCase().includes("duplicate")
         ? "That profile URL is already taken."
         : error.message,
+      attemptSnapshot,
       ...currentState,
     };
   }
@@ -89,5 +99,6 @@ export async function updateProfile(
     displayName,
     username,
     isPublic,
+    attemptSnapshot,
   };
 }

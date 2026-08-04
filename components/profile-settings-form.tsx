@@ -1,7 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { Check, Copy, ExternalLink, Globe2, Lock } from "lucide-react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  Globe2,
+  LoaderCircle,
+  Lock,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   updateProfile,
@@ -9,6 +16,12 @@ import {
 } from "@/lib/profile-actions";
 import { ProfileAvatarEditor } from "@/components/profile-avatar-editor";
 import { cn } from "@/lib/utils";
+
+const USERNAME = /^[a-z0-9][a-z0-9-]{2,29}$/;
+
+function normalizeDisplayName(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
 
 export function ProfileSettingsForm({
   displayName,
@@ -23,6 +36,8 @@ export function ProfileSettingsForm({
   origin: string;
   avatarUrl: string | null;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const lastAttemptRef = useRef("");
   const [state, action, pending] = useActionState(updateProfile, {
     ok: false,
     message: "",
@@ -37,17 +52,80 @@ export function ProfileSettingsForm({
   const [draftDisplayName, setDraftDisplayName] = useState(displayName);
   const [draftUsername, setDraftUsername] = useState(savedUsername);
   const [publicEnabled, setPublicEnabled] = useState(savedPublic);
+  const normalizedDisplayName = normalizeDisplayName(draftDisplayName);
   const publicUrl = `${origin}/u/${savedUsername}`;
   const hasChanges =
-    draftDisplayName !== savedDisplayName ||
+    normalizedDisplayName !== savedDisplayName ||
     draftUsername !== savedUsername ||
     publicEnabled !== savedPublic;
+  const draftIsValid =
+    normalizedDisplayName.length >= 2 &&
+    normalizedDisplayName.length <= 60 &&
+    USERNAME.test(draftUsername);
+  const draftSnapshot = JSON.stringify([
+    normalizedDisplayName,
+    draftUsername,
+    publicEnabled,
+  ]);
+  const savedSnapshot = JSON.stringify([
+    savedDisplayName,
+    savedUsername,
+    savedPublic,
+  ]);
+  const saveFailed =
+    Boolean(state.message) &&
+    !state.ok &&
+    state.attemptSnapshot === draftSnapshot;
 
   useEffect(() => {
     if (!state.message) return;
-    if (state.ok) toast.success(state.message);
-    else toast.error(state.message);
+    if (!state.ok) toast.error(state.message);
   }, [state]);
+
+  useEffect(() => {
+    if (
+      !draftIsValid ||
+      draftSnapshot === savedSnapshot ||
+      draftSnapshot === lastAttemptRef.current
+    ) {
+      return;
+    }
+
+    const delay = publicEnabled !== savedPublic ? 0 : 650;
+    const timeout = window.setTimeout(() => {
+      const form = formRef.current;
+      if (!form || !form.checkValidity()) return;
+      lastAttemptRef.current = draftSnapshot;
+      form.requestSubmit();
+    }, delay);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    draftIsValid,
+    draftSnapshot,
+    publicEnabled,
+    savedPublic,
+    savedSnapshot,
+  ]);
+
+  function requestSave(
+    form: HTMLFormElement | null,
+    snapshot: string,
+    valid = draftIsValid
+  ) {
+    if (
+      !valid ||
+      !form ||
+      snapshot === savedSnapshot ||
+      snapshot === lastAttemptRef.current ||
+      !form.checkValidity()
+    ) {
+      return;
+    }
+
+    lastAttemptRef.current = snapshot;
+    form.requestSubmit();
+  }
 
   async function copyLink() {
     await navigator.clipboard.writeText(publicUrl);
@@ -56,7 +134,7 @@ export function ProfileSettingsForm({
   }
 
   return (
-    <form action={action} className="space-y-5">
+    <form ref={formRef} action={action} className="space-y-5">
       <section className="rounded-[1.75rem] border border-border/70 bg-card/55 p-5 shadow-[0_24px_80px_-62px_hsl(var(--foreground)/0.5)] sm:p-7">
         <div className="flex items-center gap-4 sm:gap-6">
           <ProfileAvatarEditor
@@ -86,11 +164,20 @@ export function ProfileSettingsForm({
               name="displayName"
               value={draftDisplayName}
               onChange={(event) => setDraftDisplayName(event.target.value)}
-              onBlur={(event) =>
-                setDraftDisplayName(
-                  event.target.value.replace(/\s+/g, " ").trim()
-                )
-              }
+              onBlur={(event) => {
+                const nextDisplayName = normalizeDisplayName(event.target.value);
+                const valid =
+                  nextDisplayName.length >= 2 &&
+                  nextDisplayName.length <= 60 &&
+                  USERNAME.test(draftUsername);
+                const snapshot = JSON.stringify([
+                  nextDisplayName,
+                  draftUsername,
+                  publicEnabled,
+                ]);
+                setDraftDisplayName(nextDisplayName);
+                requestSave(event.currentTarget.form, snapshot, valid);
+              }}
               minLength={2}
               maxLength={60}
               required
@@ -115,6 +202,19 @@ export function ProfileSettingsForm({
                     event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")
                   )
                 }
+                onBlur={(event) => {
+                  const nextUsername = event.currentTarget.value;
+                  const valid =
+                    normalizedDisplayName.length >= 2 &&
+                    normalizedDisplayName.length <= 60 &&
+                    USERNAME.test(nextUsername);
+                  const snapshot = JSON.stringify([
+                    normalizedDisplayName,
+                    nextUsername,
+                    publicEnabled,
+                  ]);
+                  requestSave(event.currentTarget.form, snapshot, valid);
+                }}
                 minLength={3}
                 maxLength={30}
                 pattern="[a-z0-9][a-z0-9-]{2,29}"
@@ -128,7 +228,6 @@ export function ProfileSettingsForm({
             </div>
           </div>
         </div>
-
       </section>
 
       <section className="overflow-hidden rounded-[1.5rem] border border-border/70 bg-card/45">
@@ -155,7 +254,16 @@ export function ProfileSettingsForm({
               type="checkbox"
               name="isPublic"
               checked={publicEnabled}
-              onChange={(event) => setPublicEnabled(event.target.checked)}
+              onChange={(event) => {
+                const nextPublic = event.currentTarget.checked;
+                const snapshot = JSON.stringify([
+                  normalizedDisplayName,
+                  draftUsername,
+                  nextPublic,
+                ]);
+                setPublicEnabled(nextPublic);
+                requestSave(event.currentTarget.form, snapshot);
+              }}
               className="peer sr-only"
             />
             <span className="h-6 w-10 rounded-full bg-muted shadow-inner transition-colors duration-200 peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background" />
@@ -214,27 +322,29 @@ export function ProfileSettingsForm({
         </div>
       </section>
 
-      <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[11px] text-muted-foreground" aria-live="polite">
-          {pending
-            ? "Saving your changes…"
-            : hasChanges
-              ? "You have unsaved changes."
-              : "Everything is up to date."}
-        </p>
-        <button
-          type="submit"
-          disabled={pending || !hasChanges}
+      <div className="flex h-5 items-center justify-end px-1">
+        <p
           className={cn(
-            "inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition-[background-color,border-color,color,opacity,transform] active:scale-[0.98] disabled:cursor-default sm:w-auto",
-            hasChanges || pending
-              ? "bg-foreground text-background"
-              : "border border-border/80 bg-transparent text-muted-foreground"
+            "inline-flex items-center gap-1.5 text-[11px] text-muted-foreground transition-opacity",
+            !pending && !hasChanges && "text-muted-foreground/70"
           )}
+          aria-live="polite"
         >
-          {!pending && !hasChanges ? <Check className="h-4 w-4" /> : null}
-          {pending ? "Saving…" : hasChanges ? "Save changes" : "Saved"}
-        </button>
+          {pending || (hasChanges && draftIsValid && !saveFailed) ? (
+            <LoaderCircle className="loading-spinner h-3 w-3" />
+          ) : !hasChanges ? (
+            <Check className="h-3 w-3" />
+          ) : null}
+          {pending
+            ? "Saving…"
+            : hasChanges
+              ? draftIsValid
+                ? saveFailed
+                  ? "Couldn't save"
+                  : "Saving…"
+                : "Finish editing to save"
+              : "Saved"}
+        </p>
       </div>
     </form>
   );
