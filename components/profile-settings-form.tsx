@@ -143,17 +143,36 @@ export function ProfileSettingsForm({
           />
 
           <div className="min-w-0 flex-1">
-            <div className="mb-1.5 flex items-center gap-2">
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 shrink-0 rounded-full",
-                  publicEnabled ? "bg-success" : "bg-muted-foreground/55"
-                )}
-                aria-hidden
-              />
-              <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                {publicEnabled ? "Public" : "Private"}
+            <div className="mb-1.5 flex min-h-4 items-center justify-between gap-3">
+              <span className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 shrink-0 rounded-full",
+                    publicEnabled ? "bg-success" : "bg-muted-foreground/55"
+                  )}
+                  aria-hidden
+                />
+                <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  {publicEnabled ? "Public" : "Private"}
+                </span>
               </span>
+              {pending || hasChanges ? (
+                <span
+                  className="inline-flex shrink-0 items-center gap-1.5 text-[10px] text-muted-foreground"
+                  aria-live="polite"
+                >
+                  {pending || (draftIsValid && !saveFailed) ? (
+                    <LoaderCircle className="loading-spinner h-3 w-3" />
+                  ) : null}
+                  {pending
+                    ? "Saving…"
+                    : draftIsValid
+                      ? saveFailed
+                        ? "Couldn't save"
+                        : "Saving…"
+                      : "Finish editing"}
+                </span>
+              ) : null}
             </div>
 
             <label htmlFor="display-name" className="sr-only">
@@ -322,25 +341,6 @@ export function ProfileSettingsForm({
         </div>
       </section>
 
-      <div className="flex h-5 items-center justify-end px-1">
-        {pending || hasChanges ? (
-          <p
-            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground transition-opacity"
-            aria-live="polite"
-          >
-            {pending || (draftIsValid && !saveFailed) ? (
-              <LoaderCircle className="loading-spinner h-3 w-3" />
-            ) : null}
-            {pending
-              ? "Saving…"
-              : draftIsValid
-                ? saveFailed
-                  ? "Couldn't save"
-                  : "Saving…"
-                : "Finish editing to save"}
-          </p>
-        ) : null}
-      </div>
     </form>
   );
 }

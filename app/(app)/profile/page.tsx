@@ -44,7 +44,7 @@ export default async function ProfilePage() {
         </p>
       </header>
 
-      <div className="mt-7 min-w-0 space-y-7 sm:mt-9">
+      <div className="mt-7 min-w-0 sm:mt-9">
         <ProfileSettingsForm
           displayName={profile.display_name}
           username={profile.username}
@@ -53,28 +53,21 @@ export default async function ProfilePage() {
           avatarUrl={avatarUrl}
         />
 
-        <section className="flex flex-col gap-4 border-t border-border/70 px-1 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold">Account</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Sign out of slate on this device.
-            </p>
-          </div>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/" });
-            }}
+        <form
+          action={async () => {
+            "use server";
+            await signOut({ redirectTo: "/" });
+          }}
+          className="mt-5 flex justify-end"
+        >
+          <button
+            type="submit"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border/70 bg-card/35 px-4 text-xs font-medium text-muted-foreground transition-[background-color,border-color,color,transform] hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive active:scale-[0.98] sm:w-auto"
           >
-            <button
-              type="submit"
-              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-border/80 px-4 text-xs font-medium text-muted-foreground transition-[background-color,border-color,color,transform] hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive active:scale-[0.98] sm:w-auto"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign out
-            </button>
-          </form>
-        </section>
+            <LogOut className="h-3.5 w-3.5" />
+            Sign out
+          </button>
+        </form>
       </div>
     </div>
   );
