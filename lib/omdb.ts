@@ -8,6 +8,7 @@ export interface OmdbRatings {
   imdb_votes: number | null;
   rt_score: number | null;
   metacritic_score: number | null;
+  omdb_plot: string | null;
 }
 
 const EMPTY: OmdbRatings = {
@@ -15,6 +16,7 @@ const EMPTY: OmdbRatings = {
   imdb_votes: null,
   rt_score: null,
   metacritic_score: null,
+  omdb_plot: null,
 };
 
 interface OmdbResponse {
@@ -22,6 +24,7 @@ interface OmdbResponse {
   imdbRating?: string;
   imdbVotes?: string;
   Metascore?: string;
+  Plot?: string;
   Ratings?: { Source: string; Value: string }[];
 }
 
@@ -31,7 +34,8 @@ function parseNumber(value: string | undefined): number {
 }
 
 /**
- * Fetch IMDB rating + Rotten Tomatoes Tomatometer + Metacritic by IMDB ID.
+ * Fetch the full OMDb plot plus IMDb rating, Rotten Tomatoes Tomatometer,
+ * and Metacritic by IMDb ID.
  * Returns nulls (never throws) so callers can store partial data.
  *
  * Cached for 24h — these scores barely move and OMDB's free tier is 1k/day.
@@ -41,7 +45,11 @@ function parseNumber(value: string | undefined): number {
  * IMDB id, network blip, etc. The function still resolves to nulls so the
  * write path keeps working — addTitle never throws over a missing rating.
  */
-export async function getOmdbRatings(imdbId: string): Promise<OmdbRatings> {
+export function isOmdbConfigured(): boolean {
+  return Boolean(KEY?.trim());
+}
+
+export async function getOmdbMetadata(imdbId: string): Promise<OmdbRatings> {
   if (!KEY) {
     console.warn("[omdb] OMDB_API_KEY not set — skipping ratings fetch");
     return EMPTY;
@@ -51,6 +59,7 @@ export async function getOmdbRatings(imdbId: string): Promise<OmdbRatings> {
   const url = new URL(OMDB_BASE);
   url.searchParams.set("apikey", KEY);
   url.searchParams.set("i", imdbId);
+  url.searchParams.set("plot", "full");
   url.searchParams.set("tomatoes", "true");
 
   let json: OmdbResponse & { Error?: string };
@@ -109,5 +118,9 @@ export async function getOmdbRatings(imdbId: string): Promise<OmdbRatings> {
     rt_score: Number.isFinite(rt_score) && rt_score >= 0 ? rt_score : null,
     metacritic_score:
       Number.isFinite(metacritic) && metacritic >= 0 ? metacritic : null,
+    omdb_plot:
+      typeof json.Plot === "string" && json.Plot !== "N/A"
+        ? json.Plot.replace(/\s+/g, " ").trim().slice(0, 8_000) || null
+        : null,
   };
 }

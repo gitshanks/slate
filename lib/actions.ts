@@ -7,7 +7,7 @@ import { type TitleRow, type TitleStatus } from "@/lib/supabase";
 import { getLibraryClient } from "@/lib/library-db";
 import { APP_ROOT } from "@/lib/public-mode";
 import { getMovie, getTv, normalizeForStorage } from "@/lib/tmdb";
-import { getOmdbRatings } from "@/lib/omdb";
+import { getOmdbMetadata, isOmdbConfigured } from "@/lib/omdb";
 import { slugify } from "@/lib/utils";
 
 async function nextStatusPosition(
@@ -50,14 +50,24 @@ export async function addTitle(input: {
     input.mediaType === "movie" ? await getMovie(input.tmdbId) : await getTv(input.tmdbId);
   const normalized = normalizeForStorage(input.mediaType, detail);
   const omdb = normalized.imdb_id
-    ? await getOmdbRatings(normalized.imdb_id)
-    : { imdb_rating: null, imdb_votes: null, rt_score: null, metacritic_score: null };
+    ? await getOmdbMetadata(normalized.imdb_id)
+    : {
+        imdb_rating: null,
+        imdb_votes: null,
+        rt_score: null,
+        metacritic_score: null,
+        omdb_plot: null,
+      };
 
   const status = input.status ?? "want";
   const position = await nextStatusPosition(db, status);
   const patch: Record<string, unknown> = {
     ...normalized,
     ...omdb,
+    omdb_plot_fetched_at:
+      normalized.imdb_id && isOmdbConfigured()
+        ? new Date().toISOString()
+        : null,
     ratings_fetched_at:
       omdb.imdb_rating != null ||
       omdb.rt_score != null ||

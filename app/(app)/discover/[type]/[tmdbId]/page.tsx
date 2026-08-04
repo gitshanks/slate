@@ -9,7 +9,7 @@ import {
   type TmdbMovieDetail,
   type TmdbTvDetail,
 } from "@/lib/tmdb";
-import { getOmdbRatings } from "@/lib/omdb";
+import { getOmdbMetadata } from "@/lib/omdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import { getLibraryClient } from "@/lib/library-db";
 import { BackdropHero } from "@/components/backdrop-hero";
@@ -94,8 +94,14 @@ export default async function DiscoverTitlePage(
   const imdbUrl = imdbId ? `https://www.imdb.com/title/${imdbId}/` : null;
   // One title preview = one OMDB lookup. Cheap, and the user is about to add it.
   const omdb = imdbId
-    ? await getOmdbRatings(imdbId)
-    : { imdb_rating: null, rt_score: null, metacritic_score: null };
+    ? await getOmdbMetadata(imdbId)
+    : {
+        imdb_rating: null,
+        rt_score: null,
+        metacritic_score: null,
+        omdb_plot: null,
+      };
+  const summary = omdb.omdb_plot || detail.overview;
   const imdbScore = formatImdbRating(omdb.imdb_rating);
   const rtScore = formatRtScore(omdb.rt_score);
   const mcScore = formatMetacriticScore(omdb.metacritic_score);
@@ -265,9 +271,9 @@ export default async function DiscoverTitlePage(
               )}
             </div>
 
-            {detail.overview && (
+            {summary && (
               <p className="mt-6 max-w-2xl text-base leading-relaxed text-foreground/85">
-                {detail.overview}
+                {summary}
               </p>
             )}
 

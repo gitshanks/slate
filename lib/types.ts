@@ -27,6 +27,9 @@ export interface TitleRow {
   tmdb_rating: number | null;
   tmdb_vote_count: number | null;
   imdb_id: string | null;
+  /** Full OMDb plot cached separately from TMDB's overview. */
+  omdb_plot?: string | null;
+  omdb_plot_fetched_at?: string | null;
   imdb_rating: number | null;
   imdb_votes: number | null;
   rt_score: number | null;

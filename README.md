@@ -88,6 +88,14 @@ Push to GitHub and import at [vercel.com/new](https://vercel.com/new). Then, ins
 | `NEXT_PUBLIC_SITE_URL` | hosted | Canonical origin used for public profile links, such as `https://slate.nishh.dev`. |
 | `SLATE_LEGACY_OWNER_EMAIL` | optional | Google email allowed to claim rows created before account support on its first sign-in. |
 
+After enabling OMDb on an existing library, run the one-time backfill below.
+It adds the nullable plot columns when needed, requests each unique IMDb title
+once with `plot=full`, and updates matching titles across every account:
+
+```bash
+npm run db:backfill:omdb
+```
+
 Prefer Supabase, or already have another Postgres? Set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` instead of `DATABASE_URL` — the data layer uses whichever backend is configured.
 
 ### Google account mode

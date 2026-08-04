@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { type TitleRow } from "@/lib/supabase";
 import { getLibraryClient } from "@/lib/library-db";
 import { getTitleMeta } from "@/lib/tmdb";
+import { getOmdbMetadata, isOmdbConfigured } from "@/lib/omdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import { BackdropHero } from "@/components/backdrop-hero";
 import { StatusPill } from "@/components/status-pill";
@@ -148,6 +149,31 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
   if (error || !data) notFound();
 
   const title = data as TitleRow;
+  let omdbPlot = title.omdb_plot?.trim() || null;
+  const shouldRefreshSummary =
+    !omdbPlot &&
+    Boolean(title.imdb_id) &&
+    isOmdbConfigured() &&
+    !title.omdb_plot_fetched_at;
+
+  if (shouldRefreshSummary && title.imdb_id) {
+    const omdb = await getOmdbMetadata(title.imdb_id);
+    omdbPlot = omdb.omdb_plot;
+    const fetchedAt = new Date().toISOString();
+    const { error: summaryWriteError } = await db
+      .from("titles")
+      .update({
+        omdb_plot: omdbPlot,
+        omdb_plot_fetched_at: fetchedAt,
+      })
+      .eq("id", title.id);
+    if (summaryWriteError) {
+      console.warn(
+        `[imdb] Could not cache summary for title ${title.id}: ${summaryWriteError.message}`,
+      );
+    }
+  }
+  const summary = omdbPlot || title.overview;
   const year = formatYear(title.release_date);
   const runtime = formatRuntime(title.runtime);
   const ambientBg = rawPosterUrl(title.poster_path, "w342");
@@ -322,10 +348,10 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
               </div>
             </div>
 
-            {/* Overview — from Supabase, immediate */}
-            {title.overview && (
+            {/* Full OMDb plot; TMDB overview only when OMDb has no plot. */}
+            {summary && (
               <p className="mt-6 max-w-2xl text-base leading-relaxed text-foreground/85">
-                {title.overview}
+                {summary}
               </p>
             )}
 

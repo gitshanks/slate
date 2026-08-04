@@ -7,7 +7,7 @@ import {
   normalizeForStorage,
   type TmdbMediaResult,
 } from "@/lib/tmdb";
-import { getOmdbRatings } from "@/lib/omdb";
+import { getOmdbMetadata, isOmdbConfigured } from "@/lib/omdb";
 import { getLibraryClient } from "@/lib/library-db";
 import { parseCsv, type ParsedRow } from "@/lib/import-parse";
 
@@ -118,6 +118,8 @@ interface UpsertRow {
   status: "watched";
   watched_at: string;
   imdb_id: string | null;
+  omdb_plot: string | null;
+  omdb_plot_fetched_at: string | null;
   imdb_rating: number | null;
   imdb_votes: number | null;
   rt_score: number | null;
@@ -133,15 +135,25 @@ interface MatchOutcome {
 async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
   const watchedAt = normaliseDate(row.date) ?? new Date().toISOString();
 
-  async function withOmdb(imdbId: string | null) {
-    const r = imdbId
-      ? await getOmdbRatings(imdbId)
-      : { imdb_rating: null, imdb_votes: null, rt_score: null, metacritic_score: null };
+  async function withExternalMetadata(imdbId: string | null) {
+    const metadata = imdbId
+      ? await getOmdbMetadata(imdbId)
+      : {
+          imdb_rating: null,
+          imdb_votes: null,
+          rt_score: null,
+          metacritic_score: null,
+          omdb_plot: null,
+        };
     return {
-      ...r,
+      ...metadata,
       imdb_id: imdbId,
+      omdb_plot_fetched_at:
+        imdbId && isOmdbConfigured() ? new Date().toISOString() : null,
       ratings_fetched_at:
-        r.imdb_rating != null || r.rt_score != null || r.metacritic_score != null
+        metadata.imdb_rating != null ||
+        metadata.rt_score != null ||
+        metadata.metacritic_score != null
           ? new Date().toISOString()
           : null,
     };
@@ -155,7 +167,7 @@ async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
           ? await getMovie(row.tmdbId)
           : await getTv(row.tmdbId);
       const norm = normalizeForStorage(row.mediaHint, detail);
-      const ratings = await withOmdb(norm.imdb_id);
+      const externalMetadata = await withExternalMetadata(norm.imdb_id);
       return {
         sourceText: row.sourceText,
         row: {
@@ -169,7 +181,7 @@ async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
           release_date: norm.release_date,
           status: "watched",
           watched_at: watchedAt,
-          ...ratings,
+          ...externalMetadata,
         },
       };
     } catch {
@@ -197,7 +209,7 @@ async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
     } catch {
       // Ignore — proceed without ratings.
     }
-    const ratings = await withOmdb(imdbId);
+    const externalMetadata = await withExternalMetadata(imdbId);
     return {
       sourceText: row.sourceText,
       row: {
@@ -213,7 +225,7 @@ async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
           null,
         status: "watched",
         watched_at: watchedAt,
-        ...ratings,
+        ...externalMetadata,
       },
     };
   } catch {

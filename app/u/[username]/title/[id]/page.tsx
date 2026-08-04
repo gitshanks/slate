@@ -21,6 +21,7 @@ import { RatingChip } from "@/components/rating-chip";
 import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { getPublicProfileTitle } from "@/lib/public-profile-library";
+import { getOmdbMetadata } from "@/lib/omdb";
 import { getTitleMeta } from "@/lib/tmdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import {
@@ -43,10 +44,17 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     return { title: "Title not found · slate", robots: { index: false } };
   }
 
+  const summary =
+    record.title.omdb_plot?.trim() ||
+    (record.title.imdb_id
+      ? (await getOmdbMetadata(record.title.imdb_id)).omdb_plot
+      : null) ||
+    record.title.overview;
+
   return {
     title: `${record.title.title} · ${record.profile.display_name}'s slate`,
     description:
-      record.title.overview ||
+      summary ||
       `See ${record.title.title} on ${record.profile.display_name}'s slate.`,
   };
 }
@@ -57,6 +65,12 @@ export default async function PublicTitlePage(props: Props) {
   if (!record) notFound();
 
   const { profile, title } = record;
+  const summary =
+    title.omdb_plot?.trim() ||
+    (title.imdb_id
+      ? (await getOmdbMetadata(title.imdb_id)).omdb_plot
+      : null) ||
+    title.overview;
   const meta = await getTitleMeta(title.media_type, title.tmdb_id).catch(
     () => null
   );
@@ -227,9 +241,9 @@ export default async function PublicTitlePage(props: Props) {
               ) : null}
             </div>
 
-            {title.overview ? (
+            {summary ? (
               <p className="mt-6 max-w-2xl text-base leading-relaxed text-foreground/85">
-                {title.overview}
+                {summary}
               </p>
             ) : null}
 

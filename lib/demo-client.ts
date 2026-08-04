@@ -341,6 +341,9 @@ async function execInsert(
       tmdb_rating: (row.tmdb_rating as number | null) ?? null,
       tmdb_vote_count: (row.tmdb_vote_count as number | null) ?? null,
       imdb_id: (row.imdb_id as string | null) ?? null,
+      omdb_plot: (row.omdb_plot as string | null) ?? null,
+      omdb_plot_fetched_at:
+        (row.omdb_plot_fetched_at as string | null) ?? null,
       imdb_rating: (row.imdb_rating as number | null) ?? null,
       imdb_votes: (row.imdb_votes as number | null) ?? null,
       rt_score: (row.rt_score as number | null) ?? null,
@@ -456,6 +459,9 @@ async function execUpsert(
         tmdb_rating: (row.tmdb_rating as number | null) ?? null,
         tmdb_vote_count: (row.tmdb_vote_count as number | null) ?? null,
         imdb_id: (row.imdb_id as string | null) ?? null,
+        omdb_plot: (row.omdb_plot as string | null) ?? null,
+        omdb_plot_fetched_at:
+          (row.omdb_plot_fetched_at as string | null) ?? null,
         imdb_rating: (row.imdb_rating as number | null) ?? null,
         imdb_votes: (row.imdb_votes as number | null) ?? null,
         rt_score: (row.rt_score as number | null) ?? null,

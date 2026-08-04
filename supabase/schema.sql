@@ -29,6 +29,8 @@ create table if not exists titles (
   tmdb_rating       numeric(3,1),
   tmdb_vote_count   integer,
   imdb_id           text,
+  omdb_plot         text,
+  omdb_plot_fetched_at timestamptz,
   imdb_rating       numeric(3,1),
   imdb_votes        integer,
   rt_score          integer,
@@ -47,6 +49,8 @@ create table if not exists titles (
 alter table titles add column if not exists tmdb_rating       numeric(3,1);
 alter table titles add column if not exists tmdb_vote_count   integer;
 alter table titles add column if not exists imdb_id           text;
+alter table titles add column if not exists omdb_plot         text;
+alter table titles add column if not exists omdb_plot_fetched_at timestamptz;
 alter table titles add column if not exists imdb_rating       numeric(3,1);
 alter table titles add column if not exists imdb_votes        integer;
 alter table titles add column if not exists rt_score          integer;
