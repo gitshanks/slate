@@ -35,6 +35,8 @@ targets:
         product: GoogleSignInSwift
       - package: GRDB
         product: GRDB
+      - target: SlateShare
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: space.s1ate.app
@@ -64,3 +66,24 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIUserInterfaceStyle: Dark
+  SlateShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: SlateShare
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: space.s1ate.app.share
+        PRODUCT_NAME: slate share
+        SKIP_INSTALL: YES
+    info:
+      path: SlateShare/Info.plist
+      properties:
+        CFBundleDisplayName: slate
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1

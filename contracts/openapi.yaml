@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Slate Native API
-  version: 1.0.0-alpha.1
+  version: 1.0.0-beta.1
   description: Versioned API used by Slate's first-party iOS and Android apps.
 servers:
   - url: https://www.s1ate.space/api/v1
@@ -188,6 +188,174 @@ paths:
                       serverTime:
                         type: string
                         format: date-time
+  /search:
+    get:
+      summary: Search films, series, cast, and crew, including saved state.
+      operationId: searchCatalogue
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        '200': { description: Catalogue and people matches. }
+  /titles:
+    post:
+      summary: Add a TMDB title to the signed-in library.
+      operationId: addTitle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tmdbId, mediaType]
+              properties:
+                tmdbId: { type: integer, minimum: 1 }
+                mediaType: { $ref: '#/components/schemas/MediaType' }
+                status: { $ref: '#/components/schemas/TitleStatus' }
+      responses:
+        '200': { description: Existing or newly saved title. }
+  /titles/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    get:
+      summary: Read a title with cast, crew, providers, recommendations, and list state.
+      operationId: getTitleDetail
+      responses:
+        '200': { description: Full owned-title detail. }
+    patch:
+      summary: Update status, sentiment, note, or favorite state.
+      operationId: updateTitle
+      responses:
+        '200': { description: Updated title. }
+    delete:
+      summary: Remove a title from the library.
+      operationId: removeTitle
+      responses:
+        '200': { description: Removed. }
+  /titles/{id}/lists:
+    post:
+      summary: Add a title to an existing list or create a list and add it.
+      operationId: addTitleToList
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Updated list membership. }
+  /discover/{type}/{tmdbId}:
+    get:
+      summary: Read a catalogue title preview before saving it.
+      operationId: getDiscoverDetail
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema: { $ref: '#/components/schemas/MediaType' }
+        - in: path
+          name: tmdbId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: Full catalogue detail and current saved state. }
+  /people/{id}:
+    get:
+      summary: Read a person biography and known-for titles.
+      operationId: getPerson
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: Person detail. }
+  /reorder:
+    patch:
+      summary: Persist the complete order of a status shelf or custom list.
+      operationId: reorderTitles
+      responses:
+        '200': { description: Order persisted. }
+        '409': { $ref: '#/components/responses/ApiError' }
+  /lists:
+    get:
+      summary: Read list summaries with title counts and cover posters.
+      operationId: getLists
+      responses:
+        '200': { description: List summaries. }
+    post:
+      summary: Create a custom list.
+      operationId: createList
+      responses:
+        '200': { description: Created list. }
+  /lists/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    get:
+      summary: Read a list, ordered titles, and addable library titles.
+      operationId: getListDetail
+      responses:
+        '200': { description: List detail. }
+    patch:
+      summary: Update list name and description.
+      operationId: updateList
+      responses:
+        '200': { description: Updated list. }
+    delete:
+      summary: Delete a list without deleting its library titles.
+      operationId: deleteList
+      responses:
+        '200': { description: Deleted. }
+  /lists/{id}/titles/{titleId}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+      - in: path
+        name: titleId
+        required: true
+        schema: { type: string }
+    post:
+      summary: Add an existing library title to a list.
+      operationId: addExistingTitleToList
+      responses:
+        '200': { description: Added. }
+    delete:
+      summary: Remove a title from a list while retaining it in the library.
+      operationId: removeTitleFromList
+      responses:
+        '200': { description: Removed. }
+  /share/resolve:
+    post:
+      summary: Extract movie and TV recommendations from a shared link or text.
+      operationId: resolveSharedRecommendation
+      responses:
+        '200': { description: Matched catalogue candidates. }
+  /me/avatar:
+    get:
+      summary: Read the signed-in account's custom avatar bytes.
+      operationId: getAvatar
+      responses:
+        '200': { description: Avatar image. }
+        '404': { description: No custom avatar. }
+    post:
+      summary: Upload JPEG, PNG, or WebP avatar bytes up to 650 KB.
+      operationId: uploadAvatar
+      responses:
+        '200': { description: Avatar saved. }
+    delete:
+      summary: Remove the custom avatar.
+      operationId: removeAvatar
+      responses:
+        '200': { description: Avatar removed. }
 components:
   securitySchemes:
     bearerAuth:

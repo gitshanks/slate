@@ -1,4 +1,5 @@
 import { getAppSession } from "@/lib/app-access";
+import { authenticateNativeRequest } from "@/lib/native-api/tokens";
 import { supabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
@@ -23,7 +24,7 @@ function decodeAvatar(value: AvatarRecord["avatar_data"]): Uint8Array | null {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ profileId: string }> }
 ) {
   const { profileId } = await params;
@@ -39,8 +40,11 @@ export async function GET(
 
   const avatar = data as AvatarRecord;
   if (!avatar.is_public) {
-    const session = await getAppSession();
-    if (session?.user?.id !== profileId) {
+    const bearerOwner = request.headers.get("authorization")
+      ? await authenticateNativeRequest(request).then((claims) => claims.ownerId).catch(() => null)
+      : null;
+    const session = bearerOwner ? null : await getAppSession();
+    if (bearerOwner !== profileId && session?.user?.id !== profileId) {
       return new Response(null, { status: 404 });
     }
   }

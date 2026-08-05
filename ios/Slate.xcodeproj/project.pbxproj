@@ -11,31 +11,70 @@
 		0B0E0D7566600049B0E790D6 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C98B91A63E0400C858E9AEBF /* AppModel.swift */; };
 		0D246E28F4EAEB46202C2177 /* LocalLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2600EBA6545B7C799B1214F2 /* LocalLibraryStore.swift */; };
 		117FA89EE7CCBD9F2DC8CA77 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C11B5704D112B07F510916D /* APIClient.swift */; };
+		13B2751197A4DBDF108ECDC4 /* SlateShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8F1A9C2BF0DD82AD18D275C7 /* SlateShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		34379BF2E1C89C8147B35959 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC76003A943697829D93B061 /* RootView.swift */; };
 		4067D925F11F17AA15759EF8 /* SlateApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684C3A6D70FBBD57AA4A098E /* SlateApp.swift */; };
+		4503A99F0DDEB1D2D32FFB77 /* ListsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F13C29F2E10537F5EC01A70D /* ListsView.swift */; };
 		46971A2142727CD97173FAB0 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 81A172791584050D093B6E0E /* GRDB */; };
 		5222B71C6C3A9C5CFA34C389 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = F53CBBF554415347B1C735E8 /* GoogleSignIn */; };
 		65BD63804076B0857DF23AC3 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0E5DD68D24D3565128F1EDD /* SignInView.swift */; };
+		72FA1E4E12D14DDB979461F8 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB5343C5D793D62550226DD /* SearchView.swift */; };
 		8F238784A547D4B718FA76C2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AF2FF8F054673DFF516CE16C /* Assets.xcassets */; };
 		92D1A50AF2B75EADDD6F4695 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E3E18EE42E8545800901F7D /* MainTabView.swift */; };
+		AA6866761AA7FEF3033BFC39 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C381A4066D62242E5D4EE83D /* ProfileView.swift */; };
+		B9A2A337E22141F252C58B25 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97078D66BF1256768A956757 /* ShareViewController.swift */; };
+		C6F7D96D7091FBE5809221DD /* ImportRecommendationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2438A51A5D8BB1FB30865346 /* ImportRecommendationsView.swift */; };
+		CBBF3DEAE826423CD9D47599 /* TitleDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB92CB283BD8A52070405C /* TitleDetailView.swift */; };
 		E7501926F7554FFC3AF76FEB /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83A438C05FC7638677E73EDA /* KeychainStore.swift */; };
 		F5915F8BF10D63B6E81D2169 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F8ACB5DAA18890C20EAFAD3 /* Models.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		83973D8CDA900FD7C43B8A04 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2299712F8E09640CC80338DD /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0310F0C2914F81687597C58B;
+			remoteInfo = SlateShare;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CA5DBA2BFF2EA5B8E425B138 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				13B2751197A4DBDF108ECDC4 /* SlateShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		2438A51A5D8BB1FB30865346 /* ImportRecommendationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportRecommendationsView.swift; sourceTree = "<group>"; };
 		2600EBA6545B7C799B1214F2 /* LocalLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLibraryStore.swift; sourceTree = "<group>"; };
+		3DB5343C5D793D62550226DD /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		4BBB92CB283BD8A52070405C /* TitleDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleDetailView.swift; sourceTree = "<group>"; };
 		5C11B5704D112B07F510916D /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		5E3E18EE42E8545800901F7D /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		684C3A6D70FBBD57AA4A098E /* SlateApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlateApp.swift; sourceTree = "<group>"; };
 		83A438C05FC7638677E73EDA /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		85181315EA2FAFF7893D6618 /* Slate.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Slate.entitlements; sourceTree = "<group>"; };
+		8F1A9C2BF0DD82AD18D275C7 /* SlateShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SlateShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8F8ACB5DAA18890C20EAFAD3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		97078D66BF1256768A956757 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		AF2FF8F054673DFF516CE16C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C0E5DD68D24D3565128F1EDD /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		C381A4066D62242E5D4EE83D /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		C98B91A63E0400C858E9AEBF /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		CC76003A943697829D93B061 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		CCD5D85D2B12BF59A465BCB6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D894A56720A4907256863B27 /* Slate.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Slate.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D9240939ED4336FFF94ADAEB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		F13C29F2E10537F5EC01A70D /* ListsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,9 +94,14 @@
 		3FBE6735AE5C84D84CB28BFE /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				2438A51A5D8BB1FB30865346 /* ImportRecommendationsView.swift */,
+				F13C29F2E10537F5EC01A70D /* ListsView.swift */,
 				5E3E18EE42E8545800901F7D /* MainTabView.swift */,
+				C381A4066D62242E5D4EE83D /* ProfileView.swift */,
 				CC76003A943697829D93B061 /* RootView.swift */,
+				3DB5343C5D793D62550226DD /* SearchView.swift */,
 				C0E5DD68D24D3565128F1EDD /* SignInView.swift */,
+				4BBB92CB283BD8A52070405C /* TitleDetailView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -75,6 +119,7 @@
 			isa = PBXGroup;
 			children = (
 				D894A56720A4907256863B27 /* Slate.app */,
+				8F1A9C2BF0DD82AD18D275C7 /* SlateShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -105,6 +150,7 @@
 			isa = PBXGroup;
 			children = (
 				A66055C139AE924A83E34F08 /* Slate */,
+				E5B558099EF939EB98083F3B /* SlateShare */,
 				747F0BDD5353DF5465D6C5A6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -119,6 +165,15 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		E5B558099EF939EB98083F3B /* SlateShare */ = {
+			isa = PBXGroup;
+			children = (
+				D9240939ED4336FFF94ADAEB /* Info.plist */,
+				97078D66BF1256768A956757 /* ShareViewController.swift */,
+			);
+			path = SlateShare;
+			sourceTree = "<group>";
+		};
 		FE5E783D3C184DFDDD40902D /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -130,6 +185,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		0310F0C2914F81687597C58B /* SlateShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 85978C43702090F882D6B28B /* Build configuration list for PBXNativeTarget "SlateShare" */;
+			buildPhases = (
+				822C326F72038BA371FD7F74 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SlateShare;
+			packageProductDependencies = (
+			);
+			productName = SlateShare;
+			productReference = 8F1A9C2BF0DD82AD18D275C7 /* SlateShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		2722D81FC59EDC8E0ABD5EFD /* Slate */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3F4BF0FF807B4AD8AC7C2540 /* Build configuration list for PBXNativeTarget "Slate" */;
@@ -137,10 +209,12 @@
 				8C27DBD5BB2C3ECA4CAC6286 /* Sources */,
 				CE9E798F55D9A2B9163975E3 /* Resources */,
 				FB65725D562593A53D6A9CE9 /* Frameworks */,
+				CA5DBA2BFF2EA5B8E425B138 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				2CBEDBA6BAADB33C32701753 /* PBXTargetDependency */,
 			);
 			name = Slate;
 			packageProductDependencies = (
@@ -180,6 +254,7 @@
 			projectRoot = "";
 			targets = (
 				2722D81FC59EDC8E0ABD5EFD /* Slate */,
+				0310F0C2914F81687597C58B /* SlateShare */,
 			);
 		};
 /* End PBXProject section */
@@ -196,23 +271,44 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		822C326F72038BA371FD7F74 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B9A2A337E22141F252C58B25 /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8C27DBD5BB2C3ECA4CAC6286 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				117FA89EE7CCBD9F2DC8CA77 /* APIClient.swift in Sources */,
 				0B0E0D7566600049B0E790D6 /* AppModel.swift in Sources */,
+				C6F7D96D7091FBE5809221DD /* ImportRecommendationsView.swift in Sources */,
 				E7501926F7554FFC3AF76FEB /* KeychainStore.swift in Sources */,
+				4503A99F0DDEB1D2D32FFB77 /* ListsView.swift in Sources */,
 				0D246E28F4EAEB46202C2177 /* LocalLibraryStore.swift in Sources */,
 				92D1A50AF2B75EADDD6F4695 /* MainTabView.swift in Sources */,
 				F5915F8BF10D63B6E81D2169 /* Models.swift in Sources */,
+				AA6866761AA7FEF3033BFC39 /* ProfileView.swift in Sources */,
 				34379BF2E1C89C8147B35959 /* RootView.swift in Sources */,
+				72FA1E4E12D14DDB979461F8 /* SearchView.swift in Sources */,
 				65BD63804076B0857DF23AC3 /* SignInView.swift in Sources */,
 				4067D925F11F17AA15759EF8 /* SlateApp.swift in Sources */,
+				CBBF3DEAE826423CD9D47599 /* TitleDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2CBEDBA6BAADB33C32701753 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0310F0C2914F81687597C58B /* SlateShare */;
+			targetProxy = 83973D8CDA900FD7C43B8A04 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1A53CC0287D2AE0CA593E582 /* Release */ = {
@@ -230,6 +326,23 @@
 				PRODUCT_BUNDLE_IDENTIFIER = space.s1ate.app;
 				PRODUCT_NAME = slate;
 				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4B4FB17A11EB6F0BEA6DAA8F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = SlateShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = space.s1ate.app.share;
+				PRODUCT_NAME = "slate share";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -315,6 +428,23 @@
 			};
 			name = Debug;
 		};
+		D04C79B792ADE4DED91D0E8F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = SlateShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = space.s1ate.app.share;
+				PRODUCT_NAME = "slate share";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		D878FF948B4F2EBD3CFA16F5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -392,6 +522,15 @@
 			buildConfigurations = (
 				BCD40525B50B88F5E1FFC4E3 /* Debug */,
 				1A53CC0287D2AE0CA593E582 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		85978C43702090F882D6B28B /* Build configuration list for PBXNativeTarget "SlateShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D04C79B792ADE4DED91D0E8F /* Debug */,
+				4B4FB17A11EB6F0BEA6DAA8F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

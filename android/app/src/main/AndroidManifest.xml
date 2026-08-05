@@ -31,6 +31,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="s1ate.space" />
+                <data android:scheme="https" android:host="www.s1ate.space" />
             </intent-filter>
         </activity>
     </application>

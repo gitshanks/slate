@@ -2,6 +2,7 @@ package space.s1ate.app.ui
 
 import android.content.Context
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.StartOffset
@@ -34,6 +35,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -47,6 +50,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
@@ -56,6 +60,8 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -524,7 +530,7 @@ private enum class Destination(val label: String, val icon: ImageVector) {
     Watching("Watching", Icons.Outlined.Visibility),
     Watched("Watched", Icons.Outlined.Check),
     Lists("Lists", Icons.Outlined.GridView),
-    Profile("Profile", Icons.Outlined.Person),
+    Import("Import", Icons.Outlined.Download),
 }
 
 @Composable
@@ -534,48 +540,162 @@ private fun SignedInApp(
     onSignOut: () -> Unit,
 ) {
     var destination by rememberSaveable { mutableStateOf(Destination.Watchlist) }
+    var selectedTitleId by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedCatalogType by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedCatalogId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var selectedPersonId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var showSearch by rememberSaveable { mutableStateOf(false) }
+    var showProfile by rememberSaveable { mutableStateOf(false) }
+    val selectedTitle = state.titles.firstOrNull { it.id == selectedTitleId }
+    val hasOverlay = selectedTitle != null || selectedCatalogId != null || selectedPersonId != null || showSearch || showProfile
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(state.message) {
         state.message?.let { snackbar.showSnackbar(it) }
         model.clearMessage()
     }
 
+    BackHandler(enabled = hasOverlay || destination != Destination.Watchlist) {
+        when {
+            showProfile -> showProfile = false
+            showSearch -> showSearch = false
+            selectedPersonId != null -> selectedPersonId = null
+            selectedCatalogId != null -> {
+                selectedCatalogId = null
+                selectedCatalogType = null
+            }
+            selectedTitleId != null -> selectedTitleId = null
+            destination != Destination.Watchlist -> destination = Destination.Watchlist
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
-            NavigationBar(containerColor = Color(0xF70A090B)) {
-                Destination.entries.forEach { item ->
-                    NavigationBarItem(
-                        selected = destination == item,
-                        onClick = { destination = item },
-                        icon = { Icon(item.icon, contentDescription = item.label) },
-                        label = { Text(item.label, maxLines = 1) },
-                    )
+            if (!hasOverlay) {
+                NavigationBar(containerColor = Color(0xF70A090B)) {
+                    Destination.entries.forEach { item ->
+                        NavigationBarItem(
+                            selected = destination == item,
+                            onClick = { destination = item },
+                            icon = { Icon(item.icon, contentDescription = item.label) },
+                            label = { Text(item.label, maxLines = 1) },
+                        )
+                    }
                 }
             }
         },
     ) { padding ->
+        if (showProfile) {
+            ProfileScreenAdvanced(state, model, onClose = { showProfile = false }, onSignOut = onSignOut)
+            return@Scaffold
+        }
+        if (showSearch) {
+            SearchScreen(
+                model = model,
+                onBack = { showSearch = false },
+                onOpenTitle = { type, id ->
+                    showSearch = false
+                    selectedCatalogType = type.name
+                    selectedCatalogId = id
+                },
+                onOpenSaved = { id -> showSearch = false; selectedTitleId = id },
+                onOpenPerson = { id -> showSearch = false; selectedPersonId = id },
+            )
+            return@Scaffold
+        }
+        if (selectedPersonId != null) {
+            PersonScreen(
+                model = model,
+                personId = selectedPersonId!!,
+                onBack = { selectedPersonId = null },
+                onOpenTitle = { type, id ->
+                    selectedPersonId = null
+                    selectedCatalogType = type.name
+                    selectedCatalogId = id
+                },
+            )
+            return@Scaffold
+        }
+        if (selectedCatalogId != null && selectedCatalogType != null) {
+            DiscoverScreen(
+                model = model,
+                mediaType = space.s1ate.app.model.MediaType.valueOf(selectedCatalogType!!),
+                tmdbId = selectedCatalogId!!,
+                onBack = { selectedCatalogId = null; selectedCatalogType = null },
+                onOpenSaved = { id -> selectedCatalogId = null; selectedCatalogType = null; selectedTitleId = id },
+                onOpenTitle = { type, id -> selectedCatalogType = type.name; selectedCatalogId = id },
+                onOpenPerson = { id -> selectedCatalogId = null; selectedCatalogType = null; selectedPersonId = id },
+            )
+            return@Scaffold
+        }
+        if (selectedTitle != null) {
+            TitleDetailScreen(
+                title = selectedTitle,
+                model = model,
+                onBack = { selectedTitleId = null },
+                onRemoved = { selectedTitleId = null },
+                onOpenTitle = { type, id ->
+                    selectedTitleId = null
+                    selectedCatalogType = type.name
+                    selectedCatalogId = id
+                },
+                onOpenPerson = { id -> selectedTitleId = null; selectedPersonId = id },
+            )
+            return@Scaffold
+        }
         when (destination) {
             Destination.Watchlist -> LibraryScreen(
                 "Watchlist",
                 model.titles(LibraryStatus.want),
+                state.profile,
+                state.avatarBytes,
                 model::refreshLibrary,
+                { selectedTitleId = it.id },
+                { showSearch = true },
+                { showProfile = true },
+                { ordered -> model.reorderStatus(LibraryStatus.want, ordered) },
                 Modifier.padding(padding),
             )
             Destination.Watching -> LibraryScreen(
                 "Watching",
                 model.titles(LibraryStatus.watching),
+                state.profile,
+                state.avatarBytes,
                 model::refreshLibrary,
+                { selectedTitleId = it.id },
+                { showSearch = true },
+                { showProfile = true },
+                { ordered -> model.reorderStatus(LibraryStatus.watching, ordered) },
                 Modifier.padding(padding),
             )
             Destination.Watched -> LibraryScreen(
                 "Watched",
                 model.titles(LibraryStatus.watched),
+                state.profile,
+                state.avatarBytes,
                 model::refreshLibrary,
+                { selectedTitleId = it.id },
+                { showSearch = true },
+                { showProfile = true },
+                { ordered -> model.reorderStatus(LibraryStatus.watched, ordered) },
                 Modifier.padding(padding),
             )
-            Destination.Lists -> ListsScreen(state, Modifier.padding(padding))
-            Destination.Profile -> ProfileScreen(state, onSignOut, Modifier.padding(padding))
+            Destination.Lists -> ListsScreenAdvanced(
+                model = model,
+                profile = state.profile,
+                avatarBytes = state.avatarBytes,
+                onOpenTitle = { selectedTitleId = it },
+                onProfile = { showProfile = true },
+                modifier = Modifier.padding(padding),
+            )
+            Destination.Import -> ImportScreen(
+                model = model,
+                profile = state.profile,
+                avatarBytes = state.avatarBytes,
+                initialText = state.sharedText,
+                onProfile = { showProfile = true },
+                modifier = Modifier.padding(padding),
+            )
         }
     }
 }
@@ -585,19 +705,59 @@ private fun SignedInApp(
 private fun LibraryScreen(
     title: String,
     titles: List<SlateTitle>,
+    profile: space.s1ate.app.model.SlateProfile?,
+    avatarBytes: ByteArray?,
     onRefresh: () -> Unit,
+    onTitleSelected: (SlateTitle) -> Unit,
+    onSearch: () -> Unit,
+    onProfile: () -> Unit,
+    onReorder: suspend (List<SlateTitle>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var media by rememberSaveable { mutableStateOf("all") }
+    var genre by rememberSaveable { mutableStateOf("all") }
+    var year by rememberSaveable { mutableStateOf("all") }
+    var sentiment by rememberSaveable { mutableStateOf("all") }
+    var sort by rememberSaveable { mutableStateOf("order") }
+    val filtered = remember(titles, media, genre, year, sentiment, sort) {
+        val values = titles.filter { item ->
+            (media == "all" || item.mediaType.name == media) &&
+                (genre == "all" || item.genres.orEmpty().any { it.name == genre }) &&
+                (year == "all" || item.year == year) &&
+                (sentiment == "all" || (item.rating?.toInt()?.toString() == sentiment))
+        }
+        when (sort) {
+            "new" -> values.sortedByDescending(SlateTitle::addedAt)
+            "imdb" -> values.sortedByDescending { it.imdbRating ?: -1.0 }
+            "year" -> values.sortedByDescending { it.releaseDate ?: "" }
+            else -> values
+        }
+    }
     Column(modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text(title, fontSize = 31.sp, fontWeight = FontWeight.Bold) },
+            navigationIcon = { ProfileAvatarButton(profile = profile, data = avatarBytes, onClick = onProfile) },
             actions = {
-                IconButton(onClick = {}) {
+                IconButton(onClick = onSearch) {
                     Icon(Icons.Outlined.Search, contentDescription = "Search")
                 }
             },
         )
-        if (titles.isEmpty()) {
+        LibraryFilterBar(
+            titles = titles,
+            watched = title == "Watched",
+            media = media,
+            genre = genre,
+            year = year,
+            sentiment = sentiment,
+            sort = sort,
+            onMedia = { media = it },
+            onGenre = { genre = it },
+            onYear = { year = it },
+            onSentiment = { sentiment = it },
+            onSort = { sort = it },
+        )
+        if (filtered.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
@@ -606,26 +766,107 @@ private fun LibraryScreen(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(12.dp))
-                    Text("Nothing here yet", fontWeight = FontWeight.SemiBold)
+                    Text(if (titles.isEmpty()) "Nothing here yet" else "No matching titles", fontWeight = FontWeight.SemiBold)
                     TextButton(onClick = onRefresh) { Text("Refresh") }
                 }
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, bottom = 28.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
-            ) {
-                items(titles, key = { it.id }) { item -> PosterCard(item) }
+            if (sort == "order") {
+                ReorderableLibraryGrid(filtered, onTitleSelected) { reorderedVisible ->
+                    val visibleIds = filtered.map(SlateTitle::id).toSet()
+                    val iterator = reorderedVisible.iterator()
+                    val merged = titles.map { if (it.id in visibleIds) iterator.next() else it }
+                    onReorder(merged)
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(start = 18.dp, end = 18.dp, bottom = 28.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                ) { items(filtered, key = { it.id }) { PosterCard(it) { onTitleSelected(it) } } }
             }
         }
     }
 }
 
 @Composable
-private fun PosterCard(title: SlateTitle) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun LibraryFilterBar(
+    titles: List<SlateTitle>,
+    watched: Boolean,
+    media: String,
+    genre: String,
+    year: String,
+    sentiment: String,
+    sort: String,
+    onMedia: (String) -> Unit,
+    onGenre: (String) -> Unit,
+    onYear: (String) -> Unit,
+    onSentiment: (String) -> Unit,
+    onSort: (String) -> Unit,
+) {
+    val genres = remember(titles) { titles.flatMap { it.genres.orEmpty().map { genre -> genre.name } }.distinct().sorted() }
+    val years = remember(titles) { titles.mapNotNull(SlateTitle::year).distinct().sortedDescending() }
+    Column(Modifier.padding(horizontal = 18.dp).padding(bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth().clip(CircleShape).background(Color.White.copy(0.055f)).padding(4.dp)) {
+            listOf("all" to "All", "movie" to "Films", "tv" to "Series").forEach { (value, label) ->
+                Text(
+                    label,
+                    modifier = Modifier.weight(1f).clip(CircleShape)
+                        .background(if (media == value) MaterialTheme.colorScheme.primary else Color.Transparent)
+                        .clickable { onMedia(value) }.padding(vertical = 9.dp),
+                    color = if (media == value) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                )
+            }
+        }
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            FilterMenu(genre, "Genre", genres, onGenre)
+            FilterMenu(year, "Any year", years, onYear)
+            if (watched) FilterMenu(sentiment, "Sentiment", listOf("3", "2", "1"), onSentiment) { value ->
+                when (value) { "3" -> "Love"; "2" -> "Like"; "1" -> "Dislike"; else -> "Sentiment" }
+            }
+            FilterMenu(sort, "Your order", listOf("new", "imdb", "year"), onSort) { value ->
+                when (value) { "new" -> "Recently added"; "imdb" -> "IMDb rating"; "year" -> "Release year"; else -> "Your order" }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterMenu(
+    value: String,
+    defaultLabel: String,
+    options: List<String>,
+    onValue: (String) -> Unit,
+    label: (String) -> String = { it },
+) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            Modifier.clip(CircleShape).background(if (value == "all" || value == "order") Color.White.copy(0.055f) else MaterialTheme.colorScheme.primary)
+                .clickable { open = true }.padding(horizontal = 14.dp, vertical = 11.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(if (value == "all" || value == "order") defaultLabel else label(value), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text("⌄", fontSize = 12.sp)
+        }
+        DropdownMenu(open, { open = false }) {
+            DropdownMenuItem({ Text(defaultLabel) }, { onValue(if (defaultLabel == "Your order") "order" else "all"); open = false })
+            options.forEach { option -> DropdownMenuItem({ Text(label(option)) }, { onValue(option); open = false }) }
+        }
+    }
+}
+
+@Composable
+private fun PosterCard(title: SlateTitle, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier.clickable(onClick = onClick),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         AsyncImage(
             model = title.posterUrl,
             contentDescription = title.title,

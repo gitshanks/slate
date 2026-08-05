@@ -79,7 +79,186 @@ struct SlateTitle: Codable, Identifiable, Hashable {
         return URL(string: "https://image.tmdb.org/t/p/w780\(posterPath)")
     }
 
+    var backdropURL: URL? {
+        guard let backdropPath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w1280\(backdropPath)")
+    }
+
     var year: String? { releaseDate?.prefix(4).description }
+}
+
+struct TitlePerson: Codable, Identifiable, Hashable {
+    let id: Int
+    let name: String
+    let subtitle: String?
+    let profilePath: String?
+
+    var profileURL: URL? {
+        guard let profilePath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w342\(profilePath)")
+    }
+}
+
+struct TitleRecommendation: Codable, Identifiable, Hashable {
+    var id: String { "\(mediaType.rawValue)-\(tmdbId)" }
+    let tmdbId: Int
+    let mediaType: MediaType
+    let title: String
+    let originalTitle: String?
+    let overview: String?
+    let posterPath: String?
+    let backdropPath: String?
+    let releaseDate: String?
+    let tmdbRating: Double?
+
+    var posterURL: URL? {
+        guard let posterPath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w500\(posterPath)")
+    }
+
+    var year: String? { releaseDate?.prefix(4).description }
+}
+
+struct TitleWatchProvider: Codable, Identifiable, Hashable {
+    let id: Int
+    let name: String
+    let logoPath: String
+
+    var logoURL: URL? {
+        URL(string: "https://image.tmdb.org/t/p/w185\(logoPath)")
+    }
+}
+
+struct TitleWatchProviders: Codable, Hashable {
+    let link: URL
+    let providers: [TitleWatchProvider]
+}
+
+struct TitleListOption: Codable, Identifiable, Hashable {
+    let id: String
+    let slug: String
+    let name: String
+    let description: String?
+    let createdAt: String
+    let updatedAt: String
+    var containsTitle: Bool
+}
+
+struct TitleDetailPayload: Codable, Hashable {
+    var title: SlateTitle
+    let trailerKey: String?
+    let cast: [TitlePerson]
+    let crew: [TitlePerson]
+    let recommendations: [TitleRecommendation]
+    let watchProviders: TitleWatchProviders?
+    var lists: [TitleListOption]
+}
+
+struct SavedTitleReference: Codable, Hashable {
+    let id: String
+    let status: LibraryStatus
+}
+
+struct CatalogTitle: Codable, Identifiable, Hashable {
+    var id: String { "\(mediaType.rawValue)-\(tmdbId)" }
+    let tmdbId: Int
+    let mediaType: MediaType
+    let title: String
+    let originalTitle: String?
+    let overview: String?
+    let posterPath: String?
+    let backdropPath: String?
+    let releaseDate: String?
+    let tmdbRating: Double?
+    let saved: SavedTitleReference?
+
+    var posterURL: URL? {
+        guard let posterPath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w500\(posterPath)")
+    }
+
+    var backdropURL: URL? {
+        guard let backdropPath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w1280\(backdropPath)")
+    }
+
+    var year: String? { releaseDate?.prefix(4).description }
+}
+
+struct CatalogPerson: Codable, Identifiable, Hashable {
+    let id: Int
+    let name: String
+    let profilePath: String?
+    let knownForDepartment: String?
+    let knownFor: [String]
+
+    var profileURL: URL? {
+        guard let profilePath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w342\(profilePath)")
+    }
+}
+
+struct CatalogSearchPayload: Codable, Hashable {
+    let results: [CatalogTitle]
+    let people: [CatalogPerson]
+    let approximate: Bool
+    let approximateQuery: String?
+}
+
+struct DiscoverTitle: Codable, Hashable {
+    let tmdbId: Int
+    let mediaType: MediaType
+    let title: String
+    let originalTitle: String?
+    let overview: String?
+    let posterPath: String?
+    let backdropPath: String?
+    let releaseDate: String?
+    let runtime: Int?
+    let genres: [Genre]
+    let tmdbRating: Double?
+    let imdbId: String?
+    let imdbRating: Double?
+    let rottenTomatoesScore: Int?
+    let metacriticScore: Int?
+
+    var posterURL: URL? {
+        guard let posterPath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w780\(posterPath)")
+    }
+
+    var backdropURL: URL? {
+        guard let backdropPath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w1280\(backdropPath)")
+    }
+
+    var year: String? { releaseDate?.prefix(4).description }
+}
+
+struct DiscoverDetailPayload: Codable, Hashable {
+    let title: DiscoverTitle
+    var savedTitle: SlateTitle?
+    let trailerKey: String?
+    let cast: [TitlePerson]
+    let crew: [TitlePerson]
+    let recommendations: [CatalogTitle]
+    let watchProviders: TitleWatchProviders?
+}
+
+struct PersonDetailPayload: Codable, Identifiable, Hashable {
+    let id: Int
+    let name: String
+    let biography: String?
+    let birthday: String?
+    let placeOfBirth: String?
+    let profilePath: String?
+    let knownForDepartment: String
+    let knownFor: [CatalogTitle]
+
+    var profileURL: URL? {
+        guard let profilePath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w500\(profilePath)")
+    }
 }
 
 struct SlateList: Codable, Identifiable, Hashable {
@@ -89,6 +268,59 @@ struct SlateList: Codable, Identifiable, Hashable {
     let description: String?
     let createdAt: String
     let updatedAt: String
+}
+
+struct SlateListSummary: Codable, Identifiable, Hashable {
+    let id: String
+    let slug: String
+    let name: String
+    let description: String?
+    let createdAt: String
+    let updatedAt: String
+    let count: Int
+    let posterPaths: [String]
+
+    var posters: [URL] {
+        posterPaths.compactMap { URL(string: "https://image.tmdb.org/t/p/w342\($0)") }
+    }
+}
+
+struct ListsPayload: Codable { let lists: [SlateListSummary] }
+
+struct SlateListDetailPayload: Codable, Hashable {
+    let list: SlateList
+    var titles: [SlateTitle]
+    var candidates: [SlateTitle]
+}
+
+struct SharedLinkCandidate: Codable, Identifiable, Hashable {
+    var id: String { "\(mediaType.rawValue)-\(tmdbId)" }
+    let tmdbId: Int
+    let mediaType: MediaType
+    let title: String
+    let year: String?
+    let posterPath: String?
+    let overview: String?
+    let voteAverage: Double?
+    let sourceTitle: String
+    let inLibrary: Bool
+
+    var posterURL: URL? {
+        guard let posterPath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w500\(posterPath)")
+    }
+}
+
+struct SharedLinkSource: Codable, Hashable {
+    let url: String?
+    let hostname: String?
+    let title: String?
+}
+
+struct SharedLinkResolution: Codable, Hashable {
+    let source: SharedLinkSource
+    let candidates: [SharedLinkCandidate]
+    let warning: String?
 }
 
 struct LibrarySnapshot: Codable {

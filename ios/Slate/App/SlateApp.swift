@@ -12,7 +12,9 @@ struct SlateApp: App {
                 .preferredColorScheme(.dark)
                 .task { await model.bootstrap() }
                 .onOpenURL { url in
-                    _ = GIDSignIn.sharedInstance.handle(url)
+                    if !GIDSignIn.sharedInstance.handle(url) {
+                        model.handleOpenURL(url)
+                    }
                 }
         }
     }

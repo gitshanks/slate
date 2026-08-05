@@ -8,7 +8,7 @@ import {
   type RequestOptions as HttpsRequestOptions,
 } from "node:https";
 import { extractSharedTitleMentions, type SharedTitleMention } from "@/lib/ai-search";
-import { getLibraryClient } from "@/lib/library-db";
+import { getLibraryClient, libraryClientForOwner } from "@/lib/library-db";
 import {
   findByImdbId,
   getMovie,
@@ -60,6 +60,7 @@ interface PageSignals {
 
 export async function resolveSharedLink(
   input: SharedLinkInput,
+  ownerId?: string,
 ): Promise<SharedLinkResolution> {
   const suppliedTitle = cleanInput(input.title, 500);
   const suppliedText = cleanInput(input.text, 8_000);
@@ -77,6 +78,7 @@ export async function resolveSharedLink(
         },
         candidates: [direct],
       },
+      ownerId,
     );
   }
 
@@ -133,7 +135,7 @@ export async function resolveSharedLink(
     },
     candidates,
     warning: pageWarning,
-  });
+  }, ownerId);
 }
 
 async function resolveDirectCatalogueUrl(
@@ -300,8 +302,9 @@ function candidateFromSearch(
 
 async function attachLibraryState(
   resolution: SharedLinkResolution,
+  ownerId?: string,
 ): Promise<SharedLinkResolution> {
-  const db = await getLibraryClient();
+  const db = ownerId ? libraryClientForOwner(ownerId) : await getLibraryClient();
   const { data } = await db.from("titles").select("tmdb_id, media_type");
   const existing = new Set(
     (data ?? []).map(

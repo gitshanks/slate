@@ -1,13 +1,24 @@
 # Slate native apps
 
-Slate now has real native foundations for both platforms:
+Slate now has first-party native clients for both platforms:
 
-- `ios/`: SwiftUI, Google Sign-In, Keychain-backed sessions, and a GRDB offline library cache. Sign in with Apple is prepared server-side but hidden until an Apple Developer Program membership is active.
-- `android/`: Jetpack Compose, Google Credential Manager, Android Keystore-backed sessions, Room offline cache, and Android share-intent intake.
+- `ios/`: SwiftUI, Google Sign-In, Keychain-backed sessions, a GRDB offline library cache, and a share extension. Sign in with Apple is prepared server-side but hidden until an Apple Developer Program membership is active.
+- `android/`: Jetpack Compose, Google Credential Manager, Android Keystore-backed sessions, a Room offline cache, and Android share-intent intake.
 - `app/api/v1/`: a versioned account API shared by both clients.
 - `contracts/openapi.yaml`: the checked-in wire contract for the native clients.
 
-This first milestone signs in against the existing Slate account, restores the session across launches, loads cached data immediately, refreshes from Neon, and renders native Watchlist, Watching, Watched, Lists, and Profile screens. Library mutations, title search, drag-to-reorder, full title pages, and the shared-link resolver are the next feature-parity milestone.
+Both apps sign in to the existing Slate account, restore the session across launches, load cached data immediately, and refresh from Neon. They preserve Slate's poster-first library, dark cinematic presentation, purple accent, and fixed five-tab navigation while using native controls and navigation on each platform.
+
+The native feature set includes:
+
+- Watchlist, Watching, and Watched shelves with media, genre, year, sentiment, and sort filters
+- Long-press drag and drop ordering with immediate local settlement and an asynchronous server save
+- Full title pages with cast, crew, providers, trailers, recommendations, ratings, notes, list membership, and status controls
+- Search across films, series, cast, and crew, with catalogue previews before a title is added
+- Custom list creation, editing, deletion, membership, and ordering
+- Inline profile editing, avatar upload, privacy controls, and public-profile sharing
+- Link intake from the iOS share sheet, Android share sheet, or a pasted web link
+- Keychain or Keystore-backed device sessions plus offline library caches
 
 ## Backend setup
 

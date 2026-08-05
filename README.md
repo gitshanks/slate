@@ -43,7 +43,7 @@ Letterboxd is great, but the feed can get in the way of the shelf. Slate keeps t
 
 Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · shadcn/ui · Postgres — Neon (Vercel) or PostgREST (self-host) · TMDB API · Docker / Vercel
 
-Native clients are being built in SwiftUI for iOS and Jetpack Compose for Android. Both use the same Slate account and Neon library through the versioned `/api/v1` contract. See [Native apps](./docs/native-apps.md) for the current milestone and local setup.
+First-party clients are included in SwiftUI for iOS and Jetpack Compose for Android. Both use the same Slate account and Neon library through the versioned `/api/v1` contract. See [Native apps](./docs/native-apps.md) for capabilities and local setup.
 
 <img width="2560" height="1296" alt="slate — title page" src="https://github.com/user-attachments/assets/3247d633-123c-4325-b8be-a0f452b8d89d" />
 
@@ -247,7 +247,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB. Poster 
 - **Following or a social feed:** public profiles are direct-link, read-only shelves rather than another engagement network.
 - **Plex library integration.**
 - **Trakt / MyAnimeList sync:** CSV one-shot import only.
-- **Native mobile apps:** PWA install is supported on iOS Safari and Chromium.
+- **App Store and Play Store distribution:** the native clients build locally, but store signing and release listings are not complete yet.
 - **Library export:** you can import a library but can't yet dump one out.
 
 ## License

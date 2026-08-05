@@ -29,6 +29,9 @@ class MainActivity : ComponentActivity() {
 }
 
 private fun Intent.sharedText(): String? {
-    if (action != Intent.ACTION_SEND || type != "text/plain") return null
-    return getStringExtra(Intent.EXTRA_TEXT)
+    if (action == Intent.ACTION_SEND && type == "text/plain") {
+        return getStringExtra(Intent.EXTRA_TEXT)
+    }
+    if (action == Intent.ACTION_VIEW) return dataString
+    return null
 }
