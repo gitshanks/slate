@@ -27,6 +27,21 @@ async function backfill() {
       "alter table titles add column if not exists omdb_plot_fetched_at timestamptz",
     );
 
+    const cached = await pool.query(
+      "select id, omdb_plot from titles where nullif(trim(omdb_plot), '') is not null",
+    );
+    let reformatted = 0;
+    await mapPool(cached.rows, 12, async (row) => {
+      const formatted = formatPlot(row.omdb_plot);
+      if (!formatted || formatted === row.omdb_plot) return;
+      await pool.query("update titles set omdb_plot = $1 where id = $2", [
+        formatted,
+        row.id,
+      ]);
+      reformatted += 1;
+    });
+    console.log(`Reformatted ${reformatted} cached OMDb plots.`);
+
     const result = await pool.query(`
       select distinct lower(imdb_id) as imdb_id
       from titles
@@ -89,8 +104,54 @@ async function fetchPlot(imdbId) {
 
   const value = payload.Plot;
   if (typeof value !== "string" || value === "N/A") return null;
-  const plot = value.replace(/\s+/g, " ").trim();
-  return plot ? plot.slice(0, 8_000) : null;
+  return formatPlot(value);
+}
+
+function formatPlot(value) {
+  if (typeof value !== "string") return null;
+  const text = value
+    .normalize("NFKC")
+    .replace(/\u00a0/g, " ")
+    .replace(/([\p{L}])["”](s|t|re|ve|ll|d|m)\b/giu, "$1'$2")
+    .replace(/[\t\f\v ]+/g, " ")
+    .replace(/\s*[\r\n]+\s*/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/([,;:])(?=(?:["'“‘])?[\p{L}])/gu, "$1 ")
+    .replace(/([.!?])(?=(?:["'”’])?[\p{Lu}][\p{Ll}])/gu, "$1 ")
+    .replace(/\(\s+/g, "(")
+    .replace(/\s+\)/g, ")")
+    .replace(/ {2,}/g, " ")
+    .trim();
+  if (!text) return null;
+  if (countWords(text) < 100) return text.slice(0, 8_000);
+
+  const sentences = text.split(
+    /(?<=[.!?])\s+(?=(?:["'“‘])?[\p{Lu}\d])/u,
+  );
+  if (sentences.length < 4) return text.slice(0, 8_000);
+
+  const paragraphs = [];
+  let current = [];
+  let currentWords = 0;
+  for (const sentence of sentences) {
+    const sentenceWords = countWords(sentence);
+    if (
+      current.length >= 2 &&
+      (current.length >= 3 || currentWords + sentenceWords > 95)
+    ) {
+      paragraphs.push(current.join(" "));
+      current = [];
+      currentWords = 0;
+    }
+    current.push(sentence);
+    currentWords += sentenceWords;
+  }
+  if (current.length) paragraphs.push(current.join(" "));
+  return paragraphs.join("\n\n").slice(0, 8_000);
+}
+
+function countWords(value) {
+  return value.split(/\s+/).filter(Boolean).length;
 }
 
 async function mapPool(items, concurrency, worker) {

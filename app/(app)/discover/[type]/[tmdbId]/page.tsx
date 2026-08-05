@@ -27,6 +27,7 @@ import {
   RottenTomatoesBadge,
 } from "@/components/rating-icons";
 import { RatingChip } from "@/components/rating-chip";
+import { TitleDescription } from "@/components/title-description";
 import {
   formatImdbRating,
   formatMetacriticScore,
@@ -271,11 +272,7 @@ export default async function DiscoverTitlePage(
               )}
             </div>
 
-            {summary && (
-              <p className="mt-6 max-w-2xl text-base leading-relaxed text-foreground/85">
-                {summary}
-              </p>
-            )}
+            <TitleDescription text={summary} />
 
             {meta.cast.length > 0 && (
               <MotionReveal delay={0}>

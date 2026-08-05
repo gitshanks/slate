@@ -18,10 +18,12 @@ import {
   RottenTomatoesBadge,
 } from "@/components/rating-icons";
 import { RatingChip } from "@/components/rating-chip";
+import { TitleDescription } from "@/components/title-description";
 import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { getPublicProfileTitle } from "@/lib/public-profile-library";
 import { getOmdbMetadata } from "@/lib/omdb";
+import { formatPlotText } from "@/lib/plot-format";
 import { getTitleMeta } from "@/lib/tmdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import {
@@ -44,12 +46,13 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     return { title: "Title not found · slate", robots: { index: false } };
   }
 
-  const summary =
+  const summary = formatPlotText(
     record.title.omdb_plot?.trim() ||
     (record.title.imdb_id
       ? (await getOmdbMetadata(record.title.imdb_id)).omdb_plot
       : null) ||
-    record.title.overview;
+    record.title.overview,
+  )?.replace(/\s+/g, " ");
 
   return {
     title: `${record.title.title} · ${record.profile.display_name}'s slate`,
@@ -241,11 +244,7 @@ export default async function PublicTitlePage(props: Props) {
               ) : null}
             </div>
 
-            {summary ? (
-              <p className="mt-6 max-w-2xl text-base leading-relaxed text-foreground/85">
-                {summary}
-              </p>
-            ) : null}
+            <TitleDescription text={summary} />
 
             {title.review ? (
               <section className="mt-8 max-w-2xl rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm">

@@ -27,6 +27,7 @@ import {
   RottenTomatoesBadge,
 } from "@/components/rating-icons";
 import { RatingChip } from "@/components/rating-chip";
+import { TitleDescription } from "@/components/title-description";
 import {
   formatImdbRating,
   formatMetacriticScore,
@@ -349,11 +350,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
             </div>
 
             {/* Full OMDb plot; TMDB overview only when OMDb has no plot. */}
-            {summary && (
-              <p className="mt-6 max-w-2xl text-base leading-relaxed text-foreground/85">
-                {summary}
-              </p>
-            )}
+            <TitleDescription text={summary} />
 
             {/* Your saved note */}
             {title.review && (

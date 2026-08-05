@@ -1,5 +1,7 @@
 import "server-only";
 
+import { formatPlotText } from "@/lib/plot-format";
+
 const OMDB_BASE = "https://www.omdbapi.com/";
 const KEY = process.env.OMDB_API_KEY;
 
@@ -120,7 +122,7 @@ export async function getOmdbMetadata(imdbId: string): Promise<OmdbRatings> {
       Number.isFinite(metacritic) && metacritic >= 0 ? metacritic : null,
     omdb_plot:
       typeof json.Plot === "string" && json.Plot !== "N/A"
-        ? json.Plot.replace(/\s+/g, " ").trim().slice(0, 8_000) || null
+        ? formatPlotText(json.Plot)
         : null,
   };
 }
