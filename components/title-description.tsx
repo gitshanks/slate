@@ -5,7 +5,7 @@ export function TitleDescription({ text }: { text: string | null | undefined }) 
   if (!formatted) return null;
 
   return (
-    <div className="mt-6 w-full space-y-4 text-pretty text-base leading-relaxed text-foreground/85">
+    <div className="mt-6 w-full max-w-4xl space-y-4 text-pretty text-base leading-relaxed text-foreground/85">
       {formatted.split(/\n{2,}/).map((paragraph, index) => (
         <p key={index}>{paragraph}</p>
       ))}

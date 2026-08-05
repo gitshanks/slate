@@ -20,7 +20,7 @@ export default function PublicTitleLoading() {
             <Skeleton className="h-9 w-24 rounded-full" />
             <Skeleton className="h-9 w-28 rounded-full" />
           </div>
-          <div className="mt-6 w-full space-y-2">
+          <div className="mt-6 w-full max-w-4xl space-y-2">
             <Skeleton shape="text" />
             <Skeleton shape="text" />
             <Skeleton shape="text" className="w-4/5" />

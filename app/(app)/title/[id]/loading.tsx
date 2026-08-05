@@ -42,7 +42,7 @@ export default function TitleDetailLoading() {
         </div>
 
         {/* Overview */}
-        <div className="mt-6 w-full space-y-2">
+        <div className="mt-6 w-full max-w-4xl space-y-2">
           <Skeleton shape="text" />
           <Skeleton shape="text" />
           <Skeleton shape="text" className="w-4/5" />
