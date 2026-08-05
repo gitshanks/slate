@@ -1,0 +1,368 @@
+openapi: 3.1.0
+info:
+  title: Slate Native API
+  version: 1.0.0-alpha.1
+  description: Versioned API used by Slate's first-party iOS and Android apps.
+servers:
+  - url: https://s1ate.space/api/v1
+security:
+  - bearerAuth: []
+paths:
+  /landing:
+    get:
+      security: []
+      summary: Read the cached weekly poster wall used by first-party clients.
+      operationId: getLanding
+      responses:
+        '200':
+          description: Poster columns for the animated landing background.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [posterColumns]
+                    properties:
+                      posterColumns:
+                        type: array
+                        items:
+                          type: array
+                          items:
+                            type: string
+                            format: uri
+  /auth/google:
+    post:
+      security: []
+      summary: Exchange a verified Google ID token for a Slate device session.
+      operationId: signInWithGoogle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderSignInRequest'
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionEnvelope'
+        '401':
+          $ref: '#/components/responses/ApiError'
+  /auth/apple:
+    post:
+      security: []
+      summary: Exchange an Apple identity token for a Slate device session.
+      operationId: signInWithApple
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ProviderSignInRequest'
+                - type: object
+                  properties:
+                    fullName:
+                      type: [string, 'null']
+                      maxLength: 100
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionEnvelope'
+        '401':
+          $ref: '#/components/responses/ApiError'
+  /auth/refresh:
+    post:
+      security: []
+      summary: Rotate a refresh token and issue a new access token.
+      operationId: refreshSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Session rotated.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Tokens'
+        '401':
+          $ref: '#/components/responses/ApiError'
+  /auth/logout:
+    post:
+      summary: Revoke the current device session.
+      operationId: signOut
+      responses:
+        '200':
+          description: Device session revoked.
+  /me:
+    get:
+      summary: Read the signed-in profile.
+      operationId: getMe
+      responses:
+        '200':
+          description: Current profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileEnvelope'
+    patch:
+      summary: Update profile fields. Updates save immediately.
+      operationId: updateMe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                displayName:
+                  type: string
+                  minLength: 1
+                  maxLength: 80
+                username:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9-]{2,29}$'
+                isPublic:
+                  type: boolean
+      responses:
+        '200':
+          description: Updated profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileEnvelope'
+        '409':
+          $ref: '#/components/responses/ApiError'
+  /library:
+    get:
+      summary: Read the current account's titles and lists.
+      operationId: getLibrary
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            $ref: '#/components/schemas/TitleStatus'
+      responses:
+        '200':
+          description: Account-scoped library snapshot.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [titles, lists, serverTime]
+                    properties:
+                      titles:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Title'
+                      lists:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/List'
+                      serverTime:
+                        type: string
+                        format: date-time
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    ApiError:
+      description: Request failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    Platform:
+      type: string
+      enum: [ios, android]
+    ProviderSignInRequest:
+      type: object
+      required: [idToken, platform]
+      properties:
+        idToken:
+          type: string
+        platform:
+          $ref: '#/components/schemas/Platform'
+        nonce:
+          type: [string, 'null']
+          maxLength: 256
+        deviceName:
+          type: [string, 'null']
+          maxLength: 100
+    Tokens:
+      type: object
+      required:
+        - accessToken
+        - accessTokenExpiresIn
+        - refreshToken
+        - refreshTokenExpiresAt
+      properties:
+        accessToken:
+          type: string
+        accessTokenExpiresIn:
+          type: integer
+          example: 900
+        refreshToken:
+          type: string
+        refreshTokenExpiresAt:
+          type: string
+          format: date-time
+    Session:
+      allOf:
+        - $ref: '#/components/schemas/Tokens'
+        - type: object
+          required: [user]
+          properties:
+            user:
+              $ref: '#/components/schemas/Profile'
+    SessionEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Session'
+    ProfileEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Profile'
+    Profile:
+      type: object
+      required: [id, username, displayName, isPublic, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: [string, 'null']
+          format: uri
+        isPublic:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TitleStatus:
+      type: string
+      enum: [want, watching, watched, dropped]
+    MediaType:
+      type: string
+      enum: [movie, tv]
+    Genre:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    Season:
+      type: object
+      required: [n, c]
+      properties:
+        n:
+          type: integer
+        c:
+          type: integer
+    Title:
+      type: object
+      required:
+        - id
+        - tmdbId
+        - mediaType
+        - title
+        - status
+        - favorite
+        - addedAt
+        - updatedAt
+        - position
+      properties:
+        id: { type: string, format: uuid }
+        tmdbId: { type: integer }
+        mediaType: { $ref: '#/components/schemas/MediaType' }
+        title: { type: string }
+        originalTitle: { type: [string, 'null'] }
+        overview: { type: [string, 'null'] }
+        posterPath: { type: [string, 'null'] }
+        backdropPath: { type: [string, 'null'] }
+        releaseDate: { type: [string, 'null'], format: date }
+        runtime: { type: [integer, 'null'] }
+        genres:
+          type: [array, 'null']
+          items: { $ref: '#/components/schemas/Genre' }
+        status: { $ref: '#/components/schemas/TitleStatus' }
+        rating: { type: [number, 'null'] }
+        review: { type: [string, 'null'] }
+        favorite: { type: boolean }
+        addedAt: { type: string, format: date-time }
+        watchedAt: { type: [string, 'null'], format: date-time }
+        updatedAt: { type: string, format: date-time }
+        position: { type: integer }
+        tmdbRating: { type: [number, 'null'] }
+        tmdbVoteCount: { type: [integer, 'null'] }
+        imdbId: { type: [string, 'null'] }
+        imdbRating: { type: [number, 'null'] }
+        imdbVotes: { type: [integer, 'null'] }
+        rottenTomatoesScore: { type: [integer, 'null'] }
+        metacriticScore: { type: [integer, 'null'] }
+        currentSeason: { type: [integer, 'null'] }
+        currentEpisode: { type: [integer, 'null'] }
+        seasons:
+          type: [array, 'null']
+          items: { $ref: '#/components/schemas/Season' }
+    List:
+      type: object
+      required: [id, slug, name, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }

@@ -20,6 +20,17 @@
 # production
 /build
 
+# native build output and machine-local configuration
+/android/.gradle/
+/android/app/build/
+/android/build/
+/android/local.properties
+/ios/build/
+/ios/DerivedData/
+*.xcuserstate
+xcuserdata/
+/.claude/worktrees/
+
 # misc
 .DS_Store
 *.pem
@@ -40,3 +51,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.gstack/

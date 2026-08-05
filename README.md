@@ -43,6 +43,8 @@ Letterboxd is great, but the feed can get in the way of the shelf. Slate keeps t
 
 Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · shadcn/ui · Postgres — Neon (Vercel) or PostgREST (self-host) · TMDB API · Docker / Vercel
 
+Native clients are being built in SwiftUI for iOS and Jetpack Compose for Android. Both use the same Slate account and Neon library through the versioned `/api/v1` contract. See [Native apps](./docs/native-apps.md) for the current milestone and local setup.
+
 <img width="2560" height="1296" alt="slate — title page" src="https://github.com/user-attachments/assets/3247d633-123c-4325-b8be-a0f452b8d89d" />
 
 ## Deploy to Vercel
@@ -85,7 +87,7 @@ Push to GitHub and import at [vercel.com/new](https://vercel.com/new). Then, ins
 | `NEXT_PUBLIC_SLATE_HOSTED` | optional | Set to `1` for the Google-account hosted product. Mounts the marketing page at `/`, the private library at `/app`, and enables public profiles at `/u/:username`. |
 | `AUTH_SECRET` | hosted | Auth.js session secret. Generate with `npx auth secret`. |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | hosted | Google OAuth web-client credentials. Add `https://your-domain/api/auth/callback/google` as an authorized redirect URI. |
-| `NEXT_PUBLIC_SITE_URL` | hosted | Canonical origin used for public profile links, such as `https://slate.nishh.dev`. |
+| `NEXT_PUBLIC_SITE_URL` | hosted | Canonical origin used for public profile links, such as `https://s1ate.space`. |
 | `SLATE_LEGACY_OWNER_EMAIL` | optional | Google email allowed to claim rows created before account support on its first sign-in. |
 
 After enabling OMDb on an existing library, run the one-time backfill below.

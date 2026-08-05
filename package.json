@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:migrate:accounts": "node scripts/apply-account-migration.mjs",
+    "db:migrate:native": "node scripts/apply-native-migration.mjs",
     "db:backfill:omdb": "node scripts/backfill-omdb-plots.mjs"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "jose": "^6.2.4",
     "lucide-react": "^1.8.0",
     "motion": "^12.42.0",
     "next": "16.2.3",

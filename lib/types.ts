@@ -21,6 +21,8 @@ export interface TitleRow {
   review: string | null;
   favorite: boolean;
   added_at: string;
+  /** Last server-side mutation; used as the native sync cursor. */
+  updated_at?: string;
   watched_at: string | null;
   /** User-defined order within the title's current status tab. */
   position?: number;
@@ -47,4 +49,5 @@ export interface ListRow {
   name: string;
   description: string | null;
   created_at: string;
+  updated_at?: string;
 }
