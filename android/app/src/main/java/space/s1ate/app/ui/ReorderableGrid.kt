@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInParent
@@ -48,8 +49,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -57,12 +62,15 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import space.s1ate.app.model.SlateTitle
+import space.s1ate.app.model.LibraryStatus
 import kotlin.math.roundToInt
 
 @Composable
 fun ReorderableLibraryGrid(
     source: List<SlateTitle>,
     onOpen: (SlateTitle) -> Unit,
+    onStatus: ((SlateTitle, LibraryStatus) -> Unit)? = null,
+    onRemove: ((SlateTitle) -> Unit)? = null,
     onCommit: suspend (List<SlateTitle>) -> Unit,
 ) {
     val items = remember { mutableStateListOf<SlateTitle>() }
@@ -131,14 +139,24 @@ fun ReorderableLibraryGrid(
                         )
                     },
             ) {
-                PosterTile(title = title, onClick = { if (draggingId == null) onOpen(title) })
+                PosterTile(
+                    title = title,
+                    onClick = { if (draggingId == null) onOpen(title) },
+                    onStatus = onStatus,
+                    onRemove = onRemove,
+                )
             }
         }
     }
 }
 
 @Composable
-fun PosterTile(title: SlateTitle, onClick: () -> Unit) {
+fun PosterTile(
+    title: SlateTitle,
+    onClick: () -> Unit,
+    onStatus: ((SlateTitle, LibraryStatus) -> Unit)? = null,
+    onRemove: ((SlateTitle) -> Unit)? = null,
+) {
     Column(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -156,10 +174,49 @@ fun PosterTile(title: SlateTitle, onClick: () -> Unit) {
                         ?: title.metacriticScore?.let { Text("· $it", fontSize = 10.sp, color = Color.White) }
                 }
             }
-            title.rating?.let { rating ->
-                val icon = when (rating) { 3.0 -> Icons.Outlined.Favorite; 2.0 -> Icons.Outlined.ThumbUp; else -> Icons.Outlined.ThumbDown }
-                val tint = when (rating) { 3.0 -> Color(0xFFFF6B9D); 2.0 -> Color(0xFF5ED49A); else -> Color(0xFFFFB35C) }
-                Icon(icon, null, Modifier.align(Alignment.BottomEnd).padding(9.dp).background(Color.Black.copy(0.58f), CircleShape).padding(8.dp).size(16.dp), tint = tint)
+            if (onStatus != null || onRemove != null) {
+                Row(
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.88f))))
+                        .padding(horizontal = 7.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    listOf(
+                        LibraryStatus.want to Icons.Outlined.Schedule,
+                        LibraryStatus.watching to Icons.Outlined.Visibility,
+                        LibraryStatus.watched to Icons.Outlined.Check,
+                    ).forEach { (status, icon) ->
+                        Icon(
+                            icon,
+                            contentDescription = status.label,
+                            tint = if (title.status == status) SlateViolet else Color.White.copy(alpha = 0.72f),
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .clickable { onStatus?.invoke(title, status) }
+                                .padding(8.dp),
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Icon(
+                        Icons.Outlined.Delete,
+                        contentDescription = "Remove",
+                        tint = Color.White.copy(alpha = 0.72f),
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .clickable { onRemove?.invoke(title) }
+                            .padding(8.dp),
+                    )
+                }
+            } else {
+                title.rating?.let { rating ->
+                    val icon = when (rating) { 3.0 -> Icons.Outlined.Favorite; 2.0 -> Icons.Outlined.ThumbUp; else -> Icons.Outlined.ThumbDown }
+                    val tint = when (rating) { 3.0 -> Color(0xFFFF6B9D); 2.0 -> Color(0xFF5ED49A); else -> Color(0xFFFFB35C) }
+                    Icon(icon, null, Modifier.align(Alignment.BottomEnd).padding(9.dp).background(Color.Black.copy(0.58f), CircleShape).padding(8.dp).size(16.dp), tint = tint)
+                }
             }
         }
         Text(title.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)

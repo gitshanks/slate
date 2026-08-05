@@ -1,61 +1,106 @@
 import SwiftUI
 
 struct SearchView: View {
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var model: AppModel
+    let onClose: () -> Void
     @State private var query = ""
     @State private var payload: CatalogSearchPayload?
     @State private var loading = false
+    @FocusState private var searchFocused: Bool
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    ContentUnavailableView(
-                        "Find your next watch",
-                        systemImage: "sparkle.magnifyingglass",
-                        description: Text("Search films, series, cast, and crew.")
-                    )
-                    .padding(.top, 120)
-                } else if loading && payload == nil {
-                    ProgressView().tint(.white).padding(.top, 140)
-                } else if let payload {
-                    if !payload.people.isEmpty {
-                        SearchPeopleRail(people: payload.people)
-                    }
-                    if payload.approximate, let approximate = payload.approximateQuery {
-                        Text("Showing close matches for “\(approximate)”")
-                            .font(.caption).foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 18)
-                            .padding(.top, 18)
-                    }
-                    LazyVGrid(columns: columns, spacing: 24) {
-                        ForEach(payload.results) { title in
-                            NavigationLink {
-                                if let saved = title.saved,
-                                   let libraryTitle = model.titles.first(where: { $0.id == saved.id }) {
-                                    TitleDetailView(title: libraryTitle)
-                                } else {
-                                    DiscoverTitleView(mediaType: title.mediaType, tmdbId: title.tmdbId)
-                                }
-                            } label: {
-                                CatalogPosterCard(title: title)
+        ZStack(alignment: .top) {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(Color.black.opacity(0.42))
+                .ignoresSafeArea()
+                .onTapGesture { onClose() }
+
+            NavigationStack {
+                VStack(spacing: 0) {
+                    HStack(spacing: 11) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        TextField("Search titles, cast, and crew", text: $query)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .focused($searchFocused)
+                            .submitLabel(.search)
+                        if !query.isEmpty {
+                            Button { query = "" } label: {
+                                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                             }
                             .buttonStyle(.plain)
                         }
+                        Button("Cancel", action: onClose)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(SlatePalette.violet)
                     }
-                    .padding(18)
+                    .padding(.horizontal, 14)
+                    .frame(height: 52)
+                    .background(Color(red: 0.075, green: 0.075, blue: 0.082), in: .rect(cornerRadius: 16))
+                    .overlay { RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.11), lineWidth: 0.7) }
+                    .padding(.horizontal, 14)
+                    .padding(.top, 10)
+                    .padding(.bottom, 10)
+
+                    ScrollView {
+                        if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            VStack(alignment: .leading, spacing: 7) {
+                                Text("Search your library or add from TMDB.")
+                                    .font(.system(size: 14, weight: .medium))
+                                Text("Type a title, actor, or filmmaker to get started.")
+                                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(16)
+                            .background(SlatePalette.surface, in: .rect(cornerRadius: 14))
+                            .overlay { RoundedRectangle(cornerRadius: 14).stroke(SlatePalette.hairline, lineWidth: 0.7) }
+                            .padding(.horizontal, 14)
+                        } else if loading && payload == nil {
+                            ProgressView().tint(.white).padding(.top, 80)
+                        } else if let payload {
+                            if !payload.people.isEmpty {
+                                SearchPeopleRail(people: payload.people)
+                            }
+                            if payload.approximate, let approximate = payload.approximateQuery {
+                                Text("Showing close matches for “\(approximate)”")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 18)
+                                    .padding(.top, 18)
+                            }
+                            LazyVGrid(columns: columns, spacing: 24) {
+                                ForEach(payload.results) { title in
+                                    NavigationLink {
+                                        if let saved = title.saved,
+                                           let libraryTitle = model.titles.first(where: { $0.id == saved.id }) {
+                                            TitleDetailView(title: libraryTitle)
+                                        } else {
+                                            DiscoverTitleView(mediaType: title.mediaType, tmdbId: title.tmdbId)
+                                        }
+                                    } label: {
+                                        CatalogPosterCard(title: title)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(18)
+                        }
+                    }
                 }
+                .background(Color.black.opacity(0.78))
+                .toolbar(.hidden, for: .navigationBar)
             }
-            .navigationTitle("Search")
-            .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Titles, cast, crew")
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
-            .task(id: query) { await performSearch() }
+            .frame(maxHeight: .infinity)
+            .background(Color.black.opacity(0.76))
+            .onTapGesture { }
         }
+        .task(id: query) { await performSearch() }
+        .task { searchFocused = true }
     }
 
     private func performSearch() async {
@@ -149,16 +194,15 @@ struct DiscoverTitleView: View {
             Color.black.ignoresSafeArea()
             if let backdrop = detail?.title.backdropURL {
                 AsyncImage(url: backdrop) { image in image.resizable().scaledToFill() } placeholder: { Color(white: 0.07) }
-                    .frame(height: 540).clipped().ignoresSafeArea(edges: .top)
-                LinearGradient(colors: [.black.opacity(0.18), .black.opacity(0.55), .black], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 540).ignoresSafeArea(edges: .top)
+                    .frame(height: 760).clipped()
+                LinearGradient(colors: [.black.opacity(0.42), .black.opacity(0.68), .black], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 760)
             }
             ScrollView {
                 if let detail {
                     VStack(alignment: .leading, spacing: 0) {
-                        Color.clear.frame(height: 300)
                         DiscoverMetadata(title: detail.title)
-                        Text(detail.title.title).font(.system(size: 38, weight: .bold)).tracking(-1.7).padding(.top, 8)
+                        Text(detail.title.title).font(.system(size: 32, weight: .semibold)).tracking(-1.1).padding(.top, 8)
                         HStack(spacing: 9) {
                             if let saved = detail.savedTitle {
                                 NavigationLink { TitleDetailView(title: saved) } label: {
@@ -188,6 +232,7 @@ struct DiscoverTitleView: View {
                         DiscoverRecommendations(label: detail.title.title, items: detail.recommendations)
                     }
                     .padding(.horizontal, 18)
+                    .padding(.top, 30)
                     .padding(.bottom, 56)
                 } else if loading {
                     ProgressView().tint(.white).padding(.top, 220)

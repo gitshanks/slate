@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -35,6 +38,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -91,26 +95,31 @@ fun SearchScreen(
         loading = false
     }
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        TopAppBar(
-            title = { Text("Search", fontWeight = FontWeight.Bold) },
-            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
-        )
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = { Text("Titles, cast, crew") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-        )
+    Column(
+        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.94f)).windowInsetsPadding(WindowInsets.statusBars),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text("Search titles, cast, and crew") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+            )
+            TextButton(onBack) { Text("Cancel", color = SlateViolet, fontWeight = FontWeight.SemiBold) }
+        }
         when {
-            query.isBlank() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.PersonSearch, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(12.dp))
-                    Text("Find your next watch", fontWeight = FontWeight.SemiBold)
-                    Text("Search films, series, cast, and crew.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            query.isBlank() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 14.dp).clip(RoundedCornerShape(14.dp)).background(SlateSurface).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    Text("Search your library or add from TMDB.", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text("Type a title, actor, or filmmaker to get started.", fontSize = 12.sp, color = SlateMuted)
                 }
             }
             loading && result == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -222,24 +231,18 @@ fun DiscoverScreen(
             CircularProgressIndicator(Modifier.align(Alignment.Center), strokeWidth = 2.dp)
         } else {
             val current = detail!!
+            AsyncImage(current.title.backdropUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(0.42f), Color.Black.copy(0.7f), Color.Black))))
+            Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(0.82f), Color.Black.copy(0.22f)))))
             LazyColumn(Modifier.fillMaxSize()) {
                 item {
-                    Box(Modifier.fillMaxWidth().height(430.dp)) {
-                        AsyncImage(current.title.backdropUrl, current.title.title, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(0.1f), Color.Black.copy(0.52f), Color.Black))))
-                        IconButton(onBack, Modifier.align(Alignment.TopStart).padding(14.dp).background(Color.Black.copy(0.38f), CircleShape)) {
-                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", tint = Color.White)
-                        }
-                    }
-                }
-                item {
-                    Column(Modifier.padding(horizontal = 18.dp).padding(bottom = 48.dp)) {
+                    Column(Modifier.padding(horizontal = 18.dp).padding(top = 30.dp, bottom = 48.dp)) {
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(if (mediaType == MediaType.movie) "FILM" else "SERIES", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = Color.White.copy(0.62f))
                             current.title.year?.let { Text("· $it", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = Color.White.copy(0.62f)) }
                             current.title.runtime?.let { Text("· ${if (it >= 60) "${it / 60}H ${it % 60}M" else "${it}M"}", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = Color.White.copy(0.62f)) }
                         }
-                        Text(current.title.title, color = Color.White, fontSize = 38.sp, lineHeight = 39.sp, letterSpacing = (-1.7).sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+                        Text(current.title.title, color = Color.White, fontSize = 32.sp, lineHeight = 34.sp, letterSpacing = (-1.1).sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
                         Row(Modifier.padding(top = 22.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                             current.savedTitle?.let { saved ->
                                 DiscoveryPill("In your ${saved.status.label.lowercase()}", Icons.Outlined.Check, true) { onOpenSaved(saved.id) }

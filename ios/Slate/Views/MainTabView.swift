@@ -4,25 +4,48 @@ import UniformTypeIdentifiers
 
 struct MainTabView: View {
     @EnvironmentObject private var model: AppModel
+    @State private var selection: SlateTab = .watchlist
     @State private var showSearch = false
     @State private var showProfile = false
 
     var body: some View {
-        TabView {
-            LibraryScreen(status: .want, showSearch: $showSearch, showProfile: $showProfile)
-                .tabItem { Label("Watchlist", systemImage: "clock") }
-            LibraryScreen(status: .watching, showSearch: $showSearch, showProfile: $showProfile)
-                .tabItem { Label("Watching", systemImage: "eye") }
-            LibraryScreen(status: .watched, showSearch: $showSearch, showProfile: $showProfile)
-                .tabItem { Label("Watched", systemImage: "checkmark") }
-            ListsScreen(showProfile: $showProfile)
-                .tabItem { Label("Lists", systemImage: "square.3.layers.3d") }
-            ImportRecommendationsView(initialText: nil, showProfile: $showProfile)
-                .tabItem { Label("Import", systemImage: "square.and.arrow.down") }
+        ZStack {
+            SlateChrome(
+                selection: $selection,
+                profileIsOpen: showProfile,
+                onLogo: {
+                    showProfile = false
+                    selection = .watchlist
+                },
+                onSearch: { withAnimation(.smooth(duration: 0.24)) { showSearch = true } },
+                onProfile: { withAnimation(.smooth(duration: 0.22)) { showProfile = true } }
+            ) {
+                NavigationStack {
+                    if showProfile {
+                        ProfileView()
+                    } else {
+                        rootScreen
+                    }
+                }
+                .id("\(selection.rawValue)-\(showProfile)")
+            }
+
+            if showSearch {
+                SearchView(onClose: { withAnimation(.smooth(duration: 0.22)) { showSearch = false } })
+                    .transition(.opacity.combined(with: .scale(scale: 0.985, anchor: .top)))
+                    .zIndex(10)
+            }
         }
-        .tint(Color(red: 0.58, green: 0.43, blue: 0.96))
-        .sheet(isPresented: $showSearch) { SearchView() }
-        .sheet(isPresented: $showProfile) { ProfileView() }
+        .onChange(of: selection) { _, _ in
+            showProfile = false
+            showSearch = false
+        }
+        .onChange(of: model.inboundSharedText) { _, value in
+            guard value != nil else { return }
+            showProfile = false
+            showSearch = false
+            selection = .import
+        }
         .sheet(
             isPresented: Binding(
                 get: { model.inboundSharedText != nil },
@@ -34,14 +57,30 @@ struct MainTabView: View {
                 showProfile: .constant(false)
             )
         }
+        .tint(SlatePalette.violet)
+        .preferredColorScheme(.dark)
+    }
+
+    @ViewBuilder
+    private var rootScreen: some View {
+        switch selection {
+        case .watchlist:
+            LibraryScreen(status: .want)
+        case .watching:
+            LibraryScreen(status: .watching)
+        case .watched:
+            LibraryScreen(status: .watched)
+        case .lists:
+            ListsScreen()
+        case .import:
+            ImportRecommendationsView(initialText: nil, showProfile: $showProfile)
+        }
     }
 }
 
 private struct LibraryScreen: View {
     @EnvironmentObject private var model: AppModel
     let status: LibraryStatus
-    @Binding var showSearch: Bool
-    @Binding var showProfile: Bool
     @State private var ordered: [SlateTitle] = []
     @State private var dragging: SlateTitle?
     @State private var mediaFilter = "all"
@@ -56,8 +95,13 @@ private struct LibraryScreen: View {
     ]
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                SlateSectionHeader(eyebrow: eyebrow, title: heading)
+                    .padding(.horizontal, 18)
+                    .padding(.top, 20)
+                    .padding(.bottom, 25)
+
                 LibraryFilters(
                     titles: ordered,
                     status: status,
@@ -75,7 +119,9 @@ private struct LibraryScreen: View {
                         systemImage: status == .watched ? "checkmark.circle" : "film",
                         description: Text(ordered.isEmpty ? "Search and save a title to see it here." : "Try clearing a filter.")
                     )
-                    .padding(.top, 80)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 56)
+                    .padding(.horizontal, 18)
                 } else {
                     LazyVGrid(columns: columns, spacing: 24) {
                         ForEach(visibleTitles) { title in
@@ -114,19 +160,29 @@ private struct LibraryScreen: View {
                     .animation(.smooth(duration: 0.22), value: ordered.map(\.id))
                 }
             }
-            .refreshable { await model.refreshLibrary() }
-            .navigationTitle(status.label)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    ProfileAvatarButton(profile: model.profile, data: model.avatarData) { showProfile = true }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showSearch = true } label: { Image(systemName: "magnifyingglass") }
-                        .accessibilityLabel("Search")
-                }
-            }
-            .onAppear { sync() }
-            .onChange(of: model.titles) { _, _ in if dragging == nil { sync() } }
+        }
+        .background(SlatePalette.background)
+        .refreshable { await model.refreshLibrary() }
+        .toolbar(.hidden, for: .navigationBar)
+        .onAppear { sync() }
+        .onChange(of: model.titles) { _, _ in if dragging == nil { sync() } }
+    }
+
+    private var eyebrow: String {
+        switch status {
+        case .want: "Your watchlist"
+        case .watching: "In progress"
+        case .watched: "Already seen"
+        case .dropped: "Set aside"
+        }
+    }
+
+    private var heading: String {
+        switch status {
+        case .want: "Up next"
+        case .watching: "Watching now"
+        case .watched: "Watched"
+        case .dropped: "Dropped"
         }
     }
 
@@ -173,9 +229,9 @@ private struct LibraryFilters: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 0) {
-                mediaOption("All", value: "all")
-                mediaOption("Films", value: "movie")
-                mediaOption("Series", value: "tv")
+                mediaOption("All", icon: "square.grid.2x2", value: "all")
+                mediaOption("Films", icon: "film", value: "movie")
+                mediaOption("Series", icon: "tv", value: "tv")
             }
             .padding(4)
             .background(.white.opacity(0.055), in: .rect(cornerRadius: 22))
@@ -183,6 +239,7 @@ private struct LibraryFilters: View {
                 RoundedRectangle(cornerRadius: 22)
                     .stroke(.white.opacity(0.08), lineWidth: 0.7)
             }
+            .frame(maxWidth: 296)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 9) {
@@ -221,15 +278,18 @@ private struct LibraryFilters: View {
         .padding(.horizontal, 18)
     }
 
-    private func mediaOption(_ label: String, value: String) -> some View {
+    private func mediaOption(_ label: String, icon: String, value: String) -> some View {
         Button {
             withAnimation(.smooth(duration: 0.22)) { media = value }
         } label: {
-            Text(label)
-                .font(.body.weight(.semibold))
+            HStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 13, weight: .medium))
+                Text(label)
+            }
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(media == value ? Color.black : .secondary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 42)
+                .frame(height: 36)
                 .background {
                     if media == value {
                         RoundedRectangle(cornerRadius: 18)
@@ -262,7 +322,9 @@ private struct FilterChip: View {
 }
 
 struct PosterCard: View {
+    @EnvironmentObject private var model: AppModel
     let title: SlateTitle
+    @State private var mutating = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
@@ -297,17 +359,10 @@ struct PosterCard: View {
                         Spacer()
                     }
                     Spacer()
-                    HStack {
-                        Spacer()
-                        if let rating = title.rating {
-                            Image(systemName: rating == 3 ? "heart.fill" : rating == 2 ? "hand.thumbsup.fill" : "hand.thumbsdown.fill")
-                                .font(.caption.bold())
-                                .foregroundStyle(rating == 3 ? .pink : rating == 2 ? .green : .orange)
-                                .padding(8).background(.black.opacity(0.58), in: .circle)
-                        }
-                    }
+                    quickActions
                 }
-                .padding(9)
+                .padding(.horizontal, 9)
+                .padding(.top, 9)
             }
 
             Text(title.title)
@@ -324,6 +379,55 @@ struct PosterCard: View {
             .font(.subheadline.monospaced()).foregroundStyle(.secondary)
         }
         .contentShape(.rect)
+    }
+
+    private var quickActions: some View {
+        HStack(spacing: 0) {
+            quickAction("clock", status: .want)
+            quickAction("eye", status: .watching)
+            quickAction("checkmark", status: .watched)
+            Spacer(minLength: 0)
+            Button(role: .destructive) {
+                mutate { try await model.removeTitle(id: title.id) }
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.72))
+                    .frame(width: 36, height: 38)
+            }
+            .buttonStyle(SlatePressStyle())
+        }
+        .padding(.horizontal, 2)
+        .background(
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.82)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .disabled(mutating)
+    }
+
+    private func quickAction(_ icon: String, status: LibraryStatus) -> some View {
+        Button {
+            mutate { _ = try await model.setStatus(titleId: title.id, status: status) }
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(title.status == status ? SlatePalette.violet : Color.white.opacity(0.74))
+                .frame(width: 36, height: 38)
+        }
+        .buttonStyle(SlatePressStyle())
+    }
+
+    private func mutate(_ operation: @escaping () async throws -> Void) {
+        guard !mutating else { return }
+        mutating = true
+        Task {
+            do { try await operation() }
+            catch { model.presentedError = error.localizedDescription }
+            mutating = false
+        }
     }
 
     private var posterPlaceholder: some View {

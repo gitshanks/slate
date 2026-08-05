@@ -29,11 +29,10 @@ struct TitleDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Color.clear.frame(height: 300)
                     metadata
                     Text(currentTitle.title)
-                        .font(.system(size: 38, weight: .bold))
-                        .tracking(-1.7)
+                        .font(.system(size: 32, weight: .semibold))
+                        .tracking(-1.1)
                         .padding(.top, 8)
 
                     actions
@@ -64,6 +63,7 @@ struct TitleDetailView: View {
                     }
                 }
                 .padding(.horizontal, 18)
+                .padding(.top, 30)
                 .padding(.bottom, 56)
             }
         }
@@ -130,22 +130,21 @@ struct TitleDetailView: View {
                     Rectangle().fill(Color(white: 0.08))
                 }
             }
-            .frame(height: 540)
+            .frame(height: 760)
             .clipped()
 
             LinearGradient(
-                colors: [.black.opacity(0.18), .black.opacity(0.55), .black],
+                colors: [.black.opacity(0.42), .black.opacity(0.68), .black],
                 startPoint: .top,
                 endPoint: .bottom
             )
             LinearGradient(
-                colors: [.black.opacity(0.72), .clear],
+                colors: [.black.opacity(0.82), .black.opacity(0.22)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
         }
-        .frame(height: 540)
-        .ignoresSafeArea(edges: .top)
+        .frame(height: 760)
     }
 
     private var metadata: some View {

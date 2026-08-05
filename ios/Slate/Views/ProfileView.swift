@@ -19,9 +19,17 @@ struct ProfileView: View {
         let shownAvatarData = previewData ?? model.avatarData
         let shownAvatarURL = model.profile?.avatarUrl
         let shownInitials = initials
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 0) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                SlateSectionHeader(eyebrow: "Your slate", title: "Profile")
+                    .padding(.bottom, 8)
+                Text("Edit what friends see and choose whether your slate can be shared.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(SlatePalette.muted)
+                    .lineSpacing(3)
+                    .padding(.bottom, 26)
+
+                HStack(spacing: 18) {
                     PhotosPicker(selection: $selectedPhoto, matching: .images) {
                         Group {
                             if let imageData = shownAvatarData,
@@ -32,24 +40,26 @@ struct ProfileView: View {
                                     image.resizable().scaledToFill()
                                 } placeholder: {
                                     Circle().fill(.white.opacity(0.07)).overlay {
-                                        Text(shownInitials).font(.title.bold()).foregroundStyle(.secondary)
+                                        Text(shownInitials).font(.title2.bold()).foregroundStyle(.secondary)
                                     }
                                 }
                             }
                         }
-                        .frame(width: 112, height: 112)
+                        .frame(width: 82, height: 82)
                         .clipShape(.circle)
                         .overlay { Circle().stroke(.white.opacity(0.13), lineWidth: 0.8) }
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Change profile photo")
-                    .padding(.top, 20)
 
-                    VStack(spacing: 5) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(isPublic ? "PUBLIC" : "PRIVATE")
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .tracking(1.5)
+                            .foregroundStyle(SlatePalette.violet)
                         TextField("Display name", text: $displayName)
-                            .font(.system(size: 28, weight: .bold))
-                            .tracking(-0.8)
-                            .multilineTextAlignment(.center)
+                            .font(.system(size: 25, weight: .bold))
+                            .tracking(-0.7)
                             .textInputAutocapitalization(.words)
                             .focused($focused, equals: .displayName)
                             .submitLabel(.done)
@@ -63,75 +73,77 @@ struct ProfileView: View {
                                 .submitLabel(.done)
                                 .onSubmit { scheduleSave(immediate: true) }
                         }
-                        .font(.system(size: 15, design: .monospaced))
+                        .font(.system(size: 14, design: .monospaced))
                         .foregroundStyle(.secondary)
-                        .fixedSize()
                     }
-                    .padding(.top, 18)
-                    .padding(.horizontal, 28)
-
-                    VStack(spacing: 0) {
-                        HStack(spacing: 14) {
-                            Image(systemName: isPublic ? "globe" : "lock.fill")
-                                .frame(width: 22)
-                                .foregroundStyle(Color(red: 0.66, green: 0.53, blue: 1))
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(isPublic ? "Public slate" : "Private slate").font(.headline)
-                                Text(isPublic ? "Friends can browse your shelves." : "Only you can see your shelves.")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Toggle("", isOn: $isPublic).labelsHidden().tint(.purple)
-                        }
-                        .padding(18)
-
-                        if isPublic, let url = publicURL {
-                            Divider().padding(.leading, 54)
-                            ShareLink(item: url, subject: Text("\(displayName)'s slate")) {
-                                HStack {
-                                    Image(systemName: "square.and.arrow.up").frame(width: 22)
-                                    Text("Share your slate").font(.headline)
-                                    Spacer()
-                                    Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.tertiary)
-                                }
-                                .foregroundStyle(.primary)
-                                .padding(18)
-                            }
-                        }
-                    }
-                    .background(.white.opacity(0.045), in: .rect(cornerRadius: 20))
-                    .overlay { RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.09), lineWidth: 0.7) }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 38)
-
-                    Button("Sign out", role: .destructive) {
-                        Task { await model.signOut(); dismiss() }
-                    }
-                    .font(.body.weight(.semibold))
-                    .padding(.top, 38)
-                    .padding(.bottom, 30)
                 }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(SlatePalette.surface, in: .rect(cornerRadius: 18))
+                .overlay { RoundedRectangle(cornerRadius: 18).stroke(SlatePalette.hairline, lineWidth: 0.7) }
+
+                VStack(spacing: 0) {
+                    HStack(spacing: 14) {
+                        Image(systemName: isPublic ? "globe" : "lock.fill")
+                            .frame(width: 22)
+                            .foregroundStyle(SlatePalette.violet)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Share your slate").font(.headline)
+                            Text(isPublic ? "Anyone with your link can browse it." : "Your slate is private by default.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Toggle("", isOn: $isPublic).labelsHidden().tint(SlatePalette.violet)
+                    }
+                    .padding(18)
+
+                    if isPublic, let url = publicURL {
+                        Divider().overlay(SlatePalette.hairline).padding(.leading, 54)
+                        ShareLink(item: url, subject: Text("\(displayName)'s slate")) {
+                            HStack(spacing: 14) {
+                                Image(systemName: "link").frame(width: 22)
+                                Text(url.absoluteString.replacingOccurrences(of: "https://www.", with: ""))
+                                    .font(.system(size: 13, design: .monospaced)).lineLimit(1)
+                                Spacer()
+                                Image(systemName: "square.and.arrow.up").font(.caption.bold()).foregroundStyle(.tertiary)
+                            }
+                            .foregroundStyle(.primary)
+                            .padding(18)
+                        }
+                    }
+                }
+                .background(SlatePalette.surface, in: .rect(cornerRadius: 18))
+                .overlay { RoundedRectangle(cornerRadius: 18).stroke(SlatePalette.hairline, lineWidth: 0.7) }
+                .padding(.top, 18)
+
+                Button("Sign out", role: .destructive) {
+                    Task { await model.signOut(); dismiss() }
+                }
+                .font(.body.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.top, 30)
+                .padding(.bottom, 34)
             }
-            .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
-            .onAppear { hydrate() }
-            .onChange(of: displayName) { _, _ in scheduleSave() }
-            .onChange(of: username) { _, newValue in
-                let clean = newValue.lowercased().filter { $0.isLetter || $0.isNumber || $0 == "-" }
-                if clean != newValue { username = clean }
-                scheduleSave()
-            }
-            .onChange(of: isPublic) { _, _ in scheduleSave(immediate: true) }
-            .onChange(of: selectedPhoto) { _, item in
-                guard let item else { return }
-                Task { await upload(item) }
-            }
-            .onChange(of: focused) { old, new in
-                if old != nil && new == nil { scheduleSave(immediate: true) }
-            }
+            .padding(.horizontal, 18)
+            .padding(.top, 20)
         }
-        .presentationBackground(.ultraThinMaterial)
+        .background(SlatePalette.background)
+        .toolbar(.hidden, for: .navigationBar)
+        .onAppear { hydrate() }
+        .onChange(of: displayName) { _, _ in scheduleSave() }
+        .onChange(of: username) { _, newValue in
+            let clean = newValue.lowercased().filter { $0.isLetter || $0.isNumber || $0 == "-" }
+            if clean != newValue { username = clean }
+            scheduleSave()
+        }
+        .onChange(of: isPublic) { _, _ in scheduleSave(immediate: true) }
+        .onChange(of: selectedPhoto) { _, item in
+            guard let item else { return }
+            Task { await upload(item) }
+        }
+        .onChange(of: focused) { old, new in
+            if old != nil && new == nil { scheduleSave(immediate: true) }
+        }
     }
 
     private var publicURL: URL? {

@@ -20,6 +20,7 @@
 		65BD63804076B0857DF23AC3 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0E5DD68D24D3565128F1EDD /* SignInView.swift */; };
 		72FA1E4E12D14DDB979461F8 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB5343C5D793D62550226DD /* SearchView.swift */; };
 		8F238784A547D4B718FA76C2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AF2FF8F054673DFF516CE16C /* Assets.xcassets */; };
+		8FAD13177B4739FB58312363 /* SlateChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A66AB274E3865469654D32DF /* SlateChrome.swift */; };
 		92D1A50AF2B75EADDD6F4695 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E3E18EE42E8545800901F7D /* MainTabView.swift */; };
 		AA6866761AA7FEF3033BFC39 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C381A4066D62242E5D4EE83D /* ProfileView.swift */; };
 		B9A2A337E22141F252C58B25 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97078D66BF1256768A956757 /* ShareViewController.swift */; };
@@ -66,6 +67,7 @@
 		8F1A9C2BF0DD82AD18D275C7 /* SlateShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SlateShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8F8ACB5DAA18890C20EAFAD3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		97078D66BF1256768A956757 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		A66AB274E3865469654D32DF /* SlateChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlateChrome.swift; sourceTree = "<group>"; };
 		AF2FF8F054673DFF516CE16C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C0E5DD68D24D3565128F1EDD /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		C381A4066D62242E5D4EE83D /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
@@ -101,6 +103,7 @@
 				CC76003A943697829D93B061 /* RootView.swift */,
 				3DB5343C5D793D62550226DD /* SearchView.swift */,
 				C0E5DD68D24D3565128F1EDD /* SignInView.swift */,
+				A66AB274E3865469654D32DF /* SlateChrome.swift */,
 				4BBB92CB283BD8A52070405C /* TitleDetailView.swift */,
 			);
 			path = Views;
@@ -296,6 +299,7 @@
 				72FA1E4E12D14DDB979461F8 /* SearchView.swift in Sources */,
 				65BD63804076B0857DF23AC3 /* SignInView.swift in Sources */,
 				4067D925F11F17AA15759EF8 /* SlateApp.swift in Sources */,
+				8FAD13177B4739FB58312363 /* SlateChrome.swift in Sources */,
 				CBBF3DEAE826423CD9D47599 /* TitleDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

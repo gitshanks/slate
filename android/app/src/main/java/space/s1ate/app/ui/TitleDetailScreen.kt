@@ -83,8 +83,6 @@ import space.s1ate.app.model.TitlePerson
 import space.s1ate.app.model.TitleRecommendation
 import space.s1ate.app.model.TitleWatchProvider
 
-private val SlateViolet = Color(0xFF9B7BFF)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TitleDetailScreen(
@@ -122,49 +120,36 @@ fun TitleDetailScreen(
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
+        AsyncImage(
+            model = current.backdropUrl ?: current.posterUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    listOf(Color.Black.copy(alpha = 0.42f), Color.Black.copy(alpha = 0.7f), Color.Black),
+                ),
+            ),
+        )
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.horizontalGradient(listOf(Color.Black.copy(alpha = 0.82f), Color.Black.copy(alpha = 0.22f))),
+            ),
+        )
         LazyColumn(Modifier.fillMaxSize()) {
             item {
-                Box(Modifier.fillMaxWidth().height(430.dp)) {
-                    AsyncImage(
-                        model = current.backdropUrl ?: current.posterUrl,
-                        contentDescription = current.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    Box(
-                        Modifier.fillMaxSize().background(
-                            Brush.verticalGradient(
-                                listOf(Color.Black.copy(alpha = 0.16f), Color.Black.copy(alpha = 0.5f), Color.Black),
-                            ),
-                        ),
-                    )
-                    Box(
-                        Modifier.fillMaxSize().background(
-                            Brush.horizontalGradient(listOf(Color.Black.copy(alpha = 0.66f), Color.Transparent)),
-                        ),
-                    )
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.align(Alignment.TopStart).padding(14.dp).background(
-                            Color.Black.copy(alpha = 0.38f), CircleShape,
-                        ),
-                    ) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", tint = Color.White)
-                    }
-                }
-            }
-
-            item {
-                Column(Modifier.padding(start = 18.dp, end = 18.dp, bottom = 24.dp)) {
+                Column(Modifier.padding(start = 18.dp, top = 30.dp, end = 18.dp, bottom = 24.dp)) {
                     Metadata(current)
                     Text(
                         current.title,
                         modifier = Modifier.padding(top = 8.dp),
                         color = Color.White,
-                        fontSize = 38.sp,
-                        lineHeight = 39.sp,
-                        letterSpacing = (-1.7).sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 32.sp,
+                        lineHeight = 34.sp,
+                        letterSpacing = (-1.1).sp,
+                        fontWeight = FontWeight.SemiBold,
                     )
                     Row(
                         Modifier.padding(top = 22.dp).horizontalScroll(rememberScrollState()),

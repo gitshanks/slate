@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -62,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -120,6 +123,9 @@ fun ListsScreenAdvanced(
     var selectedId by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
     var createDialog by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf<SlateListSummary?>(null) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     suspend fun load() {
         runCatching { model.listSummaries() }.onSuccess { summaries = it }
@@ -134,11 +140,25 @@ fun ListsScreenAdvanced(
         return
     }
 
-    Column(modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text("Lists", fontSize = 31.sp, fontWeight = FontWeight.Bold) },
-            navigationIcon = { ProfileAvatarButton(profile, avatarBytes, onProfile) },
-            actions = { IconButton({ createDialog = true }) { Icon(Icons.Outlined.Add, "Create list") } },
+    Column(modifier.fillMaxSize().background(SlateBackground)) {
+        SlateSectionHeader(
+            eyebrow = "Collections",
+            title = "Lists",
+            modifier = Modifier.padding(horizontal = 18.dp).padding(top = 20.dp, bottom = 26.dp),
+            trailing = {
+                Row(
+                    Modifier
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.055f))
+                        .clickable { createDialog = true }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Outlined.Add, null, Modifier.size(17.dp), tint = Color.White.copy(alpha = 0.82f))
+                    Text("New list", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = 0.82f))
+                }
+            },
         )
         when {
             loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(strokeWidth = 2.dp) }
@@ -148,14 +168,24 @@ fun ListsScreenAdvanced(
                     Text("Group titles for a mood, trip, or movie night.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                summaries.chunked(2).forEach { row ->
-                    item(key = row.joinToString { it.id }) {
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            row.forEach { list -> ListSummaryCard(list, Modifier.weight(1f)) { selectedId = list.id } }
-                            repeat(2 - row.size) { Spacer(Modifier.weight(1f)) }
-                        }
-                    }
+            else -> LazyColumn(
+                Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp),
+            ) {
+                items(summaries, key = { it.id }) { list ->
+                    ListSummaryCard(
+                        list = list,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { selectedId = list.id },
+                        onShare = {
+                            val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(android.content.Intent.EXTRA_TEXT, "https://www.s1ate.space/lists/${list.slug}")
+                            }
+                            context.startActivity(android.content.Intent.createChooser(send, list.name))
+                        },
+                        onDelete = { deleting = list },
+                    )
                 }
                 item { Spacer(Modifier.height(24.dp)) }
             }
@@ -169,27 +199,68 @@ fun ListsScreenAdvanced(
                 .onFailure { model.showMessage(it.message ?: "List could not be created.") }
         }
     }
+    deleting?.let { list ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text("Delete ${list.name}?") },
+            text = { Text("This removes the list, not the titles in your library.") },
+            confirmButton = {
+                TextButton({
+                    deleting = null
+                    scope.launch {
+                        runCatching { model.deleteList(list.id) }
+                            .onSuccess { summaries = summaries.filterNot { it.id == list.id } }
+                            .onFailure { model.showMessage(it.message ?: "List could not be deleted.") }
+                    }
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton({ deleting = null }) { Text("Cancel") } },
+        )
+    }
 }
 
 @Composable
-private fun ListSummaryCard(list: SlateListSummary, modifier: Modifier, onClick: () -> Unit) {
+private fun ListSummaryCard(
+    list: SlateListSummary,
+    modifier: Modifier,
+    onClick: () -> Unit,
+    onShare: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Column(
-        modifier.clip(RoundedCornerShape(20.dp)).background(Color.White.copy(0.035f)).clickable(onClick = onClick).padding(12.dp),
+        modifier.clickable(onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(16f / 11f).clip(RoundedCornerShape(15.dp)).background(Color.White.copy(0.04f))) {
+        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(15.dp)).background(Color.White.copy(0.04f))) {
             if (list.posters.isEmpty()) {
                 Icon(Icons.Outlined.Download, null, Modifier.align(Alignment.Center), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                Row(Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy((-18).dp)) {
-                    list.posters.take(3).forEach { url ->
-                        AsyncImage(url, null, Modifier.width(65.dp).height(98.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
+                Row(Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy((-29).dp)) {
+                    list.posters.take(4).forEach { url ->
+                        AsyncImage(url, null, Modifier.width(91.dp).height(137.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
                     }
                 }
             }
+            Row(
+                Modifier.align(Alignment.TopEnd).padding(11.dp),
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.Share,
+                    contentDescription = "Share ${list.name}",
+                    tint = Color.White.copy(alpha = 0.78f),
+                    modifier = Modifier.size(34.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.72f)).clickable(onClick = onShare).padding(8.dp),
+                )
+                Icon(
+                    Icons.Outlined.Delete,
+                    contentDescription = "Delete ${list.name}",
+                    tint = Color.White.copy(alpha = 0.78f),
+                    modifier = Modifier.size(34.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.72f)).clickable(onClick = onDelete).padding(8.dp),
+                )
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(list.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Text(list.name, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             Text("${list.count}", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         list.description?.let { Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
@@ -240,10 +311,14 @@ private fun ListDetailScreen(
         } else if (titles.isEmpty()) {
             Box(Modifier.fillMaxSize(), Alignment.Center) { Text("Empty list", fontWeight = FontWeight.SemiBold) }
         } else {
-            ReorderableLibraryGrid(titles, { onOpenTitle(it.id) }) { ordered ->
-                detail = detail?.copy(titles = ordered)
-                model.reorderList(listId, ordered)
-            }
+            ReorderableLibraryGrid(
+                source = titles,
+                onOpen = { onOpenTitle(it.id) },
+                onCommit = { ordered ->
+                    detail = detail?.copy(titles = ordered)
+                    model.reorderList(listId, ordered)
+                },
+            )
         }
     }
 
@@ -363,44 +438,77 @@ fun ProfileScreenAdvanced(
             .onFailure { model.showMessage(it.message ?: "Profile could not be saved.") }
     }
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        TopAppBar(
-            title = { Text("Profile", fontWeight = FontWeight.Bold) },
-            navigationIcon = { IconButton(onClose) { Icon(Icons.Outlined.Close, "Close") } },
-        )
-        LazyColumn(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxSize().background(SlateBackground)) {
+        LazyColumn(
+            Modifier.fillMaxSize().padding(horizontal = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             item {
-                Box(Modifier.padding(top = 18.dp).size(112.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).clickable { photoPicker.launch("image/*") }) {
-                    val savedBitmap = remember(state.avatarBytes) {
-                        state.avatarBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                SlateSectionHeader(
+                    eyebrow = "Your slate",
+                    title = "Profile",
+                    modifier = Modifier.padding(top = 20.dp),
+                )
+                Text(
+                    "Edit what friends see and choose whether your slate can be shared.",
+                    color = SlateMuted,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 26.dp),
+                )
+
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SlateSurface).padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(18.dp),
+                ) {
+                    Box(Modifier.size(82.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).clickable { photoPicker.launch("image/*") }) {
+                        val savedBitmap = remember(state.avatarBytes) {
+                            state.avatarBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                        }
+                        (preview ?: savedBitmap)?.let {
+                            androidx.compose.foundation.Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        } ?: AsyncImage(profile?.avatarUrl, profile?.displayName, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     }
-                    (preview ?: savedBitmap)?.let {
-                        androidx.compose.foundation.Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    } ?: AsyncImage(profile?.avatarUrl, profile?.displayName, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text(
+                            if (isPublic) "PUBLIC" else "PRIVATE",
+                            color = SlateViolet,
+                            fontSize = 10.sp,
+                            letterSpacing = 1.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                        BasicTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.7).sp),
+                            cursorBrush = SolidColor(SlateViolet),
+                            singleLine = true,
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("@", color = SlateMuted, fontFamily = FontFamily.Monospace, fontSize = 14.sp)
+                            BasicTextField(
+                                value = username,
+                                onValueChange = { value -> username = value.lowercase().filter { char -> char.isLetterOrDigit() || char == '-' } },
+                                modifier = Modifier.weight(1f),
+                                textStyle = androidx.compose.ui.text.TextStyle(color = SlateMuted, fontSize = 14.sp, fontFamily = FontFamily.Monospace),
+                                cursorBrush = SolidColor(SlateViolet),
+                                singleLine = true,
+                            )
+                        }
+                    }
                 }
-                OutlinedTextField(
-                    name, { name = it },
-                    modifier = Modifier.padding(top = 18.dp).fillMaxWidth().padding(horizontal = 34.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.Center, fontSize = 27.sp, fontWeight = FontWeight.Bold),
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    username, { username = it.lowercase().filter { char -> char.isLetterOrDigit() || char == '-' } },
-                    prefix = { Text("@") },
-                    modifier = Modifier.padding(top = 7.dp).fillMaxWidth().padding(horizontal = 54.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.Center, fontFamily = FontFamily.Monospace),
-                    singleLine = true,
-                )
                 Column(
-                    Modifier.padding(horizontal = 18.dp).padding(top = 34.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
-                        .background(Color.White.copy(0.045f)),
+                    Modifier.padding(top = 18.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SlateSurface),
                 ) {
                     Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(if (isPublic) Icons.Outlined.Public else Icons.Outlined.Lock, null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(if (isPublic) "Public slate" else "Private slate", fontWeight = FontWeight.SemiBold)
-                            Text(if (isPublic) "Friends can browse your shelves." else "Only you can see your shelves.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Share your slate", fontWeight = FontWeight.SemiBold)
+                            Text(if (isPublic) "Anyone with your link can browse it." else "Your slate is private by default.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(isPublic, { isPublic = it })
                     }
@@ -412,7 +520,9 @@ fun ProfileScreenAdvanced(
                             }
                             context.startActivity(android.content.Intent.createChooser(send, "Share your slate"))
                         }.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(14.dp)); Text("Share your slate", fontWeight = FontWeight.SemiBold)
+                            Icon(Icons.Outlined.Share, null)
+                            Spacer(Modifier.width(14.dp))
+                            Text("s1ate.space/u/$username", fontSize = 13.sp, fontFamily = FontFamily.Monospace, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
@@ -460,24 +570,30 @@ fun ImportScreen(model: SlateViewModel, profile: SlateProfile?, avatarBytes: Byt
     }
     LaunchedEffect(initialText) { if (!initialText.isNullOrBlank()) resolve() }
 
-    Column(modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text("Import", fontSize = 31.sp, fontWeight = FontWeight.Bold) },
-            navigationIcon = { ProfileAvatarButton(profile, avatarBytes, onProfile) },
-        )
+    Column(modifier.fillMaxSize().background(SlateBackground)) {
         LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
             item {
-                Text("FROM ANYWHERE", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Bring recommendations into slate", fontSize = 35.sp, lineHeight = 37.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp))
-                Text("Share or paste an Instagram, TikTok, YouTube, IMDb, Letterboxd, or article link.", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
-                OutlinedTextField(text, { text = it }, Modifier.fillMaxWidth().padding(top = 22.dp).height(124.dp), placeholder = { Text("Paste a link or recommendation text") })
-                Button(
-                    { scope.launch { resolve() } },
-                    enabled = text.isNotBlank() && !resolving,
-                    modifier = Modifier.fillMaxWidth().padding(top = 11.dp).height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.Black),
-                    shape = RoundedCornerShape(16.dp),
-                ) { if (resolving) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.Black) else Text("Find titles", fontWeight = FontWeight.SemiBold) }
+                SlateSectionHeader(
+                    eyebrow = "Import",
+                    title = "Bring it into slate",
+                    modifier = Modifier.padding(top = 20.dp),
+                )
+                Text("Move recommendations from links or another service into your slate.", color = SlateMuted, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 10.dp))
+                Text("FROM ANYWHERE ON THE WEB", fontSize = 11.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace, color = SlateMuted, modifier = Modifier.padding(top = 34.dp))
+                Text("Add from a link", fontSize = 24.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.7).sp, modifier = Modifier.padding(top = 7.dp))
+                Text("Paste an Instagram, TikTok, YouTube, IMDb, Letterboxd, or article link. Slate finds the films and shows mentioned inside it.", color = SlateMuted, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 8.dp))
+                Column(
+                    Modifier.fillMaxWidth().padding(top = 20.dp).clip(RoundedCornerShape(18.dp)).background(SlateSurface).padding(14.dp),
+                ) {
+                    OutlinedTextField(text, { text = it }, Modifier.fillMaxWidth().height(112.dp), placeholder = { Text("Paste a link or recommendation text") })
+                    Button(
+                        { scope.launch { resolve() } },
+                        enabled = text.isNotBlank() && !resolving,
+                        modifier = Modifier.fillMaxWidth().padding(top = 11.dp).height(52.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.Black),
+                        shape = RoundedCornerShape(16.dp),
+                    ) { if (resolving) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.Black) else Text("Find titles", fontWeight = FontWeight.SemiBold) }
+                }
                 resolution?.warning?.let { Text(it, color = Color(0xFFFFB36B), fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp)) }
             }
             resolution?.let { result ->

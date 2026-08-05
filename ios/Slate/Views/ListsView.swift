@@ -3,66 +3,121 @@ import UniformTypeIdentifiers
 
 struct ListsScreen: View {
     @EnvironmentObject private var model: AppModel
-    @Binding var showProfile: Bool
     @State private var summaries: [SlateListSummary] = []
     @State private var loading = true
     @State private var creating = false
+    @State private var deleting: SlateListSummary?
 
     var body: some View {
-        NavigationStack {
-            Group {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                SlateSectionHeader(
+                    eyebrow: "Collections",
+                    title: "Lists",
+                    trailing: AnyView(
+                        Button { creating = true } label: {
+                            Label("New list", systemImage: "plus")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.82))
+                                .padding(.horizontal, 14)
+                                .frame(height: 38)
+                                .background(.white.opacity(0.055), in: .capsule)
+                                .overlay { Capsule().stroke(SlatePalette.hairline, lineWidth: 0.7) }
+                        }
+                        .buttonStyle(SlatePressStyle())
+                    )
+                )
+                .padding(.horizontal, 18)
+                .padding(.top, 20)
+                .padding(.bottom, 26)
+
                 if loading && summaries.isEmpty {
-                    ProgressView().tint(.white)
+                    ProgressView().tint(.white).frame(maxWidth: .infinity).padding(.top, 100)
                 } else if summaries.isEmpty {
                     ContentUnavailableView(
                         "No lists yet",
                         systemImage: "square.stack.3d.up",
                         description: Text("Group titles for a mood, trip, or movie night.")
                     )
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 70)
                 } else {
-                    ScrollView {
-                        LazyVGrid(
-                            columns: [GridItem(.flexible()), GridItem(.flexible())],
-                            spacing: 14
-                        ) {
-                            ForEach(summaries) { list in
+                    LazyVStack(spacing: 28) {
+                        ForEach(summaries) { list in
+                            ZStack(alignment: .topTrailing) {
                                 NavigationLink {
                                     ListDetailView(listId: list.id)
                                 } label: {
                                     ListSummaryCard(list: list)
                                 }
                                 .buttonStyle(.plain)
+
+                                HStack(spacing: 7) {
+                                    if let url = URL(string: "https://www.s1ate.space/lists/\(list.slug)") {
+                                        ShareLink(item: url, subject: Text(list.name)) {
+                                            listCardAction("square.and.arrow.up", label: "Share \(list.name)")
+                                        }
+                                    }
+                                    Button { deleting = list } label: {
+                                        listCardAction("trash", label: "Delete \(list.name)")
+                                    }
+                                    .buttonStyle(SlatePressStyle())
+                                }
+                                .padding(11)
                             }
                         }
-                        .padding(18)
                     }
-                    .refreshable { await load() }
-                }
-            }
-            .navigationTitle("Lists")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    ProfileAvatarButton(profile: model.profile, data: model.avatarData) { showProfile = true }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { creating = true } label: { Image(systemName: "plus") }
-                        .accessibilityLabel("Create list")
-                }
-            }
-            .task { await load() }
-            .sheet(isPresented: $creating) {
-                ListEditorSheet(title: "New list", name: "", description: "") { name, description in
-                    do {
-                        let created = try await model.createList(name: name, description: description)
-                        summaries.insert(created, at: 0)
-                        return true
-                    } catch {
-                        model.presentedError = error.localizedDescription
-                        return false
-                    }
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 36)
                 }
             }
         }
+        .background(SlatePalette.background)
+        .toolbar(.hidden, for: .navigationBar)
+        .refreshable { await load() }
+        .task { await load() }
+        .sheet(isPresented: $creating) {
+            ListEditorSheet(title: "New list", name: "", description: "") { name, description in
+                do {
+                    let created = try await model.createList(name: name, description: description)
+                    summaries.insert(created, at: 0)
+                    return true
+                } catch {
+                    model.presentedError = error.localizedDescription
+                    return false
+                }
+            }
+        }
+        .confirmationDialog(
+            "Delete \(deleting?.name ?? "this list")?",
+            isPresented: Binding(
+                get: { deleting != nil },
+                set: { if !$0 { deleting = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete list", role: .destructive) {
+                guard let list = deleting else { return }
+                deleting = nil
+                Task {
+                    do {
+                        try await model.deleteList(id: list.id)
+                        summaries.removeAll { $0.id == list.id }
+                    } catch { model.presentedError = error.localizedDescription }
+                }
+            }
+            Button("Cancel", role: .cancel) { deleting = nil }
+        }
+    }
+
+    private func listCardAction(_ icon: String, label: String) -> some View {
+        Image(systemName: icon)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.78))
+            .frame(width: 34, height: 34)
+            .background(.black.opacity(0.72), in: .circle)
+            .overlay { Circle().stroke(.white.opacity(0.1), lineWidth: 0.7) }
+            .accessibilityLabel(label)
     }
 
     private func load() async {
@@ -76,31 +131,31 @@ private struct ListSummaryCard: View {
     let list: SlateListSummary
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 13) {
+        VStack(alignment: .leading, spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 16).fill(.white.opacity(0.045))
+                RoundedRectangle(cornerRadius: 15).fill(.white.opacity(0.04))
                 if list.posters.isEmpty {
                     Image(systemName: "film.stack").font(.title).foregroundStyle(.tertiary)
                 } else {
-                    HStack(spacing: -22) {
-                        ForEach(Array(list.posters.prefix(3).enumerated()), id: \.offset) { index, url in
+                    HStack(spacing: -32) {
+                        ForEach(Array(list.posters.prefix(4).enumerated()), id: \.offset) { index, url in
                             AsyncImage(url: url) { image in
                                 image.resizable().scaledToFill()
                             } placeholder: { Color(white: 0.1) }
-                            .frame(width: 72, height: 108)
+                            .frame(width: 92, height: 138)
                             .clipShape(.rect(cornerRadius: 8))
-                            .rotationEffect(.degrees(Double(index - 1) * 5))
+                            .rotationEffect(.degrees((Double(index) - 1.5) * 4.5))
                             .shadow(color: .black.opacity(0.45), radius: 10, y: 6)
                         }
                     }
                 }
             }
-            .aspectRatio(16 / 11, contentMode: .fit)
-            .clipShape(.rect(cornerRadius: 16))
-            .overlay { RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.09), lineWidth: 0.7) }
+            .aspectRatio(16 / 9, contentMode: .fit)
+            .clipShape(.rect(cornerRadius: 15))
+            .overlay { RoundedRectangle(cornerRadius: 15).stroke(.white.opacity(0.09), lineWidth: 0.7) }
 
             HStack(alignment: .firstTextBaseline) {
-                Text(list.name).font(.headline).lineLimit(1)
+                Text(list.name).font(.system(size: 18, weight: .semibold)).lineLimit(1)
                 Spacer()
                 Text("\(list.count)").font(.caption.monospaced()).foregroundStyle(.secondary)
             }
@@ -108,8 +163,6 @@ private struct ListSummaryCard: View {
                 Text(description).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
         }
-        .padding(12)
-        .background(.white.opacity(0.035), in: .rect(cornerRadius: 20))
     }
 }
 

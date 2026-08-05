@@ -6,13 +6,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val SlateColors = darkColorScheme(
-    primary = Color(0xFF9572F5),
+    primary = Color(0xFFA382FF),
     onPrimary = Color(0xFF100C18),
-    background = Color(0xFF070608),
+    background = Color(0xFF0A0A0B),
     onBackground = Color(0xFFF5F2F7),
-    surface = Color(0xFF0C0A0E),
+    surface = Color(0xFF111113),
     onSurface = Color(0xFFF5F2F7),
-    surfaceVariant = Color(0xFF17141A),
+    surfaceVariant = Color(0xFF1B1B1E),
     onSurfaceVariant = Color(0xFFAAA3B0),
     outline = Color(0xFF302A34),
     error = Color(0xFFFF6B7A),
