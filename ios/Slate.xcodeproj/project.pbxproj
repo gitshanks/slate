@@ -289,7 +289,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SLATE_API_BASE_URL = "https://s1ate.space/api/v1";
+				SLATE_API_BASE_URL = "https://www.s1ate.space/api/v1";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
@@ -377,7 +377,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SLATE_API_BASE_URL = "https://s1ate.space/api/v1";
+				SLATE_API_BASE_URL = "https://www.s1ate.space/api/v1";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;

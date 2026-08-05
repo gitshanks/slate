@@ -4,7 +4,7 @@ info:
   version: 1.0.0-alpha.1
   description: Versioned API used by Slate's first-party iOS and Android apps.
 servers:
-  - url: https://s1ate.space/api/v1
+  - url: https://www.s1ate.space/api/v1
 security:
   - bearerAuth: []
 paths:

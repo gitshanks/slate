@@ -16,7 +16,7 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        buildConfigField("String", "SLATE_API_BASE_URL", "\"https://s1ate.space/api/v1/\"")
+        buildConfigField("String", "SLATE_API_BASE_URL", "\"https://www.s1ate.space/api/v1/\"")
         val googleServerClientId = providers.gradleProperty("SLATE_GOOGLE_SERVER_CLIENT_ID")
             .orElse("")
             .get()

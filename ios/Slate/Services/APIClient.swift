@@ -23,7 +23,7 @@ actor APIClient {
 
     init(session: URLSession = .shared) {
         let value = Bundle.main.object(forInfoDictionaryKey: "SlateAPIBaseURL") as? String
-        baseURL = URL(string: value ?? "") ?? URL(string: "https://s1ate.space/api/v1")!
+        baseURL = URL(string: value ?? "") ?? URL(string: "https://www.s1ate.space/api/v1")!
         self.session = session
     }
 
