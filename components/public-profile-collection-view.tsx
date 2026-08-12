@@ -401,6 +401,7 @@ export function PublicProfileCollectionView({
             <FilterBar
               genres={spatialGenres}
               showSort={false}
+              typeDisplay="menu"
               showSentiment
               sentimentDisplay="menu"
               statusOptions={SPACE_STATUS_OPTIONS}
@@ -408,7 +409,7 @@ export function PublicProfileCollectionView({
               idPrefix="space"
               popoverClassName="z-[80]"
               groupControls
-              className="mb-0 w-max flex-nowrap gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-segment]:whitespace-nowrap sm:mx-auto sm:w-fit sm:max-w-full sm:flex-wrap sm:justify-center sm:gap-2 sm:rounded-[1.55rem] sm:border sm:border-white/10 sm:bg-black/35 sm:p-1.5 sm:shadow-[0_16px_40px_-22px_rgba(0,0,0,0.9)] sm:backdrop-blur-xl"
+              className="mx-auto mb-0 w-max flex-nowrap justify-center gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5"
             />
           </div>
         ) : null}

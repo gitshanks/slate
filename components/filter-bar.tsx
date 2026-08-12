@@ -22,6 +22,8 @@ export interface FilterBarProps {
   showYearSort?: boolean;
   /** Whether this surface has a meaningful linear order. */
   showSort?: boolean;
+  /** Uses a compact menu when media type is a secondary filter. */
+  typeDisplay?: "segmented" | "menu";
   /** Whether to show the sentiment (loved/liked/disliked) filter. */
   showSentiment?: boolean;
   /** Uses a compact menu when sentiment is a secondary filter. */
@@ -66,6 +68,7 @@ export function FilterBar({
   genres,
   showYearSort = true,
   showSort = true,
+  typeDisplay = "segmented",
   showSentiment = false,
   sentimentDisplay = "segmented",
   recentSortLabel = "Recently added",
@@ -87,6 +90,7 @@ export function FilterBar({
   const currentStatus = statusOptions ? (searchParams.get(statusParam) ?? "") : "";
 
   const activeGenre = genres.find((g) => String(g.id) === currentGenre);
+  const activeType = TYPE_OPTIONS.find((option) => option.value === currentType);
   const activeSentiment = SENTIMENT_OPTIONS.find(
     (option) => option.value === currentSentiment,
   );
@@ -164,12 +168,14 @@ export function FilterBar({
           />
         )}
 
-        <SegmentedFilter
-          id={`${idPrefix}-type-filter`}
-          options={TYPE_OPTIONS}
-          value={currentType}
-          onValueChange={(value) => setParam("type", value)}
-        />
+        {typeDisplay === "segmented" && (
+          <SegmentedFilter
+            id={`${idPrefix}-type-filter`}
+            options={TYPE_OPTIONS}
+            value={currentType}
+            onValueChange={(value) => setParam("type", value)}
+          />
+        )}
       </div>
 
       <div
@@ -179,6 +185,53 @@ export function FilterBar({
             : "contents",
         )}
       >
+      {typeDisplay === "menu" && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
+                currentType
+                  ? "border-primary/50 text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {activeType && activeType.value ? activeType.label : "Format"}
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            className={cn("w-40 p-2", popoverClassName)}
+            align="start"
+          >
+            <div className="flex flex-col">
+              {TYPE_OPTIONS.map((option) => {
+                const active = option.value === currentType;
+                const Icon = option.icon;
+                return (
+                  <PopoverClose asChild key={option.value || "any"}>
+                    <button
+                      type="button"
+                      onClick={() => setParam("type", option.value)}
+                      className={cn(
+                        "filter-menu-option flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs",
+                        active
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {option.value ? option.label : "Any format"}
+                    </button>
+                  </PopoverClose>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+
       {showSentiment && sentimentDisplay === "segmented" && (
         <SegmentedFilter
           id={`${idPrefix}-sentiment-filter`}
