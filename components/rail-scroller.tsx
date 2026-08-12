@@ -31,9 +31,12 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
   const measureArrowAnchor = useCallback(() => {
     const el = ref.current;
     if (!el) return;
-    // Tiles render the poster as their first element child (see TmdbTile and
-    // the AI result rail), so its height is the artwork height.
-    const poster = el.firstElementChild?.firstElementChild ?? null;
+    // Media grids can add a motion wrapper around their tiles. Prefer the
+    // explicit artwork marker, then retain the original direct-child fallback.
+    const poster =
+      el.querySelector<HTMLElement>("[data-rail-poster]") ??
+      el.firstElementChild?.firstElementChild ??
+      null;
     setPosterCenter(poster ? poster.clientHeight / 2 : null);
   }, []);
 

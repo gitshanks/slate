@@ -89,7 +89,7 @@ export function FilteredGrid({
           titles={titles}
           readOnly={readOnly}
           titleHrefBase={titleHrefBase}
-          visibleCount={isCollapsed ? collapsedCount : undefined}
+          horizontal={isCollapsed}
           reorderContext={
             readOnly || params.sort
               ? undefined

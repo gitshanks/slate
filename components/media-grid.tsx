@@ -24,6 +24,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import { PosterCard } from "@/components/poster-card";
 import { MotionGrid } from "@/components/motion-grid";
+import { RailScroller } from "@/components/rail-scroller";
 import { reorderListTitles, reorderStatusTitles } from "@/lib/actions";
 import { DUR, EASE, staggerChild } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -48,8 +49,30 @@ interface MediaGridProps {
   reorderContext?: MediaGridReorderContext;
   readOnly?: boolean;
   titleHrefBase?: string;
-  /** Render only the leading titles while preserving the full sortable order. */
-  visibleCount?: number;
+  /** Keep the collection to one horizontally scrollable poster row. */
+  horizontal?: boolean;
+}
+
+const mediaGridClassName =
+  "grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10";
+
+const mediaRailClassName =
+  "grid min-w-full grid-flow-col auto-cols-[calc((100%_-_0.75rem)/2)] gap-x-3 sm:auto-cols-[calc((100%_-_2.5rem)/3)] sm:gap-x-5 md:auto-cols-[calc((100%_-_3.75rem)/4)] lg:auto-cols-[calc((100%_-_5rem)/5)] 2xl:auto-cols-[calc((100%_-_6.25rem)/6)] 3xl:auto-cols-[calc((100%_-_7.5rem)/7)] 4xl:auto-cols-[calc((100%_-_8.75rem)/8)] 5xl:auto-cols-[calc((100%_-_10rem)/9)] 6xl:auto-cols-[calc((100%_-_11.25rem)/10)]";
+
+function MediaLayout({
+  children,
+  horizontal = false,
+}: {
+  children: React.ReactNode;
+  horizontal?: boolean;
+}) {
+  const grid = (
+    <MotionGrid className={horizontal ? mediaRailClassName : mediaGridClassName}>
+      {children}
+    </MotionGrid>
+  );
+
+  return horizontal ? <RailScroller>{grid}</RailScroller> : grid;
 }
 
 const titleSensors = [
@@ -135,17 +158,16 @@ export function MediaGrid(props: MediaGridProps) {
  * mounts a fresh sortable grid from the canonical order supplied by the server.
  */
 function OrderedMediaGrid(props: MediaGridProps) {
-  const visibleTitles = props.visibleCount
-    ? props.titles.slice(0, props.visibleCount)
-    : props.titles;
-
   return (
-    <MotionGrid className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
-      {visibleTitles.map((title, index) => (
+    <MediaLayout horizontal={props.horizontal}>
+      {props.titles.map((title, index) => (
         <motion.article
           key={title.id}
           variants={staggerChild}
-          className="relative rounded-xl"
+          className={cn(
+            "relative rounded-xl",
+            props.horizontal && "snap-start",
+          )}
         >
           <PosterCard
             title={title}
@@ -159,7 +181,7 @@ function OrderedMediaGrid(props: MediaGridProps) {
           />
         </motion.article>
       ))}
-    </MotionGrid>
+    </MediaLayout>
   );
 }
 
@@ -168,7 +190,7 @@ function MediaGridState({
   reorderContext,
   readOnly = false,
   titleHrefBase,
-  visibleCount,
+  horizontal = false,
 }: MediaGridProps) {
   const [orderedTitles, setOrderedTitles] = useState(titles);
   const [announcement, setAnnouncement] = useState("");
@@ -228,10 +250,7 @@ function MediaGridState({
     [getPersistedOrder, reorderContext, titles]
   );
 
-  const visibleTitles = visibleCount
-    ? orderedTitles.slice(0, visibleCount)
-    : orderedTitles;
-  const canReorder = Boolean(reorderContext && visibleTitles.length > 1);
+  const canReorder = Boolean(reorderContext && orderedTitles.length > 1);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     suppressClicksUntilRef.current = Date.now() + 1_000;
@@ -280,9 +299,13 @@ function MediaGridState({
 
   if (readOnly) {
     return (
-      <MotionGrid className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
-        {visibleTitles.map((title, index) => (
-          <motion.article key={title.id} variants={staggerChild}>
+      <MediaLayout horizontal={horizontal}>
+        {orderedTitles.map((title, index) => (
+          <motion.article
+            key={title.id}
+            variants={staggerChild}
+            className={cn(horizontal && "snap-start")}
+          >
             <PosterCard
               title={title}
               priority={index < 8}
@@ -293,7 +316,7 @@ function MediaGridState({
             />
           </motion.article>
         ))}
-      </MotionGrid>
+      </MediaLayout>
     );
   }
 
@@ -305,19 +328,20 @@ function MediaGridState({
     >
       <DragSessionRecovery />
 
-      <MotionGrid className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
-        {visibleTitles.map((title, index) => (
+      <MediaLayout horizontal={horizontal}>
+        {orderedTitles.map((title, index) => (
           <SortablePoster
             key={title.id}
             title={title}
             index={index}
-            count={visibleTitles.length}
+            count={orderedTitles.length}
             disabled={!canReorder}
             priority={index < 8}
+            horizontal={horizontal}
             suppressClicksUntilRef={suppressClicksUntilRef}
           />
         ))}
-      </MotionGrid>
+      </MediaLayout>
 
       <DragOverlay
         className="pointer-events-none z-[100]"
@@ -441,6 +465,7 @@ interface SortablePosterProps {
   count: number;
   disabled: boolean;
   priority: boolean;
+  horizontal: boolean;
   suppressClicksUntilRef: MutableRefObject<number>;
 }
 
@@ -450,6 +475,7 @@ function SortablePoster({
   count,
   disabled,
   priority,
+  horizontal,
   suppressClicksUntilRef,
 }: SortablePosterProps) {
   const { ref, isDragging, isDropping } = useSortable({
@@ -489,6 +515,7 @@ function SortablePoster({
       }}
       className={cn(
         "relative touch-manipulation rounded-xl outline-none",
+        horizontal && "snap-start",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         !disabled &&
           "suppress-touch-callout cursor-grab active:cursor-grabbing",

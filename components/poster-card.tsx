@@ -55,6 +55,7 @@ export function PosterCard({
   const content = (
     <>
       <div
+        data-rail-poster
         className={cn(
           "relative aspect-[2/3] overflow-hidden rounded-xl",
           "bg-card hairline",
