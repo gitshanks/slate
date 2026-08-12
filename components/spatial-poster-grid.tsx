@@ -3,10 +3,8 @@
 import * as React from "react";
 import Image from "next/image";
 import {
-  AnimatePresence,
   animate,
   motion,
-  useIsPresent,
   useMotionValue,
   useReducedMotion,
   useTransform,
@@ -80,6 +78,8 @@ interface GestureState {
   velocityX: number;
   velocityY: number;
 }
+
+type ResultsTransitionPhase = "idle" | "fading-out" | "fading-in";
 
 const POSTER_WIDTH = 142;
 const POSTER_HEIGHT = 213;
@@ -266,7 +266,6 @@ function FisheyePosterCell({
   onSelect: (title: TitleRow) => void;
   onClose: () => void;
 }) {
-  const isPresent = useIsPresent();
   const point = cell.point;
   const src = posterUrl(title.poster_path, "w500");
   const selected = title.id === selectedId;
@@ -303,7 +302,7 @@ function FisheyePosterCell({
 
   return (
     <motion.div
-      className={cn("absolute", !isPresent && "pointer-events-none")}
+      className="absolute"
       style={{
         width: POSTER_WIDTH,
         transform: lensTransform,
@@ -315,7 +314,7 @@ function FisheyePosterCell({
         type="button"
         data-spatial-title-id={title.id}
         onClick={() => {
-          if (!isPresent || draggedRef.current) return;
+          if (draggedRef.current) return;
           if (selectedId === title.id) {
             onClose();
             return;
@@ -334,8 +333,8 @@ function FisheyePosterCell({
         whileTap={reducedMotion ? undefined : { scale: 0.985 }}
         transition={{ type: "spring", stiffness: 300, damping: 24 }}
         className="group block w-full cursor-pointer text-left focus-visible:outline-none"
-        tabIndex={cell.canonical && isPresent ? 0 : -1}
-        aria-hidden={cell.canonical && isPresent ? undefined : true}
+        tabIndex={cell.canonical ? 0 : -1}
+        aria-hidden={cell.canonical ? undefined : true}
         aria-label={`Open ${title.title} details. ${shelf.label}.`}
       >
         <span
@@ -426,27 +425,12 @@ function SpatialPosterWorld({
     <motion.div
       data-spatial-world
       className="absolute left-1/2 top-1/2"
-      initial={{ opacity: 0 }}
-      animate={{
-        opacity: 1,
-        transition: {
-          duration: reducedMotion ? 0.1 : 0.24,
-          ease: [0.23, 1, 0.32, 1],
-        },
-      }}
-      exit={{
-        opacity: 0,
-        transition: {
-          duration: reducedMotion ? 0.08 : 0.18,
-          ease: [0.23, 1, 0.32, 1],
-        },
-      }}
       style={{
         x: wrappedCameraX,
         y: wrappedCameraY,
         scale: cameraScale,
         transformStyle: "preserve-3d",
-        willChange: "transform, opacity",
+        willChange: "transform",
       }}
     >
       {cells.map((cell) => {
@@ -691,17 +675,30 @@ export function SpatialPosterGrid({
   onCameraChange,
 }: SpatialPosterGridProps) {
   const reducedMotion = useReducedMotion() ?? false;
+  const [renderedTitles, setRenderedTitles] = React.useState(titles);
+  const [resultsTransitionPhase, setResultsTransitionPhase] =
+    React.useState<ResultsTransitionPhase>("idle");
+  const pendingTitlesRef = React.useRef(titles);
+  const incomingCollectionKey = React.useMemo(
+    () => titles.map((title) => title.id).join("|"),
+    [titles],
+  );
+  const renderedCollectionKey = React.useMemo(
+    () => renderedTitles.map((title) => title.id).join("|"),
+    [renderedTitles],
+  );
   const [viewportSize, setViewportSize] = React.useState({
     width: 1280,
     height: 800,
   });
   const layout = React.useMemo(
-    () => spatialLayout(titles.length, viewportSize.width, viewportSize.height),
-    [titles.length, viewportSize.height, viewportSize.width],
-  );
-  const collectionKey = React.useMemo(
-    () => titles.map((title) => title.id).join("|"),
-    [titles],
+    () =>
+      spatialLayout(
+        renderedTitles.length,
+        viewportSize.width,
+        viewportSize.height,
+      ),
+    [renderedTitles.length, viewportSize.height, viewportSize.width],
   );
   const { cells, periodX, periodY, points } = layout;
   const cameraX = useMotionValue(initialCamera?.x ?? 0);
@@ -728,6 +725,50 @@ export function SpatialPosterGrid({
   const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(null);
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [detailError, setDetailError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    pendingTitlesRef.current = titles;
+  }, [titles]);
+
+  React.useEffect(() => {
+    if (reducedMotion) {
+      setRenderedTitles(pendingTitlesRef.current);
+      setResultsTransitionPhase("idle");
+      return;
+    }
+
+    if (incomingCollectionKey === renderedCollectionKey) {
+      if (resultsTransitionPhase === "fading-out") {
+        setResultsTransitionPhase("fading-in");
+      } else if (
+        resultsTransitionPhase === "idle" &&
+        renderedTitles !== titles
+      ) {
+        setRenderedTitles(titles);
+      }
+      return;
+    }
+
+    setResultsTransitionPhase("fading-out");
+  }, [
+    incomingCollectionKey,
+    reducedMotion,
+    renderedCollectionKey,
+    renderedTitles,
+    resultsTransitionPhase,
+    titles,
+  ]);
+
+  const handleResultsTransitionComplete = React.useCallback(() => {
+    if (resultsTransitionPhase === "fading-out") {
+      setRenderedTitles(pendingTitlesRef.current);
+      setResultsTransitionPhase("fading-in");
+      return;
+    }
+    if (resultsTransitionPhase === "fading-in") {
+      setResultsTransitionPhase("idle");
+    }
+  }, [resultsTransitionPhase]);
 
   const selectedIndex = selectedId
     ? titles.findIndex((title) => title.id === selectedId)
@@ -1021,32 +1062,49 @@ export function SpatialPosterGrid({
         Drag to explore · Search to travel
       </p>
 
-      <AnimatePresence initial={false}>
-        {titles.length === 0 ? (
-          <motion.div
-            key="empty-results"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reducedMotion ? 0.1 : 0.2 }}
-            className="pointer-events-none absolute inset-0 z-20 grid place-items-center px-6 text-center"
-          >
+      <motion.div
+        data-spatial-results-layer
+        className="absolute inset-0"
+        initial={false}
+        animate={{
+          opacity: resultsTransitionPhase === "fading-out" ? 0.32 : 1,
+        }}
+        transition={{
+          duration:
+            resultsTransitionPhase === "fading-out"
+              ? reducedMotion
+                ? 0
+                : 0.14
+              : reducedMotion
+                ? 0
+                : 0.22,
+          ease:
+            resultsTransitionPhase === "fading-out"
+              ? [0.4, 0, 1, 1]
+              : [0.16, 1, 0.3, 1],
+        }}
+        onAnimationComplete={handleResultsTransitionComplete}
+        style={{
+          pointerEvents:
+            resultsTransitionPhase === "idle" ? "auto" : "none",
+          willChange: "opacity",
+        }}
+      >
+        {renderedTitles.length === 0 ? (
+          <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center px-6 text-center">
             <div>
               <p className="text-sm font-medium text-white/72">
                 No titles match
               </p>
               <p className="mt-1 text-xs text-white/38">Try another filter.</p>
             </div>
-          </motion.div>
+          </div>
         ) : null}
-      </AnimatePresence>
 
-      <AnimatePresence initial={false} mode="sync">
-        {titles.length > 0 ? (
+        {renderedTitles.length > 0 ? (
           <SpatialPosterWorld
-            key={collectionKey}
             cells={cells}
-            titles={titles}
+            titles={renderedTitles}
             periodX={periodX}
             periodY={periodY}
             selectedId={selectedId}
@@ -1061,7 +1119,7 @@ export function SpatialPosterGrid({
             onClose={closeDetail}
           />
         ) : null}
-      </AnimatePresence>
+      </motion.div>
 
         <div
           aria-hidden
