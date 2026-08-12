@@ -18,7 +18,6 @@ import {
   Heart,
   ThumbsDown,
   ThumbsUp,
-  X,
 } from "lucide-react";
 import { ImdbBadge, MetacriticBadge, RottenTomatoesBadge } from "@/components/rating-icons";
 import { TrailerButton } from "@/components/trailer-button";
@@ -383,13 +382,11 @@ function TitleDetailSlab({
   detail,
   loading,
   error,
-  onClose,
 }: {
   title: TitleRow;
   detail: PublicSpatialTitleDetail | null;
   loading: boolean;
   error: string | null;
-  onClose: () => void;
 }) {
   const year = formatYear(title.release_date);
   const runtime = formatRuntime(title.runtime);
@@ -417,23 +414,13 @@ function TitleDetailSlab({
         className="scrollbar-hide max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain p-5 sm:p-6"
         style={{ touchAction: "pan-y" }}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/75">
-              {title.media_type === "movie" ? "Film" : "Series"}
-            </p>
-            <h3 className="mt-2 text-balance text-2xl font-semibold leading-[1.02] tracking-[-0.04em] text-white sm:text-[2rem]">
-              {title.title}
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/12 bg-white/[0.06] text-white/65 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            aria-label="Close title details"
-          >
-            <X className="h-4 w-4" />
-          </button>
+        <div className="min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/75">
+            {title.media_type === "movie" ? "Film" : "Series"}
+          </p>
+          <h3 className="mt-2 text-balance text-2xl font-semibold leading-[1.02] tracking-[-0.04em] text-white sm:text-[2rem]">
+            {title.title}
+          </h3>
         </div>
 
         {detail?.tagline ? (
@@ -975,7 +962,6 @@ export function SpatialPosterGrid({
               detail={detail}
               loading={detailLoading}
               error={detailError}
-              onClose={closeDetail}
             />
           </div>
         </>
