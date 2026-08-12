@@ -105,22 +105,6 @@ export function PublicProfileCollectionView({
   );
 
   React.useEffect(() => {
-    if (
-      !searchOpen ||
-      normalizedQuery.length < 2 ||
-      matches.length === 0
-    ) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setSearchOpen(false);
-      focusTitle(matches[0].id);
-    }, 320);
-    return () => window.clearTimeout(timer);
-  }, [focusTitle, matches, normalizedQuery, searchOpen]);
-
-  React.useEffect(() => {
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverflow = document.body.style.overflow;
     document.documentElement.style.overflow = "hidden";
@@ -154,7 +138,7 @@ export function PublicProfileCollectionView({
           />
         </div>
 
-        <div className="pointer-events-auto mx-auto grid w-full max-w-[1540px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
+        <div className="pointer-events-auto mx-auto grid w-full max-w-[1540px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-5">
           <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2.5 pl-1 sm:pl-0.5">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -205,6 +189,17 @@ export function PublicProfileCollectionView({
                 }}
                 onFocus={() => {
                   if (normalizedQuery) setSearchOpen(true);
+                }}
+                onKeyDown={(event) => {
+                  if (
+                    event.key !== "Enter" ||
+                    event.nativeEvent.isComposing ||
+                    !matches[0]
+                  ) {
+                    return;
+                  }
+                  event.preventDefault();
+                  selectSearchResult(matches[0]);
                 }}
                 placeholder="Find a title"
                 aria-label={`Find a title in ${displayName}'s slate`}
