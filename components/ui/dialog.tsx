@@ -19,7 +19,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-[80] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -31,7 +31,7 @@ const dialogContentVariants = cva(
   // Mobile: anchored to top of screen, full width, slides in from top
   // Desktop (sm+): centered with zoom animation
   [
-    "fixed z-50 grid gap-4 bg-background shadow-lg border",
+    "fixed z-[90] grid gap-4 bg-background shadow-lg border",
     // Mobile positioning — top anchored
     "left-0 right-0 top-0 rounded-t-none rounded-b-2xl translate-x-0 translate-y-0",
     "data-[state=open]:animate-in data-[state=closed]:animate-out",
