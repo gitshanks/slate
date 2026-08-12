@@ -140,11 +140,24 @@ export function PublicProfileCollectionView({
   return (
     <div>
       <header
-        className="dark fixed inset-x-3 z-[70] mx-auto max-w-[1540px] rounded-[1.35rem] border border-white/12 bg-black/72 p-2 text-white shadow-[0_22px_70px_-28px_rgba(0,0,0,0.9)] backdrop-blur-2xl sm:inset-x-5 sm:rounded-full"
-        style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}
+        className="dark pointer-events-none fixed inset-x-0 top-0 z-[70] px-4 pb-8 text-white sm:px-6 sm:pb-7"
+        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         aria-label={`${displayName}'s slate controls`}
       >
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(10rem,1fr)_minmax(14rem,28rem)_minmax(15rem,1fr)]">
+        <div aria-hidden className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(8,10,9,0.98)_0%,rgba(8,10,9,0.9)_54%,rgba(8,10,9,0.54)_76%,rgba(8,10,9,0)_100%)]" />
+          <div
+            className="absolute inset-0 backdrop-blur-2xl"
+            style={{
+              WebkitMaskImage:
+                "linear-gradient(to bottom, black 0%, black 48%, rgba(0,0,0,0.72) 68%, transparent 100%)",
+              maskImage:
+                "linear-gradient(to bottom, black 0%, black 48%, rgba(0,0,0,0.72) 68%, transparent 100%)",
+            }}
+          />
+        </div>
+
+        <div className="pointer-events-auto mx-auto grid w-full max-w-[1540px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(10rem,1fr)_minmax(14rem,28rem)_minmax(15rem,1fr)]">
           <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2.5 pl-1 sm:pl-0.5">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
