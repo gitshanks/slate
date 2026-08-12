@@ -141,8 +141,8 @@ export function PublicProfileCollectionView({
           />
         </div>
 
-        <div className="pointer-events-auto mx-auto grid w-full max-w-[1540px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-5">
-          <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2.5 pl-1 sm:pl-0.5">
+        <div className="pointer-events-auto mx-auto grid w-full max-w-[1540px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-5 xl:grid-cols-[minmax(9rem,1fr)_minmax(0,max-content)_minmax(9rem,1fr)]">
+          <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2.5 pl-1 sm:pl-0.5 xl:justify-self-start">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -169,12 +169,12 @@ export function PublicProfileCollectionView({
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="col-start-2 row-start-1 inline-flex h-8 shrink-0 items-center rounded-full border border-primary/25 bg-primary/10 px-3 text-[10px] font-semibold text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] sm:col-start-3 sm:h-9 sm:border-0 sm:bg-primary sm:px-3.5 sm:text-xs sm:text-primary-foreground sm:hover:bg-primary/90"
+            className="col-start-2 row-start-1 inline-flex h-8 shrink-0 items-center rounded-full border border-primary/25 bg-primary/10 px-3 text-[10px] font-semibold text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] sm:col-start-3 sm:h-9 sm:border-0 sm:bg-primary sm:px-3.5 sm:text-xs sm:text-primary-foreground sm:hover:bg-primary/90 xl:justify-self-end"
           >
             Make your own
           </button>
 
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-col gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:flex-row sm:items-center sm:gap-2.5">
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-col gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:flex-row sm:items-center sm:gap-2.5 xl:justify-self-center">
             <div
               className="relative min-w-0 shrink-0 sm:w-[clamp(12rem,20vw,18rem)]"
               onBlur={(event) => {

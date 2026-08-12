@@ -83,8 +83,10 @@ const POSTER_WIDTH = 142;
 const POSTER_HEIGHT = 213;
 const COLUMN_GAP = 206;
 const ROW_GAP = 286;
-const HORIZONTAL_OVERSCAN = 4;
-const VERTICAL_OVERSCAN = 3;
+const MIN_HORIZONTAL_OVERSCAN = 4;
+const MIN_VERTICAL_OVERSCAN = 3;
+const MOBILE_RENDER_SCALE_FLOOR = 0.64;
+const DESKTOP_RENDER_SCALE_FLOOR = 0.8;
 const LENS_MIN_SCALE = 0.5;
 const LENS_SCALE_RANGE = 0.76;
 const LENS_DEPTH = 190;
@@ -110,13 +112,32 @@ function spatialPoint(
   };
 }
 
-function spatialLayout(count: number): SpatialLayout {
+function spatialLayout(
+  count: number,
+  viewportWidth: number,
+  viewportHeight: number,
+): SpatialLayout {
   if (count <= 0) {
     return { points: [], cells: [], periodX: 0, periodY: 0 };
   }
 
   const columns = Math.min(8, Math.max(4, Math.ceil(Math.sqrt(count * 1.35))));
   const rows = Math.max(1, Math.ceil(count / columns));
+  const renderScaleFloor =
+    viewportWidth <= 639
+      ? MOBILE_RENDER_SCALE_FLOOR
+      : DESKTOP_RENDER_SCALE_FLOOR;
+  // A wrapped camera can sit half a grid period from the canonical cells.
+  // Size the repeated window from the real viewport so wide screens never
+  // expose an edge while the camera crosses that seam.
+  const horizontalOverscan = Math.max(
+    MIN_HORIZONTAL_OVERSCAN,
+    Math.ceil(viewportWidth / (2 * COLUMN_GAP * renderScaleFloor) + 1.5),
+  );
+  const verticalOverscan = Math.max(
+    MIN_VERTICAL_OVERSCAN,
+    Math.ceil(viewportHeight / (2 * ROW_GAP * renderScaleFloor) + 1.5),
+  );
   const points = Array.from({ length: count }, (_, index) =>
     spatialPoint(
       Math.floor(index / columns),
@@ -127,10 +148,14 @@ function spatialLayout(count: number): SpatialLayout {
   );
   const cells: SpatialCell[] = [];
 
-  for (let row = -VERTICAL_OVERSCAN; row < rows + VERTICAL_OVERSCAN; row += 1) {
+  for (
+    let row = -verticalOverscan;
+    row < rows + verticalOverscan;
+    row += 1
+  ) {
     for (
-      let column = -HORIZONTAL_OVERSCAN;
-      column < columns + HORIZONTAL_OVERSCAN;
+      let column = -horizontalOverscan;
+      column < columns + horizontalOverscan;
       column += 1
     ) {
       const canonicalCell =
@@ -574,9 +599,13 @@ export function SpatialPosterGrid({
   onCameraChange,
 }: SpatialPosterGridProps) {
   const reducedMotion = useReducedMotion() ?? false;
+  const [viewportSize, setViewportSize] = React.useState({
+    width: 1280,
+    height: 800,
+  });
   const layout = React.useMemo(
-    () => spatialLayout(titles.length),
-    [titles.length],
+    () => spatialLayout(titles.length, viewportSize.width, viewportSize.height),
+    [titles.length, viewportSize.height, viewportSize.width],
   );
   const { cells, periodX, periodY, points } = layout;
   const cameraX = useMotionValue(initialCamera?.x ?? 0);
@@ -768,6 +797,13 @@ export function SpatialPosterGrid({
       const bounds = viewport.getBoundingClientRect();
       viewportWidth.set(bounds.width);
       viewportHeight.set(bounds.height);
+      const width = Math.round(bounds.width);
+      const height = Math.round(bounds.height);
+      setViewportSize((current) =>
+        current.width === width && current.height === height
+          ? current
+          : { width, height },
+      );
     };
     measure();
 

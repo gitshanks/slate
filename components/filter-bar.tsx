@@ -237,65 +237,6 @@ export function FilterBar({
         </Popover>
       )}
 
-      {showSentiment && sentimentDisplay === "segmented" && (
-        <SegmentedFilter
-          id={`${idPrefix}-sentiment-filter`}
-          options={SENTIMENT_OPTIONS}
-          value={currentSentiment}
-          onValueChange={(value) => setParam("sentiment", value)}
-        />
-      )}
-
-      {showSentiment && sentimentDisplay === "menu" && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              data-active={Boolean(currentSentiment)}
-              className={cn(
-                "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
-                currentSentiment
-                  ? "border-primary/50 text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {activeSentiment && activeSentiment.value
-                ? activeSentiment.label
-                : "Reaction"}
-              <ChevronDown className="h-3 w-3" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            className={cn("w-44 p-2", popoverClassName)}
-            align="start"
-          >
-            <div className="flex flex-col">
-              {SENTIMENT_OPTIONS.map((option) => {
-                const active = option.value === currentSentiment;
-                const Icon = option.icon;
-                return (
-                  <PopoverClose asChild key={option.value || "any"}>
-                    <button
-                      type="button"
-                      onClick={() => setParam("sentiment", option.value)}
-                      className={cn(
-                        "filter-menu-option flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs",
-                        active
-                          ? "bg-accent text-foreground"
-                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
-                      )}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {option.value ? option.label : "Any reaction"}
-                    </button>
-                  </PopoverClose>
-                );
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
-      )}
-
       {/* Genre popover — only show if we have any genres */}
       {genres.length > 0 && (
         <Popover>
@@ -430,6 +371,65 @@ export function FilterBar({
                       )}
                     >
                       {o.label}
+                    </button>
+                  </PopoverClose>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+
+      {showSentiment && sentimentDisplay === "segmented" && (
+        <SegmentedFilter
+          id={`${idPrefix}-sentiment-filter`}
+          options={SENTIMENT_OPTIONS}
+          value={currentSentiment}
+          onValueChange={(value) => setParam("sentiment", value)}
+        />
+      )}
+
+      {showSentiment && sentimentDisplay === "menu" && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              data-active={Boolean(currentSentiment)}
+              className={cn(
+                "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
+                currentSentiment
+                  ? "border-primary/50 text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {activeSentiment && activeSentiment.value
+                ? activeSentiment.label
+                : "Reaction"}
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            className={cn("w-44 p-2", popoverClassName)}
+            align="start"
+          >
+            <div className="flex flex-col">
+              {SENTIMENT_OPTIONS.map((option) => {
+                const active = option.value === currentSentiment;
+                const Icon = option.icon;
+                return (
+                  <PopoverClose asChild key={option.value || "any"}>
+                    <button
+                      type="button"
+                      onClick={() => setParam("sentiment", option.value)}
+                      className={cn(
+                        "filter-menu-option flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs",
+                        active
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {option.value ? option.label : "Any reaction"}
                     </button>
                   </PopoverClose>
                 );
