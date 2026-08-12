@@ -564,11 +564,11 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
   );
 
   const selectTitle = React.useCallback(
-    (title: TitleRow) => {
+    (title: TitleRow, shouldFrame = false) => {
       const index = titles.findIndex((candidate) => candidate.id === title.id);
       if (index < 0) return;
       setSelectedId(title.id);
-      frameTitle(index);
+      if (shouldFrame) frameTitle(index);
       void loadDetail(title);
     },
     [frameTitle, loadDetail, titles],
@@ -588,7 +588,7 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
     if (matches.some((title) => title.id === selectedId)) return;
     const timer = window.setTimeout(() => {
       setSearchOpen(false);
-      selectTitle(matches[0]);
+      selectTitle(matches[0], true);
     }, SEARCH_DELAY);
     return () => window.clearTimeout(timer);
   }, [matches, normalizedQuery, selectTitle, selectedId]);
@@ -775,7 +775,7 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
                     type="button"
                     onClick={() => {
                       setSearchOpen(false);
-                      selectTitle(title);
+                      selectTitle(title, true);
                     }}
                     className={cn(
                       "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-xs transition-colors hover:bg-white/8",
