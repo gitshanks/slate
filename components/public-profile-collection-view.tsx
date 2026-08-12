@@ -141,7 +141,7 @@ export function PublicProfileCollectionView({
           />
         </div>
 
-        <div className="pointer-events-auto mx-auto grid w-full max-w-[1540px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-5 xl:grid-cols-[minmax(9rem,1fr)_minmax(0,max-content)_minmax(9rem,1fr)]">
+        <div className="pointer-events-auto grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-5 xl:grid-cols-[minmax(9rem,1fr)_minmax(0,max-content)_minmax(9rem,1fr)]">
           <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2.5 pl-1 sm:pl-0.5 xl:justify-self-start">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
