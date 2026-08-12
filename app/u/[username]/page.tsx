@@ -101,7 +101,7 @@ export default async function PublicProfilePage({
     >
       <div className="mx-auto w-full max-w-[1600px]">
         <nav
-          className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-border bg-card/70 p-1 sm:flex sm:w-fit sm:rounded-full"
+          className="grid w-full grid-cols-3 border-b border-white/10 sm:flex sm:w-fit sm:gap-1 sm:rounded-full sm:border sm:border-border sm:bg-card/70 sm:p-1"
           aria-label="Library shelves"
         >
           {TABS.map((tab) => {
@@ -118,9 +118,9 @@ export default async function PublicProfilePage({
                 }
                 aria-current={selected ? "page" : undefined}
                 className={cn(
-                  "inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl px-1.5 text-xs transition-colors sm:h-9 sm:shrink-0 sm:gap-2 sm:rounded-full sm:px-3.5 sm:text-sm",
+                  "relative inline-flex h-11 min-w-0 items-center justify-center gap-1.5 px-1.5 text-xs transition-colors after:absolute after:bottom-[-1px] after:left-1/2 after:h-px after:w-10 after:-translate-x-1/2 after:bg-transparent after:transition-colors sm:h-9 sm:shrink-0 sm:gap-2 sm:rounded-full sm:px-3.5 sm:text-sm sm:after:hidden",
                   selected
-                    ? "bg-primary text-primary-foreground"
+                    ? "text-primary after:bg-primary sm:bg-primary sm:text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >

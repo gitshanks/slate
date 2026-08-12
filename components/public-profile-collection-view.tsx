@@ -154,7 +154,7 @@ export function PublicProfileCollectionView({
   return (
     <div>
       <header
-        className="dark pointer-events-none fixed inset-x-0 top-0 z-[70] px-4 pb-8 text-white sm:px-6 sm:pb-7"
+        className="dark pointer-events-none fixed inset-x-0 top-0 z-[70] px-3 pb-8 text-white sm:px-6 sm:pb-7"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         aria-label={`${displayName}'s slate controls`}
       >
@@ -171,7 +171,7 @@ export function PublicProfileCollectionView({
           />
         </div>
 
-        <div className="pointer-events-auto mx-auto grid w-full max-w-[1540px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(10rem,1fr)_minmax(14rem,28rem)_minmax(15rem,1fr)]">
+        <div className="pointer-events-auto mx-auto grid w-full max-w-[1540px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-0 gap-y-2 sm:grid-cols-[minmax(10rem,1fr)_minmax(14rem,28rem)_minmax(15rem,1fr)] sm:gap-2">
           <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2.5 pl-1 sm:pl-0.5">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -179,15 +179,15 @@ export function PublicProfileCollectionView({
                 src={avatarUrl}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="h-9 w-9 shrink-0 rounded-full border border-white/15 object-cover"
+                className="h-8 w-8 shrink-0 rounded-full border border-white/15 object-cover sm:h-9 sm:w-9"
               />
             ) : (
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.07] text-xs font-semibold text-white/72">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.07] text-[11px] font-semibold text-white/72 sm:h-9 sm:w-9 sm:text-xs">
                 {displayName.slice(0, 1).toLocaleUpperCase()}
               </span>
             )}
             <div className="min-w-0 leading-none">
-              <p className="truncate text-sm font-semibold tracking-[-0.02em] text-white">
+              <p className="truncate text-[13px] font-semibold tracking-[-0.02em] text-white sm:text-sm">
                 {displayName}&rsquo;s slate
               </p>
               <p className="mt-1 truncate font-mono text-[9px] tracking-[0.08em] text-white/40">
@@ -216,7 +216,7 @@ export function PublicProfileCollectionView({
               }}
               placeholder="Find a title"
               aria-label={`Find a title in ${displayName}'s slate`}
-              className="h-10 w-full rounded-full border border-white/12 bg-white/[0.065] pl-10 pr-10 text-sm text-white outline-none transition-[border-color,background-color] duration-150 placeholder:text-white/38 focus:border-primary/55 focus:bg-white/[0.085]"
+              className="h-11 w-full rounded-l-2xl border border-r-0 border-white/12 bg-white/[0.065] pl-10 pr-10 text-sm text-white outline-none transition-[border-color,background-color] duration-150 placeholder:text-white/38 focus:bg-white/[0.09] sm:h-10 sm:rounded-full sm:border sm:focus:border-primary/55"
             />
             {query ? (
               <button
@@ -259,14 +259,14 @@ export function PublicProfileCollectionView({
 
           <div className="col-start-2 row-start-2 flex items-center justify-end gap-2 sm:col-start-3 sm:row-start-1">
             <div
-              className="relative grid h-9 grid-cols-2 rounded-full border border-white/12 bg-white/[0.055] p-0.5"
+              className="relative grid h-11 grid-cols-2 rounded-r-2xl border border-white/12 bg-white/[0.065] p-1 sm:h-9 sm:rounded-full sm:bg-white/[0.055] sm:p-0.5"
               role="group"
               aria-label="Collection view"
             >
               <span
                 aria-hidden
                 className={cn(
-                  "pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-0.125rem)] rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.18)] transition-[transform,background-color] duration-[240ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
+                  "pointer-events-none absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-xl shadow-[0_1px_8px_rgba(0,0,0,0.18)] transition-[transform,background-color] duration-[240ms] ease-[cubic-bezier(0.65,0,0.35,1)] sm:bottom-0.5 sm:left-0.5 sm:top-0.5 sm:w-[calc(50%-0.125rem)] sm:rounded-full",
                   mode === "grid"
                     ? "translate-x-0 bg-white text-black"
                     : "translate-x-full bg-primary text-primary-foreground",
@@ -277,7 +277,7 @@ export function PublicProfileCollectionView({
                 onClick={() => selectMode("grid")}
                 aria-pressed={mode === "grid"}
                 className={cn(
-                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] active:scale-[0.97]",
+                  "relative z-10 inline-flex min-w-[3.5rem] items-center justify-center gap-1 rounded-xl px-1.5 text-[10px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[3.75rem] sm:rounded-full sm:px-2",
                   mode === "grid" ? "text-black" : "text-white/52 hover:text-white",
                 )}
               >
@@ -289,7 +289,7 @@ export function PublicProfileCollectionView({
                 onClick={() => selectMode("spatial")}
                 aria-pressed={mode === "spatial"}
                 className={cn(
-                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] active:scale-[0.97]",
+                  "relative z-10 inline-flex min-w-[3.5rem] items-center justify-center gap-1 rounded-xl px-1.5 text-[10px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[3.75rem] sm:rounded-full sm:px-2",
                   mode === "spatial"
                     ? "text-primary-foreground"
                     : "text-white/52 hover:text-white",
@@ -311,7 +311,7 @@ export function PublicProfileCollectionView({
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="col-start-2 row-start-1 inline-flex h-9 items-center rounded-full bg-primary px-3 text-[11px] font-semibold text-primary-foreground transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.97] sm:hidden"
+            className="col-start-2 row-start-1 inline-flex h-8 items-center rounded-xl border border-primary/25 bg-primary/10 px-2.5 text-[11px] font-semibold text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] sm:hidden"
           >
             Make your own
           </button>

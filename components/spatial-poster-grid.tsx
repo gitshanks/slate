@@ -249,6 +249,9 @@ function FisheyePosterCell({
     );
     const focus = Math.exp(-distance * distance * 1.38);
     const lensScale = LENS_MIN_SCALE + LENS_SCALE_RANGE * focus;
+    const inverseWorldScale = 1 / Math.max(worldScale, 0.5);
+    const lensX = point.x + screenX * focus * 0.16 * inverseWorldScale;
+    const lensY = point.y + screenY * focus * 0.34 * inverseWorldScale;
     const depth = reducedMotion
       ? 0
       : LENS_DEPTH * focus - Math.min(distance, 1.8) * 42;
@@ -259,7 +262,7 @@ function FisheyePosterCell({
       ? 0
       : clamp(normalizedY, -1.3, 1.3) * 5.5;
 
-    return `translate3d(${point.x - POSTER_WIDTH / 2}px, ${point.y - POSTER_HEIGHT / 2}px, ${depth}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${lensScale})`;
+    return `translate3d(${lensX - POSTER_WIDTH / 2}px, ${lensY - POSTER_HEIGHT / 2}px, ${depth}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${lensScale})`;
   });
 
   return (
