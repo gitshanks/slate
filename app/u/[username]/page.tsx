@@ -1,30 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Check, Clock, Eye } from "lucide-react";
 import { PublicProfileCollectionView } from "@/components/public-profile-collection-view";
 import { getPublicProfile, profileAvatarUrl } from "@/lib/profiles";
 import { fetchTitlesByStatusForOwner } from "@/lib/title-filters";
-import { cn } from "@/lib/utils";
-import type { TitleRow, TitleStatus } from "@/lib/types";
+import type { TitleRow } from "@/lib/types";
 import { SLATE_HOSTED } from "@/lib/public-mode";
-
-type PublicTab = "watchlist" | "watching" | "watched";
-
-const TABS: {
-  id: PublicTab;
-  label: string;
-  status: Exclude<TitleStatus, "dropped">;
-  icon: typeof Clock;
-}[] = [
-  { id: "watchlist", label: "Watchlist", status: "want", icon: Clock },
-  { id: "watching", label: "Watching", status: "watching", icon: Eye },
-  { id: "watched", label: "Watched", status: "watched", icon: Check },
-];
-
-function publicTab(value: string | undefined): PublicTab {
-  return TABS.some((tab) => tab.id === value) ? (value as PublicTab) : "watchlist";
-}
 
 function interleaveShelves(shelves: TitleRow[][]) {
   const longestShelf = Math.max(0, ...shelves.map((shelf) => shelf.length));
@@ -45,13 +25,17 @@ export async function generateMetadata({
 }: {
   params: Promise<{ username: string }>;
 }): Promise<Metadata> {
-  if (!SLATE_HOSTED) return { title: "Profile not found · slate", robots: { index: false } };
+  if (!SLATE_HOSTED) {
+    return { title: "Profile not found · slate", robots: { index: false } };
+  }
   const { username } = await params;
   const profile = await getPublicProfile(username);
-  if (!profile) return { title: "Profile not found · slate", robots: { index: false } };
+  if (!profile) {
+    return { title: "Profile not found · slate", robots: { index: false } };
+  }
   const origin =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    "https://slate.nishh.dev";
+    "https://s1ate.space";
   const avatarUrl = profileAvatarUrl(profile, origin);
 
   return {
@@ -68,27 +52,21 @@ export async function generateMetadata({
 
 export default async function PublicProfilePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ tab?: string }>;
 }) {
   if (!SLATE_HOSTED) notFound();
-  const [{ username }, query] = await Promise.all([params, searchParams]);
+  const { username } = await params;
   const profile = await getPublicProfile(username);
   if (!profile) notFound();
   const avatarUrl = profileAvatarUrl(profile);
 
-  const activeId = publicTab(query.tab);
   const [watchlist, watching, watched] = await Promise.all([
     fetchTitlesByStatusForOwner(profile.id, "want"),
     fetchTitlesByStatusForOwner(profile.id, "watching"),
     fetchTitlesByStatusForOwner(profile.id, "watched"),
   ]);
-  const shelves = { watchlist, watching, watched };
-  const active = TABS.find((tab) => tab.id === activeId)!;
-  const result = shelves[activeId];
-  const spatialTitles = interleaveShelves([
+  const titles = interleaveShelves([
     watchlist.titles,
     watching.titles,
     watched.titles,
@@ -97,68 +75,14 @@ export default async function PublicProfilePage({
   return (
     <main
       data-public-profile-index
-      className="dark min-h-dvh w-full bg-[#080a09] px-4 pb-16 pt-[8.35rem] text-foreground sm:px-6 sm:pt-[5.75rem] lg:px-10"
+      className="dark min-h-dvh w-full bg-[#080a09] text-foreground"
     >
-      <div className="mx-auto w-full max-w-[1600px]">
-        <nav
-          className="hidden w-fit gap-1 rounded-full border border-border bg-card/70 p-1 sm:flex"
-          aria-label="Library shelves"
-        >
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const selected = tab.id === activeId;
-            const count = shelves[tab.id].titles.length;
-            return (
-              <Link
-                key={tab.id}
-                href={
-                  tab.id === "watchlist"
-                    ? `/u/${profile.username}`
-                    : `/u/${profile.username}?tab=${tab.id}`
-                }
-                aria-current={selected ? "page" : undefined}
-                className={cn(
-                  "relative inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-3.5 text-sm transition-colors",
-                  selected
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                <span className="truncate">{tab.label}</span>
-                <span
-                  className={cn(
-                    "font-mono text-[11px]",
-                    selected ? "opacity-75" : "opacity-60",
-                  )}
-                >
-                  {count}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="mt-2 sm:mt-9">
-          <PublicProfileCollectionView
-            eyebrow={
-              active.id === "watchlist"
-                ? "Up next"
-                : active.id === "watching"
-                  ? "In progress"
-                  : "Already seen"
-            }
-            label={active.label}
-            titles={result.titles}
-            spatialTitles={spatialTitles}
-            genres={result.allGenres}
-            status={active.status}
-            username={profile.username}
-            displayName={profile.display_name}
-            avatarUrl={avatarUrl}
-          />
-        </div>
-      </div>
+      <PublicProfileCollectionView
+        titles={titles}
+        username={profile.username}
+        displayName={profile.display_name}
+        avatarUrl={avatarUrl}
+      />
     </main>
   );
 }
