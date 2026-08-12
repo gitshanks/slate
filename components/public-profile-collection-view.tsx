@@ -4,18 +4,17 @@ import * as React from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Box, Film, LayoutGrid, Search, X } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { FilteredGrid } from "@/components/filtered-grid";
 import { cn } from "@/lib/utils";
 import type { TitleRow, TitleStatus } from "@/lib/types";
 
+const loadSpatialPosterGrid = () => import("@/components/spatial-poster-grid");
+
 const SpatialPosterGrid = dynamic(
-  () =>
-    import("@/components/spatial-poster-grid").then(
-      (module) => module.SpatialPosterGrid,
-    ),
+  () => loadSpatialPosterGrid().then((module) => module.SpatialPosterGrid),
   {
     ssr: false,
     loading: () => (
@@ -56,6 +55,7 @@ export function PublicProfileCollectionView({
   avatarUrl,
 }: PublicProfileCollectionViewProps) {
   const [mode, setMode] = React.useState<ViewMode>("grid");
+  const [spatialMounted, setSpatialMounted] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [searchTarget, setSearchTarget] = React.useState<{
@@ -87,12 +87,26 @@ export function PublicProfileCollectionView({
   const selectMode = React.useCallback(
     (nextMode: ViewMode) => {
       if (nextMode === mode) return;
+      if (nextMode === "spatial") setSpatialMounted(true);
       setMode(nextMode);
       if (nextMode === "grid") setSearchTarget(null);
       setSearchOpen(nextMode === "spatial" && normalizedQuery.length > 0);
     },
     [mode, normalizedQuery.length],
   );
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void loadSpatialPosterGrid().then(() => {
+        if (!cancelled) setSpatialMounted(true);
+      });
+    }, 600);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   const selectSearchResult = React.useCallback(
     (title: TitleRow) => {
@@ -252,7 +266,7 @@ export function PublicProfileCollectionView({
               <span
                 aria-hidden
                 className={cn(
-                  "pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-0.125rem)] rounded-full transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
+                  "pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-0.125rem)] rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.18)] transition-[transform,background-color] duration-[240ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
                   mode === "grid"
                     ? "translate-x-0 bg-white text-black"
                     : "translate-x-full bg-primary text-primary-foreground",
@@ -263,7 +277,7 @@ export function PublicProfileCollectionView({
                 onClick={() => selectMode("grid")}
                 aria-pressed={mode === "grid"}
                 className={cn(
-                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-medium transition-colors duration-150 active:scale-[0.97]",
+                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] active:scale-[0.97]",
                   mode === "grid" ? "text-black" : "text-white/52 hover:text-white",
                 )}
               >
@@ -275,7 +289,7 @@ export function PublicProfileCollectionView({
                 onClick={() => selectMode("spatial")}
                 aria-pressed={mode === "spatial"}
                 className={cn(
-                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-medium transition-colors duration-150 active:scale-[0.97]",
+                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] active:scale-[0.97]",
                   mode === "spatial"
                     ? "text-primary-foreground"
                     : "text-white/52 hover:text-white",
@@ -345,28 +359,42 @@ export function PublicProfileCollectionView({
         )}
       </div>
 
-      <AnimatePresence initial={false}>
-        {mode === "spatial" ? (
-          <motion.div
-            key="spatial"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Space view"
-            initial={reducedMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={reducedMotion ? undefined : { opacity: 0 }}
-            transition={{ duration: 0.24 }}
-            className="fixed inset-0 z-40 bg-[#080a09]"
-          >
-            <SpatialPosterGrid
-              titles={spatialTitles}
-              username={username}
-              onExit={exitSpatial}
-              searchTarget={searchTarget}
-            />
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      {spatialMounted ? (
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Space view"
+          aria-hidden={mode !== "spatial" || undefined}
+          inert={mode !== "spatial" ? true : undefined}
+          initial={
+            reducedMotion
+              ? false
+              : { opacity: 0, transform: "scale(1.008)" }
+          }
+          animate={{
+            opacity: mode === "spatial" ? 1 : 0,
+            transform:
+              reducedMotion || mode === "spatial"
+                ? "scale(1)"
+                : "scale(1.008)",
+          }}
+          transition={{
+            duration: reducedMotion ? 0.12 : mode === "spatial" ? 0.26 : 0.2,
+            ease: [0.65, 0, 0.35, 1],
+          }}
+          className={cn(
+            "fixed inset-0 z-40 bg-[#080a09] will-change-[opacity,transform]",
+            mode === "spatial" ? "pointer-events-auto" : "pointer-events-none",
+          )}
+        >
+          <SpatialPosterGrid
+            titles={spatialTitles}
+            username={username}
+            onExit={exitSpatial}
+            searchTarget={searchTarget}
+          />
+        </motion.div>
+      ) : null}
     </div>
   );
 }
