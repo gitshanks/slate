@@ -7,7 +7,7 @@ import { PublicProfileCollectionView } from "@/components/public-profile-collect
 import { getPublicProfile, profileAvatarUrl } from "@/lib/profiles";
 import { fetchTitlesByStatusForOwner } from "@/lib/title-filters";
 import { cn } from "@/lib/utils";
-import type { TitleStatus } from "@/lib/types";
+import type { TitleRow, TitleStatus } from "@/lib/types";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 
 type PublicTab = "watchlist" | "watching" | "watched";
@@ -25,6 +25,20 @@ const TABS: {
 
 function publicTab(value: string | undefined): PublicTab {
   return TABS.some((tab) => tab.id === value) ? (value as PublicTab) : "watchlist";
+}
+
+function interleaveShelves(shelves: TitleRow[][]) {
+  const longestShelf = Math.max(0, ...shelves.map((shelf) => shelf.length));
+  const titles: TitleRow[] = [];
+
+  for (let index = 0; index < longestShelf; index += 1) {
+    for (const shelf of shelves) {
+      const title = shelf[index];
+      if (title) titles.push(title);
+    }
+  }
+
+  return titles;
 }
 
 export async function generateMetadata({
@@ -75,6 +89,11 @@ export default async function PublicProfilePage({
   const shelves = { watchlist, watching, watched };
   const active = TABS.find((tab) => tab.id === activeId)!;
   const result = shelves[activeId];
+  const spatialTitles = interleaveShelves([
+    watchlist.titles,
+    watching.titles,
+    watched.titles,
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-10 lg:pt-12">
@@ -133,7 +152,7 @@ export default async function PublicProfilePage({
         </nav>
 
         <div className="mt-8 sm:mt-9">
-          {result.titles.length === 0 ? (
+          {spatialTitles.length === 0 ? (
             <>
               <div className="mb-6">
                 <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -162,6 +181,7 @@ export default async function PublicProfilePage({
               }
               label={active.label}
               titles={result.titles}
+              spatialTitles={spatialTitles}
               genres={result.allGenres}
               status={active.status}
               username={profile.username}

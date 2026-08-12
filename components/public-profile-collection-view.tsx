@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
-import { Box, LayoutGrid } from "lucide-react";
+import { Box, Film, LayoutGrid } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { FilteredGrid } from "@/components/filtered-grid";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ interface PublicProfileCollectionViewProps {
   eyebrow: string;
   label: string;
   titles: TitleRow[];
+  spatialTitles: TitleRow[];
   genres: { id: number; name: string }[];
   status: Exclude<TitleStatus, "dropped">;
   username: string;
@@ -43,6 +45,7 @@ export function PublicProfileCollectionView({
   eyebrow,
   label,
   titles,
+  spatialTitles,
   genres,
   status,
   username,
@@ -55,9 +58,11 @@ export function PublicProfileCollectionView({
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            {eyebrow}
+            {mode === "spatial" ? "All shelves" : eyebrow}
           </p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">{label}</h2>
+          <h2 className="mt-1 text-3xl font-semibold tracking-tight">
+            {mode === "spatial" ? "All titles" : label}
+          </h2>
         </div>
 
         <div
@@ -105,19 +110,29 @@ export function PublicProfileCollectionView({
             exit={reducedMotion ? undefined : { opacity: 0 }}
             transition={{ duration: 0.18 }}
           >
-            <FilterBar
-              genres={genres}
-              showSentiment={status === "watched"}
-              recentSortLabel={status === "watched" ? "Recently watched" : undefined}
-            />
-            <React.Suspense fallback={null}>
-              <FilteredGrid
-                allTitles={titles}
-                status={status}
-                readOnly
-                titleHrefBase={`/u/${username}/title`}
+            {titles.length ? (
+              <>
+                <FilterBar
+                  genres={genres}
+                  showSentiment={status === "watched"}
+                  recentSortLabel={status === "watched" ? "Recently watched" : undefined}
+                />
+                <React.Suspense fallback={null}>
+                  <FilteredGrid
+                    allTitles={titles}
+                    status={status}
+                    readOnly
+                    titleHrefBase={`/u/${username}/title`}
+                  />
+                </React.Suspense>
+              </>
+            ) : (
+              <EmptyState
+                icon={<Film className="h-6 w-6" />}
+                title={`Nothing in ${label.toLowerCase()} yet`}
+                description="This shelf is waiting for its first title."
               />
-            </React.Suspense>
+            )}
           </motion.div>
         ) : (
           <motion.div
@@ -127,7 +142,7 @@ export function PublicProfileCollectionView({
             exit={reducedMotion ? undefined : { opacity: 0 }}
             transition={{ duration: 0.24 }}
           >
-            <SpatialPosterGrid titles={titles} username={username} />
+            <SpatialPosterGrid titles={spatialTitles} username={username} />
           </motion.div>
         )}
       </AnimatePresence>

@@ -64,6 +64,7 @@ const POSTER_HEIGHT = 213;
 const COLUMN_GAP = 206;
 const ROW_GAP = 286;
 const SEARCH_DELAY = 320;
+const DETAIL_PLANE_Z = 150;
 
 function spatialPoints(count: number, reducedMotion: boolean): SpatialPoint[] {
   const columns = Math.min(8, Math.max(4, Math.ceil(Math.sqrt(count * 1.35))));
@@ -90,12 +91,30 @@ function spatialPoints(count: number, reducedMotion: boolean): SpatialPoint[] {
 
 function shelfPresentation(title: TitleRow) {
   if (title.status === "watching") {
-    return { label: "Watching", icon: Eye };
+    return {
+      label: "Watching",
+      icon: Eye,
+      borderClass: "border-primary/80",
+      hoverBorderClass: "group-hover:border-primary",
+      metaClass: "text-primary",
+    };
   }
   if (title.status === "watched") {
-    return { label: "Watched", icon: Check };
+    return {
+      label: "Watched",
+      icon: Check,
+      borderClass: "border-primary/35",
+      hoverBorderClass: "group-hover:border-primary/65",
+      metaClass: "text-primary/65",
+    };
   }
-  return { label: "Watchlist", icon: Clock };
+  return {
+    label: "Watchlist",
+    icon: Clock,
+    borderClass: "border-white/12",
+    hoverBorderClass: "group-hover:border-white/35",
+    metaClass: "text-white/42",
+  };
 }
 
 function sentimentPresentation(title: TitleRow) {
@@ -705,6 +724,8 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
           const point = points[index];
           const src = posterUrl(title.poster_path, "w500");
           const selected = title.id === selectedId;
+          const shelf = shelfPresentation(title);
+          const PosterShelfIcon = shelf.icon;
           return (
             <div
               key={title.id}
@@ -729,14 +750,14 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
                 whileTap={reducedMotion ? undefined : { scale: 0.985 }}
                 transition={{ type: "spring", stiffness: 300, damping: 24 }}
                 className="group block w-full cursor-pointer text-left focus-visible:outline-none"
-                aria-label={`Open ${title.title} details`}
+                aria-label={`Open ${title.title} details. ${shelf.label}.`}
               >
                 <span
                   className={cn(
                     "relative block aspect-[2/3] overflow-hidden rounded-[1rem] border bg-white/[0.035] shadow-[0_28px_65px_-28px_rgba(0,0,0,0.9)] transition-[border-color,box-shadow] duration-300",
                     selected
                       ? "border-primary/80 shadow-[0_0_0_4px_rgba(173,235,179,0.1),0_34px_90px_-28px_rgba(173,235,179,0.45)]"
-                      : "border-white/12 group-hover:border-white/30",
+                      : [shelf.borderClass, shelf.hoverBorderClass],
                   )}
                 >
                   {src ? (
@@ -758,8 +779,19 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
                 <span className="mt-2.5 block truncate text-[12px] font-medium text-white/82">
                   {title.title}
                 </span>
-                <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.12em] text-white/35">
-                  {formatYear(title.release_date) || title.media_type}
+                <span
+                  className={cn(
+                    "mt-1 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em]",
+                    shelf.metaClass,
+                  )}
+                >
+                  <PosterShelfIcon className="h-2.5 w-2.5" aria-hidden />
+                  <span>{shelf.label}</span>
+                  {formatYear(title.release_date) ? (
+                    <span className="ml-auto text-white/28">
+                      {formatYear(title.release_date)}
+                    </span>
+                  ) : null}
                 </span>
               </motion.button>
             </div>
@@ -769,9 +801,9 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
         {selectedTitle && selectedPoint ? (
           <div
             data-spatial-slab
-            className="absolute"
+            className="absolute z-[60]"
             style={{
-              transform: `translate3d(${selectedPoint.x + 116}px, ${selectedPoint.y - 292}px, ${selectedPoint.z + 24}px)`,
+              transform: `translate3d(${selectedPoint.x + 116}px, ${selectedPoint.y - 292}px, ${DETAIL_PLANE_Z}px)`,
               transformStyle: "preserve-3d",
             }}
           >
