@@ -3,7 +3,10 @@ import Link from "next/link";
 
 export function PublicProfileHeader() {
   return (
-    <header className="relative z-20 border-b border-border/60 bg-background/70 backdrop-blur-xl">
+    <header
+      data-public-profile-header
+      className="relative z-20 border-b border-border/60 bg-background/70 backdrop-blur-xl"
+    >
       <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
         <Link href="/" aria-label="slate home" className="flex items-center">
           <Image

@@ -14,6 +14,7 @@ interface FilteredGridProps {
   readOnly?: boolean;
   titleHrefBase?: string;
   collapsible?: boolean;
+  searchQuery?: string;
 }
 
 function subscribeToViewport(onChange: () => void) {
@@ -45,6 +46,7 @@ export function FilteredGrid({
   readOnly = false,
   titleHrefBase,
   collapsible = false,
+  searchQuery = "",
 }: FilteredGridProps) {
   const sp = useSearchParams();
   const [expanded, setExpanded] = React.useState(false);
@@ -63,7 +65,15 @@ export function FilteredGrid({
     sort: sp.get("sort") ?? undefined,
     sentiment: sp.get("sentiment") ?? undefined,
   };
-  const titles = filterAndSort(allTitles, status, params);
+  const filteredTitles = filterAndSort(allTitles, status, params);
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
+  const titles = normalizedSearchQuery
+    ? filteredTitles.filter((title) =>
+        `${title.title} ${title.original_title ?? ""}`
+          .toLocaleLowerCase()
+          .includes(normalizedSearchQuery),
+      )
+    : filteredTitles;
   const customOrderIds = filterAndSort(allTitles, status, {}).map(
     (title) => title.id
   );
@@ -95,7 +105,9 @@ export function FilteredGrid({
   if (titles.length === 0 && allTitles.length > 0) {
     return (
       <p className="mt-10 text-sm text-muted-foreground">
-        No titles match the current filters.
+        {normalizedSearchQuery
+          ? "No titles match your search."
+          : "No titles match the current filters."}
       </p>
     );
   }

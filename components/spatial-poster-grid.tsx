@@ -15,9 +15,7 @@ import {
   Clock,
   Eye,
   Heart,
-  LayoutGrid,
   LocateFixed,
-  Search,
   ThumbsDown,
   ThumbsUp,
   X,
@@ -41,6 +39,7 @@ interface SpatialPosterGridProps {
   titles: TitleRow[];
   username: string;
   onExit: () => void;
+  searchTarget: { titleId: string; request: number } | null;
 }
 
 interface SpatialPoint {
@@ -80,7 +79,6 @@ const POSTER_WIDTH = 142;
 const POSTER_HEIGHT = 213;
 const COLUMN_GAP = 206;
 const ROW_GAP = 286;
-const SEARCH_DELAY = 320;
 const HORIZONTAL_OVERSCAN = 6;
 const VERTICAL_OVERSCAN = 3;
 
@@ -434,7 +432,12 @@ function TitleDetailSlab({
   );
 }
 
-export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGridProps) {
+export function SpatialPosterGrid({
+  titles,
+  username,
+  onExit,
+  searchTarget,
+}: SpatialPosterGridProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const layout = React.useMemo(
     () => spatialLayout(titles.length, reducedMotion),
@@ -456,24 +459,12 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
   const animationRef = React.useRef<AnimationPlaybackControls[]>([]);
   const detailCacheRef = React.useRef(new Map<string, PublicSpatialTitleDetail>());
   const detailRequestRef = React.useRef(0);
-  const [query, setQuery] = React.useState("");
-  const [searchOpen, setSearchOpen] = React.useState(false);
+  const handledSearchRequestRef = React.useRef(0);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(null);
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [detailError, setDetailError] = React.useState<string | null>(null);
 
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const matches = React.useMemo(() => {
-    if (!normalizedQuery) return [];
-    return titles
-      .filter((title) =>
-        `${title.title} ${title.original_title ?? ""}`
-          .toLocaleLowerCase()
-          .includes(normalizedQuery),
-      )
-      .slice(0, 5);
-  }, [normalizedQuery, titles]);
   const selectedIndex = selectedId
     ? titles.findIndex((title) => title.id === selectedId)
     : -1;
@@ -579,19 +570,20 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
     setSelectedId(null);
     setDetail(null);
     setDetailError(null);
-    setQuery("");
-    setSearchOpen(false);
   }, []);
 
   React.useEffect(() => {
-    if (normalizedQuery.length < 2 || matches.length === 0) return;
-    if (matches.some((title) => title.id === selectedId)) return;
-    const timer = window.setTimeout(() => {
-      setSearchOpen(false);
-      selectTitle(matches[0], true);
-    }, SEARCH_DELAY);
-    return () => window.clearTimeout(timer);
-  }, [matches, normalizedQuery, selectTitle, selectedId]);
+    if (
+      !searchTarget ||
+      searchTarget.request === handledSearchRequestRef.current
+    ) {
+      return;
+    }
+
+    handledSearchRequestRef.current = searchTarget.request;
+    const title = titles.find((candidate) => candidate.id === searchTarget.titleId);
+    if (title) selectTitle(title, true);
+  }, [searchTarget, selectTitle, titles]);
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -719,84 +711,6 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(173,235,179,0.08),transparent_42%),linear-gradient(to_bottom,rgba(8,10,9,0.18),rgba(8,10,9,0.72))]"
       />
-
-      <div
-        data-spatial-control
-        className="absolute inset-x-4 z-50 grid grid-cols-[2.75rem_minmax(0,25rem)_2.75rem] items-start justify-center gap-2 sm:inset-x-6 sm:grid-cols-[4.75rem_minmax(0,25rem)_4.75rem]"
-        style={{ top: "max(1rem, env(safe-area-inset-top))" }}
-      >
-        <button
-          type="button"
-          onClick={onExit}
-          className="inline-flex h-11 w-11 items-center justify-center gap-1.5 rounded-full border border-white/14 bg-black/70 text-white/70 shadow-xl backdrop-blur-xl transition-colors hover:border-white/25 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-[4.75rem]"
-          aria-label="Return to 2D view"
-        >
-          <LayoutGrid className="h-4 w-4" />
-          <span className="hidden text-xs font-medium sm:inline">2D</span>
-        </button>
-
-        <div className="relative min-w-0">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
-            <input
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setSearchOpen(true);
-              }}
-              onFocus={() => {
-                if (normalizedQuery) setSearchOpen(true);
-              }}
-              placeholder="Find a title"
-              aria-label="Find a title in this gallery"
-              className="h-11 w-full rounded-full border border-white/14 bg-black/70 pl-10 pr-10 text-sm text-white shadow-[0_16px_48px_-18px_rgba(0,0,0,0.9)] outline-none backdrop-blur-xl transition-colors placeholder:text-white/40 focus:border-primary/55"
-            />
-            {query ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setQuery("");
-                  setSearchOpen(false);
-                }}
-                className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-white/45 transition-colors hover:bg-white/10 hover:text-white"
-                aria-label="Clear search"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            ) : null}
-          </div>
-
-          {normalizedQuery && searchOpen && (
-            <div className="mt-2 overflow-hidden rounded-2xl border border-white/12 bg-black/85 p-1.5 shadow-2xl backdrop-blur-2xl">
-              {matches.length ? (
-                matches.map((title) => (
-                  <button
-                    key={title.id}
-                    type="button"
-                    onClick={() => {
-                      setSearchOpen(false);
-                      selectTitle(title, true);
-                    }}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-xs transition-colors hover:bg-white/8",
-                      selectedId === title.id && "bg-white/8 text-primary",
-                    )}
-                  >
-                    <span className="truncate">{title.title}</span>
-                    <span className="shrink-0 font-mono text-[10px] text-white/38">
-                      {formatYear(title.release_date)}
-                    </span>
-                  </button>
-                ))
-              ) : (
-                <p className="px-3 py-2 text-xs text-white/45">No match</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        <span aria-hidden className="h-11 w-11 sm:w-[4.75rem]" />
-      </div>
 
       <button
         data-spatial-control

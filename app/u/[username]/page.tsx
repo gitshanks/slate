@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Check, Clock, Eye, Film, UserRound } from "lucide-react";
-import { EmptyState } from "@/components/empty-state";
+import { Check, Clock, Eye } from "lucide-react";
 import { PublicProfileCollectionView } from "@/components/public-profile-collection-view";
 import { getPublicProfile, profileAvatarUrl } from "@/lib/profiles";
 import { fetchTitlesByStatusForOwner } from "@/lib/title-filters";
@@ -96,98 +95,68 @@ export default async function PublicProfilePage({
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-10 lg:pt-12">
-        <section className="grid grid-cols-[4rem_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-5">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarUrl}
-              alt={`${profile.display_name} profile photo`}
-              referrerPolicy="no-referrer"
-              className="h-16 w-16 rounded-2xl border border-border object-cover sm:h-20 sm:w-20 sm:rounded-[1.35rem]"
-            />
-          ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground sm:h-20 sm:w-20 sm:rounded-[1.35rem]">
-              <UserRound className="h-7 w-7" />
-            </span>
-          )}
-          <div className="min-w-0">
-            <p className="truncate font-mono text-[11px] tracking-[0.08em] text-muted-foreground sm:text-xs sm:tracking-[0.12em]">
-              @{profile.username}
-            </p>
-            <h1 className="mt-1 break-words text-[1.75rem] font-semibold leading-[1.05] tracking-[-0.04em] sm:text-4xl">
-              {profile.display_name}&rsquo;s slate
-            </h1>
-          </div>
-        </section>
-
-        <nav
-          className="mt-8 grid w-full grid-cols-3 gap-1 rounded-2xl border border-border bg-card/70 p-1 sm:mt-9 sm:flex sm:w-fit sm:rounded-full"
-          aria-label="Library shelves"
-        >
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const selected = tab.id === activeId;
-            const count = shelves[tab.id].titles.length;
-            return (
-              <Link
-                key={tab.id}
-                href={tab.id === "watchlist" ? `/u/${profile.username}` : `/u/${profile.username}?tab=${tab.id}`}
-                aria-current={selected ? "page" : undefined}
+    <main
+      data-public-profile-index
+      className="mx-auto w-full max-w-[1600px] px-4 pb-16 pt-[8.35rem] sm:px-6 sm:pt-[5.75rem] lg:px-10"
+    >
+      <nav
+        className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-border bg-card/70 p-1 sm:flex sm:w-fit sm:rounded-full"
+        aria-label="Library shelves"
+      >
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const selected = tab.id === activeId;
+          const count = shelves[tab.id].titles.length;
+          return (
+            <Link
+              key={tab.id}
+              href={
+                tab.id === "watchlist"
+                  ? `/u/${profile.username}`
+                  : `/u/${profile.username}?tab=${tab.id}`
+              }
+              aria-current={selected ? "page" : undefined}
+              className={cn(
+                "inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl px-1.5 text-xs transition-colors sm:h-9 sm:shrink-0 sm:gap-2 sm:rounded-full sm:px-3.5 sm:text-sm",
+                selected
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Icon className="hidden h-4 w-4 sm:block" />
+              <span className="truncate">{tab.label}</span>
+              <span
                 className={cn(
-                  "inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl px-1.5 text-xs transition-colors sm:h-9 sm:shrink-0 sm:gap-2 sm:rounded-full sm:px-3.5 sm:text-sm",
-                  selected
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                  "font-mono text-[11px]",
+                  selected ? "opacity-75" : "opacity-60",
                 )}
               >
-                <Icon className="hidden h-4 w-4 sm:block" />
-                <span className="truncate">{tab.label}</span>
-                <span className={cn("font-mono text-[11px]", selected ? "opacity-75" : "opacity-60")}>
-                  {count}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
+                {count}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
 
-        <div className="mt-8 sm:mt-9">
-          {spatialTitles.length === 0 ? (
-            <>
-              <div className="mb-6">
-                <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  {active.id === "watchlist"
-                    ? "Up next"
-                    : active.id === "watching"
-                      ? "In progress"
-                      : "Already seen"}
-                </p>
-                <h2 className="mt-1 text-3xl font-semibold tracking-tight">{active.label}</h2>
-              </div>
-              <EmptyState
-                icon={<Film className="h-6 w-6" />}
-                title={`Nothing in ${active.label.toLowerCase()} yet`}
-                description="This shelf is waiting for its first title."
-              />
-            </>
-          ) : (
-            <PublicProfileCollectionView
-              eyebrow={
-                active.id === "watchlist"
-                  ? "Up next"
-                  : active.id === "watching"
-                    ? "In progress"
-                    : "Already seen"
-              }
-              label={active.label}
-              titles={result.titles}
-              spatialTitles={spatialTitles}
-              genres={result.allGenres}
-              status={active.status}
-              username={profile.username}
-            />
-          )}
-        </div>
+      <div className="mt-8 sm:mt-9">
+        <PublicProfileCollectionView
+          eyebrow={
+            active.id === "watchlist"
+              ? "Up next"
+              : active.id === "watching"
+                ? "In progress"
+                : "Already seen"
+          }
+          label={active.label}
+          titles={result.titles}
+          spatialTitles={spatialTitles}
+          genres={result.allGenres}
+          status={active.status}
+          username={profile.username}
+          displayName={profile.display_name}
+          avatarUrl={avatarUrl}
+        />
+      </div>
     </main>
   );
 }

@@ -594,3 +594,7 @@ body[data-scroll-locked] {
     animation: none !important;
   }
 }
+
+body:has([data-public-profile-index]) [data-public-profile-header] {
+  display: none;
+}
