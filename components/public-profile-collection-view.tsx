@@ -397,16 +397,18 @@ export function PublicProfileCollectionView({
         </div>
 
         {mode === "spatial" ? (
-          <div className="pointer-events-auto mx-auto mt-2 w-full max-w-[1540px] overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2.5">
+          <div className="pointer-events-auto mx-auto mt-2 w-full max-w-[1540px] overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2.5 sm:overflow-visible">
             <FilterBar
               genres={spatialGenres}
               showSort={false}
               showSentiment
+              sentimentDisplay="menu"
               statusOptions={SPACE_STATUS_OPTIONS}
               statusParam="spaceStatus"
               idPrefix="space"
               popoverClassName="z-[80]"
-              className="mb-0 w-max flex-nowrap gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-segment]:whitespace-nowrap"
+              groupControls
+              className="mb-0 w-max flex-nowrap gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-segment]:whitespace-nowrap sm:mx-auto sm:w-fit sm:max-w-full sm:flex-wrap sm:justify-center sm:gap-2 sm:rounded-[1.55rem] sm:border sm:border-white/10 sm:bg-black/35 sm:p-1.5 sm:shadow-[0_16px_40px_-22px_rgba(0,0,0,0.9)] sm:backdrop-blur-xl"
             />
           </div>
         ) : null}

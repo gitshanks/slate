@@ -24,6 +24,8 @@ export interface FilterBarProps {
   showSort?: boolean;
   /** Whether to show the sentiment (loved/liked/disliked) filter. */
   showSentiment?: boolean;
+  /** Uses a compact menu when sentiment is a secondary filter. */
+  sentimentDisplay?: "segmented" | "menu";
   /** Label for the chronological sort on this page. */
   recentSortLabel?: string;
   /** Optional collection scopes, used when one surface combines shelves. */
@@ -34,6 +36,8 @@ export interface FilterBarProps {
   idPrefix?: string;
   /** Extra layer styling for filters rendered inside fixed chrome. */
   popoverClassName?: string;
+  /** Keeps primary and secondary controls together when the bar wraps. */
+  groupControls?: boolean;
   className?: string;
 }
 
@@ -63,11 +67,13 @@ export function FilterBar({
   showYearSort = true,
   showSort = true,
   showSentiment = false,
+  sentimentDisplay = "segmented",
   recentSortLabel = "Recently added",
   statusOptions,
   statusParam = "status",
   idPrefix = "library",
   popoverClassName,
+  groupControls = false,
   className,
 }: FilterBarProps) {
   const pathname = usePathname();
@@ -81,6 +87,9 @@ export function FilterBar({
   const currentStatus = statusOptions ? (searchParams.get(statusParam) ?? "") : "";
 
   const activeGenre = genres.find((g) => String(g.id) === currentGenre);
+  const activeSentiment = SENTIMENT_OPTIONS.find(
+    (option) => option.value === currentSentiment,
+  );
 
   const setParam = React.useCallback(
     (key: string, value: string) => {
@@ -139,31 +148,93 @@ export function FilterBar({
 
   return (
     <div className={cn("mb-8 flex flex-wrap items-center gap-2", className)}>
-      {statusOptions && (
+      <div
+        className={cn(
+          groupControls
+            ? "flex shrink-0 items-center gap-1.5"
+            : "contents",
+        )}
+      >
+        {statusOptions && (
+          <SegmentedFilter
+            id={`${idPrefix}-status-filter`}
+            options={statusOptions}
+            value={currentStatus}
+            onValueChange={(value) => setParam(statusParam, value)}
+          />
+        )}
+
         <SegmentedFilter
-          id={`${idPrefix}-status-filter`}
-          options={statusOptions}
-          value={currentStatus}
-          onValueChange={(value) => setParam(statusParam, value)}
+          id={`${idPrefix}-type-filter`}
+          options={TYPE_OPTIONS}
+          value={currentType}
+          onValueChange={(value) => setParam("type", value)}
         />
-      )}
+      </div>
 
-      {/* Type segmented */}
-      <SegmentedFilter
-        id={`${idPrefix}-type-filter`}
-        options={TYPE_OPTIONS}
-        value={currentType}
-        onValueChange={(value) => setParam("type", value)}
-      />
-
-      {/* Sentiment segmented — only on watched page */}
-      {showSentiment && (
+      <div
+        className={cn(
+          groupControls
+            ? "flex shrink-0 items-center gap-1.5"
+            : "contents",
+        )}
+      >
+      {showSentiment && sentimentDisplay === "segmented" && (
         <SegmentedFilter
           id={`${idPrefix}-sentiment-filter`}
           options={SENTIMENT_OPTIONS}
           value={currentSentiment}
           onValueChange={(value) => setParam("sentiment", value)}
         />
+      )}
+
+      {showSentiment && sentimentDisplay === "menu" && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
+                currentSentiment
+                  ? "border-primary/50 text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {activeSentiment && activeSentiment.value
+                ? activeSentiment.label
+                : "Reaction"}
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            className={cn("w-44 p-2", popoverClassName)}
+            align="start"
+          >
+            <div className="flex flex-col">
+              {SENTIMENT_OPTIONS.map((option) => {
+                const active = option.value === currentSentiment;
+                const Icon = option.icon;
+                return (
+                  <PopoverClose asChild key={option.value || "any"}>
+                    <button
+                      type="button"
+                      onClick={() => setParam("sentiment", option.value)}
+                      className={cn(
+                        "filter-menu-option flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs",
+                        active
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {option.value ? option.label : "Any reaction"}
+                    </button>
+                  </PopoverClose>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
       )}
 
       {/* Genre popover — only show if we have any genres */}
@@ -316,6 +387,7 @@ export function FilterBar({
           Clear
         </button>
       )}
+      </div>
     </div>
   );
 }
