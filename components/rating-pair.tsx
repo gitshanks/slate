@@ -16,6 +16,8 @@ interface RatingPairProps {
   metacritic?: number | string | null | undefined;
   /** "compact" — single chip for poster cards. "inline" — text for label rows. */
   variant?: "compact" | "inline";
+  /** On very narrow three-column grids, keep one score so the chip never clips. */
+  condenseOnNarrow?: boolean;
 }
 
 /**
@@ -37,6 +39,7 @@ export function RatingPair({
   rt,
   metacritic,
   variant = "inline",
+  condenseOnNarrow = false,
 }: RatingPairProps) {
   const i = formatImdbRating(imdb);
   const r = formatRtScore(rt);
@@ -62,9 +65,22 @@ export function RatingPair({
             <span>{i}</span>
           </span>
         )}
-        {i && critic && <span aria-hidden className="opacity-40">·</span>}
+        {i && critic && (
+          <span
+            aria-hidden
+            className={condenseOnNarrow ? "opacity-40 max-[359px]:hidden" : "opacity-40"}
+          >
+            ·
+          </span>
+        )}
         {critic?.kind === "rt" && (
-          <span className="inline-flex items-center gap-1">
+          <span
+            className={
+              condenseOnNarrow && i
+                ? "inline-flex items-center gap-1 max-[359px]:hidden"
+                : "inline-flex items-center gap-1"
+            }
+          >
             <RottenTomatoesBadge
               score={typeof critic.raw === "number" ? critic.raw : null}
               className="h-2 w-auto opacity-75"
@@ -73,7 +89,13 @@ export function RatingPair({
           </span>
         )}
         {critic?.kind === "mc" && (
-          <span className="inline-flex items-center gap-1">
+          <span
+            className={
+              condenseOnNarrow && i
+                ? "inline-flex items-center gap-1 max-[359px]:hidden"
+                : "inline-flex items-center gap-1"
+            }
+          >
             <MetacriticBadge
               score={typeof critic.raw === "number" ? critic.raw : null}
               className="h-2 w-auto opacity-75"

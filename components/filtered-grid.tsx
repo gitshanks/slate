@@ -15,6 +15,7 @@ interface FilteredGridProps {
   titleHrefBase?: string;
   collapsible?: boolean;
   searchQuery?: string;
+  compactMobile?: boolean;
 }
 
 function subscribeToViewport(onChange: () => void) {
@@ -47,6 +48,7 @@ export function FilteredGrid({
   titleHrefBase,
   collapsible = false,
   searchQuery = "",
+  compactMobile = false,
 }: FilteredGridProps) {
   const sp = useSearchParams();
   const [expanded, setExpanded] = React.useState(false);
@@ -158,6 +160,7 @@ export function FilteredGrid({
           readOnly={readOnly}
           titleHrefBase={titleHrefBase}
           horizontal={isCollapsed}
+          compactMobile={compactMobile}
           reorderContext={
             readOnly || params.sort
               ? undefined

@@ -184,7 +184,7 @@ export function PublicProfileCollectionView({
           />
         </div>
 
-        <div className="pointer-events-auto mx-auto grid w-full max-w-[1540px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-0 gap-y-2 sm:grid-cols-[minmax(10rem,1fr)_minmax(14rem,28rem)_minmax(15rem,1fr)] sm:gap-2">
+        <div className="pointer-events-auto mx-auto grid w-full max-w-[1540px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 sm:grid-cols-[minmax(10rem,1fr)_minmax(14rem,28rem)_minmax(15rem,1fr)]">
           <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2.5 pl-1 sm:pl-0.5">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -210,7 +210,7 @@ export function PublicProfileCollectionView({
           </div>
 
           <div
-            className="relative col-start-1 row-start-2 min-w-0 sm:col-start-2 sm:row-start-1"
+            className="relative col-span-2 col-start-1 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1"
             onBlur={(event) => {
               if (!event.currentTarget.contains(event.relatedTarget)) {
                 setSearchOpen(false);
@@ -229,7 +229,7 @@ export function PublicProfileCollectionView({
               }}
               placeholder="Find a title"
               aria-label={`Find a title in ${displayName}'s slate`}
-              className="h-11 w-full rounded-l-2xl border border-r-0 border-white/12 bg-white/[0.065] pl-10 pr-10 text-sm text-white outline-none transition-[border-color,background-color] duration-150 placeholder:text-white/38 focus:bg-white/[0.09] sm:h-10 sm:rounded-full sm:border sm:focus:border-primary/55"
+              className="h-10 w-full rounded-2xl border border-white/12 bg-white/[0.065] pl-10 pr-10 text-sm text-white outline-none transition-[border-color,background-color] duration-150 placeholder:text-white/38 focus:border-primary/45 focus:bg-white/[0.09] sm:rounded-full sm:focus:border-primary/55"
             />
             {query ? (
               <button
@@ -270,16 +270,16 @@ export function PublicProfileCollectionView({
             ) : null}
           </div>
 
-          <div className="col-start-2 row-start-2 flex items-center justify-end gap-2 sm:col-start-3 sm:row-start-1">
+          <div className="col-start-2 row-start-1 flex items-center justify-end gap-1.5 sm:col-start-3 sm:gap-2">
             <div
-              className="relative grid h-11 grid-cols-2 rounded-r-2xl border border-white/12 bg-white/[0.065] p-1 sm:h-9 sm:rounded-full sm:bg-white/[0.055] sm:p-0.5"
+              className="relative grid h-8 grid-cols-2 rounded-full border border-white/12 bg-white/[0.055] p-0.5 sm:h-9"
               role="group"
               aria-label="Collection view"
             >
               <span
                 aria-hidden
                 className={cn(
-                  "pointer-events-none absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-xl shadow-[0_1px_8px_rgba(0,0,0,0.18)] transition-[transform,background-color] duration-[240ms] ease-[cubic-bezier(0.65,0,0.35,1)] sm:bottom-0.5 sm:left-0.5 sm:top-0.5 sm:w-[calc(50%-0.125rem)] sm:rounded-full",
+                  "pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-0.125rem)] rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.18)] transition-[transform,background-color] duration-[240ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
                   mode === "grid"
                     ? "translate-x-0 bg-white text-black"
                     : "translate-x-full bg-primary text-primary-foreground",
@@ -290,7 +290,7 @@ export function PublicProfileCollectionView({
                 onClick={() => selectMode("grid")}
                 aria-pressed={mode === "grid"}
                 className={cn(
-                  "relative z-10 inline-flex min-w-[3.5rem] items-center justify-center gap-1 rounded-xl px-1.5 text-[10px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[3.75rem] sm:rounded-full sm:px-2",
+                  "relative z-10 inline-flex min-w-[3.25rem] items-center justify-center gap-1 rounded-full px-1 text-[9px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[3.75rem] sm:px-2 sm:text-[10px]",
                   mode === "grid" ? "text-black" : "text-white/52 hover:text-white",
                 )}
               >
@@ -302,7 +302,7 @@ export function PublicProfileCollectionView({
                 onClick={() => selectMode("spatial")}
                 aria-pressed={mode === "spatial"}
                 className={cn(
-                  "relative z-10 inline-flex min-w-[3.5rem] items-center justify-center gap-1 rounded-xl px-1.5 text-[10px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[3.75rem] sm:rounded-full sm:px-2",
+                  "relative z-10 inline-flex min-w-[3.25rem] items-center justify-center gap-1 rounded-full px-1 text-[9px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[3.75rem] sm:px-2 sm:text-[10px]",
                   mode === "spatial"
                     ? "text-primary-foreground"
                     : "text-white/52 hover:text-white",
@@ -315,19 +315,13 @@ export function PublicProfileCollectionView({
             <button
               type="button"
               onClick={() => router.push("/login")}
-              className="hidden h-9 items-center rounded-full bg-primary px-3.5 text-xs font-semibold text-primary-foreground transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.97] sm:inline-flex"
+              aria-label="Make your own"
+              className="inline-flex h-8 items-center rounded-full border border-primary/25 bg-primary/10 px-2.5 text-[10px] font-semibold text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] sm:h-9 sm:border-0 sm:bg-primary sm:px-3.5 sm:text-xs sm:text-primary-foreground sm:hover:bg-primary/90"
             >
-              Make your own
+              <span aria-hidden className="hidden min-[360px]:inline">Make your own</span>
+              <span aria-hidden className="min-[360px]:hidden">Create</span>
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => router.push("/login")}
-            className="col-start-2 row-start-1 inline-flex h-8 items-center rounded-xl border border-primary/25 bg-primary/10 px-2.5 text-[11px] font-semibold text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] sm:hidden"
-          >
-            Make your own
-          </button>
         </div>
       </header>
 
@@ -358,6 +352,7 @@ export function PublicProfileCollectionView({
                 allTitles={titles}
                 status={status}
                 readOnly
+                compactMobile
                 titleHrefBase={`/u/${username}/title`}
                 searchQuery={query}
               />

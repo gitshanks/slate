@@ -34,6 +34,7 @@ interface PosterCardProps {
   suppressLongPressMenu?: boolean;
   readOnly?: boolean;
   href?: string;
+  compactMobile?: boolean;
 }
 
 export function PosterCard({
@@ -43,6 +44,7 @@ export function PosterCard({
   suppressLongPressMenu = false,
   readOnly = false,
   href,
+  compactMobile = false,
 }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
@@ -58,6 +60,7 @@ export function PosterCard({
         data-rail-poster
         className={cn(
           "relative aspect-[2/3] overflow-hidden rounded-xl",
+          compactMobile && "max-sm:rounded-[0.65rem]",
           "bg-card hairline",
           "transition-all duration-200 ease-out",
           dragPreview &&
@@ -72,7 +75,11 @@ export function PosterCard({
               alt=""
               fill
               draggable={false}
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
+              sizes={
+                compactMobile
+                  ? "(max-width: 640px) 33vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
+                  : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
+              }
               className="object-cover"
             />
           ) : (
@@ -83,7 +90,11 @@ export function PosterCard({
                 fill
                 draggable={false}
                 priority={priority}
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
+                sizes={
+                  compactMobile
+                    ? "(max-width: 640px) 33vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
+                    : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
+                }
                 className="object-cover transition-transform duration-300 ease-out hoverable:group-hover:scale-[1.04]"
               />
             </ViewTransition>
@@ -109,12 +120,19 @@ export function PosterCard({
 
         {/* IMDB rating + RT score chip (top-left) — hidden on hover */}
         {hasRating && (
-          <div className="absolute left-2 top-2 rounded-full bg-black/60 backdrop-blur-sm px-2 py-1 text-[11px] font-medium text-white transition-opacity duration-200 hoverable:group-hover:opacity-0">
+          <div
+            className={cn(
+              "absolute left-2 top-2 rounded-full bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm transition-opacity duration-200 hoverable:group-hover:opacity-0",
+              compactMobile &&
+                "max-sm:left-1.5 max-sm:top-1.5 max-sm:px-1.5 max-sm:py-0.5 max-sm:text-[9px]",
+            )}
+          >
             <RatingPair
               imdb={title.imdb_rating}
               rt={title.rt_score}
               metacritic={title.metacritic_score}
               variant="compact"
+              condenseOnNarrow={compactMobile}
             />
           </div>
         )}
@@ -150,9 +168,23 @@ export function PosterCard({
       </div>
 
       {/* Always-visible title under poster on mobile */}
-      <div className="mt-2 px-0.5 sm:hidden">
-        <p className="text-sm font-medium text-foreground line-clamp-1">{title.title}</p>
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono">
+      <div
+        className={cn("mt-2 px-0.5 sm:hidden", compactMobile && "mt-1.5")}
+      >
+        <p
+          className={cn(
+            "line-clamp-1 text-sm font-medium text-foreground",
+            compactMobile && "text-xs",
+          )}
+        >
+          {title.title}
+        </p>
+        <div
+          className={cn(
+            "flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground",
+            compactMobile && "gap-1 text-[9px]",
+          )}
+        >
           {year && <span>{year}</span>}
           {genre && (
             <>
