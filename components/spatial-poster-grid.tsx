@@ -625,7 +625,6 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
 
       if (target.closest("[data-spatial-control]")) return;
       stopCamera();
-      viewportRef.current?.setPointerCapture(event.pointerId);
       gestureRef.current = {
         pointerId: event.pointerId,
         startX: event.clientX,
@@ -652,8 +651,12 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
       if (
         Math.hypot(event.clientX - gesture.startX, event.clientY - gesture.startY) > 5
       ) {
+        if (!draggedRef.current) {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }
         draggedRef.current = true;
       }
+      if (!draggedRef.current) return;
       cameraX.set(cameraX.get() + dx);
       cameraY.set(cameraY.get() + dy);
       gesture.lastX = event.clientX;
