@@ -58,7 +58,8 @@
   --hero-bg: 220 16% 92%;
 }
 
-.dark {
+.dark,
+body:has([data-public-profile-index]) {
   /* Off-black, futuristic */
   --background: 240 8% 4%;          /* #0A0A0B */
   --foreground: 0 0% 98%;
@@ -597,4 +598,9 @@ body[data-scroll-locked] {
 
 body:has([data-public-profile-index]) [data-public-profile-header] {
   display: none;
+}
+
+body:has([data-public-profile-index]) {
+  background-color: #080a09;
+  color-scheme: dark;
 }

@@ -97,65 +97,67 @@ export default async function PublicProfilePage({
   return (
     <main
       data-public-profile-index
-      className="mx-auto w-full max-w-[1600px] px-4 pb-16 pt-[8.35rem] sm:px-6 sm:pt-[5.75rem] lg:px-10"
+      className="dark min-h-dvh w-full bg-[#080a09] px-4 pb-16 pt-[8.35rem] text-foreground sm:px-6 sm:pt-[5.75rem] lg:px-10"
     >
-      <nav
-        className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-border bg-card/70 p-1 sm:flex sm:w-fit sm:rounded-full"
-        aria-label="Library shelves"
-      >
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const selected = tab.id === activeId;
-          const count = shelves[tab.id].titles.length;
-          return (
-            <Link
-              key={tab.id}
-              href={
-                tab.id === "watchlist"
-                  ? `/u/${profile.username}`
-                  : `/u/${profile.username}?tab=${tab.id}`
-              }
-              aria-current={selected ? "page" : undefined}
-              className={cn(
-                "inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl px-1.5 text-xs transition-colors sm:h-9 sm:shrink-0 sm:gap-2 sm:rounded-full sm:px-3.5 sm:text-sm",
-                selected
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Icon className="hidden h-4 w-4 sm:block" />
-              <span className="truncate">{tab.label}</span>
-              <span
+      <div className="mx-auto w-full max-w-[1600px]">
+        <nav
+          className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-border bg-card/70 p-1 sm:flex sm:w-fit sm:rounded-full"
+          aria-label="Library shelves"
+        >
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const selected = tab.id === activeId;
+            const count = shelves[tab.id].titles.length;
+            return (
+              <Link
+                key={tab.id}
+                href={
+                  tab.id === "watchlist"
+                    ? `/u/${profile.username}`
+                    : `/u/${profile.username}?tab=${tab.id}`
+                }
+                aria-current={selected ? "page" : undefined}
                 className={cn(
-                  "font-mono text-[11px]",
-                  selected ? "opacity-75" : "opacity-60",
+                  "inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl px-1.5 text-xs transition-colors sm:h-9 sm:shrink-0 sm:gap-2 sm:rounded-full sm:px-3.5 sm:text-sm",
+                  selected
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {count}
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
+                <Icon className="hidden h-4 w-4 sm:block" />
+                <span className="truncate">{tab.label}</span>
+                <span
+                  className={cn(
+                    "font-mono text-[11px]",
+                    selected ? "opacity-75" : "opacity-60",
+                  )}
+                >
+                  {count}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
 
-      <div className="mt-8 sm:mt-9">
-        <PublicProfileCollectionView
-          eyebrow={
-            active.id === "watchlist"
-              ? "Up next"
-              : active.id === "watching"
-                ? "In progress"
-                : "Already seen"
-          }
-          label={active.label}
-          titles={result.titles}
-          spatialTitles={spatialTitles}
-          genres={result.allGenres}
-          status={active.status}
-          username={profile.username}
-          displayName={profile.display_name}
-          avatarUrl={avatarUrl}
-        />
+        <div className="mt-8 sm:mt-9">
+          <PublicProfileCollectionView
+            eyebrow={
+              active.id === "watchlist"
+                ? "Up next"
+                : active.id === "watching"
+                  ? "In progress"
+                  : "Already seen"
+            }
+            label={active.label}
+            titles={result.titles}
+            spatialTitles={spatialTitles}
+            genres={result.allGenres}
+            status={active.status}
+            username={profile.username}
+            displayName={profile.display_name}
+            avatarUrl={avatarUrl}
+          />
+        </div>
       </div>
     </main>
   );
