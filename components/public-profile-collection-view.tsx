@@ -8,6 +8,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { FilteredGrid } from "@/components/filtered-grid";
+import { SegmentedFilter } from "@/components/segmented-filter";
 import { extractGenres, filterAndSort } from "@/lib/filter-utils";
 import { cn } from "@/lib/utils";
 import type { TitleRow, TitleStatus } from "@/lib/types";
@@ -35,6 +36,12 @@ type ViewMode = "grid" | "spatial";
 
 const SPACE_STATUS_OPTIONS = [
   { value: "", label: "All", icon: LayoutGrid },
+  { value: "want", label: "Watchlist", icon: Clock },
+  { value: "watching", label: "Watching", icon: Eye },
+  { value: "watched", label: "Watched", icon: Check },
+] as const;
+
+const SHELF_STATUS_OPTIONS = [
   { value: "want", label: "Watchlist", icon: Clock },
   { value: "watching", label: "Watching", icon: Eye },
   { value: "watched", label: "Watched", icon: Check },
@@ -135,6 +142,25 @@ export function PublicProfileCollectionView({
     searchRequestRef.current += 1;
     setSearchTarget({ titleId, request: searchRequestRef.current });
   }, []);
+
+  const selectShelfStatus = React.useCallback(
+    (nextStatus: string) => {
+      if (nextStatus === status) return;
+      const nextTab =
+        nextStatus === "watching"
+          ? "watching"
+          : nextStatus === "watched"
+            ? "watched"
+            : null;
+      router.push(
+        nextTab
+          ? `/u/${username}?tab=${nextTab}`
+          : `/u/${username}`,
+        { scroll: false },
+      );
+    },
+    [router, status, username],
+  );
 
   const selectMode = React.useCallback(
     (nextMode: ViewMode) => {
@@ -386,7 +412,7 @@ export function PublicProfileCollectionView({
         ) : null}
       </header>
 
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-6 hidden flex-wrap items-end justify-between gap-4 sm:flex">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
             {eyebrow}
@@ -401,17 +427,29 @@ export function PublicProfileCollectionView({
         aria-hidden={mode === "spatial" || undefined}
         inert={mode === "spatial" ? true : undefined}
       >
-        {titles.length ? (
-          <>
-            <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0">
+        <div className="-mx-4 mb-7 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:mb-8 sm:overflow-visible sm:px-0 sm:pb-0">
+          <div className="flex w-max items-center gap-1.5 sm:block sm:w-auto">
+            <SegmentedFilter
+              id="shelf-status-filter"
+              options={SHELF_STATUS_OPTIONS}
+              value={status}
+              onValueChange={selectShelfStatus}
+              className="shrink-0 border-white/12 bg-white/[0.065] sm:hidden"
+            />
+            {titles.length ? (
               <FilterBar
                 genres={genres}
                 showSentiment={status === "watched"}
                 recentSortLabel={status === "watched" ? "Recently watched" : undefined}
                 idPrefix="shelf"
-                className="mb-7 w-max flex-nowrap gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-segment]:whitespace-nowrap sm:mb-8 sm:w-auto sm:flex-wrap sm:gap-2"
+                className="mb-0 w-max flex-nowrap gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-segment]:whitespace-nowrap sm:w-auto sm:flex-wrap sm:gap-2"
               />
-            </div>
+            ) : null}
+          </div>
+        </div>
+
+        {titles.length ? (
+          <>
             <React.Suspense fallback={null}>
               <FilteredGrid
                 allTitles={titles}

@@ -101,7 +101,7 @@ export default async function PublicProfilePage({
     >
       <div className="mx-auto w-full max-w-[1600px]">
         <nav
-          className="grid w-full grid-cols-3 border-b border-white/10 sm:flex sm:w-fit sm:gap-1 sm:rounded-full sm:border sm:border-border sm:bg-card/70 sm:p-1"
+          className="hidden w-fit gap-1 rounded-full border border-border bg-card/70 p-1 sm:flex"
           aria-label="Library shelves"
         >
           {TABS.map((tab) => {
@@ -118,13 +118,13 @@ export default async function PublicProfilePage({
                 }
                 aria-current={selected ? "page" : undefined}
                 className={cn(
-                  "relative inline-flex h-11 min-w-0 items-center justify-center gap-1.5 px-1.5 text-xs transition-colors after:absolute after:bottom-[-1px] after:left-1/2 after:h-px after:w-10 after:-translate-x-1/2 after:bg-transparent after:transition-colors sm:h-9 sm:shrink-0 sm:gap-2 sm:rounded-full sm:px-3.5 sm:text-sm sm:after:hidden",
+                  "relative inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-3.5 text-sm transition-colors",
                   selected
-                    ? "text-primary after:bg-primary sm:bg-primary sm:text-primary-foreground"
+                    ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <Icon className="hidden h-4 w-4 sm:block" />
+                <Icon className="h-4 w-4" />
                 <span className="truncate">{tab.label}</span>
                 <span
                   className={cn(
@@ -139,7 +139,7 @@ export default async function PublicProfilePage({
           })}
         </nav>
 
-        <div className="mt-8 sm:mt-9">
+        <div className="mt-2 sm:mt-9">
           <PublicProfileCollectionView
             eyebrow={
               active.id === "watchlist"
