@@ -695,7 +695,7 @@ export function SpatialPosterGrid({
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
         onWheel={handleWheel}
-        aria-label="Three dimensional poster gallery. Drag to explore."
+        aria-label="Poster space. Drag to explore."
       >
       <div
         aria-hidden

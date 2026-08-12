@@ -250,26 +250,26 @@ export function PublicProfileCollectionView({
                 onClick={() => selectMode("grid")}
                 aria-pressed={mode === "grid"}
                 className={cn(
-                  "relative z-10 inline-flex min-w-12 items-center justify-center gap-1 rounded-full px-2 text-[10px] font-medium transition-colors duration-150 active:scale-[0.97]",
+                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-medium transition-colors duration-150 active:scale-[0.97]",
                   mode === "grid" ? "text-black" : "text-white/52 hover:text-white",
                 )}
               >
                 <LayoutGrid className="h-3 w-3" />
-                2D
+                Shelf
               </button>
               <button
                 type="button"
                 onClick={() => selectMode("spatial")}
                 aria-pressed={mode === "spatial"}
                 className={cn(
-                  "relative z-10 inline-flex min-w-12 items-center justify-center gap-1 rounded-full px-2 text-[10px] font-medium transition-colors duration-150 active:scale-[0.97]",
+                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-medium transition-colors duration-150 active:scale-[0.97]",
                   mode === "spatial"
                     ? "text-primary-foreground"
                     : "text-white/52 hover:text-white",
                 )}
               >
                 <Box className="h-3 w-3" />
-                3D
+                Space
               </button>
             </div>
             <button
@@ -338,7 +338,7 @@ export function PublicProfileCollectionView({
             key="spatial"
             role="dialog"
             aria-modal="true"
-            aria-label="3D library"
+            aria-label="Space view"
             initial={reducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={reducedMotion ? undefined : { opacity: 0 }}
