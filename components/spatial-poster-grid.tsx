@@ -41,6 +41,14 @@ interface SpatialPosterGridProps {
   username: string;
   onExit: () => void;
   searchTarget: { titleId: string; request: number } | null;
+  initialCamera?: SpatialCameraState;
+  onCameraChange?: (camera: SpatialCameraState) => void;
+}
+
+export interface SpatialCameraState {
+  x: number;
+  y: number;
+  scale: number;
 }
 
 interface SpatialPoint {
@@ -574,6 +582,8 @@ export function SpatialPosterGrid({
   username,
   onExit,
   searchTarget,
+  initialCamera,
+  onCameraChange,
 }: SpatialPosterGridProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const layout = React.useMemo(
@@ -581,9 +591,9 @@ export function SpatialPosterGrid({
     [titles.length],
   );
   const { cells, periodX, periodY, points } = layout;
-  const cameraX = useMotionValue(0);
-  const cameraY = useMotionValue(0);
-  const cameraScale = useMotionValue(0.88);
+  const cameraX = useMotionValue(initialCamera?.x ?? 0);
+  const cameraY = useMotionValue(initialCamera?.y ?? 0);
+  const cameraScale = useMotionValue(initialCamera?.scale ?? 0.88);
   const viewportWidth = useMotionValue(1280);
   const viewportHeight = useMotionValue(800);
   const wrappedCameraX = useTransform(() =>
@@ -738,6 +748,17 @@ export function SpatialPosterGrid({
   }, [closeDetail, onExit, selectedId]);
 
   React.useEffect(() => () => stopCamera(), [stopCamera]);
+
+  React.useEffect(
+    () => () => {
+      onCameraChange?.({
+        x: cameraX.get(),
+        y: cameraY.get(),
+        scale: cameraScale.get(),
+      });
+    },
+    [cameraScale, cameraX, cameraY, onCameraChange],
+  );
 
   React.useLayoutEffect(() => {
     const viewport = viewportRef.current;

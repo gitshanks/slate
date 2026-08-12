@@ -10,6 +10,7 @@ import { FilterBar } from "@/components/filter-bar";
 import { FilteredGrid } from "@/components/filtered-grid";
 import { cn } from "@/lib/utils";
 import type { TitleRow, TitleStatus } from "@/lib/types";
+import type { SpatialCameraState } from "@/components/spatial-poster-grid";
 
 const loadSpatialPosterGrid = () => import("@/components/spatial-poster-grid");
 
@@ -63,6 +64,11 @@ export function PublicProfileCollectionView({
     request: number;
   } | null>(null);
   const searchRequestRef = React.useRef(0);
+  const [spatialCamera, setSpatialCamera] = React.useState<SpatialCameraState>({
+    x: 0,
+    y: 0,
+    scale: 0.88,
+  });
   const reducedMotion = useReducedMotion();
   const router = useRouter();
   const exitSpatial = React.useCallback(() => setMode("grid"), []);
@@ -96,17 +102,24 @@ export function PublicProfileCollectionView({
   );
 
   React.useEffect(() => {
-    let cancelled = false;
     const timer = window.setTimeout(() => {
-      void loadSpatialPosterGrid().then(() => {
-        if (!cancelled) setSpatialMounted(true);
-      });
+      void loadSpatialPosterGrid();
     }, 600);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
+    return () => window.clearTimeout(timer);
   }, []);
+
+  React.useEffect(() => {
+    if (mode !== "grid" || !spatialMounted) return;
+    const timer = window.setTimeout(() => setSpatialMounted(false), 220);
+    return () => window.clearTimeout(timer);
+  }, [mode, spatialMounted]);
+
+  const persistSpatialCamera = React.useCallback(
+    (camera: SpatialCameraState) => {
+      setSpatialCamera(camera);
+    },
+    [],
+  );
 
   const selectSearchResult = React.useCallback(
     (title: TitleRow) => {
@@ -392,6 +405,8 @@ export function PublicProfileCollectionView({
             username={username}
             onExit={exitSpatial}
             searchTarget={searchTarget}
+            initialCamera={spatialCamera}
+            onCameraChange={persistSpatialCamera}
           />
         </motion.div>
       ) : null}
