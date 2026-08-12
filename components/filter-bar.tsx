@@ -20,6 +20,8 @@ export interface FilterBarProps {
   genres: { id: number; name: string }[];
   /** Whether to show the "Newest release" sort option (hide if all items lack dates). */
   showYearSort?: boolean;
+  /** Whether this surface has a meaningful linear order. */
+  showSort?: boolean;
   /** Whether to show the sentiment (loved/liked/disliked) filter. */
   showSentiment?: boolean;
   /** Label for the chronological sort on this page. */
@@ -59,6 +61,7 @@ const SENTIMENT_OPTIONS = [
 export function FilterBar({
   genres,
   showYearSort = true,
+  showSort = true,
   showSentiment = false,
   recentSortLabel = "Recently added",
   statusOptions,
@@ -73,7 +76,7 @@ export function FilterBar({
   const currentType = searchParams.get("type") ?? "";
   const currentGenre = searchParams.get("genre") ?? "";
   const currentYear = searchParams.get("year") ?? "";
-  const currentSort = searchParams.get("sort") ?? "";
+  const currentSort = showSort ? (searchParams.get("sort") ?? "") : "";
   const currentSentiment = searchParams.get("sentiment") ?? "";
   const currentStatus = statusOptions ? (searchParams.get(statusParam) ?? "") : "";
 
@@ -100,7 +103,7 @@ export function FilterBar({
       "type",
       "genre",
       "year",
-      "sort",
+      ...(showSort ? ["sort"] : []),
       "sentiment",
       ...(statusOptions ? [statusParam] : []),
     ]) {
@@ -112,7 +115,7 @@ export function FilterBar({
       "",
       qs ? `${pathname}?${qs}` : pathname
     );
-  }, [pathname, searchParams, statusOptions, statusParam]);
+  }, [pathname, searchParams, showSort, statusOptions, statusParam]);
 
   const hasAny =
     currentType ||
@@ -261,46 +264,47 @@ export function FilterBar({
         </PopoverContent>
       </Popover>
 
-      {/* Sort */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
-              currentSort
-                ? "border-primary/50 text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {sortOptions.find((o) => o.value === currentSort)?.label ?? "Sort"}
-            <ChevronDown className="h-3 w-3" />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className={cn("w-48 p-2", popoverClassName)} align="start">
-          <div className="flex flex-col">
-            {sortOptions.map((o) => {
-              const active = o.value === currentSort;
-              return (
-                <PopoverClose asChild key={o.value || "default"}>
-                  <button
-                    type="button"
-                    onClick={() => setParam("sort", o.value)}
-                    className={cn(
-                      "filter-menu-option rounded-md px-2 py-1.5 text-left text-xs",
-                      active
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-                    )}
-                  >
-                    {o.label}
-                  </button>
-                </PopoverClose>
-              );
-            })}
-          </div>
-        </PopoverContent>
-      </Popover>
+      {showSort && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
+                currentSort
+                  ? "border-primary/50 text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {sortOptions.find((o) => o.value === currentSort)?.label ?? "Sort"}
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className={cn("w-48 p-2", popoverClassName)} align="start">
+            <div className="flex flex-col">
+              {sortOptions.map((o) => {
+                const active = o.value === currentSort;
+                return (
+                  <PopoverClose asChild key={o.value || "default"}>
+                    <button
+                      type="button"
+                      onClick={() => setParam("sort", o.value)}
+                      className={cn(
+                        "filter-menu-option rounded-md px-2 py-1.5 text-left text-xs",
+                        active
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                      )}
+                    >
+                      {o.label}
+                    </button>
+                  </PopoverClose>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
 
       {hasAny && (
         <button

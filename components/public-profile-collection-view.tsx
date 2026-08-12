@@ -107,7 +107,7 @@ export function PublicProfileCollectionView({
         spatialStatus === "watched"
         ? spatialStatus
         : "all",
-      filterParams,
+      { ...filterParams, sort: undefined },
     );
   }, [filterParams, spatialStatus, spatialTitles]);
   const filteredShelfTitles = React.useMemo(
@@ -374,6 +374,7 @@ export function PublicProfileCollectionView({
           <div className="pointer-events-auto mx-auto mt-2 w-full max-w-[1540px] overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2.5">
             <FilterBar
               genres={spatialGenres}
+              showSort={false}
               showSentiment
               statusOptions={SPACE_STATUS_OPTIONS}
               statusParam="spaceStatus"
@@ -402,12 +403,15 @@ export function PublicProfileCollectionView({
       >
         {titles.length ? (
           <>
-            <FilterBar
-              genres={genres}
-              showSentiment={status === "watched"}
-              recentSortLabel={status === "watched" ? "Recently watched" : undefined}
-              idPrefix="shelf"
-            />
+            <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0">
+              <FilterBar
+                genres={genres}
+                showSentiment={status === "watched"}
+                recentSortLabel={status === "watched" ? "Recently watched" : undefined}
+                idPrefix="shelf"
+                className="mb-7 w-max flex-nowrap gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-segment]:whitespace-nowrap sm:mb-8 sm:w-auto sm:flex-wrap sm:gap-2"
+              />
+            </div>
             <React.Suspense fallback={null}>
               <FilteredGrid
                 allTitles={titles}
