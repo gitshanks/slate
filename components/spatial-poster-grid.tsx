@@ -7,6 +7,7 @@ import {
   motion,
   useMotionValue,
   useReducedMotion,
+  useTransform,
   type AnimationPlaybackControls,
 } from "motion/react";
 import {
@@ -14,6 +15,7 @@ import {
   Clock,
   Eye,
   Heart,
+  LayoutGrid,
   LocateFixed,
   Search,
   ThumbsDown,
@@ -38,6 +40,7 @@ import {
 interface SpatialPosterGridProps {
   titles: TitleRow[];
   username: string;
+  onExit: () => void;
 }
 
 interface SpatialPoint {
@@ -46,6 +49,20 @@ interface SpatialPoint {
   z: number;
   rotateX: number;
   rotateY: number;
+}
+
+interface SpatialCell {
+  key: string;
+  titleIndex: number;
+  point: SpatialPoint;
+  canonical: boolean;
+}
+
+interface SpatialLayout {
+  points: SpatialPoint[];
+  cells: SpatialCell[];
+  periodX: number;
+  periodY: number;
 }
 
 interface GestureState {
@@ -65,28 +82,95 @@ const COLUMN_GAP = 206;
 const ROW_GAP = 286;
 const SEARCH_DELAY = 320;
 const DETAIL_PLANE_Z = 150;
+const HORIZONTAL_OVERSCAN = 6;
+const VERTICAL_OVERSCAN = 3;
 
-function spatialPoints(count: number, reducedMotion: boolean): SpatialPoint[] {
+function modulo(value: number, divisor: number) {
+  return ((value % divisor) + divisor) % divisor;
+}
+
+function spatialPoint(
+  row: number,
+  column: number,
+  rows: number,
+  columns: number,
+  reducedMotion: boolean,
+): SpatialPoint {
+  const canonicalRow = modulo(row, rows);
+  const canonicalColumn = modulo(column, columns);
+  const centeredColumn = column - (columns - 1) / 2;
+  const centeredRow = row - (rows - 1) / 2;
+  const canonicalCenteredColumn = canonicalColumn - (columns - 1) / 2;
+  const wave = Math.sin(canonicalColumn * 1.31 + canonicalRow * 0.77);
+  const alternate = ((canonicalColumn + canonicalRow * 2) % 5) - 2;
+
+  return {
+    x: centeredColumn * COLUMN_GAP,
+    y: centeredRow * ROW_GAP,
+    z: reducedMotion ? 0 : wave * 54 + alternate * 11,
+    rotateX: reducedMotion ? 0 : wave * -1.3,
+    rotateY: reducedMotion
+      ? 0
+      : canonicalCenteredColumn * -1.05 + alternate * 0.45,
+  };
+}
+
+function spatialLayout(count: number, reducedMotion: boolean): SpatialLayout {
+  if (count <= 0) {
+    return { points: [], cells: [], periodX: 0, periodY: 0 };
+  }
+
   const columns = Math.min(8, Math.max(4, Math.ceil(Math.sqrt(count * 1.35))));
-  const rows = Math.ceil(count / columns);
+  const rows = Math.max(1, Math.ceil(count / columns));
+  const points = Array.from({ length: count }, (_, index) =>
+    spatialPoint(
+      Math.floor(index / columns),
+      index % columns,
+      rows,
+      columns,
+      reducedMotion,
+    ),
+  );
+  const cells: SpatialCell[] = [];
 
-  return Array.from({ length: count }, (_, index) => {
-    const row = Math.floor(index / columns);
-    const column = index % columns;
-    const rowLength = Math.min(columns, count - row * columns);
-    const centeredColumn = column - (rowLength - 1) / 2;
-    const centeredRow = row - (rows - 1) / 2;
-    const wave = Math.sin(column * 1.31 + row * 0.77);
-    const alternate = ((column + row * 2) % 5) - 2;
+  for (let row = -VERTICAL_OVERSCAN; row < rows + VERTICAL_OVERSCAN; row += 1) {
+    for (
+      let column = -HORIZONTAL_OVERSCAN;
+      column < columns + HORIZONTAL_OVERSCAN;
+      column += 1
+    ) {
+      const canonicalCell =
+        modulo(row, rows) * columns + modulo(column, columns);
+      cells.push({
+        key: `${row}:${column}`,
+        titleIndex: canonicalCell % count,
+        point: spatialPoint(row, column, rows, columns, reducedMotion),
+        canonical:
+          row >= 0 &&
+          row < rows &&
+          column >= 0 &&
+          column < columns &&
+          canonicalCell < count,
+      });
+    }
+  }
 
-    return {
-      x: centeredColumn * COLUMN_GAP,
-      y: centeredRow * ROW_GAP,
-      z: reducedMotion ? 0 : wave * 54 + alternate * 11,
-      rotateX: reducedMotion ? 0 : wave * -1.3,
-      rotateY: reducedMotion ? 0 : centeredColumn * -1.05 + alternate * 0.45,
-    };
-  });
+  return {
+    points,
+    cells,
+    periodX: columns * COLUMN_GAP,
+    periodY: rows * ROW_GAP,
+  };
+}
+
+function wrapCamera(value: number, period: number) {
+  if (period <= 0) return value;
+  return modulo(value + period / 2, period) - period / 2;
+}
+
+function nearestRepeatedTarget(target: number, current: number, period: number) {
+  if (period <= 0) return target;
+  return target + Math.round((current - target) / period) * period;
 }
 
 function shelfPresentation(title: TitleRow) {
@@ -133,17 +217,17 @@ function sentimentPresentation(title: TitleRow) {
 function DetailLoading() {
   return (
     <div className="mt-7 space-y-5" aria-label="Loading title details">
-      <div className="h-3 w-4/5 animate-pulse rounded-full bg-foreground/10" />
+      <div className="h-3 w-4/5 animate-pulse rounded-full bg-white/10" />
       <div className="space-y-2">
-        <div className="h-2.5 w-full animate-pulse rounded-full bg-foreground/8" />
-        <div className="h-2.5 w-[92%] animate-pulse rounded-full bg-foreground/8" />
-        <div className="h-2.5 w-[68%] animate-pulse rounded-full bg-foreground/8" />
+        <div className="h-2.5 w-full animate-pulse rounded-full bg-white/8" />
+        <div className="h-2.5 w-[92%] animate-pulse rounded-full bg-white/8" />
+        <div className="h-2.5 w-[68%] animate-pulse rounded-full bg-white/8" />
       </div>
       <div className="flex gap-3 pt-2">
         {Array.from({ length: 4 }, (_, index) => (
           <div key={index} className="space-y-2">
-            <div className="h-12 w-12 animate-pulse rounded-xl bg-foreground/8" />
-            <div className="h-2 w-12 animate-pulse rounded-full bg-foreground/8" />
+            <div className="h-12 w-12 animate-pulse rounded-xl bg-white/8" />
+            <div className="h-2 w-12 animate-pulse rounded-full bg-white/8" />
           </div>
         ))}
       </div>
@@ -182,7 +266,7 @@ function TitleDetailSlab({
       animate={{ opacity: 1, x: 0, rotateY: -1.5 }}
       exit={{ opacity: 0, x: 20 }}
       transition={{ type: "spring", stiffness: 260, damping: 28, mass: 0.8 }}
-      className="pointer-events-auto w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-white/12 bg-[hsl(var(--background)/0.88)] text-left shadow-[0_40px_110px_-34px_rgba(0,0,0,0.95)] backdrop-blur-2xl"
+      className="dark pointer-events-auto isolate w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-white/15 bg-[#070807]/95 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_40px_110px_-34px_rgba(0,0,0,0.98)] backdrop-blur-2xl"
       style={{ transformStyle: "preserve-3d" }}
     >
       <div
@@ -195,14 +279,14 @@ function TitleDetailSlab({
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/75">
               {title.media_type === "movie" ? "Film" : "Series"}
             </p>
-            <h3 className="mt-2 text-balance text-2xl font-semibold leading-[1.02] tracking-[-0.04em] sm:text-[2rem]">
+            <h3 className="mt-2 text-balance text-2xl font-semibold leading-[1.02] tracking-[-0.04em] text-white sm:text-[2rem]">
               {title.title}
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.055] text-foreground/65 transition-colors hover:bg-white/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/12 bg-white/[0.06] text-white/65 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-label="Close title details"
           >
             <X className="h-4 w-4" />
@@ -210,13 +294,13 @@ function TitleDetailSlab({
         </div>
 
         {detail?.tagline ? (
-          <p className="mt-3 text-sm italic leading-relaxed text-foreground/55">
+          <p className="mt-3 text-sm italic leading-relaxed text-white/58">
             {detail.tagline}
           </p>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 font-mono text-[10px] uppercase tracking-[0.08em] text-foreground/55">
-          {runtime ? <span className="text-foreground/80">{runtime}</span> : null}
+        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 font-mono text-[10px] uppercase tracking-[0.08em] text-white/55">
+          {runtime ? <span className="text-white/82">{runtime}</span> : null}
           {year ? <span>{year}</span> : null}
           {title.genres?.slice(0, 2).map((genre) => (
             <span key={genre.id}>{genre.name}</span>
@@ -226,19 +310,19 @@ function TitleDetailSlab({
         {(imdb || rt || metacritic) && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {imdb ? (
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-2.5 text-[11px]">
+              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-2.5 text-[11px] text-white/85">
                 <ImdbBadge className="h-3 w-auto" />
                 <span className="font-mono">{imdb}</span>
               </span>
             ) : null}
             {rt ? (
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-2.5 text-[11px]">
+              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-2.5 text-[11px] text-white/85">
                 <RottenTomatoesBadge score={title.rt_score} className="h-3 w-auto" />
                 <span className="font-mono">{rt}</span>
               </span>
             ) : null}
             {metacritic ? (
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-2.5 text-[11px]">
+              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-2.5 text-[11px] text-white/85">
                 <MetacriticBadge score={title.metacritic_score} className="h-3 w-auto" />
                 <span className="font-mono">{metacritic}</span>
               </span>
@@ -252,7 +336,7 @@ function TitleDetailSlab({
             {shelf.label}
           </span>
           {sentiment && SentimentIcon ? (
-            <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 text-[11px] font-medium">
+            <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-[11px] font-medium text-white/85">
               <SentimentIcon className={cn("h-3.5 w-3.5", sentiment.className)} />
               {sentiment.label}
             </span>
@@ -275,13 +359,13 @@ function TitleDetailSlab({
 
         {loading ? <DetailLoading /> : null}
         {error ? (
-          <p className="mt-6 rounded-xl border border-white/10 bg-white/[0.035] p-3 text-sm text-foreground/60">
+          <p className="mt-6 rounded-xl border border-white/10 bg-white/[0.045] p-3 text-sm text-white/65">
             {error}
           </p>
         ) : null}
 
         {!loading && !error && summary ? (
-          <div className="mt-6 space-y-3 text-[13px] leading-relaxed text-foreground/72">
+          <div className="mt-6 space-y-3 text-[13px] leading-relaxed text-white/74">
             {summary.split(/\n{2,}/).map((paragraph, index) => (
               <p key={index}>{paragraph}</p>
             ))}
@@ -289,8 +373,8 @@ function TitleDetailSlab({
         ) : null}
 
         {!loading && detail?.directedBy.length ? (
-          <p className="mt-5 text-xs text-foreground/55">
-            <span className="text-foreground/85">
+          <p className="mt-5 text-xs text-white/55">
+            <span className="text-white/85">
               {title.media_type === "movie" ? "Directed by" : "Created by"}
             </span>{" "}
             {detail.directedBy.join(", ")}
@@ -299,7 +383,7 @@ function TitleDetailSlab({
 
         {!loading && detail?.cast.length ? (
           <section className="mt-7">
-            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">
               Cast
             </h4>
             <div className="scrollbar-hide -mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-1">
@@ -317,7 +401,7 @@ function TitleDetailSlab({
                           className="object-cover"
                         />
                       ) : (
-                        <span className="grid h-full place-items-center font-mono text-[10px] text-foreground/35">
+                        <span className="grid h-full place-items-center font-mono text-[10px] text-white/35">
                           {person.name
                             .split(" ")
                             .map((part) => part[0])
@@ -326,7 +410,7 @@ function TitleDetailSlab({
                         </span>
                       )}
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-[10px] leading-tight text-foreground/75">
+                    <p className="mt-1.5 line-clamp-2 text-[10px] leading-tight text-white/75">
                       {person.name}
                     </p>
                   </div>
@@ -338,10 +422,10 @@ function TitleDetailSlab({
 
         {title.review ? (
           <section className="mt-7 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">
               Note
             </h4>
-            <p className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/75">
+            <p className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-white/75">
               {title.review}
             </p>
           </section>
@@ -351,15 +435,22 @@ function TitleDetailSlab({
   );
 }
 
-export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) {
+export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGridProps) {
   const reducedMotion = useReducedMotion() ?? false;
-  const points = React.useMemo(
-    () => spatialPoints(titles.length, reducedMotion),
+  const layout = React.useMemo(
+    () => spatialLayout(titles.length, reducedMotion),
     [reducedMotion, titles.length],
   );
+  const { cells, periodX, periodY, points } = layout;
   const cameraX = useMotionValue(0);
   const cameraY = useMotionValue(0);
   const cameraScale = useMotionValue(0.88);
+  const wrappedCameraX = useTransform(() =>
+    wrapCamera(cameraX.get(), periodX * cameraScale.get()),
+  );
+  const wrappedCameraY = useTransform(() =>
+    wrapCamera(cameraY.get(), periodY * cameraScale.get()),
+  );
   const viewportRef = React.useRef<HTMLDivElement>(null);
   const gestureRef = React.useRef<GestureState | null>(null);
   const draggedRef = React.useRef(false);
@@ -422,16 +513,18 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
       const point = points[index];
       if (!point) return;
       const narrow = window.matchMedia("(max-width: 639px)").matches;
-      const slabMidpointOffset = narrow ? 168 : 205;
+      const slabMidpointOffset = narrow ? 180 : 205;
       const scale = narrow ? 0.67 : 0.83;
+      const targetX = -(point.x + slabMidpointOffset) * scale;
+      const targetY = -point.y * scale;
       moveCamera(
-        -(point.x + slabMidpointOffset) * scale,
-        -point.y * scale,
+        nearestRepeatedTarget(targetX, cameraX.get(), periodX * scale),
+        nearestRepeatedTarget(targetY, cameraY.get(), periodY * scale),
         scale,
         true,
       );
     },
-    [moveCamera, points],
+    [cameraX, cameraY, moveCamera, periodX, periodY, points],
   );
 
   const loadDetail = React.useCallback(
@@ -495,18 +588,21 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && selectedId) {
+      if (event.key !== "Escape") return;
+      if (selectedId) {
         detailRequestRef.current += 1;
         setSelectedId(null);
         setDetail(null);
         setDetailError(null);
         setQuery("");
         setSearchOpen(false);
+      } else {
+        onExit();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedId]);
+  }, [onExit, selectedId]);
 
   React.useEffect(() => () => stopCamera(), [stopCamera]);
 
@@ -602,7 +698,7 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
   return (
     <section
       ref={viewportRef}
-      className="relative left-1/2 h-[min(76dvh,56rem)] min-h-[34rem] w-screen -translate-x-1/2 cursor-grab overflow-hidden border-y border-white/8 bg-[#080a09] text-white active:cursor-grabbing"
+      className="relative h-full w-full cursor-grab overflow-hidden bg-[#080a09] text-white active:cursor-grabbing"
       style={{ touchAction: "none", perspective: "1150px" }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -628,65 +724,80 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
 
       <div
         data-spatial-control
-        className="absolute left-1/2 top-4 z-50 w-[min(calc(100%-2rem),25rem)] -translate-x-1/2 sm:top-5"
+        className="absolute inset-x-4 z-50 grid grid-cols-[2.75rem_minmax(0,25rem)_2.75rem] items-start justify-center gap-2 sm:inset-x-6 sm:grid-cols-[4.75rem_minmax(0,25rem)_4.75rem]"
+        style={{ top: "max(1rem, env(safe-area-inset-top))" }}
       >
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
-          <input
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setSearchOpen(true);
-            }}
-            onFocus={() => {
-              if (normalizedQuery) setSearchOpen(true);
-            }}
-            placeholder="Find a title"
-            aria-label="Find a title in this gallery"
-            className="h-11 w-full rounded-full border border-white/12 bg-black/48 pl-10 pr-10 text-sm text-white shadow-[0_16px_48px_-18px_rgba(0,0,0,0.9)] outline-none backdrop-blur-xl transition-colors placeholder:text-white/35 focus:border-primary/45"
-          />
-          {query ? (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery("");
-                setSearchOpen(false);
+        <button
+          type="button"
+          onClick={onExit}
+          className="inline-flex h-11 w-11 items-center justify-center gap-1.5 rounded-full border border-white/14 bg-black/70 text-white/70 shadow-xl backdrop-blur-xl transition-colors hover:border-white/25 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-[4.75rem]"
+          aria-label="Return to 2D view"
+        >
+          <LayoutGrid className="h-4 w-4" />
+          <span className="hidden text-xs font-medium sm:inline">2D</span>
+        </button>
+
+        <div className="relative min-w-0">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+            <input
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setSearchOpen(true);
               }}
-              className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-white/45 transition-colors hover:bg-white/10 hover:text-white"
-              aria-label="Clear search"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          ) : null}
+              onFocus={() => {
+                if (normalizedQuery) setSearchOpen(true);
+              }}
+              placeholder="Find a title"
+              aria-label="Find a title in this gallery"
+              className="h-11 w-full rounded-full border border-white/14 bg-black/70 pl-10 pr-10 text-sm text-white shadow-[0_16px_48px_-18px_rgba(0,0,0,0.9)] outline-none backdrop-blur-xl transition-colors placeholder:text-white/40 focus:border-primary/55"
+            />
+            {query ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setSearchOpen(false);
+                }}
+                className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+
+          {normalizedQuery && searchOpen && (
+            <div className="mt-2 overflow-hidden rounded-2xl border border-white/12 bg-black/85 p-1.5 shadow-2xl backdrop-blur-2xl">
+              {matches.length ? (
+                matches.map((title) => (
+                  <button
+                    key={title.id}
+                    type="button"
+                    onClick={() => {
+                      setSearchOpen(false);
+                      selectTitle(title);
+                    }}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-xs transition-colors hover:bg-white/8",
+                      selectedId === title.id && "bg-white/8 text-primary",
+                    )}
+                  >
+                    <span className="truncate">{title.title}</span>
+                    <span className="shrink-0 font-mono text-[10px] text-white/38">
+                      {formatYear(title.release_date)}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="px-3 py-2 text-xs text-white/45">No match</p>
+              )}
+            </div>
+          )}
         </div>
 
-        {normalizedQuery && searchOpen && (
-          <div className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-black/65 p-1.5 shadow-2xl backdrop-blur-2xl">
-            {matches.length ? (
-              matches.map((title) => (
-                <button
-                  key={title.id}
-                  type="button"
-                  onClick={() => {
-                    setSearchOpen(false);
-                    selectTitle(title);
-                  }}
-                  className={cn(
-                    "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-xs transition-colors hover:bg-white/8",
-                    selectedId === title.id && "bg-white/8 text-primary",
-                  )}
-                >
-                  <span className="truncate">{title.title}</span>
-                  <span className="shrink-0 font-mono text-[10px] text-white/38">
-                    {formatYear(title.release_date)}
-                  </span>
-                </button>
-              ))
-            ) : (
-              <p className="px-3 py-2 text-xs text-white/45">No match</p>
-            )}
-          </div>
-        )}
+        <span aria-hidden className="h-11 w-11 sm:w-[4.75rem]" />
       </div>
 
       <button
@@ -696,14 +807,18 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
           closeDetail();
           moveCamera(0, 0, 0.88);
         }}
-        className="absolute bottom-5 right-4 z-50 grid h-10 w-10 place-items-center rounded-full border border-white/12 bg-black/45 text-white/60 shadow-xl backdrop-blur-xl transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:right-6"
+        className="absolute right-4 z-50 grid h-10 w-10 place-items-center rounded-full border border-white/12 bg-black/70 text-white/60 shadow-xl backdrop-blur-xl transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:right-6"
+        style={{ bottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
         aria-label="Reset gallery view"
         title="Reset view"
       >
         <LocateFixed className="h-4 w-4" />
       </button>
 
-      <p className="pointer-events-none absolute bottom-6 left-4 z-40 font-mono text-[9px] uppercase tracking-[0.18em] text-white/35 sm:left-6 sm:text-[10px]">
+      <p
+        className="pointer-events-none absolute left-4 z-40 font-mono text-[9px] uppercase tracking-[0.18em] text-white/35 sm:left-6 sm:text-[10px]"
+        style={{ bottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+      >
         Drag to explore · Search to travel
       </p>
 
@@ -711,8 +826,8 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
         data-spatial-world
         className="absolute left-1/2 top-1/2"
         style={{
-          x: cameraX,
-          y: cameraY,
+          x: wrappedCameraX,
+          y: wrappedCameraY,
           scale: cameraScale,
           rotateX: reducedMotion ? 0 : 3.5,
           rotateY: reducedMotion ? 0 : -2.5,
@@ -720,15 +835,16 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
           willChange: "transform",
         }}
       >
-        {titles.map((title, index) => {
-          const point = points[index];
+        {cells.map((cell) => {
+          const title = titles[cell.titleIndex];
+          const point = cell.point;
           const src = posterUrl(title.poster_path, "w500");
           const selected = title.id === selectedId;
           const shelf = shelfPresentation(title);
           const PosterShelfIcon = shelf.icon;
           return (
             <div
-              key={title.id}
+              key={cell.key}
               className="absolute"
               style={{
                 width: POSTER_WIDTH,
@@ -750,6 +866,8 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
                 whileTap={reducedMotion ? undefined : { scale: 0.985 }}
                 transition={{ type: "spring", stiffness: 300, damping: 24 }}
                 className="group block w-full cursor-pointer text-left focus-visible:outline-none"
+                tabIndex={cell.canonical ? 0 : -1}
+                aria-hidden={cell.canonical ? undefined : true}
                 aria-label={`Open ${title.title} details. ${shelf.label}.`}
               >
                 <span
@@ -763,7 +881,7 @@ export function SpatialPosterGrid({ titles, username }: SpatialPosterGridProps) 
                   {src ? (
                     <Image
                       src={src}
-                      alt={title.title}
+                      alt={cell.canonical ? title.title : ""}
                       fill
                       draggable={false}
                       sizes="142px"

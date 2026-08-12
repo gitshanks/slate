@@ -18,7 +18,7 @@ const SpatialPosterGrid = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="relative left-1/2 grid h-[min(76dvh,56rem)] min-h-[34rem] w-screen -translate-x-1/2 place-items-center overflow-hidden border-y border-white/8 bg-[#080a09]">
+      <div className="relative grid h-full w-full place-items-center overflow-hidden bg-[#080a09]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(173,235,179,0.08),transparent_46%)]" />
         <div className="relative flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
@@ -52,6 +52,21 @@ export function PublicProfileCollectionView({
 }: PublicProfileCollectionViewProps) {
   const [mode, setMode] = React.useState<ViewMode>("grid");
   const reducedMotion = useReducedMotion();
+  const exitSpatial = React.useCallback(() => setMode("grid"), []);
+
+  React.useEffect(() => {
+    if (mode !== "spatial") return;
+
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [mode]);
 
   return (
     <div>
@@ -137,12 +152,20 @@ export function PublicProfileCollectionView({
         ) : (
           <motion.div
             key="spatial"
+            role="dialog"
+            aria-modal="true"
+            aria-label="3D library"
             initial={reducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={reducedMotion ? undefined : { opacity: 0 }}
             transition={{ duration: 0.24 }}
+            className="fixed inset-0 z-40 bg-[#080a09]"
           >
-            <SpatialPosterGrid titles={spatialTitles} username={username} />
+            <SpatialPosterGrid
+              titles={spatialTitles}
+              username={username}
+              onExit={exitSpatial}
+            />
           </motion.div>
         )}
       </AnimatePresence>

@@ -47,7 +47,7 @@ export function TrailerButton({ trailerKey, titleName, variant = "pill" }: Trail
         )}
       </DialogTrigger>
       <DialogContent size="lg" className="p-0 sm:max-w-3xl">
-        <DialogTitle className="sr-only">{titleName} — trailer</DialogTitle>
+        <DialogTitle className="sr-only">{titleName} - trailer</DialogTitle>
         <div className="relative aspect-video w-full overflow-hidden rounded-b-2xl bg-black sm:rounded-lg">
           {open && (
             <iframe
