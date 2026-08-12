@@ -81,7 +81,6 @@ const POSTER_HEIGHT = 213;
 const COLUMN_GAP = 206;
 const ROW_GAP = 286;
 const SEARCH_DELAY = 320;
-const DETAIL_PLANE_Z = 150;
 const HORIZONTAL_OVERSCAN = 6;
 const VERTICAL_OVERSCAN = 3;
 
@@ -479,7 +478,6 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
     ? titles.findIndex((title) => title.id === selectedId)
     : -1;
   const selectedTitle = selectedIndex >= 0 ? titles[selectedIndex] : null;
-  const selectedPoint = selectedIndex >= 0 ? points[selectedIndex] : null;
 
   const stopCamera = React.useCallback(() => {
     animationRef.current.forEach((control) => control.stop());
@@ -576,6 +574,15 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
     [frameTitle, loadDetail, titles],
   );
 
+  const closeDetail = React.useCallback(() => {
+    detailRequestRef.current += 1;
+    setSelectedId(null);
+    setDetail(null);
+    setDetailError(null);
+    setQuery("");
+    setSearchOpen(false);
+  }, []);
+
   React.useEffect(() => {
     if (normalizedQuery.length < 2 || matches.length === 0) return;
     if (matches.some((title) => title.id === selectedId)) return;
@@ -590,25 +597,33 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       if (selectedId) {
-        detailRequestRef.current += 1;
-        setSelectedId(null);
-        setDetail(null);
-        setDetailError(null);
-        setQuery("");
-        setSearchOpen(false);
+        closeDetail();
       } else {
         onExit();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onExit, selectedId]);
+  }, [closeDetail, onExit, selectedId]);
 
   React.useEffect(() => () => stopCamera(), [stopCamera]);
 
   const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      if ((event.target as Element).closest("[data-spatial-control]")) return;
+      const target = event.target as Element;
+      const targetPoster = target.closest<HTMLElement>("[data-spatial-title-id]");
+      const pressedSelectedPoster =
+        targetPoster?.dataset.spatialTitleId === selectedId;
+
+      if (
+        selectedId &&
+        !target.closest("[data-spatial-slab]") &&
+        !pressedSelectedPoster
+      ) {
+        closeDetail();
+      }
+
+      if (target.closest("[data-spatial-control]")) return;
       stopCamera();
       viewportRef.current?.setPointerCapture(event.pointerId);
       gestureRef.current = {
@@ -623,7 +638,7 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
       };
       draggedRef.current = false;
     },
-    [stopCamera],
+    [closeDetail, selectedId, stopCamera],
   );
 
   const handlePointerMove = React.useCallback(
@@ -686,27 +701,19 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
     [cameraX, cameraY, stopCamera],
   );
 
-  const closeDetail = React.useCallback(() => {
-    detailRequestRef.current += 1;
-    setSelectedId(null);
-    setDetail(null);
-    setDetailError(null);
-    setQuery("");
-    setSearchOpen(false);
-  }, []);
-
   return (
-    <section
-      ref={viewportRef}
-      className="relative h-full w-full cursor-grab overflow-hidden bg-[#080a09] text-white active:cursor-grabbing"
-      style={{ touchAction: "none", perspective: "1150px" }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerEnd}
-      onPointerCancel={handlePointerEnd}
-      onWheel={handleWheel}
-      aria-label="Three dimensional poster gallery. Drag to explore."
-    >
+    <>
+      <section
+        ref={viewportRef}
+        className="relative h-full w-full cursor-grab overflow-hidden bg-[#080a09] text-white active:cursor-grabbing"
+        style={{ touchAction: "none", perspective: "1150px" }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
+        onWheel={handleWheel}
+        aria-label="Three dimensional poster gallery. Drag to explore."
+      >
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-50"
@@ -854,8 +861,13 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
             >
               <motion.button
                 type="button"
+                data-spatial-title-id={title.id}
                 onClick={() => {
                   if (draggedRef.current) return;
+                  if (selectedId === title.id) {
+                    closeDetail();
+                    return;
+                  }
                   selectTitle(title);
                 }}
                 animate={{
@@ -916,31 +928,29 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
           );
         })}
 
-        {selectedTitle && selectedPoint ? (
-          <div
-            data-spatial-slab
-            className="absolute z-[60]"
-            style={{
-              transform: `translate3d(${selectedPoint.x + 116}px, ${selectedPoint.y - 292}px, ${DETAIL_PLANE_Z}px)`,
-              transformStyle: "preserve-3d",
-            }}
-          >
-            <TitleDetailSlab
-              key={selectedTitle.id}
-              title={selectedTitle}
-              detail={detail}
-              loading={detailLoading}
-              error={detailError}
-              onClose={closeDetail}
-            />
-          </div>
-        ) : null}
       </motion.div>
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-30 shadow-[inset_0_0_120px_45px_#080a09] sm:shadow-[inset_0_0_190px_58px_#080a09]"
-      />
-    </section>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-30 shadow-[inset_0_0_120px_45px_#080a09] sm:shadow-[inset_0_0_190px_58px_#080a09]"
+        />
+      </section>
+
+      {selectedTitle ? (
+        <div
+          data-spatial-slab
+          className="fixed left-1/2 top-1/2 z-[60] origin-center -translate-x-[28%] -translate-y-1/2 scale-[0.75] sm:-translate-x-[20%] sm:scale-100"
+        >
+          <TitleDetailSlab
+            key={selectedTitle.id}
+            title={selectedTitle}
+            detail={detail}
+            loading={detailLoading}
+            error={detailError}
+            onClose={closeDetail}
+          />
+        </div>
+      ) : null}
+    </>
   );
 }
