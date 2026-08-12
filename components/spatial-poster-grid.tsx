@@ -3,8 +3,10 @@
 import * as React from "react";
 import Image from "next/image";
 import {
+  AnimatePresence,
   animate,
   motion,
+  useIsPresent,
   useMotionValue,
   useReducedMotion,
   useTransform,
@@ -264,6 +266,7 @@ function FisheyePosterCell({
   onSelect: (title: TitleRow) => void;
   onClose: () => void;
 }) {
+  const isPresent = useIsPresent();
   const point = cell.point;
   const src = posterUrl(title.poster_path, "w500");
   const selected = title.id === selectedId;
@@ -300,7 +303,7 @@ function FisheyePosterCell({
 
   return (
     <motion.div
-      className="absolute"
+      className={cn("absolute", !isPresent && "pointer-events-none")}
       style={{
         width: POSTER_WIDTH,
         transform: lensTransform,
@@ -312,7 +315,7 @@ function FisheyePosterCell({
         type="button"
         data-spatial-title-id={title.id}
         onClick={() => {
-          if (draggedRef.current) return;
+          if (!isPresent || draggedRef.current) return;
           if (selectedId === title.id) {
             onClose();
             return;
@@ -331,8 +334,8 @@ function FisheyePosterCell({
         whileTap={reducedMotion ? undefined : { scale: 0.985 }}
         transition={{ type: "spring", stiffness: 300, damping: 24 }}
         className="group block w-full cursor-pointer text-left focus-visible:outline-none"
-        tabIndex={cell.canonical ? 0 : -1}
-        aria-hidden={cell.canonical ? undefined : true}
+        tabIndex={cell.canonical && isPresent ? 0 : -1}
+        aria-hidden={cell.canonical && isPresent ? undefined : true}
         aria-label={`Open ${title.title} details. ${shelf.label}.`}
       >
         <span
@@ -377,6 +380,95 @@ function FisheyePosterCell({
           ) : null}
         </span>
       </motion.button>
+    </motion.div>
+  );
+}
+
+function SpatialPosterWorld({
+  cells,
+  titles,
+  periodX,
+  periodY,
+  selectedId,
+  reducedMotion,
+  cameraX,
+  cameraY,
+  cameraScale,
+  viewportWidth,
+  viewportHeight,
+  draggedRef,
+  onSelect,
+  onClose,
+}: {
+  cells: SpatialCell[];
+  titles: TitleRow[];
+  periodX: number;
+  periodY: number;
+  selectedId: string | null;
+  reducedMotion: boolean;
+  cameraX: MotionValue<number>;
+  cameraY: MotionValue<number>;
+  cameraScale: MotionValue<number>;
+  viewportWidth: MotionValue<number>;
+  viewportHeight: MotionValue<number>;
+  draggedRef: React.RefObject<boolean>;
+  onSelect: (title: TitleRow) => void;
+  onClose: () => void;
+}) {
+  const wrappedCameraX = useTransform(() =>
+    wrapCamera(cameraX.get(), periodX * cameraScale.get()),
+  );
+  const wrappedCameraY = useTransform(() =>
+    wrapCamera(cameraY.get(), periodY * cameraScale.get()),
+  );
+
+  return (
+    <motion.div
+      data-spatial-world
+      className="absolute left-1/2 top-1/2"
+      initial={{ opacity: 0 }}
+      animate={{
+        opacity: 1,
+        transition: {
+          duration: reducedMotion ? 0.1 : 0.24,
+          ease: [0.23, 1, 0.32, 1],
+        },
+      }}
+      exit={{
+        opacity: 0,
+        transition: {
+          duration: reducedMotion ? 0.08 : 0.18,
+          ease: [0.23, 1, 0.32, 1],
+        },
+      }}
+      style={{
+        x: wrappedCameraX,
+        y: wrappedCameraY,
+        scale: cameraScale,
+        transformStyle: "preserve-3d",
+        willChange: "transform, opacity",
+      }}
+    >
+      {cells.map((cell) => {
+        const title = titles[cell.titleIndex];
+        return (
+          <FisheyePosterCell
+            key={cell.key}
+            cell={cell}
+            title={title}
+            selectedId={selectedId}
+            reducedMotion={reducedMotion}
+            cameraScale={cameraScale}
+            wrappedCameraX={wrappedCameraX}
+            wrappedCameraY={wrappedCameraY}
+            viewportWidth={viewportWidth}
+            viewportHeight={viewportHeight}
+            draggedRef={draggedRef}
+            onSelect={onSelect}
+            onClose={onClose}
+          />
+        );
+      })}
     </motion.div>
   );
 }
@@ -607,6 +699,10 @@ export function SpatialPosterGrid({
     () => spatialLayout(titles.length, viewportSize.width, viewportSize.height),
     [titles.length, viewportSize.height, viewportSize.width],
   );
+  const collectionKey = React.useMemo(
+    () => titles.map((title) => title.id).join("|"),
+    [titles],
+  );
   const { cells, periodX, periodY, points } = layout;
   const cameraX = useMotionValue(initialCamera?.x ?? 0);
   const cameraY = useMotionValue(initialCamera?.y ?? 0);
@@ -621,12 +717,6 @@ export function SpatialPosterGrid({
     cameraScale.set(Math.min(cameraScale.get(), MOBILE_CAMERA_SCALE));
   }, [cameraScale]);
 
-  const wrappedCameraX = useTransform(() =>
-    wrapCamera(cameraX.get(), periodX * cameraScale.get()),
-  );
-  const wrappedCameraY = useTransform(() =>
-    wrapCamera(cameraY.get(), periodY * cameraScale.get()),
-  );
   const viewportRef = React.useRef<HTMLDivElement>(null);
   const gestureRef = React.useRef<GestureState | null>(null);
   const draggedRef = React.useRef(false);
@@ -931,48 +1021,47 @@ export function SpatialPosterGrid({
         Drag to explore · Search to travel
       </p>
 
-      {titles.length === 0 ? (
-        <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center px-6 text-center">
-          <div>
-            <p className="text-sm font-medium text-white/72">No titles match</p>
-            <p className="mt-1 text-xs text-white/38">Try another filter.</p>
-          </div>
-        </div>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {titles.length === 0 ? (
+          <motion.div
+            key="empty-results"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reducedMotion ? 0.1 : 0.2 }}
+            className="pointer-events-none absolute inset-0 z-20 grid place-items-center px-6 text-center"
+          >
+            <div>
+              <p className="text-sm font-medium text-white/72">
+                No titles match
+              </p>
+              <p className="mt-1 text-xs text-white/38">Try another filter.</p>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
-      <motion.div
-        data-spatial-world
-        className="absolute left-1/2 top-1/2"
-        style={{
-          x: wrappedCameraX,
-          y: wrappedCameraY,
-          scale: cameraScale,
-          transformStyle: "preserve-3d",
-          willChange: "transform",
-        }}
-      >
-        {cells.map((cell) => {
-          const title = titles[cell.titleIndex];
-          return (
-            <FisheyePosterCell
-              key={cell.key}
-              cell={cell}
-              title={title}
-              selectedId={selectedId}
-              reducedMotion={reducedMotion}
-              cameraScale={cameraScale}
-              wrappedCameraX={wrappedCameraX}
-              wrappedCameraY={wrappedCameraY}
-              viewportWidth={viewportWidth}
-              viewportHeight={viewportHeight}
-              draggedRef={draggedRef}
-              onSelect={selectTitle}
-              onClose={closeDetail}
-            />
-          );
-        })}
-
-      </motion.div>
+      <AnimatePresence initial={false} mode="sync">
+        {titles.length > 0 ? (
+          <SpatialPosterWorld
+            key={collectionKey}
+            cells={cells}
+            titles={titles}
+            periodX={periodX}
+            periodY={periodY}
+            selectedId={selectedId}
+            reducedMotion={reducedMotion}
+            cameraX={cameraX}
+            cameraY={cameraY}
+            cameraScale={cameraScale}
+            viewportWidth={viewportWidth}
+            viewportHeight={viewportHeight}
+            draggedRef={draggedRef}
+            onSelect={selectTitle}
+            onClose={closeDetail}
+          />
+        ) : null}
+      </AnimatePresence>
 
         <div
           aria-hidden
