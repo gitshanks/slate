@@ -11,7 +11,13 @@ import { cn } from "@/lib/utils";
  * - Desktop: left/right arrow buttons that scroll by one "page" width.
  * - Arrows auto-hide when scrolled to the respective edge.
  */
-export function RailScroller({ children }: { children: React.ReactNode }) {
+export function RailScroller({
+  children,
+  enabled = true,
+}: {
+  children: React.ReactNode;
+  enabled?: boolean;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -24,9 +30,14 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
   const updateArrows = useCallback(() => {
     const el = ref.current;
     if (!el) return;
+    if (!enabled) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
     setCanScrollLeft(el.scrollLeft > 2);
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
-  }, []);
+  }, [enabled]);
 
   const measureArrowAnchor = useCallback(() => {
     const el = ref.current;
@@ -83,7 +94,7 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
           "h-9 w-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md ring-1 ring-border",
           "transition-opacity duration-200",
           "hoverable:flex",
-          canScrollLeft
+          enabled && canScrollLeft
             ? "opacity-100"
             : "pointer-events-none opacity-0"
         )}
@@ -94,7 +105,11 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
       {/* Scroll container */}
       <div
         ref={ref}
-        className="touch-pan-x flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={cn(
+          enabled
+            ? "touch-pan-x flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            : "overflow-visible",
+        )}
       >
         {children}
       </div>
@@ -110,7 +125,7 @@ export function RailScroller({ children }: { children: React.ReactNode }) {
           "h-9 w-9 rounded-full bg-background/85 backdrop-blur-sm shadow-md ring-1 ring-border",
           "transition-opacity duration-200",
           "hoverable:flex",
-          canScrollRight
+          enabled && canScrollRight
             ? "opacity-100"
             : "pointer-events-none opacity-0"
         )}

@@ -72,7 +72,7 @@ function MediaLayout({
     </MotionGrid>
   );
 
-  return horizontal ? <RailScroller>{grid}</RailScroller> : grid;
+  return <RailScroller enabled={horizontal}>{grid}</RailScroller>;
 }
 
 const titleSensors = [

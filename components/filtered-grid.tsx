@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { GalleryHorizontal, LayoutGrid } from "lucide-react";
 import { MediaGrid } from "@/components/media-grid";
 import { filterAndSort } from "@/lib/filter-utils";
 import { cn } from "@/lib/utils";
@@ -48,6 +48,8 @@ export function FilteredGrid({
 }: FilteredGridProps) {
   const sp = useSearchParams();
   const [expanded, setExpanded] = React.useState(false);
+  const sectionRef = React.useRef<HTMLElement>(null);
+  const restorePositionOnCollapse = React.useRef(false);
   const disclosureId = React.useId();
   const collapsedCount = React.useSyncExternalStore(
     subscribeToViewport,
@@ -74,6 +76,22 @@ export function FilteredGrid({
         ? "Titles being watched"
         : "Watched titles";
 
+  React.useLayoutEffect(() => {
+    if (expanded || !restorePositionOnCollapse.current) return;
+
+    restorePositionOnCollapse.current = false;
+    sectionRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
+  }, [expanded]);
+
+  const setGridView = React.useCallback(
+    (nextExpanded: boolean) => {
+      if (nextExpanded === expanded) return;
+      restorePositionOnCollapse.current = expanded && !nextExpanded;
+      setExpanded(nextExpanded);
+    },
+    [expanded],
+  );
+
   if (titles.length === 0 && allTitles.length > 0) {
     return (
       <p className="mt-10 text-sm text-muted-foreground">
@@ -83,7 +101,45 @@ export function FilteredGrid({
   }
 
   return (
-    <section aria-label={sectionLabel}>
+    <section
+      ref={sectionRef}
+      aria-label={sectionLabel}
+      className="scroll-mt-3 md:scroll-mt-20"
+    >
+      {canCollapse && (
+        <div
+          className={cn(
+            "relative z-30 -mt-3 mb-4 flex h-10 items-center justify-end",
+            expanded && "sticky top-2 md:top-[4.5rem]",
+          )}
+        >
+          <button
+            type="button"
+            onClick={() => setGridView(!expanded)}
+            aria-label={expanded ? "Switch to row view" : "Switch to grid view"}
+            aria-controls={disclosureId}
+            className={cn(
+              "inline-flex h-9 items-center justify-center gap-1.5 rounded-full border bg-background/90 text-xs font-medium shadow-[0_12px_32px_-14px_hsl(var(--foreground)/0.55)] backdrop-blur-xl transition-[color,border-color,background-color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+              expanded
+                ? "w-9 border-primary/40 px-0 text-primary hover:bg-card sm:w-auto sm:min-w-[5.25rem] sm:px-3"
+                : "min-w-[5.25rem] border-border/80 px-3 text-muted-foreground hover:border-primary/30 hover:bg-card hover:text-foreground",
+            )}
+          >
+            {expanded ? (
+              <>
+                <GalleryHorizontal className="h-3.5 w-3.5" aria-hidden />
+                <span className="sr-only sm:not-sr-only">Row</span>
+              </>
+            ) : (
+              <>
+                <LayoutGrid className="h-3.5 w-3.5" aria-hidden />
+                Grid
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       <div id={disclosureId}>
         <MediaGrid
           titles={titles}
@@ -101,31 +157,6 @@ export function FilteredGrid({
           }
         />
       </div>
-
-      {canCollapse && (
-        <div className="relative mt-6 flex items-center gap-3 sm:mt-8">
-          <span className="h-px flex-1 bg-border/70" aria-hidden />
-          <button
-            type="button"
-            onClick={() => setExpanded((value) => !value)}
-            aria-expanded={expanded}
-            aria-controls={disclosureId}
-            className="group inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-border/80 bg-card/80 px-4 text-sm font-medium text-muted-foreground shadow-[0_10px_30px_-20px_hsl(var(--foreground)/0.45)] backdrop-blur-md transition-[color,border-color,background-color,transform] duration-200 hover:border-primary/40 hover:bg-card hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            <span>
-              {expanded ? "Collapse watchlist" : `Show all ${titles.length} titles`}
-            </span>
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 transition-transform duration-200",
-                expanded && "rotate-180",
-              )}
-              aria-hidden
-            />
-          </button>
-          <span className="h-px flex-1 bg-border/70" aria-hidden />
-        </div>
-      )}
     </section>
   );
 }
