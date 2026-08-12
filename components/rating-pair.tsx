@@ -16,7 +16,7 @@ interface RatingPairProps {
   metacritic?: number | string | null | undefined;
   /** "compact" — single chip for poster cards. "inline" — text for label rows. */
   variant?: "compact" | "inline";
-  /** On very narrow three-column grids, keep one score so the chip never clips. */
+  /** On compact mobile grids, keep one score so the chip never clips. */
   condenseOnNarrow?: boolean;
 }
 
@@ -68,7 +68,7 @@ export function RatingPair({
         {i && critic && (
           <span
             aria-hidden
-            className={condenseOnNarrow ? "opacity-40 max-[359px]:hidden" : "opacity-40"}
+            className={condenseOnNarrow ? "opacity-40 max-[639px]:hidden" : "opacity-40"}
           >
             ·
           </span>
@@ -77,7 +77,7 @@ export function RatingPair({
           <span
             className={
               condenseOnNarrow && i
-                ? "inline-flex items-center gap-1 max-[359px]:hidden"
+                ? "inline-flex items-center gap-1 max-[639px]:hidden"
                 : "inline-flex items-center gap-1"
             }
           >
@@ -92,7 +92,7 @@ export function RatingPair({
           <span
             className={
               condenseOnNarrow && i
-                ? "inline-flex items-center gap-1 max-[359px]:hidden"
+                ? "inline-flex items-center gap-1 max-[639px]:hidden"
                 : "inline-flex items-center gap-1"
             }
           >

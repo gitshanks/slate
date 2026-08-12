@@ -51,7 +51,7 @@ interface MediaGridProps {
   titleHrefBase?: string;
   /** Keep the collection to one horizontally scrollable poster row. */
   horizontal?: boolean;
-  /** Fit three smaller cards across narrow shared-profile screens. */
+  /** Fit four smaller cards across narrow shared-profile screens. */
   compactMobile?: boolean;
 }
 
@@ -62,7 +62,7 @@ const mediaRailClassName =
   "grid min-w-full grid-flow-col auto-cols-[calc((100%_-_0.75rem)/2)] gap-x-3 sm:auto-cols-[calc((100%_-_2.5rem)/3)] sm:gap-x-5 md:auto-cols-[calc((100%_-_3.75rem)/4)] lg:auto-cols-[calc((100%_-_5rem)/5)] 2xl:auto-cols-[calc((100%_-_6.25rem)/6)] 3xl:auto-cols-[calc((100%_-_7.5rem)/7)] 4xl:auto-cols-[calc((100%_-_8.75rem)/8)] 5xl:auto-cols-[calc((100%_-_10rem)/9)] 6xl:auto-cols-[calc((100%_-_11.25rem)/10)]";
 
 const compactMobileGridClassName =
-  "grid grid-cols-3 gap-x-2 gap-y-5 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10";
+  "grid grid-cols-4 gap-x-2 gap-y-4 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10";
 
 function MediaLayout({
   children,

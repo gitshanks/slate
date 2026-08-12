@@ -90,6 +90,8 @@ const VERTICAL_OVERSCAN = 3;
 const LENS_MIN_SCALE = 0.5;
 const LENS_SCALE_RANGE = 0.76;
 const LENS_DEPTH = 190;
+const DESKTOP_CAMERA_SCALE = 0.88;
+const MOBILE_CAMERA_SCALE = 0.7;
 
 function modulo(value: number, divisor: number) {
   return ((value % divisor) + divisor) % divisor;
@@ -593,9 +595,17 @@ export function SpatialPosterGrid({
   const { cells, periodX, periodY, points } = layout;
   const cameraX = useMotionValue(initialCamera?.x ?? 0);
   const cameraY = useMotionValue(initialCamera?.y ?? 0);
-  const cameraScale = useMotionValue(initialCamera?.scale ?? 0.88);
+  const cameraScale = useMotionValue(
+    initialCamera?.scale ?? DESKTOP_CAMERA_SCALE,
+  );
   const viewportWidth = useMotionValue(1280);
   const viewportHeight = useMotionValue(800);
+
+  React.useEffect(() => {
+    if (!window.matchMedia("(max-width: 639px)").matches) return;
+    cameraScale.set(Math.min(cameraScale.get(), MOBILE_CAMERA_SCALE));
+  }, [cameraScale]);
+
   const wrappedCameraX = useTransform(() =>
     wrapCamera(cameraX.get(), periodX * cameraScale.get()),
   );
@@ -893,7 +903,13 @@ export function SpatialPosterGrid({
         type="button"
         onClick={() => {
           closeDetail();
-          moveCamera(0, 0, 0.88);
+          moveCamera(
+            0,
+            0,
+            window.matchMedia("(max-width: 639px)").matches
+              ? MOBILE_CAMERA_SCALE
+              : DESKTOP_CAMERA_SCALE,
+          );
         }}
         className="absolute right-4 z-50 grid h-10 w-10 place-items-center rounded-full border border-white/12 bg-black/70 text-white/60 shadow-xl backdrop-blur-xl transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:right-6"
         style={{ bottom: "max(1.25rem, env(safe-area-inset-bottom))" }}

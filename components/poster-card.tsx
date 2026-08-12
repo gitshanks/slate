@@ -60,7 +60,7 @@ export function PosterCard({
         data-rail-poster
         className={cn(
           "relative aspect-[2/3] overflow-hidden rounded-xl",
-          compactMobile && "max-sm:rounded-[0.65rem]",
+          compactMobile && "max-[639px]:rounded-[0.65rem]",
           "bg-card hairline",
           "transition-all duration-200 ease-out",
           dragPreview &&
@@ -77,7 +77,7 @@ export function PosterCard({
               draggable={false}
               sizes={
                 compactMobile
-                  ? "(max-width: 640px) 33vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
+                  ? "(max-width: 640px) 25vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
                   : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
               }
               className="object-cover"
@@ -92,7 +92,7 @@ export function PosterCard({
                 priority={priority}
                 sizes={
                   compactMobile
-                    ? "(max-width: 640px) 33vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
+                    ? "(max-width: 640px) 25vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
                     : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
                 }
                 className="object-cover transition-transform duration-300 ease-out hoverable:group-hover:scale-[1.04]"
@@ -124,7 +124,7 @@ export function PosterCard({
             className={cn(
               "absolute left-2 top-2 rounded-full bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm transition-opacity duration-200 hoverable:group-hover:opacity-0",
               compactMobile &&
-                "max-sm:left-1.5 max-sm:top-1.5 max-sm:px-1.5 max-sm:py-0.5 max-sm:text-[9px]",
+                "max-[639px]:left-1 max-[639px]:top-1 max-[639px]:px-1 max-[639px]:py-0.5 max-[639px]:text-[8px]",
             )}
           >
             <RatingPair
@@ -174,7 +174,7 @@ export function PosterCard({
         <p
           className={cn(
             "line-clamp-1 text-sm font-medium text-foreground",
-            compactMobile && "text-xs",
+            compactMobile && "text-[10px] leading-tight",
           )}
         >
           {title.title}
@@ -182,7 +182,7 @@ export function PosterCard({
         <div
           className={cn(
             "flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground",
-            compactMobile && "gap-1 text-[9px]",
+            compactMobile && "gap-1 text-[8px] leading-tight",
           )}
         >
           {year && <span>{year}</span>}
