@@ -21,9 +21,10 @@
   --popover: 0 0% 100%;
   --popover-foreground: 222 28% 11%;
 
-  --primary: 252 88% 62%;          /* electric violet, anchored darker */
+  /* Slate mint, deepened in light mode so text and icons remain legible. */
+  --primary: 126 38% 37%;
   --primary-foreground: 0 0% 100%;
-  --primary-hover: 252 84% 54%;
+  --primary-hover: 126 40% 31%;
 
   --secondary: 220 14% 95%;
   --secondary-foreground: 222 28% 11%;
@@ -45,7 +46,7 @@
 
   --border: 220 13% 90%;           /* cool hairline */
   --input: 220 13% 90%;
-  --ring: 252 88% 62%;
+  --ring: 126 38% 37%;
 
   --radius: 0.625rem;
 
@@ -68,9 +69,9 @@
   --popover: 240 6% 7%;
   --popover-foreground: 0 0% 98%;
 
-  --primary: 252 100% 75%;          /* slightly brighter on dark */
-  --primary-foreground: 240 10% 4%;
-  --primary-hover: 252 100% 80%;
+  --primary: 126 61% 80%;           /* #ADEBB3 */
+  --primary-foreground: 132 36% 9%;
+  --primary-hover: 126 67% 85%;
 
   --secondary: 240 5% 12%;
   --secondary-foreground: 0 0% 98%;
@@ -92,7 +93,7 @@
 
   --border: 240 5% 14%;             /* hairline at ~8% white */
   --input: 240 5% 14%;
-  --ring: 252 100% 75%;
+  --ring: 126 61% 80%;
 
   --star: 45 96% 62%;
 
@@ -434,7 +435,7 @@
 }
 
 /* ─── Accent themes ─────────────────────────────────────────────── */
-/* Violet (252) is the CSS default — no class needed.               */
+/* Slate mint is the CSS default — no class needed.                 */
 /* Each class overrides primary, primary-hover, ring.               */
 /* Amber swaps in a dark foreground for legibility.                 */
 

@@ -114,7 +114,7 @@
 .error span { display: block; margin-top: 3px; color: rgb(255 255 255 / .66); font-size: 11px; line-height: 1.45; }
 
 .switchMode a:focus-visible {
-  outline: 2px solid #a897ff;
+  outline: 2px solid #ADEBB3;
   outline-offset: 4px;
 }
 

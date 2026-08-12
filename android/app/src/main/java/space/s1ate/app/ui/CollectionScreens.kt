@@ -473,7 +473,7 @@ fun ProfileScreenAdvanced(
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Text(
                             if (isPublic) "PUBLIC" else "PRIVATE",
-                            color = SlateViolet,
+                            color = SlateAccent,
                             fontSize = 10.sp,
                             letterSpacing = 1.5.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -484,7 +484,7 @@ fun ProfileScreenAdvanced(
                             onValueChange = { name = it },
                             modifier = Modifier.fillMaxWidth(),
                             textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.7).sp),
-                            cursorBrush = SolidColor(SlateViolet),
+                            cursorBrush = SolidColor(SlateAccent),
                             singleLine = true,
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -494,7 +494,7 @@ fun ProfileScreenAdvanced(
                                 onValueChange = { value -> username = value.lowercase().filter { char -> char.isLetterOrDigit() || char == '-' } },
                                 modifier = Modifier.weight(1f),
                                 textStyle = androidx.compose.ui.text.TextStyle(color = SlateMuted, fontSize = 14.sp, fontFamily = FontFamily.Monospace),
-                                cursorBrush = SolidColor(SlateViolet),
+                                cursorBrush = SolidColor(SlateAccent),
                                 singleLine = true,
                             )
                         }

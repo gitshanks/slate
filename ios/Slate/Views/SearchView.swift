@@ -37,7 +37,7 @@ struct SearchView: View {
                         }
                         Button("Cancel", action: onClose)
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(SlatePalette.violet)
+                            .foregroundStyle(SlatePalette.accent)
                     }
                     .padding(.horizontal, 14)
                     .frame(height: 52)
@@ -131,7 +131,7 @@ private struct SearchPeopleRail: View {
                     ForEach(people) { person in
                         NavigationLink { PersonView(personId: person.id) } label: {
                             VStack(alignment: .leading, spacing: 8) {
-                                AsyncImage(url: person.profileURL) { image in
+                                CachedAsyncImage(url: person.profileURL) { image in
                                     image.resizable().scaledToFill()
                                 } placeholder: { Color.white.opacity(0.06) }
                                 .frame(width: 92, height: 92)
@@ -157,7 +157,7 @@ struct CatalogPosterCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             ZStack(alignment: .topTrailing) {
-                AsyncImage(url: title.posterURL) { image in
+                CachedAsyncImage(url: title.posterURL) { image in
                     image.resizable().scaledToFill()
                 } placeholder: { Color.white.opacity(0.06) }
                 .aspectRatio(2 / 3, contentMode: .fit)
@@ -182,67 +182,78 @@ struct CatalogPosterCard: View {
 
 struct DiscoverTitleView: View {
     @EnvironmentObject private var model: AppModel
-    @Environment(\.openURL) private var openURL
     let mediaType: MediaType
     let tmdbId: Int
     @State private var detail: DiscoverDetailPayload?
     @State private var loading = true
     @State private var adding = false
+    @State private var trailer: TrailerPresentation?
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.black.ignoresSafeArea()
-            if let backdrop = detail?.title.backdropURL {
-                AsyncImage(url: backdrop) { image in image.resizable().scaledToFill() } placeholder: { Color(white: 0.07) }
-                    .frame(height: 760).clipped()
-                LinearGradient(colors: [.black.opacity(0.42), .black.opacity(0.68), .black], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 760)
-            }
-            ScrollView {
-                if let detail {
-                    VStack(alignment: .leading, spacing: 0) {
-                        DiscoverMetadata(title: detail.title)
-                        Text(detail.title.title).font(.system(size: 32, weight: .semibold)).tracking(-1.1).padding(.top, 8)
-                        HStack(spacing: 9) {
-                            if let saved = detail.savedTitle {
-                                NavigationLink { TitleDetailView(title: saved) } label: {
-                                    DiscoverPill("In your \(saved.status.label.lowercased())", icon: "checkmark", highlighted: true)
-                                }
-                            } else {
-                                Menu {
-                                    addButton(.want, "Want")
-                                    addButton(.watching, "Watching")
-                                    addButton(.watched, "Watched")
-                                } label: { DiscoverPill(adding ? "Adding…" : "Add to slate", icon: "plus", highlighted: true) }
-                                .disabled(adding)
-                            }
-                            if let key = detail.trailerKey, let url = URL(string: "https://www.youtube.com/watch?v=\(key)") {
-                                Button { openURL(url) } label: { DiscoverPill("Trailer", icon: "play.fill") }
-                            }
-                            if let providers = detail.watchProviders, !providers.providers.isEmpty {
-                                Link(destination: providers.link) { DiscoverPill("Watch", icon: "tv") }
-                            }
-                        }
-                        .padding(.top, 22)
-                        if let overview = detail.title.overview, !overview.isEmpty {
-                            Text(overview).font(.system(size: 16)).foregroundStyle(.white.opacity(0.82)).lineSpacing(5).padding(.top, 24)
-                        }
-                        DiscoverPeopleSection(label: "Cast", people: detail.cast)
-                        DiscoverPeopleSection(label: "Crew", people: detail.crew)
-                        DiscoverRecommendations(label: detail.title.title, items: detail.recommendations)
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 30)
-                    .padding(.bottom, 56)
-                } else if loading {
-                    ProgressView().tint(.white).padding(.top, 220)
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                Color.black.ignoresSafeArea()
+                if let backdrop = detail?.title.backdropURL {
+                    CachedAsyncImage(url: backdrop) { image in image.resizable().scaledToFill() } placeholder: { Color(white: 0.07) }
+                        .frame(width: proxy.size.width, height: 760)
+                        .clipped()
+                    LinearGradient(colors: [.black.opacity(0.42), .black.opacity(0.68), .black], startPoint: .top, endPoint: .bottom)
+                        .frame(width: proxy.size.width, height: 760)
                 }
+                ScrollView {
+                    if let detail {
+                        VStack(alignment: .leading, spacing: 0) {
+                            DiscoverMetadata(title: detail.title)
+                            Text(detail.title.title).font(.system(size: 32, weight: .semibold)).tracking(-1.1).padding(.top, 8)
+                            HStack(spacing: 9) {
+                                if let saved = detail.savedTitle {
+                                    NavigationLink { TitleDetailView(title: saved) } label: {
+                                        DiscoverPill("In your \(saved.status.label.lowercased())", icon: "checkmark", highlighted: true)
+                                    }
+                                } else {
+                                    Menu {
+                                        addButton(.want, "Want")
+                                        addButton(.watching, "Watching")
+                                        addButton(.watched, "Watched")
+                                    } label: { DiscoverPill(adding ? "Adding…" : "Add to slate", icon: "plus", highlighted: true) }
+                                    .disabled(adding)
+                                }
+                                if let key = detail.trailerKey {
+                                    Button {
+                                        trailer = TrailerPresentation(videoID: key, title: detail.title.title)
+                                    } label: { DiscoverPill("Trailer", icon: "play.fill") }
+                                }
+                                if let providers = detail.watchProviders, !providers.providers.isEmpty {
+                                    Link(destination: providers.link) { DiscoverPill("Watch", icon: "tv") }
+                                }
+                            }
+                            .padding(.top, 22)
+                            if let overview = detail.title.overview, !overview.isEmpty {
+                                Text(overview).font(.system(size: 16)).foregroundStyle(.white.opacity(0.82)).lineSpacing(5).padding(.top, 24)
+                            }
+                            DiscoverPeopleSection(label: "Cast", people: detail.cast)
+                            DiscoverPeopleSection(label: "Crew", people: detail.crew)
+                            DiscoverRecommendations(label: detail.title.title, items: detail.recommendations)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 18)
+                        .padding(.top, 30)
+                        .padding(.bottom, 56)
+                    } else if loading {
+                        ProgressView().tint(.white).padding(.top, 220)
+                    }
+                }
+                .frame(width: proxy.size.width)
             }
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
         .preferredColorScheme(.dark)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .task { await load() }
+        .fullScreenCover(item: $trailer) { trailer in
+            TrailerPlayerView(trailer: trailer)
+        }
     }
 
     private func load() async {
@@ -288,9 +299,9 @@ private struct DiscoverPill: View {
     init(_ label: String, icon: String, highlighted: Bool = false) { self.label = label; self.icon = icon; self.highlighted = highlighted }
     var body: some View {
         Label(label, systemImage: icon).font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(highlighted ? Color(red: 0.72, green: 0.61, blue: 1) : .white.opacity(0.84))
+            .foregroundStyle(highlighted ? SlatePalette.accent : .white.opacity(0.84))
             .padding(.horizontal, 14).frame(height: 40)
-            .background(highlighted ? Color.purple.opacity(0.2) : .white.opacity(0.07), in: .capsule)
+            .background(highlighted ? SlatePalette.accent.opacity(0.19) : .white.opacity(0.07), in: .capsule)
     }
 }
 
@@ -305,7 +316,7 @@ private struct DiscoverPeopleSection: View {
                     ForEach(people) { person in
                         NavigationLink { PersonView(personId: person.id) } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                AsyncImage(url: person.profileURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
+                                CachedAsyncImage(url: person.profileURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
                                     .aspectRatio(1, contentMode: .fit).clipShape(.rect(cornerRadius: 13))
                                 Text(person.name).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                                 Text(person.subtitle ?? "").font(.system(size: 10)).foregroundStyle(.white.opacity(0.5)).lineLimit(1)
@@ -329,7 +340,7 @@ private struct DiscoverRecommendations: View {
                     ForEach(items) { title in
                         NavigationLink { DiscoverTitleView(mediaType: title.mediaType, tmdbId: title.tmdbId) } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                AsyncImage(url: title.posterURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
+                                CachedAsyncImage(url: title.posterURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
                                     .aspectRatio(2 / 3, contentMode: .fit).clipShape(.rect(cornerRadius: 13))
                                 Text(title.title).font(.system(size: 12, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                                 Text(title.year ?? "").font(.system(size: 11, design: .monospaced)).foregroundStyle(.white.opacity(0.48))
@@ -352,7 +363,7 @@ struct PersonView: View {
             if let person {
                 VStack(alignment: .leading, spacing: 24) {
                     HStack(alignment: .top, spacing: 20) {
-                        AsyncImage(url: person.profileURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
+                        CachedAsyncImage(url: person.profileURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
                             .frame(width: 128, height: 192).clipShape(.rect(cornerRadius: 18))
                         VStack(alignment: .leading, spacing: 8) {
                             Text(person.knownForDepartment.uppercased()).font(.caption.monospaced()).foregroundStyle(.secondary)

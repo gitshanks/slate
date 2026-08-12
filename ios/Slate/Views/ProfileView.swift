@@ -19,6 +19,13 @@ struct ProfileView: View {
         let shownAvatarData = previewData ?? model.avatarData
         let shownAvatarURL = model.profile?.avatarUrl
         let shownInitials = initials
+        let remoteAvatar = CachedAsyncImage(url: shownAvatarURL) { image in
+            image.resizable().scaledToFill()
+        } placeholder: {
+            Circle().fill(.white.opacity(0.07)).overlay {
+                Text(shownInitials).font(.title2.bold()).foregroundStyle(.secondary)
+            }
+        }
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 SlateSectionHeader(eyebrow: "Your slate", title: "Profile")
@@ -36,13 +43,7 @@ struct ProfileView: View {
                                let image = UIImage(data: imageData) {
                                 Image(uiImage: image).resizable().scaledToFill()
                             } else {
-                                AsyncImage(url: shownAvatarURL) { image in
-                                    image.resizable().scaledToFill()
-                                } placeholder: {
-                                    Circle().fill(.white.opacity(0.07)).overlay {
-                                        Text(shownInitials).font(.title2.bold()).foregroundStyle(.secondary)
-                                    }
-                                }
+                                remoteAvatar
                             }
                         }
                         .frame(width: 82, height: 82)
@@ -56,7 +57,7 @@ struct ProfileView: View {
                         Text(isPublic ? "PUBLIC" : "PRIVATE")
                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
                             .tracking(1.5)
-                            .foregroundStyle(SlatePalette.violet)
+                            .foregroundStyle(SlatePalette.accent)
                         TextField("Display name", text: $displayName)
                             .font(.system(size: 25, weight: .bold))
                             .tracking(-0.7)
@@ -86,14 +87,14 @@ struct ProfileView: View {
                     HStack(spacing: 14) {
                         Image(systemName: isPublic ? "globe" : "lock.fill")
                             .frame(width: 22)
-                            .foregroundStyle(SlatePalette.violet)
+                            .foregroundStyle(SlatePalette.accent)
                         VStack(alignment: .leading, spacing: 3) {
                             Text("Share your slate").font(.headline)
                             Text(isPublic ? "Anyone with your link can browse it." : "Your slate is private by default.")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Toggle("", isOn: $isPublic).labelsHidden().tint(SlatePalette.violet)
+                        Toggle("", isOn: $isPublic).labelsHidden().tint(SlatePalette.accent)
                     }
                     .padding(18)
 

@@ -48,6 +48,8 @@ interface MediaGridProps {
   reorderContext?: MediaGridReorderContext;
   readOnly?: boolean;
   titleHrefBase?: string;
+  /** Render only the leading titles while preserving the full sortable order. */
+  visibleCount?: number;
 }
 
 const titleSensors = [
@@ -133,9 +135,13 @@ export function MediaGrid(props: MediaGridProps) {
  * mounts a fresh sortable grid from the canonical order supplied by the server.
  */
 function OrderedMediaGrid(props: MediaGridProps) {
+  const visibleTitles = props.visibleCount
+    ? props.titles.slice(0, props.visibleCount)
+    : props.titles;
+
   return (
     <MotionGrid className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
-      {props.titles.map((title, index) => (
+      {visibleTitles.map((title, index) => (
         <motion.article
           key={title.id}
           variants={staggerChild}
@@ -162,6 +168,7 @@ function MediaGridState({
   reorderContext,
   readOnly = false,
   titleHrefBase,
+  visibleCount,
 }: MediaGridProps) {
   const [orderedTitles, setOrderedTitles] = useState(titles);
   const [announcement, setAnnouncement] = useState("");
@@ -221,7 +228,10 @@ function MediaGridState({
     [getPersistedOrder, reorderContext, titles]
   );
 
-  const canReorder = Boolean(reorderContext && orderedTitles.length > 1);
+  const visibleTitles = visibleCount
+    ? orderedTitles.slice(0, visibleCount)
+    : orderedTitles;
+  const canReorder = Boolean(reorderContext && visibleTitles.length > 1);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     suppressClicksUntilRef.current = Date.now() + 1_000;
@@ -271,7 +281,7 @@ function MediaGridState({
   if (readOnly) {
     return (
       <MotionGrid className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
-        {orderedTitles.map((title, index) => (
+        {visibleTitles.map((title, index) => (
           <motion.article key={title.id} variants={staggerChild}>
             <PosterCard
               title={title}
@@ -296,12 +306,12 @@ function MediaGridState({
       <DragSessionRecovery />
 
       <MotionGrid className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
-        {orderedTitles.map((title, index) => (
+        {visibleTitles.map((title, index) => (
           <SortablePoster
             key={title.id}
             title={title}
             index={index}
-            count={orderedTitles.length}
+            count={visibleTitles.length}
             disabled={!canReorder}
             priority={index < 8}
             suppressClicksUntilRef={suppressClicksUntilRef}

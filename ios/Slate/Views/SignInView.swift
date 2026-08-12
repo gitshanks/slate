@@ -301,7 +301,7 @@ private struct LandingPosterColumn: View {
     private func posterSequence(height: CGFloat, gap: CGFloat) -> some View {
         VStack(spacing: gap) {
             ForEach(Array(urls.enumerated()), id: \.offset) { _, url in
-                AsyncImage(url: url, transaction: Transaction(animation: nil)) { phase in
+                CachedAsyncPhaseImage(url: url, transaction: Transaction(animation: nil)) { phase in
                     if case .success(let image) = phase {
                         image.resizable().scaledToFill()
                     } else {

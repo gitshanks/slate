@@ -44,7 +44,7 @@ import space.s1ate.app.model.SlateProfile
 
 internal val SlateBackground = Color(0xFF0A0A0B)
 internal val SlateSurface = Color(0xFF111113)
-internal val SlateViolet = Color(0xFFA382FF)
+internal val SlateAccent = Color(0xFFADEBB3)
 internal val SlateMuted = Color.White.copy(alpha = 0.52f)
 internal val SlateHairline = Color.White.copy(alpha = 0.085f)
 
@@ -148,19 +148,19 @@ internal fun SlateBottomBar(
                         Modifier
                             .width(42.dp)
                             .height(2.dp)
-                            .background(if (selected) SlateViolet else Color.Transparent, CircleShape),
+                            .background(if (selected) SlateAccent else Color.Transparent, CircleShape),
                     )
                     Spacer(Modifier.height(8.dp))
                     Icon(
                         icon,
                         contentDescription = label,
-                        tint = if (selected) SlateViolet else Color.White.copy(alpha = 0.57f),
+                        tint = if (selected) SlateAccent else Color.White.copy(alpha = 0.57f),
                         modifier = Modifier.size(22.dp),
                     )
                     Spacer(Modifier.height(5.dp))
                     Text(
                         label,
-                        color = if (selected) SlateViolet else Color.White.copy(alpha = 0.57f),
+                        color = if (selected) SlateAccent else Color.White.copy(alpha = 0.57f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,

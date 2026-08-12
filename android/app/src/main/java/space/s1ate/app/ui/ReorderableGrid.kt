@@ -191,7 +191,7 @@ fun PosterTile(
                         Icon(
                             icon,
                             contentDescription = status.label,
-                            tint = if (title.status == status) SlateViolet else Color.White.copy(alpha = 0.72f),
+                            tint = if (title.status == status) SlateAccent else Color.White.copy(alpha = 0.72f),
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)

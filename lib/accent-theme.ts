@@ -1,5 +1,5 @@
 export const ACCENTS = [
-  { id: "violet",  label: "Violet",  swatch: "hsl(252 88% 62%)" },
+  { id: "mint",    label: "Slate mint", swatch: "#ADEBB3" },
   { id: "indigo",  label: "Indigo",  swatch: "hsl(231 48% 52%)" },
   { id: "sky",     label: "Sky",     swatch: "hsl(199 89% 42%)" },
   { id: "emerald", label: "Emerald", swatch: "hsl(160 84% 34%)" },
@@ -8,5 +8,5 @@ export const ACCENTS = [
 ] as const;
 
 export type AccentId = (typeof ACCENTS)[number]["id"];
-export const DEFAULT_ACCENT: AccentId = "violet";
+export const DEFAULT_ACCENT: AccentId = "mint";
 export const ACCENT_STORAGE_KEY = "slate-accent";

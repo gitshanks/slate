@@ -17,8 +17,10 @@
 		4503A99F0DDEB1D2D32FFB77 /* ListsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F13C29F2E10537F5EC01A70D /* ListsView.swift */; };
 		46971A2142727CD97173FAB0 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 81A172791584050D093B6E0E /* GRDB */; };
 		5222B71C6C3A9C5CFA34C389 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = F53CBBF554415347B1C735E8 /* GoogleSignIn */; };
+		5D723B86A48642AA9FB62904 /* ImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C06BA432AB4487BA17AA848 /* ImageCache.swift */; };
 		65BD63804076B0857DF23AC3 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0E5DD68D24D3565128F1EDD /* SignInView.swift */; };
 		72FA1E4E12D14DDB979461F8 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB5343C5D793D62550226DD /* SearchView.swift */; };
+		78D0443F368DAE2CECE30161 /* TrailerPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AF372B3889CCF8F6B4699AC /* TrailerPlayerView.swift */; };
 		8F238784A547D4B718FA76C2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AF2FF8F054673DFF516CE16C /* Assets.xcassets */; };
 		8FAD13177B4739FB58312363 /* SlateChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A66AB274E3865469654D32DF /* SlateChrome.swift */; };
 		92D1A50AF2B75EADDD6F4695 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E3E18EE42E8545800901F7D /* MainTabView.swift */; };
@@ -59,6 +61,8 @@
 		2600EBA6545B7C799B1214F2 /* LocalLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLibraryStore.swift; sourceTree = "<group>"; };
 		3DB5343C5D793D62550226DD /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		4BBB92CB283BD8A52070405C /* TitleDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleDetailView.swift; sourceTree = "<group>"; };
+		4C06BA432AB4487BA17AA848 /* ImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCache.swift; sourceTree = "<group>"; };
+		5AF372B3889CCF8F6B4699AC /* TrailerPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrailerPlayerView.swift; sourceTree = "<group>"; };
 		5C11B5704D112B07F510916D /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		5E3E18EE42E8545800901F7D /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		684C3A6D70FBBD57AA4A098E /* SlateApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlateApp.swift; sourceTree = "<group>"; };
@@ -105,6 +109,7 @@
 				C0E5DD68D24D3565128F1EDD /* SignInView.swift */,
 				A66AB274E3865469654D32DF /* SlateChrome.swift */,
 				4BBB92CB283BD8A52070405C /* TitleDetailView.swift */,
+				5AF372B3889CCF8F6B4699AC /* TrailerPlayerView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -162,6 +167,7 @@
 			isa = PBXGroup;
 			children = (
 				5C11B5704D112B07F510916D /* APIClient.swift */,
+				4C06BA432AB4487BA17AA848 /* ImageCache.swift */,
 				83A438C05FC7638677E73EDA /* KeychainStore.swift */,
 				2600EBA6545B7C799B1214F2 /* LocalLibraryStore.swift */,
 			);
@@ -290,6 +296,7 @@
 				0B0E0D7566600049B0E790D6 /* AppModel.swift in Sources */,
 				C6F7D96D7091FBE5809221DD /* ImportRecommendationsView.swift in Sources */,
 				E7501926F7554FFC3AF76FEB /* KeychainStore.swift in Sources */,
+				5D723B86A48642AA9FB62904 /* ImageCache.swift in Sources */,
 				4503A99F0DDEB1D2D32FFB77 /* ListsView.swift in Sources */,
 				0D246E28F4EAEB46202C2177 /* LocalLibraryStore.swift in Sources */,
 				92D1A50AF2B75EADDD6F4695 /* MainTabView.swift in Sources */,
@@ -301,6 +308,7 @@
 				4067D925F11F17AA15759EF8 /* SlateApp.swift in Sources */,
 				8FAD13177B4739FB58312363 /* SlateChrome.swift in Sources */,
 				CBBF3DEAE826423CD9D47599 /* TitleDetailView.swift in Sources */,
+				78D0443F368DAE2CECE30161 /* TrailerPlayerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

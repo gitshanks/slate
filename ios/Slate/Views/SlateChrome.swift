@@ -34,7 +34,7 @@ enum SlateTab: String, CaseIterable, Identifiable {
 enum SlatePalette {
     static let background = Color(red: 0.039, green: 0.039, blue: 0.043)
     static let surface = Color(red: 0.067, green: 0.067, blue: 0.075)
-    static let violet = Color(red: 0.64, green: 0.50, blue: 1)
+    static let accent = Color(red: 0.678, green: 0.922, blue: 0.702)
     static let muted = Color.white.opacity(0.52)
     static let hairline = Color.white.opacity(0.085)
 }
@@ -97,7 +97,7 @@ struct SlateTopBar: View {
             ProfileAvatarButton(profile: profile, data: avatarData, action: onProfile)
                 .overlay {
                     Circle()
-                        .stroke(profileIsOpen ? SlatePalette.violet : .clear, lineWidth: 1.5)
+                        .stroke(profileIsOpen ? SlatePalette.accent : .clear, lineWidth: 1.5)
                         .padding(-3)
                 }
 
@@ -146,7 +146,7 @@ struct SlateBottomBar: View {
                 } label: {
                     VStack(spacing: 6) {
                         Capsule()
-                            .fill(selection == tab ? SlatePalette.violet : .clear)
+                            .fill(selection == tab ? SlatePalette.accent : .clear)
                             .frame(width: 42, height: 2)
                             .padding(.bottom, 1)
 
@@ -158,7 +158,7 @@ struct SlateBottomBar: View {
                             .font(.system(size: 11, weight: .medium))
                             .lineLimit(1)
                     }
-                    .foregroundStyle(selection == tab ? SlatePalette.violet : Color.white.opacity(0.57))
+                    .foregroundStyle(selection == tab ? SlatePalette.accent : Color.white.opacity(0.57))
                     .frame(maxWidth: .infinity)
                     .contentShape(.rect)
                 }

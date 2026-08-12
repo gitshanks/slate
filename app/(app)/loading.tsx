@@ -39,8 +39,19 @@ export default function HomeLoading() {
 
       {/* Watchlist grid — matches MediaGrid */}
       <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i}>
+        {[
+          "",
+          "",
+          "hidden sm:block",
+          "hidden md:block",
+          "hidden lg:block",
+          "hidden 2xl:block",
+          "hidden 3xl:block",
+          "hidden 4xl:block",
+          "hidden 5xl:block",
+          "hidden 6xl:block",
+        ].map((visibility, i) => (
+          <div key={i} className={visibility}>
             <Skeleton className="aspect-[2/3] w-full rounded-xl" />
             {/* Title under poster shows on mobile only. */}
             <Skeleton shape="text" className="mt-2 h-3 w-4/5 sm:hidden" />
@@ -49,8 +60,14 @@ export default function HomeLoading() {
         ))}
       </div>
 
+      <div className="mt-6 flex items-center gap-3 sm:mt-8">
+        <span className="h-px flex-1 bg-border/70" />
+        <Skeleton className="h-11 w-40 rounded-full" />
+        <span className="h-px flex-1 bg-border/70" />
+      </div>
+
       {/* Discover section — the rails live under this header on the real page. */}
-      <div className="mt-20 border-t border-border/60 pt-12 sm:mt-24 sm:pt-16">
+      <div className="mt-12 border-t border-border/60 pt-10 sm:mt-16 sm:pt-12">
         <Skeleton shape="text" className="h-3 w-20" />
         <Skeleton className="mt-1 h-8 w-56 rounded-md" />
         <RailSkeleton className="mt-6" />

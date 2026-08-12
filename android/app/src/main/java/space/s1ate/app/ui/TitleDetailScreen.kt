@@ -105,6 +105,7 @@ fun TitleDetailScreen(
     var listSheet by remember { mutableStateOf(false) }
     var noteDialog by remember { mutableStateOf(false) }
     var removeDialog by remember { mutableStateOf(false) }
+    var trailerKey by remember { mutableStateOf<String?>(null) }
     val current = detail?.title ?: title
 
     fun launchUrl(value: String) {
@@ -277,7 +278,7 @@ fun TitleDetailScreen(
                 detail?.trailerKey?.let { key ->
                     SheetAction("Watch trailer", Icons.Outlined.PlayArrow) {
                         moreSheet = false
-                        launchUrl("https://www.youtube.com/watch?v=$key")
+                        trailerKey = key
                     }
                 }
                 if (!detail?.watchProviders?.providers.isNullOrEmpty()) {
@@ -390,6 +391,14 @@ fun TitleDetailScreen(
         )
     }
 
+    trailerKey?.let { key ->
+        TrailerPlayer(
+            videoId = key,
+            title = current.title,
+            onDismiss = { trailerKey = null },
+        )
+    }
+
 }
 
 @Composable
@@ -429,14 +438,14 @@ private fun ActionPill(label: String, icon: androidx.compose.ui.graphics.vector.
     Row(
         Modifier
             .clip(CircleShape)
-            .background(if (highlighted) SlateViolet.copy(alpha = 0.19f) else Color.White.copy(alpha = 0.07f))
+            .background(if (highlighted) SlateAccent.copy(alpha = 0.19f) else Color.White.copy(alpha = 0.07f))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 11.dp),
         horizontalArrangement = Arrangement.spacedBy(7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, tint = if (highlighted) SlateViolet else Color.White.copy(alpha = 0.82f), modifier = Modifier.size(17.dp))
-        Text(label, color = if (highlighted) SlateViolet else Color.White.copy(alpha = 0.82f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Icon(icon, null, tint = if (highlighted) SlateAccent else Color.White.copy(alpha = 0.82f), modifier = Modifier.size(17.dp))
+        Text(label, color = if (highlighted) SlateAccent else Color.White.copy(alpha = 0.82f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -555,7 +564,7 @@ private fun ListSheet(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(list.name, color = Color.White, modifier = Modifier.weight(1f))
-                    if (list.containsTitle) Icon(Icons.Outlined.Check, null, tint = SlateViolet)
+                    if (list.containsTitle) Icon(Icons.Outlined.Check, null, tint = SlateAccent)
                 }
             }
             OutlinedTextField(
@@ -569,7 +578,7 @@ private fun ListSheet(
                 onClick = { busy = true; scope.launch { onCreate(name.trim()); busy = false } },
                 enabled = name.isNotBlank() && !busy,
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = SlateViolet, contentColor = Color.Black),
+                colors = ButtonDefaults.buttonColors(containerColor = SlateAccent, contentColor = Color(0xFF102113)),
             ) { Text("Create and add", fontWeight = FontWeight.SemiBold) }
         }
     }

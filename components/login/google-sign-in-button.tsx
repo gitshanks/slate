@@ -16,7 +16,7 @@ export function GoogleSignInButton({
       disabled={pending}
       aria-label={pending ? "Opening Google" : label}
       aria-describedby="google-sign-in-note"
-      className="group relative flex h-[58px] w-full items-center justify-center overflow-hidden rounded-2xl border border-white/[0.1] bg-[#1b1b1b] px-6 text-sm font-semibold text-white shadow-[0_18px_55px_rgba(0,0,0,0.38),inset_0_1px_rgba(255,255,255,0.04)] transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:border-white/[0.17] hover:bg-[#232323] active:translate-y-0 active:scale-[0.985] disabled:cursor-wait disabled:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a78bfa] focus-visible:ring-offset-4 focus-visible:ring-offset-black"
+      className="group relative flex h-[58px] w-full items-center justify-center overflow-hidden rounded-2xl border border-white/[0.1] bg-[#1b1b1b] px-6 text-sm font-semibold text-white shadow-[0_18px_55px_rgba(0,0,0,0.38),inset_0_1px_rgba(255,255,255,0.04)] transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:border-white/[0.17] hover:bg-[#232323] active:translate-y-0 active:scale-[0.985] disabled:cursor-wait disabled:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ADEBB3] focus-visible:ring-offset-4 focus-visible:ring-offset-black"
     >
       <span
         aria-hidden
@@ -36,9 +36,9 @@ export function GoogleSignInButton({
         }`}
       >
         <span className="flex items-center gap-1" aria-hidden>
-          <span className="loading-dot h-1.5 w-1.5 rounded-full bg-[#7957df] [animation-delay:-180ms]" />
-          <span className="loading-dot h-1.5 w-1.5 rounded-full bg-[#7957df] [animation-delay:-90ms]" />
-          <span className="loading-dot h-1.5 w-1.5 rounded-full bg-[#7957df]" />
+          <span className="loading-dot h-1.5 w-1.5 rounded-full bg-[#ADEBB3] [animation-delay:-180ms]" />
+          <span className="loading-dot h-1.5 w-1.5 rounded-full bg-[#ADEBB3] [animation-delay:-90ms]" />
+          <span className="loading-dot h-1.5 w-1.5 rounded-full bg-[#ADEBB3]" />
         </span>
         Opening Google
       </span>

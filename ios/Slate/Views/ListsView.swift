@@ -139,7 +139,7 @@ private struct ListSummaryCard: View {
                 } else {
                     HStack(spacing: -32) {
                         ForEach(Array(list.posters.prefix(4).enumerated()), id: \.offset) { index, url in
-                            AsyncImage(url: url) { image in
+                            CachedAsyncImage(url: url) { image in
                                 image.resizable().scaledToFill()
                             } placeholder: { Color(white: 0.1) }
                             .frame(width: 92, height: 138)
@@ -325,14 +325,14 @@ private struct AddCandidatesSheet: View {
                     Task { if await onAdd(title) { dismiss() } }
                 } label: {
                     HStack(spacing: 13) {
-                        AsyncImage(url: title.posterURL) { image in image.resizable().scaledToFill() } placeholder: { Color.gray.opacity(0.15) }
+                        CachedAsyncImage(url: title.posterURL) { image in image.resizable().scaledToFill() } placeholder: { Color.gray.opacity(0.15) }
                             .frame(width: 44, height: 66).clipShape(.rect(cornerRadius: 7))
                         VStack(alignment: .leading) {
                             Text(title.title).foregroundStyle(.primary)
                             Text(title.year ?? title.mediaType.rawValue.capitalized).font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Image(systemName: "plus.circle.fill").foregroundStyle(.purple)
+                        Image(systemName: "plus.circle.fill").foregroundStyle(SlatePalette.accent)
                     }
                 }
             }

@@ -7,6 +7,7 @@ import { TmdbRailAsync } from "@/components/tmdb-rail-async";
 import { FilteredGrid } from "@/components/filtered-grid";
 import { Film } from "lucide-react";
 import { OpenPaletteHint } from "@/components/open-palette-hint";
+import { DiscoverJumpButton } from "@/components/discover-jump-button";
 import { fetchTitlesByStatus } from "@/lib/title-filters";
 import { getTrending, getNowPlaying, getRecommendedFromWatched } from "@/lib/tmdb";
 
@@ -48,9 +49,12 @@ export default async function WatchlistPage() {
             Up next
           </h1>
         </div>
-        <p className="hidden text-xs text-muted-foreground sm:block">
-          {allTitles.length} {allTitles.length === 1 ? "title" : "titles"}
-        </p>
+        <div className="flex items-center gap-1 sm:gap-3">
+          <p className="hidden text-xs text-muted-foreground sm:block">
+            {allTitles.length} {allTitles.length === 1 ? "title" : "titles"}
+          </p>
+          <DiscoverJumpButton />
+        </div>
       </div>
 
       <FilterBar genres={allGenres} />
@@ -64,12 +68,15 @@ export default async function WatchlistPage() {
         />
       ) : (
         <Suspense fallback={null}>
-          <FilteredGrid allTitles={allTitles} status="want" />
+          <FilteredGrid allTitles={allTitles} status="want" collapsible />
         </Suspense>
       )}
 
-      {/* The library ends here; the discovery rails pick up below. */}
-      <div className="relative mt-20 border-t border-border/60 pt-12 sm:mt-24 sm:pt-16">
+      {/* The compact library preview keeps discovery within immediate reach. */}
+      <div
+        id="discover"
+        className="relative mt-12 scroll-mt-5 border-t border-border/60 pt-10 sm:mt-16 sm:scroll-mt-6 sm:pt-12 md:scroll-mt-24"
+      >
         <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">

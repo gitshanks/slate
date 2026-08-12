@@ -57,7 +57,7 @@ struct MainTabView: View {
                 showProfile: .constant(false)
             )
         }
-        .tint(SlatePalette.violet)
+        .tint(SlatePalette.accent)
         .preferredColorScheme(.dark)
     }
 
@@ -293,7 +293,7 @@ private struct LibraryFilters: View {
                 .background {
                     if media == value {
                         RoundedRectangle(cornerRadius: 18)
-                            .fill(Color(red: 0.58, green: 0.43, blue: 0.96))
+                            .fill(SlatePalette.accent)
                             .matchedGeometryEffect(id: "media-selection", in: mediaSelection)
                     }
                 }
@@ -316,7 +316,7 @@ private struct FilterChip: View {
         .font(.caption.weight(.semibold))
         .foregroundStyle(active ? Color.black : .secondary)
         .padding(.horizontal, 14).frame(height: 38)
-        .background(active ? Color(red: 0.66, green: 0.52, blue: 1) : .white.opacity(0.055), in: .capsule)
+        .background(active ? SlatePalette.accent : .white.opacity(0.055), in: .capsule)
         .overlay { Capsule().stroke(.white.opacity(active ? 0 : 0.1), lineWidth: 0.7) }
     }
 }
@@ -329,7 +329,7 @@ struct PosterCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             ZStack {
-                AsyncImage(url: title.posterURL, transaction: .init(animation: .smooth)) { phase in
+                CachedAsyncPhaseImage(url: title.posterURL, transaction: .init(animation: .smooth)) { phase in
                     switch phase {
                     case .success(let image): image.resizable().scaledToFill()
                     case .failure: posterPlaceholder
@@ -414,7 +414,7 @@ struct PosterCard: View {
         } label: {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(title.status == status ? SlatePalette.violet : Color.white.opacity(0.74))
+                .foregroundStyle(title.status == status ? SlatePalette.accent : Color.white.opacity(0.74))
                 .frame(width: 36, height: 38)
         }
         .buttonStyle(SlatePressStyle())
@@ -440,7 +440,7 @@ struct PosterCard: View {
 struct PosterDragPreview: View {
     let title: SlateTitle
     var body: some View {
-        AsyncImage(url: title.posterURL) { image in
+        CachedAsyncImage(url: title.posterURL) { image in
             image.resizable().scaledToFill()
         } placeholder: {
             Color(white: 0.1)
@@ -490,7 +490,7 @@ struct ProfileAvatarButton: View {
                 if let data, let image = UIImage(data: data) {
                     Image(uiImage: image).resizable().scaledToFill()
                 } else {
-                    AsyncImage(url: profile?.avatarUrl) { image in
+                    CachedAsyncImage(url: profile?.avatarUrl) { image in
                         image.resizable().scaledToFill()
                     } placeholder: {
                         Circle().fill(.white.opacity(0.1)).overlay {

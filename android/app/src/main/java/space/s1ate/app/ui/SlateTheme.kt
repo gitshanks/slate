@@ -6,8 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val SlateColors = darkColorScheme(
-    primary = Color(0xFFA382FF),
-    onPrimary = Color(0xFF100C18),
+    primary = Color(0xFFADEBB3),
+    onPrimary = Color(0xFF102113),
     background = Color(0xFF0A0A0B),
     onBackground = Color(0xFFF5F2F7),
     surface = Color(0xFF111113),

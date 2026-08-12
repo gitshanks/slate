@@ -64,7 +64,7 @@ struct ImportRecommendationsView: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.black)
-                    .background(Color(red: 0.66, green: 0.52, blue: 1), in: .rect(cornerRadius: 16))
+                    .background(SlatePalette.accent, in: .rect(cornerRadius: 16))
                     .disabled(resolving || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
                 }
@@ -140,7 +140,7 @@ private struct ImportCandidateRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            AsyncImage(url: candidate.posterURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
+            CachedAsyncImage(url: candidate.posterURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
                 .frame(width: 62, height: 93).clipShape(.rect(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 5) {
                 Text(candidate.title).font(.headline).lineLimit(2)
@@ -156,7 +156,7 @@ private struct ImportCandidateRow: View {
                     .font(.subheadline.bold())
                     .foregroundStyle(added ? .black : .white)
                     .frame(width: 38, height: 38)
-                    .background(added ? .white.opacity(0.86) : Color.purple.opacity(0.3), in: .circle)
+                    .background(added ? .white.opacity(0.86) : SlatePalette.accent.opacity(0.3), in: .circle)
             }
             .disabled(added)
         }

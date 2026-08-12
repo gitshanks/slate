@@ -110,7 +110,7 @@ fun SearchScreen(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(16.dp),
             )
-            TextButton(onBack) { Text("Cancel", color = SlateViolet, fontWeight = FontWeight.SemiBold) }
+            TextButton(onBack) { Text("Cancel", color = SlateAccent, fontWeight = FontWeight.SemiBold) }
         }
         when {
             query.isBlank() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -219,6 +219,7 @@ fun DiscoverScreen(
     var detail by remember(mediaType, tmdbId) { mutableStateOf<DiscoverDetailPayload?>(null) }
     var addMenu by remember { mutableStateOf(false) }
     var adding by remember { mutableStateOf(false) }
+    var trailerKey by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(mediaType, tmdbId) {
         runCatching { model.discover(mediaType, tmdbId) }
@@ -266,9 +267,8 @@ fun DiscoverScreen(
                                 }
                             }
                             current.trailerKey?.let { key ->
-                                val context = androidx.compose.ui.platform.LocalContext.current
                                 DiscoveryPill("Trailer", Icons.Outlined.PlayArrow) {
-                                    context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://www.youtube.com/watch?v=$key")))
+                                    trailerKey = key
                                 }
                             }
                         }
@@ -283,16 +283,24 @@ fun DiscoverScreen(
             }
         }
     }
+
+    trailerKey?.let { key ->
+        TrailerPlayer(
+            videoId = key,
+            title = detail?.title?.title.orEmpty(),
+            onDismiss = { trailerKey = null },
+        )
+    }
 }
 
 @Composable
 private fun DiscoveryPill(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, highlighted: Boolean = false, onClick: () -> Unit) {
     Row(
-        Modifier.clip(CircleShape).background(if (highlighted) Color(0xFF9B7BFF).copy(0.2f) else Color.White.copy(0.07f)).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 11.dp),
+        Modifier.clip(CircleShape).background(if (highlighted) SlateAccent.copy(0.19f) else Color.White.copy(0.07f)).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 11.dp),
         horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, Modifier.size(17.dp), tint = if (highlighted) Color(0xFFB89BFF) else Color.White.copy(0.82f))
-        Text(label, color = if (highlighted) Color(0xFFB89BFF) else Color.White.copy(0.82f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Icon(icon, null, Modifier.size(17.dp), tint = if (highlighted) SlateAccent else Color.White.copy(0.82f))
+        Text(label, color = if (highlighted) SlateAccent else Color.White.copy(0.82f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

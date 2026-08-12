@@ -10,7 +10,6 @@ struct TitleDetailView: View {
 
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
 
     let title: SlateTitle
 
@@ -19,53 +18,61 @@ struct TitleDetailView: View {
     @State private var presentedSheet: PresentedSheet?
     @State private var showRemoveConfirmation = false
     @State private var errorMessage: String?
+    @State private var trailer: TrailerPresentation?
 
     private var currentTitle: SlateTitle { detail?.title ?? title }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.black.ignoresSafeArea()
-            backdrop
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                Color.black.ignoresSafeArea()
+                backdrop
+                    .frame(width: proxy.size.width)
+                    .clipped()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    metadata
-                    Text(currentTitle.title)
-                        .font(.system(size: 32, weight: .semibold))
-                        .tracking(-1.1)
-                        .padding(.top, 8)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        metadata
+                        Text(currentTitle.title)
+                            .font(.system(size: 32, weight: .semibold))
+                            .tracking(-1.1)
+                            .padding(.top, 8)
 
-                    actions
-                        .padding(.top, 22)
+                        actions
+                            .padding(.top, 22)
 
-                    if let overview = currentTitle.overview, !overview.isEmpty {
-                        Text(overview)
-                            .font(.system(size: 16))
-                            .foregroundStyle(.white.opacity(0.82))
-                            .lineSpacing(5)
-                            .padding(.top, 24)
+                        if let overview = currentTitle.overview, !overview.isEmpty {
+                            Text(overview)
+                                .font(.system(size: 16))
+                                .foregroundStyle(.white.opacity(0.82))
+                                .lineSpacing(5)
+                                .padding(.top, 24)
+                        }
+
+                        if let review = currentTitle.review, !review.isEmpty {
+                            noteCard(review)
+                                .padding(.top, 30)
+                        }
+
+                        if loading {
+                            ProgressView()
+                                .tint(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 70)
+                        } else if let detail {
+                            peopleSection(title: "Cast", people: detail.cast)
+                            peopleSection(title: "Crew", people: detail.crew)
+                            recommendationsSection(detail.recommendations)
+                        }
                     }
-
-                    if let review = currentTitle.review, !review.isEmpty {
-                        noteCard(review)
-                            .padding(.top, 30)
-                    }
-
-                    if loading {
-                        ProgressView()
-                            .tint(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 70)
-                    } else if let detail {
-                        peopleSection(title: "Cast", people: detail.cast)
-                        peopleSection(title: "Crew", people: detail.crew)
-                        recommendationsSection(detail.recommendations)
-                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 18)
+                    .padding(.top, 30)
+                    .padding(.bottom, 56)
                 }
-                .padding(.horizontal, 18)
-                .padding(.top, 30)
-                .padding(.bottom, 56)
+                .frame(width: proxy.size.width)
             }
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
         .preferredColorScheme(.dark)
         .navigationBarTitleDisplayMode(.inline)
@@ -98,6 +105,9 @@ struct TitleDetailView: View {
                 .presentationBackground(.ultraThinMaterial)
             }
         }
+        .fullScreenCover(item: $trailer) { trailer in
+            TrailerPlayerView(trailer: trailer)
+        }
         .confirmationDialog(
             "Remove \(currentTitle.title) from your library?",
             isPresented: $showRemoveConfirmation,
@@ -123,13 +133,14 @@ struct TitleDetailView: View {
 
     private var backdrop: some View {
         ZStack {
-            AsyncImage(url: currentTitle.backdropURL) { phase in
+            CachedAsyncPhaseImage(url: currentTitle.backdropURL) { phase in
                 if case .success(let image) = phase {
                     image.resizable().scaledToFill()
                 } else {
                     Rectangle().fill(Color(white: 0.08))
                 }
             }
+            .frame(maxWidth: .infinity)
             .frame(height: 760)
             .clipped()
 
@@ -144,7 +155,9 @@ struct TitleDetailView: View {
                 endPoint: .trailing
             )
         }
+        .frame(maxWidth: .infinity)
         .frame(height: 760)
+        .clipped()
     }
 
     private var metadata: some View {
@@ -206,9 +219,7 @@ struct TitleDetailView: View {
                 Menu {
                     if let trailerKey = detail?.trailerKey {
                         Button {
-                            if let url = URL(string: "https://www.youtube.com/watch?v=\(trailerKey)") {
-                                openURL(url)
-                            }
+                            trailer = TrailerPresentation(videoID: trailerKey, title: currentTitle.title)
                         } label: { Label("Watch trailer", systemImage: "play.fill") }
                     }
                     if detail?.watchProviders != nil {
@@ -266,7 +277,7 @@ struct TitleDetailView: View {
                             PersonView(personId: person.id)
                         } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                AsyncImage(url: person.profileURL) { phase in
+                                CachedAsyncPhaseImage(url: person.profileURL) { phase in
                                     if case .success(let image) = phase {
                                         image.resizable().scaledToFill()
                                     } else {
@@ -321,7 +332,7 @@ struct TitleDetailView: View {
                             )
                         } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                AsyncImage(url: recommendation.posterURL) { phase in
+                                CachedAsyncPhaseImage(url: recommendation.posterURL) { phase in
                                     if case .success(let image) = phase {
                                         image.resizable().scaledToFill()
                                     } else {
@@ -394,19 +405,19 @@ struct TitleDetailView: View {
     private func actionPill(_ label: String, icon: String, highlighted: Bool = false) -> some View {
         Label(label, systemImage: icon)
             .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(highlighted ? Color(red: 0.72, green: 0.61, blue: 1) : .white.opacity(0.82))
+            .foregroundStyle(highlighted ? SlatePalette.accent : .white.opacity(0.82))
             .padding(.horizontal, 14)
             .frame(height: 40)
             .background(
                 highlighted
-                    ? Color(red: 0.45, green: 0.3, blue: 0.85).opacity(0.22)
+                    ? SlatePalette.accent.opacity(0.19)
                     : .white.opacity(0.07),
                 in: .capsule
             )
             .overlay {
                 Capsule().stroke(
                     highlighted
-                        ? Color(red: 0.64, green: 0.49, blue: 1).opacity(0.35)
+                        ? SlatePalette.accent.opacity(0.35)
                         : .white.opacity(0.12),
                     lineWidth: 0.7
                 )
@@ -571,7 +582,7 @@ private struct ProviderPickerSheet: View {
                     if let url = providerURL(provider, titleName: titleName) { openURL(url) }
                 } label: {
                     HStack(spacing: 14) {
-                        AsyncImage(url: provider.logoURL) { phase in
+                        CachedAsyncPhaseImage(url: provider.logoURL) { phase in
                             if case .success(let image) = phase {
                                 image.resizable().scaledToFill()
                             } else { Color.white.opacity(0.08) }
@@ -631,7 +642,7 @@ private struct ListPickerSheet: View {
                                 Text(list.name).foregroundStyle(.primary)
                                 Spacer()
                                 if list.containsTitle {
-                                    Image(systemName: "checkmark").foregroundStyle(.purple)
+                                    Image(systemName: "checkmark").foregroundStyle(SlatePalette.accent)
                                 }
                             }
                         }
