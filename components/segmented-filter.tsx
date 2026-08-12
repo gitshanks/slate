@@ -15,6 +15,7 @@ interface SegmentedFilterProps {
   options: readonly SegmentedFilterOption[];
   value: string;
   onValueChange: (value: string) => void;
+  fullHeight?: boolean;
   className?: string;
 }
 
@@ -23,6 +24,7 @@ export function SegmentedFilter({
   options,
   value,
   onValueChange,
+  fullHeight = false,
   className,
 }: SegmentedFilterProps) {
   const reduceMotion = useReducedMotion();
@@ -32,7 +34,8 @@ export function SegmentedFilter({
       <div
         className={cn(
           "inline-flex h-9 items-center rounded-full border border-border bg-card p-1 shadow-sm",
-          className
+          fullHeight && "p-0",
+          className,
         )}
       >
         {options.map(({ value: optionValue, label, icon: Icon }) => {
@@ -44,7 +47,8 @@ export function SegmentedFilter({
               aria-pressed={active}
               onClick={() => onValueChange(optionValue)}
               className={cn(
-                "filter-segment relative isolate inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium",
+                "filter-segment relative isolate inline-flex items-center justify-center rounded-full px-3 py-1.5 text-center text-xs font-medium",
+                fullHeight && "h-full py-0",
                 active
                   ? "text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -62,7 +66,7 @@ export function SegmentedFilter({
                   }
                 />
               )}
-              <span className="relative z-10 inline-flex items-center gap-1.5">
+              <span className="relative z-10 inline-flex items-center justify-center gap-1.5">
                 <Icon className="h-3.5 w-3.5" />
                 {label}
               </span>

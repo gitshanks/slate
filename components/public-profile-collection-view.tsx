@@ -56,16 +56,19 @@ export function PublicProfileCollectionView({
   const router = useRouter();
   const searchParams = useSearchParams();
   const normalizedQuery = query.trim().toLocaleLowerCase();
+  const status = searchParams.get("spaceStatus");
   const filterParams = React.useMemo(
     () => ({
       type: searchParams.get("type") ?? undefined,
       genre: searchParams.get("genre") ?? undefined,
       year: searchParams.get("year") ?? undefined,
-      sentiment: searchParams.get("sentiment") ?? undefined,
+      sentiment:
+        status === "watched"
+          ? (searchParams.get("sentiment") ?? undefined)
+          : undefined,
     }),
-    [searchParams],
+    [searchParams, status],
   );
-  const status = searchParams.get("spaceStatus");
   const filteredTitles = React.useMemo(() => {
     const scopedTitles =
       status === "want" || status === "watching" || status === "watched"
@@ -253,14 +256,15 @@ export function PublicProfileCollectionView({
                 genres={genres}
                 showSort={false}
                 typeDisplay="menu"
-                showSentiment
+                showSentiment={status === "watched"}
                 sentimentDisplay="menu"
                 statusOptions={STATUS_OPTIONS}
                 statusParam="spaceStatus"
+                fullHeightStatus
                 idPrefix="space"
                 popoverClassName="z-[80]"
                 groupControls
-                className="mb-0 w-max flex-nowrap gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5"
+                className="mb-0 w-max flex-nowrap gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5"
               />
             </div>
           </div>

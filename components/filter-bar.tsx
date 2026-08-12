@@ -34,6 +34,8 @@ export interface FilterBarProps {
   statusOptions?: readonly SegmentedFilterOption[];
   /** URL parameter used by the optional collection scope. */
   statusParam?: string;
+  /** Lets status segments match the height of adjacent filter chips. */
+  fullHeightStatus?: boolean;
   /** Keeps Motion layout IDs unique when multiple filter bars are mounted. */
   idPrefix?: string;
   /** Extra layer styling for filters rendered inside fixed chrome. */
@@ -74,6 +76,7 @@ export function FilterBar({
   recentSortLabel = "Recently added",
   statusOptions,
   statusParam = "status",
+  fullHeightStatus = false,
   idPrefix = "library",
   popoverClassName,
   groupControls = false,
@@ -165,6 +168,7 @@ export function FilterBar({
             options={statusOptions}
             value={currentStatus}
             onValueChange={(value) => setParam(statusParam, value)}
+            fullHeight={fullHeightStatus}
           />
         )}
 
@@ -190,6 +194,7 @@ export function FilterBar({
           <PopoverTrigger asChild>
             <button
               type="button"
+              data-active={Boolean(currentType)}
               className={cn(
                 "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
                 currentType
@@ -246,6 +251,7 @@ export function FilterBar({
           <PopoverTrigger asChild>
             <button
               type="button"
+              data-active={Boolean(currentSentiment)}
               className={cn(
                 "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
                 currentSentiment
@@ -296,6 +302,7 @@ export function FilterBar({
           <PopoverTrigger asChild>
             <button
               type="button"
+              data-active={Boolean(activeGenre)}
               className={cn(
                 "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
                 activeGenre
@@ -352,6 +359,7 @@ export function FilterBar({
         <PopoverTrigger asChild>
           <button
             type="button"
+            data-active={Boolean(currentYear)}
             className={cn(
               "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
               currentYear
@@ -393,6 +401,7 @@ export function FilterBar({
           <PopoverTrigger asChild>
             <button
               type="button"
+              data-active={Boolean(currentSort)}
               className={cn(
                 "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
                 currentSort
