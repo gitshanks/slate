@@ -1,11 +1,9 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, Clock, Eye, Film, UserRound } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
-import { FilterBar } from "@/components/filter-bar";
-import { FilteredGrid } from "@/components/filtered-grid";
+import { PublicProfileCollectionView } from "@/components/public-profile-collection-view";
 import { getPublicProfile, profileAvatarUrl } from "@/lib/profiles";
 import { fetchTitlesByStatusForOwner } from "@/lib/title-filters";
 import { cn } from "@/lib/utils";
@@ -135,38 +133,39 @@ export default async function PublicProfilePage({
         </nav>
 
         <div className="mt-8 sm:mt-9">
-          <div className="mb-6">
-            <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground">
-              {active.id === "watchlist"
-                ? "Up next"
-                : active.id === "watching"
-                  ? "In progress"
-                  : "Already seen"}
-            </p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-tight">{active.label}</h2>
-          </div>
-
-          <FilterBar
-            genres={result.allGenres}
-            showSentiment={active.status === "watched"}
-            recentSortLabel={active.status === "watched" ? "Recently watched" : undefined}
-          />
-
           {result.titles.length === 0 ? (
-            <EmptyState
-              icon={<Film className="h-6 w-6" />}
-              title={`Nothing in ${active.label.toLowerCase()} yet`}
-              description="This shelf is waiting for its first title."
-            />
-          ) : (
-            <Suspense fallback={null}>
-              <FilteredGrid
-                allTitles={result.titles}
-                status={active.status}
-                readOnly
-                titleHrefBase={`/u/${profile.username}/title`}
+            <>
+              <div className="mb-6">
+                <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  {active.id === "watchlist"
+                    ? "Up next"
+                    : active.id === "watching"
+                      ? "In progress"
+                      : "Already seen"}
+                </p>
+                <h2 className="mt-1 text-3xl font-semibold tracking-tight">{active.label}</h2>
+              </div>
+              <EmptyState
+                icon={<Film className="h-6 w-6" />}
+                title={`Nothing in ${active.label.toLowerCase()} yet`}
+                description="This shelf is waiting for its first title."
               />
-            </Suspense>
+            </>
+          ) : (
+            <PublicProfileCollectionView
+              eyebrow={
+                active.id === "watchlist"
+                  ? "Up next"
+                  : active.id === "watching"
+                    ? "In progress"
+                    : "Already seen"
+              }
+              label={active.label}
+              titles={result.titles}
+              genres={result.allGenres}
+              status={active.status}
+              username={profile.username}
+            />
           )}
         </div>
     </main>
