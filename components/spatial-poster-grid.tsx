@@ -9,6 +9,7 @@ import {
   useReducedMotion,
   useTransform,
   type AnimationPlaybackControls,
+  type MotionValue,
 } from "motion/react";
 import {
   Check,
@@ -45,9 +46,6 @@ interface SpatialPosterGridProps {
 interface SpatialPoint {
   x: number;
   y: number;
-  z: number;
-  rotateX: number;
-  rotateY: number;
 }
 
 interface SpatialCell {
@@ -79,8 +77,11 @@ const POSTER_WIDTH = 142;
 const POSTER_HEIGHT = 213;
 const COLUMN_GAP = 206;
 const ROW_GAP = 286;
-const HORIZONTAL_OVERSCAN = 6;
+const HORIZONTAL_OVERSCAN = 4;
 const VERTICAL_OVERSCAN = 3;
+const LENS_MIN_SCALE = 0.5;
+const LENS_SCALE_RANGE = 0.76;
+const LENS_DEPTH = 190;
 
 function modulo(value: number, divisor: number) {
   return ((value % divisor) + divisor) % divisor;
@@ -91,28 +92,17 @@ function spatialPoint(
   column: number,
   rows: number,
   columns: number,
-  reducedMotion: boolean,
 ): SpatialPoint {
-  const canonicalRow = modulo(row, rows);
-  const canonicalColumn = modulo(column, columns);
   const centeredColumn = column - (columns - 1) / 2;
   const centeredRow = row - (rows - 1) / 2;
-  const canonicalCenteredColumn = canonicalColumn - (columns - 1) / 2;
-  const wave = Math.sin(canonicalColumn * 1.31 + canonicalRow * 0.77);
-  const alternate = ((canonicalColumn + canonicalRow * 2) % 5) - 2;
 
   return {
     x: centeredColumn * COLUMN_GAP,
     y: centeredRow * ROW_GAP,
-    z: reducedMotion ? 0 : wave * 54 + alternate * 11,
-    rotateX: reducedMotion ? 0 : wave * -1.3,
-    rotateY: reducedMotion
-      ? 0
-      : canonicalCenteredColumn * -1.05 + alternate * 0.45,
   };
 }
 
-function spatialLayout(count: number, reducedMotion: boolean): SpatialLayout {
+function spatialLayout(count: number): SpatialLayout {
   if (count <= 0) {
     return { points: [], cells: [], periodX: 0, periodY: 0 };
   }
@@ -125,7 +115,6 @@ function spatialLayout(count: number, reducedMotion: boolean): SpatialLayout {
       index % columns,
       rows,
       columns,
-      reducedMotion,
     ),
   );
   const cells: SpatialCell[] = [];
@@ -141,7 +130,7 @@ function spatialLayout(count: number, reducedMotion: boolean): SpatialLayout {
       cells.push({
         key: `${row}:${column}`,
         titleIndex: canonicalCell % count,
-        point: spatialPoint(row, column, rows, columns, reducedMotion),
+        point: spatialPoint(row, column, rows, columns),
         canonical:
           row >= 0 &&
           row < rows &&
@@ -168,6 +157,10 @@ function wrapCamera(value: number, period: number) {
 function nearestRepeatedTarget(target: number, current: number, period: number) {
   if (period <= 0) return target;
   return target + Math.round((current - target) / period) * period;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function shelfPresentation(title: TitleRow) {
@@ -209,6 +202,147 @@ function sentimentPresentation(title: TitleRow) {
     return { label: "Disliked", icon: ThumbsDown, className: "text-amber-400" };
   }
   return null;
+}
+
+function FisheyePosterCell({
+  cell,
+  title,
+  selectedId,
+  reducedMotion,
+  cameraScale,
+  wrappedCameraX,
+  wrappedCameraY,
+  viewportWidth,
+  viewportHeight,
+  draggedRef,
+  onSelect,
+  onClose,
+}: {
+  cell: SpatialCell;
+  title: TitleRow;
+  selectedId: string | null;
+  reducedMotion: boolean;
+  cameraScale: MotionValue<number>;
+  wrappedCameraX: MotionValue<number>;
+  wrappedCameraY: MotionValue<number>;
+  viewportWidth: MotionValue<number>;
+  viewportHeight: MotionValue<number>;
+  draggedRef: React.RefObject<boolean>;
+  onSelect: (title: TitleRow) => void;
+  onClose: () => void;
+}) {
+  const point = cell.point;
+  const src = posterUrl(title.poster_path, "w500");
+  const selected = title.id === selectedId;
+  const shelf = shelfPresentation(title);
+  const PosterShelfIcon = shelf.icon;
+  const lensTransform = useTransform(() => {
+    const worldScale = cameraScale.get();
+    const screenX = point.x * worldScale + wrappedCameraX.get();
+    const screenY = point.y * worldScale + wrappedCameraY.get();
+    const radiusX = Math.max(300, viewportWidth.get() * 0.56);
+    const radiusY = Math.max(360, viewportHeight.get() * 0.62);
+    const normalizedX = screenX / radiusX;
+    const normalizedY = screenY / radiusY;
+    const distance = Math.sqrt(
+      normalizedX * normalizedX + normalizedY * normalizedY,
+    );
+    const focus = Math.exp(-distance * distance * 1.38);
+    const lensScale = LENS_MIN_SCALE + LENS_SCALE_RANGE * focus;
+    const depth = reducedMotion
+      ? 0
+      : LENS_DEPTH * focus - Math.min(distance, 1.8) * 42;
+    const rotateY = reducedMotion
+      ? 0
+      : clamp(normalizedX, -1.3, 1.3) * -8.5;
+    const rotateX = reducedMotion
+      ? 0
+      : clamp(normalizedY, -1.3, 1.3) * 5.5;
+
+    return `translate3d(${point.x - POSTER_WIDTH / 2}px, ${point.y - POSTER_HEIGHT / 2}px, ${depth}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${lensScale})`;
+  });
+
+  return (
+    <motion.div
+      className="absolute"
+      style={{
+        width: POSTER_WIDTH,
+        transform: lensTransform,
+        transformStyle: "preserve-3d",
+        willChange: "transform",
+      }}
+    >
+      <motion.button
+        type="button"
+        data-spatial-title-id={title.id}
+        onClick={() => {
+          if (draggedRef.current) return;
+          if (selectedId === title.id) {
+            onClose();
+            return;
+          }
+          onSelect(title);
+        }}
+        animate={{
+          scale: selected ? 1.055 : 1,
+          opacity: selectedId && !selected ? 0.62 : 1,
+        }}
+        whileHover={
+          reducedMotion
+            ? undefined
+            : { y: -8, scale: selected ? 1.055 : 1.035 }
+        }
+        whileTap={reducedMotion ? undefined : { scale: 0.985 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24 }}
+        className="group block w-full cursor-pointer text-left focus-visible:outline-none"
+        tabIndex={cell.canonical ? 0 : -1}
+        aria-hidden={cell.canonical ? undefined : true}
+        aria-label={`Open ${title.title} details. ${shelf.label}.`}
+      >
+        <span
+          className={cn(
+            "relative block aspect-[2/3] overflow-hidden rounded-[1rem] border bg-white/[0.035] shadow-[0_28px_65px_-28px_rgba(0,0,0,0.9)] transition-[border-color,box-shadow] duration-300",
+            selected
+              ? "border-primary/80 shadow-[0_0_0_4px_rgba(173,235,179,0.1),0_34px_90px_-28px_rgba(173,235,179,0.45)]"
+              : [shelf.borderClass, shelf.hoverBorderClass],
+          )}
+        >
+          {src ? (
+            <Image
+              src={src}
+              alt={cell.canonical ? title.title : ""}
+              fill
+              draggable={false}
+              sizes="142px"
+              className="select-none object-cover"
+            />
+          ) : (
+            <span className="grid h-full place-items-center p-4 text-center text-xs text-white/45">
+              {title.title}
+            </span>
+          )}
+          <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        </span>
+        <span className="mt-2.5 block truncate text-[12px] font-medium text-white/82">
+          {title.title}
+        </span>
+        <span
+          className={cn(
+            "mt-1 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em]",
+            shelf.metaClass,
+          )}
+        >
+          <PosterShelfIcon className="h-2.5 w-2.5" aria-hidden />
+          <span>{shelf.label}</span>
+          {formatYear(title.release_date) ? (
+            <span className="ml-auto text-white/28">
+              {formatYear(title.release_date)}
+            </span>
+          ) : null}
+        </span>
+      </motion.button>
+    </motion.div>
+  );
 }
 
 function DetailLoading() {
@@ -440,13 +574,15 @@ export function SpatialPosterGrid({
 }: SpatialPosterGridProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const layout = React.useMemo(
-    () => spatialLayout(titles.length, reducedMotion),
-    [reducedMotion, titles.length],
+    () => spatialLayout(titles.length),
+    [titles.length],
   );
   const { cells, periodX, periodY, points } = layout;
   const cameraX = useMotionValue(0);
   const cameraY = useMotionValue(0);
   const cameraScale = useMotionValue(0.88);
+  const viewportWidth = useMotionValue(1280);
+  const viewportHeight = useMotionValue(800);
   const wrappedCameraX = useTransform(() =>
     wrapCamera(cameraX.get(), periodX * cameraScale.get()),
   );
@@ -600,6 +736,22 @@ export function SpatialPosterGrid({
 
   React.useEffect(() => () => stopCamera(), [stopCamera]);
 
+  React.useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const measure = () => {
+      const bounds = viewport.getBoundingClientRect();
+      viewportWidth.set(bounds.width);
+      viewportHeight.set(bounds.height);
+    };
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [viewportHeight, viewportWidth]);
+
   const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       const target = event.target as Element;
@@ -741,95 +893,28 @@ export function SpatialPosterGrid({
           x: wrappedCameraX,
           y: wrappedCameraY,
           scale: cameraScale,
-          rotateX: reducedMotion ? 0 : 3.5,
-          rotateY: reducedMotion ? 0 : -2.5,
           transformStyle: "preserve-3d",
           willChange: "transform",
         }}
       >
         {cells.map((cell) => {
           const title = titles[cell.titleIndex];
-          const point = cell.point;
-          const src = posterUrl(title.poster_path, "w500");
-          const selected = title.id === selectedId;
-          const shelf = shelfPresentation(title);
-          const PosterShelfIcon = shelf.icon;
           return (
-            <div
+            <FisheyePosterCell
               key={cell.key}
-              className="absolute"
-              style={{
-                width: POSTER_WIDTH,
-                transform: `translate3d(${point.x - POSTER_WIDTH / 2}px, ${point.y - POSTER_HEIGHT / 2}px, ${point.z}px) rotateX(${point.rotateX}deg) rotateY(${point.rotateY}deg)`,
-                transformStyle: "preserve-3d",
-              }}
-            >
-              <motion.button
-                type="button"
-                data-spatial-title-id={title.id}
-                onClick={() => {
-                  if (draggedRef.current) return;
-                  if (selectedId === title.id) {
-                    closeDetail();
-                    return;
-                  }
-                  selectTitle(title);
-                }}
-                animate={{
-                  scale: selected ? 1.055 : 1,
-                  opacity: selectedId && !selected ? 0.62 : 1,
-                }}
-                whileHover={reducedMotion ? undefined : { y: -8, scale: selected ? 1.055 : 1.035 }}
-                whileTap={reducedMotion ? undefined : { scale: 0.985 }}
-                transition={{ type: "spring", stiffness: 300, damping: 24 }}
-                className="group block w-full cursor-pointer text-left focus-visible:outline-none"
-                tabIndex={cell.canonical ? 0 : -1}
-                aria-hidden={cell.canonical ? undefined : true}
-                aria-label={`Open ${title.title} details. ${shelf.label}.`}
-              >
-                <span
-                  className={cn(
-                    "relative block aspect-[2/3] overflow-hidden rounded-[1rem] border bg-white/[0.035] shadow-[0_28px_65px_-28px_rgba(0,0,0,0.9)] transition-[border-color,box-shadow] duration-300",
-                    selected
-                      ? "border-primary/80 shadow-[0_0_0_4px_rgba(173,235,179,0.1),0_34px_90px_-28px_rgba(173,235,179,0.45)]"
-                      : [shelf.borderClass, shelf.hoverBorderClass],
-                  )}
-                >
-                  {src ? (
-                    <Image
-                      src={src}
-                      alt={cell.canonical ? title.title : ""}
-                      fill
-                      draggable={false}
-                      sizes="142px"
-                      className="select-none object-cover"
-                    />
-                  ) : (
-                    <span className="grid h-full place-items-center p-4 text-center text-xs text-white/45">
-                      {title.title}
-                    </span>
-                  )}
-                  <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                </span>
-                <span className="mt-2.5 block truncate text-[12px] font-medium text-white/82">
-                  {title.title}
-                </span>
-                <span
-                  className={cn(
-                    "mt-1 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em]",
-                    shelf.metaClass,
-                  )}
-                >
-                  <PosterShelfIcon className="h-2.5 w-2.5" aria-hidden />
-                  <span>{shelf.label}</span>
-                  {formatYear(title.release_date) ? (
-                    <span className="ml-auto text-white/28">
-                      {formatYear(title.release_date)}
-                    </span>
-                  ) : null}
-                </span>
-              </motion.button>
-            </div>
+              cell={cell}
+              title={title}
+              selectedId={selectedId}
+              reducedMotion={reducedMotion}
+              cameraScale={cameraScale}
+              wrappedCameraX={wrappedCameraX}
+              wrappedCameraY={wrappedCameraY}
+              viewportWidth={viewportWidth}
+              viewportHeight={viewportHeight}
+              draggedRef={draggedRef}
+              onSelect={selectTitle}
+              onClose={closeDetail}
+            />
           );
         })}
 
