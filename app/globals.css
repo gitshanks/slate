@@ -161,8 +161,13 @@
 @custom-variant hoverable (@media (hover: hover) and (pointer: fine));
 
 @layer base {
-  * {
+  *,
+  *::before,
+  *::after {
     border-color: hsl(var(--border));
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
   html,
   body {
@@ -184,8 +189,12 @@
     letter-spacing: -0.02em;
   }
   ::selection {
-    background-color: hsl(var(--primary) / 0.35);
-    color: hsl(var(--foreground));
+    background: transparent;
+    color: inherit;
+  }
+  ::-moz-selection {
+    background: transparent;
+    color: inherit;
   }
 }
 
