@@ -16,7 +16,6 @@ import {
   Clock,
   Eye,
   Heart,
-  LocateFixed,
   ThumbsDown,
   ThumbsUp,
   X,
@@ -732,6 +731,10 @@ export function SpatialPosterGrid({
   }, []);
 
   React.useEffect(() => {
+    if (selectedId && selectedIndex < 0) closeDetail();
+  }, [closeDetail, selectedId, selectedIndex]);
+
+  React.useEffect(() => {
     if (
       !searchTarget ||
       searchTarget.request === handledSearchRequestRef.current
@@ -898,33 +901,21 @@ export function SpatialPosterGrid({
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(173,235,179,0.08),transparent_42%),linear-gradient(to_bottom,rgba(8,10,9,0.18),rgba(8,10,9,0.72))]"
       />
 
-      <button
-        data-spatial-control
-        type="button"
-        onClick={() => {
-          closeDetail();
-          moveCamera(
-            0,
-            0,
-            window.matchMedia("(max-width: 639px)").matches
-              ? MOBILE_CAMERA_SCALE
-              : DESKTOP_CAMERA_SCALE,
-          );
-        }}
-        className="absolute right-4 z-50 grid h-10 w-10 place-items-center rounded-full border border-white/12 bg-black/70 text-white/60 shadow-xl backdrop-blur-xl transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:right-6"
-        style={{ bottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
-        aria-label="Reset gallery view"
-        title="Reset view"
-      >
-        <LocateFixed className="h-4 w-4" />
-      </button>
-
       <p
         className="pointer-events-none absolute left-4 z-40 font-mono text-[9px] uppercase tracking-[0.18em] text-white/35 sm:left-6 sm:text-[10px]"
         style={{ bottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
       >
         Drag to explore · Search to travel
       </p>
+
+      {titles.length === 0 ? (
+        <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center px-6 text-center">
+          <div>
+            <p className="text-sm font-medium text-white/72">No titles match</p>
+            <p className="mt-1 text-xs text-white/38">Try another filter.</p>
+          </div>
+        </div>
+      ) : null}
 
       <motion.div
         data-spatial-world

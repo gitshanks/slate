@@ -10,7 +10,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { SegmentedFilter } from "@/components/segmented-filter";
+import {
+  SegmentedFilter,
+  type SegmentedFilterOption,
+} from "@/components/segmented-filter";
 
 export interface FilterBarProps {
   /** Distinct genres found in the current result set. */
@@ -21,6 +24,15 @@ export interface FilterBarProps {
   showSentiment?: boolean;
   /** Label for the chronological sort on this page. */
   recentSortLabel?: string;
+  /** Optional collection scopes, used when one surface combines shelves. */
+  statusOptions?: readonly SegmentedFilterOption[];
+  /** URL parameter used by the optional collection scope. */
+  statusParam?: string;
+  /** Keeps Motion layout IDs unique when multiple filter bars are mounted. */
+  idPrefix?: string;
+  /** Extra layer styling for filters rendered inside fixed chrome. */
+  popoverClassName?: string;
+  className?: string;
 }
 
 const TYPE_OPTIONS = [
@@ -49,6 +61,11 @@ export function FilterBar({
   showYearSort = true,
   showSentiment = false,
   recentSortLabel = "Recently added",
+  statusOptions,
+  statusParam = "status",
+  idPrefix = "library",
+  popoverClassName,
+  className,
 }: FilterBarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -58,6 +75,7 @@ export function FilterBar({
   const currentYear = searchParams.get("year") ?? "";
   const currentSort = searchParams.get("sort") ?? "";
   const currentSentiment = searchParams.get("sentiment") ?? "";
+  const currentStatus = statusOptions ? (searchParams.get(statusParam) ?? "") : "";
 
   const activeGenre = genres.find((g) => String(g.id) === currentGenre);
 
@@ -78,7 +96,14 @@ export function FilterBar({
 
   const clearFilters = React.useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
-    for (const key of ["type", "genre", "year", "sort", "sentiment"]) {
+    for (const key of [
+      "type",
+      "genre",
+      "year",
+      "sort",
+      "sentiment",
+      ...(statusOptions ? [statusParam] : []),
+    ]) {
       params.delete(key);
     }
     const qs = params.toString();
@@ -87,9 +112,15 @@ export function FilterBar({
       "",
       qs ? `${pathname}?${qs}` : pathname
     );
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, statusOptions, statusParam]);
 
-  const hasAny = currentType || currentGenre || currentYear || currentSort || currentSentiment;
+  const hasAny =
+    currentType ||
+    currentGenre ||
+    currentYear ||
+    currentSort ||
+    currentSentiment ||
+    currentStatus;
 
   const sortOptions = React.useMemo(() => {
     const options = [
@@ -104,10 +135,19 @@ export function FilterBar({
   }, [recentSortLabel, showYearSort]);
 
   return (
-    <div className="mb-8 flex flex-wrap items-center gap-2">
+    <div className={cn("mb-8 flex flex-wrap items-center gap-2", className)}>
+      {statusOptions && (
+        <SegmentedFilter
+          id={`${idPrefix}-status-filter`}
+          options={statusOptions}
+          value={currentStatus}
+          onValueChange={(value) => setParam(statusParam, value)}
+        />
+      )}
+
       {/* Type segmented */}
       <SegmentedFilter
-        id="library-type-filter"
+        id={`${idPrefix}-type-filter`}
         options={TYPE_OPTIONS}
         value={currentType}
         onValueChange={(value) => setParam("type", value)}
@@ -116,7 +156,7 @@ export function FilterBar({
       {/* Sentiment segmented — only on watched page */}
       {showSentiment && (
         <SegmentedFilter
-          id="library-sentiment-filter"
+          id={`${idPrefix}-sentiment-filter`}
           options={SENTIMENT_OPTIONS}
           value={currentSentiment}
           onValueChange={(value) => setParam("sentiment", value)}
@@ -140,7 +180,7 @@ export function FilterBar({
               <ChevronDown className="h-3 w-3" />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-2" align="start">
+          <PopoverContent className={cn("w-56 p-2", popoverClassName)} align="start">
             <div className="flex max-h-72 flex-col overflow-y-auto">
               <PopoverClose asChild>
                 <button
@@ -196,7 +236,7 @@ export function FilterBar({
             <ChevronDown className="h-3 w-3" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-44 p-2" align="start">
+        <PopoverContent className={cn("w-44 p-2", popoverClassName)} align="start">
           <div className="flex flex-col">
             {YEAR_OPTIONS.map((o) => {
               const active = o.value === currentYear;
@@ -237,7 +277,7 @@ export function FilterBar({
             <ChevronDown className="h-3 w-3" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-48 p-2" align="start">
+        <PopoverContent className={cn("w-48 p-2", popoverClassName)} align="start">
           <div className="flex flex-col">
             {sortOptions.map((o) => {
               const active = o.value === currentSort;

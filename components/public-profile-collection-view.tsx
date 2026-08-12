@@ -2,12 +2,13 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { Box, Film, LayoutGrid, Search, X } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Box, Check, Clock, Eye, Film, LayoutGrid, Search, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { FilteredGrid } from "@/components/filtered-grid";
+import { extractGenres, filterAndSort } from "@/lib/filter-utils";
 import { cn } from "@/lib/utils";
 import type { TitleRow, TitleStatus } from "@/lib/types";
 import type { SpatialCameraState } from "@/components/spatial-poster-grid";
@@ -31,6 +32,13 @@ const SpatialPosterGrid = dynamic(
 );
 
 type ViewMode = "grid" | "spatial";
+
+const SPACE_STATUS_OPTIONS = [
+  { value: "", label: "All", icon: LayoutGrid },
+  { value: "want", label: "Watchlist", icon: Clock },
+  { value: "watching", label: "Watching", icon: Eye },
+  { value: "watched", label: "Watched", icon: Check },
+] as const;
 
 interface PublicProfileCollectionViewProps {
   eyebrow: string;
@@ -71,9 +79,47 @@ export function PublicProfileCollectionView({
   });
   const reducedMotion = useReducedMotion();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const exitSpatial = React.useCallback(() => setMode("grid"), []);
   const normalizedQuery = query.trim().toLocaleLowerCase();
-  const searchableTitles = mode === "spatial" ? spatialTitles : titles;
+  const filterParams = React.useMemo(
+    () => ({
+      type: searchParams.get("type") ?? undefined,
+      genre: searchParams.get("genre") ?? undefined,
+      year: searchParams.get("year") ?? undefined,
+      sort: searchParams.get("sort") ?? undefined,
+      sentiment: searchParams.get("sentiment") ?? undefined,
+    }),
+    [searchParams],
+  );
+  const spatialStatus = searchParams.get("spaceStatus");
+  const filteredSpatialTitles = React.useMemo(() => {
+    const scopedTitles =
+      spatialStatus === "want" ||
+      spatialStatus === "watching" ||
+      spatialStatus === "watched"
+        ? spatialTitles.filter((title) => title.status === spatialStatus)
+        : spatialTitles;
+    return filterAndSort(
+      scopedTitles,
+      spatialStatus === "want" ||
+        spatialStatus === "watching" ||
+        spatialStatus === "watched"
+        ? spatialStatus
+        : "all",
+      filterParams,
+    );
+  }, [filterParams, spatialStatus, spatialTitles]);
+  const filteredShelfTitles = React.useMemo(
+    () => filterAndSort(titles, status, filterParams),
+    [filterParams, status, titles],
+  );
+  const spatialGenres = React.useMemo(
+    () => extractGenres(spatialTitles),
+    [spatialTitles],
+  );
+  const searchableTitles =
+    mode === "spatial" ? filteredSpatialTitles : filteredShelfTitles;
   const matches = React.useMemo(() => {
     if (!normalizedQuery) return [];
     return searchableTitles
@@ -290,7 +336,7 @@ export function PublicProfileCollectionView({
                 onClick={() => selectMode("grid")}
                 aria-pressed={mode === "grid"}
                 className={cn(
-                  "relative z-10 inline-flex min-w-[3.25rem] items-center justify-center gap-1 rounded-full px-1 text-[9px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[3.75rem] sm:px-2 sm:text-[10px]",
+                  "relative z-10 inline-flex min-w-[4rem] items-center justify-center gap-1.5 rounded-full px-3 text-[9px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[4.5rem] sm:px-3.5 sm:text-[10px]",
                   mode === "grid" ? "text-black" : "text-white/52 hover:text-white",
                 )}
               >
@@ -302,7 +348,7 @@ export function PublicProfileCollectionView({
                 onClick={() => selectMode("spatial")}
                 aria-pressed={mode === "spatial"}
                 className={cn(
-                  "relative z-10 inline-flex min-w-[3.25rem] items-center justify-center gap-1 rounded-full px-1 text-[9px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[3.75rem] sm:px-2 sm:text-[10px]",
+                  "relative z-10 inline-flex min-w-[4rem] items-center justify-center gap-1.5 rounded-full px-3 text-[9px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[4.5rem] sm:px-3.5 sm:text-[10px]",
                   mode === "spatial"
                     ? "text-primary-foreground"
                     : "text-white/52 hover:text-white",
@@ -323,6 +369,20 @@ export function PublicProfileCollectionView({
             </button>
           </div>
         </div>
+
+        {mode === "spatial" ? (
+          <div className="pointer-events-auto mx-auto mt-2 w-full max-w-[1540px] overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-2.5">
+            <FilterBar
+              genres={spatialGenres}
+              showSentiment
+              statusOptions={SPACE_STATUS_OPTIONS}
+              statusParam="spaceStatus"
+              idPrefix="space"
+              popoverClassName="z-[80]"
+              className="mb-0 w-max flex-nowrap gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-segment]:whitespace-nowrap"
+            />
+          </div>
+        ) : null}
       </header>
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -346,6 +406,7 @@ export function PublicProfileCollectionView({
               genres={genres}
               showSentiment={status === "watched"}
               recentSortLabel={status === "watched" ? "Recently watched" : undefined}
+              idPrefix="shelf"
             />
             <React.Suspense fallback={null}>
               <FilteredGrid
@@ -396,7 +457,7 @@ export function PublicProfileCollectionView({
           )}
         >
           <SpatialPosterGrid
-            titles={spatialTitles}
+            titles={filteredSpatialTitles}
             username={username}
             onExit={exitSpatial}
             searchTarget={searchTarget}

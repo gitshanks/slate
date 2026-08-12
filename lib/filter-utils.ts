@@ -32,7 +32,7 @@ function parseYear(date: string | null): number | null {
  */
 export function filterAndSort(
   all: TitleRow[],
-  status: TitleStatus,
+  status: TitleStatus | "all",
   sp: TitleFilterParams
 ): TitleRow[] {
   let filtered = all;
@@ -68,17 +68,19 @@ export function filterAndSort(
   const sorted = [...filtered];
   switch (sp.sort) {
     case "recent":
-      if (status === "watched") {
-        sorted.sort((a, b) => {
-          const at = a.watched_at ? Date.parse(a.watched_at) : 0;
-          const bt = b.watched_at ? Date.parse(b.watched_at) : 0;
-          return bt - at;
-        });
-      } else {
-        sorted.sort(
-          (a, b) => Date.parse(b.added_at) - Date.parse(a.added_at)
-        );
-      }
+      sorted.sort((a, b) => {
+        const aRecent =
+          (status === "watched" || (status === "all" && a.status === "watched")) &&
+          a.watched_at
+            ? a.watched_at
+            : a.added_at;
+        const bRecent =
+          (status === "watched" || (status === "all" && b.status === "watched")) &&
+          b.watched_at
+            ? b.watched_at
+            : b.added_at;
+        return Date.parse(bRecent) - Date.parse(aRecent);
+      });
       break;
     case "rating":
       sorted.sort((a, b) => {
@@ -107,6 +109,7 @@ export function filterAndSort(
       });
       break;
     default:
+      if (status === "all") break;
       sorted.sort((a, b) => {
         const positionDelta = (a.position ?? 0) - (b.position ?? 0);
         if (positionDelta !== 0) return positionDelta;
