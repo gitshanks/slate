@@ -611,18 +611,6 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
   const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       const target = event.target as Element;
-      const targetPoster = target.closest<HTMLElement>("[data-spatial-title-id]");
-      const pressedSelectedPoster =
-        targetPoster?.dataset.spatialTitleId === selectedId;
-
-      if (
-        selectedId &&
-        !target.closest("[data-spatial-slab]") &&
-        !pressedSelectedPoster
-      ) {
-        closeDetail();
-      }
-
       if (target.closest("[data-spatial-control]")) return;
       stopCamera();
       gestureRef.current = {
@@ -637,7 +625,7 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
       };
       draggedRef.current = false;
     },
-    [closeDetail, selectedId, stopCamera],
+    [stopCamera],
   );
 
   const handlePointerMove = React.useCallback(
@@ -940,19 +928,27 @@ export function SpatialPosterGrid({ titles, username, onExit }: SpatialPosterGri
       </section>
 
       {selectedTitle ? (
-        <div
-          data-spatial-slab
-          className="fixed left-1/2 top-1/2 z-[60] origin-center -translate-x-[28%] -translate-y-1/2 scale-[0.75] sm:-translate-x-[20%] sm:scale-100"
-        >
-          <TitleDetailSlab
-            key={selectedTitle.id}
-            title={selectedTitle}
-            detail={detail}
-            loading={detailLoading}
-            error={detailError}
-            onClose={closeDetail}
+        <>
+          <div
+            data-spatial-dismiss-layer
+            aria-hidden
+            className="fixed inset-0 z-[55] cursor-default"
+            onClick={closeDetail}
           />
-        </div>
+          <div
+            data-spatial-slab
+            className="fixed left-1/2 top-1/2 z-[60] origin-center -translate-x-1/2 -translate-y-1/2 scale-[0.86] sm:-translate-x-[20%] sm:scale-100"
+          >
+            <TitleDetailSlab
+              key={selectedTitle.id}
+              title={selectedTitle}
+              detail={detail}
+              loading={detailLoading}
+              error={detailError}
+              onClose={closeDetail}
+            />
+          </div>
+        </>
       ) : null}
     </>
   );
