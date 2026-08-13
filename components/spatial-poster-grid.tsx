@@ -94,6 +94,8 @@ const LENS_SCALE_RANGE = 0.76;
 const LENS_DEPTH = 190;
 const DESKTOP_CAMERA_SCALE = 0.88;
 const MOBILE_CAMERA_SCALE = 0.7;
+const TITLE_FRAME_DURATION_SECONDS = 0.24;
+const TITLE_FRAME_REVEAL_DELAY_MS = 260;
 
 function modulo(value: number, divisor: number) {
   return ((value % divisor) + divisor) % divisor;
@@ -263,7 +265,7 @@ function FisheyePosterCell({
   viewportWidth: MotionValue<number>;
   viewportHeight: MotionValue<number>;
   draggedRef: React.RefObject<boolean>;
-  onSelect: (title: TitleRow) => void;
+  onSelect: (title: TitleRow, point: SpatialPoint) => void;
   onClose: () => void;
 }) {
   const point = cell.point;
@@ -319,7 +321,7 @@ function FisheyePosterCell({
             onClose();
             return;
           }
-          onSelect(title);
+          onSelect(title, point);
         }}
         animate={{
           scale: selected ? 1.055 : 1,
@@ -411,7 +413,7 @@ function SpatialPosterWorld({
   viewportWidth: MotionValue<number>;
   viewportHeight: MotionValue<number>;
   draggedRef: React.RefObject<boolean>;
-  onSelect: (title: TitleRow) => void;
+  onSelect: (title: TitleRow, point: SpatialPoint) => void;
   onClose: () => void;
 }) {
   const wrappedCameraX = useTransform(() =>
@@ -722,6 +724,8 @@ export function SpatialPosterGrid({
   const detailRequestRef = React.useRef(0);
   const handledSearchRequestRef = React.useRef(0);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [slabOpen, setSlabOpen] = React.useState(false);
+  const slabRevealTimerRef = React.useRef<number | null>(null);
   const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(null);
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [detailError, setDetailError] = React.useState<string | null>(null);
@@ -791,7 +795,10 @@ export function SpatialPosterGrid({
       }
 
       const transition = gentle
-        ? { type: "spring" as const, stiffness: 72, damping: 18, mass: 1.05 }
+        ? {
+            duration: TITLE_FRAME_DURATION_SECONDS,
+            ease: [0.77, 0, 0.175, 1] as const,
+          }
         : { type: "spring" as const, stiffness: 105, damping: 22, mass: 0.9 };
       animationRef.current = [
         animate(cameraX, x, transition),
@@ -803,13 +810,26 @@ export function SpatialPosterGrid({
   );
 
   const frameTitle = React.useCallback(
-    (index: number) => {
-      const point = points[index];
+    (index: number, selectedPoint?: SpatialPoint) => {
+      const point = selectedPoint ?? points[index];
       if (!point) return;
-      const narrow = window.matchMedia("(max-width: 639px)").matches;
-      const slabMidpointOffset = narrow ? 180 : 205;
+      const viewport = viewportWidth.get();
+      const narrow = viewport <= 639;
       const scale = narrow ? 0.67 : 0.83;
-      const targetX = -(point.x + slabMidpointOffset) * scale;
+      const slabWidth = Math.min(viewport * 0.84, 432) * (narrow ? 0.86 : 1);
+      const slabLeft = narrow ? -slabWidth / 2 : -slabWidth * 0.2;
+      const slabRight = narrow ? slabWidth / 2 : slabWidth * 0.8;
+      const currentScale = cameraScale.get();
+      const currentScreenX =
+        point.x * currentScale +
+        wrapCamera(cameraX.get(), periodX * currentScale);
+      const placeOnLeft = currentScreenX < (slabLeft + slabRight) / 2;
+      const posterRadius = narrow ? 46 : 70;
+      const overlayGap = narrow ? 14 : 24;
+      const targetScreenX = placeOnLeft
+        ? slabLeft - posterRadius - overlayGap
+        : slabRight + posterRadius + overlayGap;
+      const targetX = targetScreenX - point.x * scale;
       const targetY = -point.y * scale;
       moveCamera(
         nearestRepeatedTarget(targetX, cameraX.get(), periodX * scale),
@@ -818,7 +838,16 @@ export function SpatialPosterGrid({
         true,
       );
     },
-    [cameraX, cameraY, moveCamera, periodX, periodY, points],
+    [
+      cameraScale,
+      cameraX,
+      cameraY,
+      moveCamera,
+      periodX,
+      periodY,
+      points,
+      viewportWidth,
+    ],
   );
 
   const loadDetail = React.useCallback(
@@ -860,18 +889,36 @@ export function SpatialPosterGrid({
   );
 
   const selectTitle = React.useCallback(
-    (title: TitleRow, shouldFrame = false) => {
+    (title: TitleRow, selectedPoint?: SpatialPoint) => {
       const index = titles.findIndex((candidate) => candidate.id === title.id);
       if (index < 0) return;
+      if (slabRevealTimerRef.current !== null) {
+        window.clearTimeout(slabRevealTimerRef.current);
+        slabRevealTimerRef.current = null;
+      }
+      setSlabOpen(false);
       setSelectedId(title.id);
-      if (shouldFrame) frameTitle(index);
+      frameTitle(index, selectedPoint);
+      if (reducedMotion) {
+        setSlabOpen(true);
+      } else {
+        slabRevealTimerRef.current = window.setTimeout(() => {
+          setSlabOpen(true);
+          slabRevealTimerRef.current = null;
+        }, TITLE_FRAME_REVEAL_DELAY_MS);
+      }
       void loadDetail(title);
     },
-    [frameTitle, loadDetail, titles],
+    [frameTitle, loadDetail, reducedMotion, titles],
   );
 
   const closeDetail = React.useCallback(() => {
+    if (slabRevealTimerRef.current !== null) {
+      window.clearTimeout(slabRevealTimerRef.current);
+      slabRevealTimerRef.current = null;
+    }
     detailRequestRef.current += 1;
+    setSlabOpen(false);
     setSelectedId(null);
     setDetail(null);
     setDetailError(null);
@@ -891,7 +938,7 @@ export function SpatialPosterGrid({
 
     handledSearchRequestRef.current = searchTarget.request;
     const title = titles.find((candidate) => candidate.id === searchTarget.titleId);
-    if (title) selectTitle(title, true);
+    if (title) selectTitle(title);
   }, [searchTarget, selectTitle, titles]);
 
   React.useEffect(() => {
@@ -907,7 +954,15 @@ export function SpatialPosterGrid({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [closeDetail, onExit, selectedId]);
 
-  React.useEffect(() => () => stopCamera(), [stopCamera]);
+  React.useEffect(
+    () => () => {
+      stopCamera();
+      if (slabRevealTimerRef.current !== null) {
+        window.clearTimeout(slabRevealTimerRef.current);
+      }
+    },
+    [stopCamera],
+  );
 
   React.useEffect(
     () => () => {
@@ -1038,7 +1093,7 @@ export function SpatialPosterGrid({
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
         onWheel={handleWheel}
-        aria-label="Poster space. Drag to explore."
+        aria-label="Poster space."
       >
       <div
         aria-hidden
@@ -1054,13 +1109,6 @@ export function SpatialPosterGrid({
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(173,235,179,0.08),transparent_42%),linear-gradient(to_bottom,rgba(8,10,9,0.18),rgba(8,10,9,0.72))]"
       />
-
-      <p
-        className="pointer-events-none absolute left-4 z-40 font-mono text-[9px] uppercase tracking-[0.18em] text-white/35 sm:left-6 sm:text-[10px]"
-        style={{ bottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
-      >
-        Drag to explore · Search to travel
-      </p>
 
       <motion.div
         data-spatial-results-layer
@@ -1135,18 +1183,20 @@ export function SpatialPosterGrid({
             className="fixed inset-0 z-[55] cursor-default"
             onClick={closeDetail}
           />
-          <div
-            data-spatial-slab
-            className="fixed left-1/2 top-1/2 z-[60] origin-center -translate-x-1/2 -translate-y-1/2 scale-[0.86] sm:-translate-x-[20%] sm:scale-100"
-          >
-            <TitleDetailSlab
-              key={selectedTitle.id}
-              title={selectedTitle}
-              detail={detail}
-              loading={detailLoading}
-              error={detailError}
-            />
-          </div>
+          {slabOpen ? (
+            <div
+              data-spatial-slab
+              className="fixed left-1/2 top-1/2 z-[60] origin-center -translate-x-1/2 -translate-y-1/2 scale-[0.86] sm:-translate-x-[20%] sm:scale-100"
+            >
+              <TitleDetailSlab
+                key={selectedTitle.id}
+                title={selectedTitle}
+                detail={detail}
+                loading={detailLoading}
+                error={detailError}
+              />
+            </div>
+          ) : null}
         </>
       ) : null}
     </>
