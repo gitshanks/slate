@@ -510,6 +510,34 @@ function DetailLoading() {
   );
 }
 
+function TitleDetailDismissLayer({ onDismiss }: { onDismiss: () => void }) {
+  const consumeGesture = React.useCallback(
+    (event: React.SyntheticEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+    },
+    [],
+  );
+
+  return (
+    <div
+      data-spatial-dismiss-layer
+      aria-hidden
+      className="fixed inset-0 z-[55] cursor-default touch-none select-none"
+      onPointerDown={consumeGesture}
+      onPointerUp={consumeGesture}
+      onPointerCancel={(event) => {
+        event.stopPropagation();
+        onDismiss();
+      }}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onDismiss();
+      }}
+    />
+  );
+}
+
 function TitleDetailSlab({
   title,
   detail,
@@ -768,6 +796,7 @@ export function CollectionTitleDetailOverlay({
     const narrow = viewportWidth < 640;
     const edge = narrow ? 12 : 24;
     const gap = narrow ? 12 : 20;
+    const slabWidth = Math.min(viewportWidth * 0.84, 432);
     const sideRoom = {
       left: rect.left - gap - edge,
       right: viewportWidth - rect.right - gap - edge,
@@ -775,26 +804,31 @@ export function CollectionTitleDetailOverlay({
 
     // A mobile poster grid has no honest side-by-side room. A panel directly
     // beneath the source keeps the poster visible instead of covering it.
-    if (narrow || Math.max(sideRoom.left, sideRoom.right) < 280) {
-      const width = viewportWidth - edge * 2;
+    if (narrow || Math.max(sideRoom.left, sideRoom.right) < slabWidth) {
+      const renderedScale = narrow ? 0.86 : 1;
+      const renderedMaxHeight =
+        Math.min(viewportHeight * 0.69, 688) * renderedScale;
       const top = Math.min(
         Math.max(edge, rect.bottom + gap),
-        viewportHeight - edge - Math.min(viewportHeight * 0.54, 430),
+        viewportHeight - edge - renderedMaxHeight,
       );
-      setPosition({ left: edge, top, width, placement: "below" });
+      setPosition({
+        left: (viewportWidth - slabWidth) / 2,
+        top,
+        width: slabWidth,
+        placement: "below",
+      });
       return;
     }
 
     const placement = sideRoom.right >= sideRoom.left ? "right" : "left";
-    const available = sideRoom[placement];
-    const width = Math.min(432, available);
     setPosition({
       left:
         placement === "right"
           ? rect.right + gap
-          : rect.left - gap - width,
+          : rect.left - gap - slabWidth,
       top: viewportHeight / 2,
-      width,
+      width: slabWidth,
       placement,
     });
   }, [anchorTitleId]);
@@ -894,12 +928,7 @@ export function CollectionTitleDetailOverlay({
 
   return (
     <>
-      <div
-        data-spatial-dismiss-layer
-        aria-hidden
-        className="fixed inset-0 z-[55] cursor-default"
-        onPointerDown={onClose}
-      />
+      <TitleDetailDismissLayer onDismiss={onClose} />
       {position && (reducedMotion || revealReady) ? (
         <div
           role="dialog"
@@ -907,7 +936,7 @@ export function CollectionTitleDetailOverlay({
           aria-label={`${title.title} details`}
           data-spatial-slab
           className={cn(
-            "fixed z-[60] origin-center",
+            "fixed z-[60] origin-center scale-[0.86] sm:scale-100",
             position.placement === "below"
               ? ""
               : "-translate-y-1/2",
@@ -926,11 +955,6 @@ export function CollectionTitleDetailOverlay({
             error={error}
             renderActions={renderActions}
             className="w-full"
-            contentClassName={
-              position.placement === "below"
-                ? "max-h-[min(54dvh,27rem)]"
-                : undefined
-            }
             entryOffsetX={28}
           />
         </div>
@@ -1482,12 +1506,7 @@ export function SpatialPosterGrid({
 
       {selectedTitle ? (
         <>
-          <div
-            data-spatial-dismiss-layer
-            aria-hidden
-            className="fixed inset-0 z-[55] cursor-default"
-            onPointerDown={closeDetail}
-          />
+          <TitleDetailDismissLayer onDismiss={closeDetail} />
           {slabOpen ? (
             <div
               data-spatial-slab
