@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export interface SegmentedFilterOption {
   value: string;
   label: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
 }
 
 interface SegmentedFilterProps {
@@ -67,7 +67,7 @@ export function SegmentedFilter({
                 />
               )}
               <span className="relative z-10 inline-flex items-center justify-center gap-1.5">
-                <Icon className="h-3.5 w-3.5" />
+                {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
                 {label}
               </span>
             </button>

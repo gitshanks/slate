@@ -6,9 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowUpRight,
   Box,
-  Check,
-  Clock,
-  Eye,
   Film,
   LayoutGrid,
   Search,
@@ -44,10 +41,10 @@ const SpatialPosterGrid = dynamic(
 type ViewMode = "shelf" | "space";
 
 const STATUS_OPTIONS = [
-  { value: "", label: "All", icon: LayoutGrid },
-  { value: "want", label: "Watchlist", icon: Clock },
-  { value: "watching", label: "Watching", icon: Eye },
-  { value: "watched", label: "Watched", icon: Check },
+  { value: "", label: "All" },
+  { value: "want", label: "Up Next" },
+  { value: "watching", label: "Watching" },
+  { value: "watched", label: "Watched" },
 ] as const;
 
 interface PublicProfileCollectionViewProps {
