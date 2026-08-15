@@ -110,7 +110,7 @@ export default async function PublicTitlePage(props: Props) {
       ? { label: "Watching", icon: Eye }
       : title.status === "watched"
         ? { label: "Watched", icon: Check }
-        : { label: "Watchlist", icon: Clock };
+        : { label: "Up Next", icon: Clock };
   const profileHref = `/u/${profile.username}${
     searchParams.view === "shelf" ? "?view=shelf" : ""
   }`;

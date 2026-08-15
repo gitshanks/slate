@@ -55,6 +55,8 @@ interface MediaGridProps {
   onTitleSelect?: (title: TitleRow) => void;
   /** Keeps the source card visible while its in-place detail view is open. */
   activeTitleId?: string | null;
+  /** Applies the Space card treatment to a public Shelf grid. */
+  presentation?: "default" | "profile";
   /** Keep the collection to one horizontally scrollable poster row. */
   horizontal?: boolean;
   /** Fit four smaller cards across narrow shared-profile screens. */
@@ -216,6 +218,7 @@ function OrderedMediaGrid(props: MediaGridProps) {
             readOnly={props.readOnly}
             compactMobile={props.compactMobile}
             highlighted={props.activeTitleId === title.id}
+            presentation={props.presentation}
             onOpen={
               props.onTitleSelect
                 ? () => props.onTitleSelect?.(title)
@@ -241,6 +244,7 @@ function MediaGridState({
   titleHrefSearch,
   onTitleSelect,
   activeTitleId,
+  presentation = "default",
   horizontal = false,
   compactMobile = false,
 }: MediaGridProps) {
@@ -383,6 +387,7 @@ function MediaGridState({
               readOnly
               compactMobile={compactMobile}
               highlighted={activeTitleId === title.id}
+              presentation={presentation}
               onOpen={onTitleSelect ? () => onTitleSelect(title) : undefined}
               href={
                 titleHrefBase

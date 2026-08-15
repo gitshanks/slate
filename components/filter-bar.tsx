@@ -443,10 +443,12 @@ export function FilterBar({
         <button
           type="button"
           onClick={clearFilters}
+          aria-label="Clear filters"
+          data-filter-clear
           className="filter-chip inline-flex h-9 items-center gap-1 rounded-full px-2 text-[11px] text-muted-foreground hover:text-foreground"
         >
           <X className="h-3 w-3" />
-          Clear
+          <span data-filter-clear-label>Clear</span>
         </button>
       )}
       </div>

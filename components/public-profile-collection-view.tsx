@@ -17,6 +17,7 @@ import { FilterBar } from "@/components/filter-bar";
 import { MediaGrid } from "@/components/media-grid";
 import type { SpatialCameraState } from "@/components/spatial-poster-grid";
 import { extractGenres, filterAndSort } from "@/lib/filter-utils";
+import { loadPublicTitleDetail } from "@/lib/public-title-detail-cache";
 import { cn } from "@/lib/utils";
 import type { TitleRow } from "@/lib/types";
 
@@ -84,7 +85,6 @@ export function PublicProfileCollectionView({
   const [shelfTitle, setShelfTitle] = React.useState<TitleRow | null>(null);
   const searchRequestRef = React.useRef(0);
   const viewSwitchTimerRef = React.useRef<number | null>(null);
-  const shelfRevealTimerRef = React.useRef<number | null>(null);
   const reducedMotion = useReducedMotion();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -147,20 +147,14 @@ export function PublicProfileCollectionView({
   }, []);
 
   const closeShelfTitle = React.useCallback(() => {
-    if (shelfRevealTimerRef.current !== null) {
-      window.clearTimeout(shelfRevealTimerRef.current);
-      shelfRevealTimerRef.current = null;
-    }
     setShelfTitle(null);
   }, []);
 
   const openShelfTitle = React.useCallback(
     (title: TitleRow) => {
-      if (shelfRevealTimerRef.current !== null) {
-        window.clearTimeout(shelfRevealTimerRef.current);
-        shelfRevealTimerRef.current = null;
-      }
-
+      // Begin the request at press time. The slab consumes this same in-flight
+      // result as soon as it mounts, matching Space's immediate detail path.
+      void loadPublicTitleDetail(username, title.id);
       const source = document.getElementById(`shelf-title-${title.id}`);
       if (!source) {
         setShelfTitle(title);
@@ -178,21 +172,14 @@ export function PublicProfileCollectionView({
       if (Math.abs(delta) > 2) {
         window.scrollBy({
           top: delta,
-          behavior: reducedMotion ? "auto" : "smooth",
+          // Settle the source first so the adjacent slab can open in the same
+          // interaction, rather than waiting behind a timed scroll animation.
+          behavior: "auto",
         });
       }
-
-      const reveal = () => {
-        setShelfTitle(title);
-        shelfRevealTimerRef.current = null;
-      };
-      if (reducedMotion || Math.abs(delta) <= 2) {
-        reveal();
-      } else {
-        shelfRevealTimerRef.current = window.setTimeout(reveal, 420);
-      }
+      setShelfTitle(title);
     },
-    [reducedMotion],
+    [username],
   );
 
   const selectMode = React.useCallback(
@@ -234,6 +221,9 @@ export function PublicProfileCollectionView({
   );
 
   React.useEffect(() => {
+    // Shelf opens its title slab on the first press as well, so warm that
+    // lightweight client boundary while the profile is being read.
+    void loadPublicTitleDetailOverlay();
     const timer = window.setTimeout(() => {
       void loadSpatialPosterGrid();
     }, 600);
@@ -252,9 +242,6 @@ export function PublicProfileCollectionView({
     () => () => {
       if (viewSwitchTimerRef.current !== null) {
         window.clearTimeout(viewSwitchTimerRef.current);
-      }
-      if (shelfRevealTimerRef.current !== null) {
-        window.clearTimeout(shelfRevealTimerRef.current);
       }
     },
     [],
@@ -277,7 +264,7 @@ export function PublicProfileCollectionView({
   return (
     <div className="dark min-h-dvh bg-[#080a09] text-white">
       <header
-        className="pointer-events-none fixed inset-x-0 top-0 z-[70] px-2.5 pb-8 text-white min-[380px]:px-3 md:px-3 md:pb-7 lg:px-5 xl:px-6"
+        className="pointer-events-none fixed inset-x-0 top-0 z-[70] px-2.5 pb-8 text-white min-[380px]:px-3 md:px-2 md:pb-7 lg:px-5 xl:px-6"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         aria-label={`${displayName}'s slate controls`}
       >
@@ -294,7 +281,7 @@ export function PublicProfileCollectionView({
           />
         </div>
 
-        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-1.5 lg:gap-x-2.5 xl:grid-cols-[minmax(10rem,1fr)_minmax(0,2fr)_minmax(10rem,1fr)] xl:gap-x-5">
+        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-x-0.5 lg:gap-x-2.5 xl:gap-x-5">
           <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 pl-0.5 md:gap-1.5 lg:gap-2.5 xl:justify-self-start">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -374,9 +361,9 @@ export function PublicProfileCollectionView({
             </button>
           </div>
 
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:flex-nowrap md:gap-1 xl:w-full xl:justify-self-center">
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-max md:flex-nowrap md:justify-self-center md:gap-0.5">
             <div
-              className="relative w-full min-w-0 md:w-[clamp(5.5rem,11vw,8.5rem)] md:shrink-0 lg:w-[clamp(9rem,15vw,15rem)]"
+              className="relative w-full min-w-0 md:w-[clamp(4rem,9vw,6.5rem)] md:shrink-0 lg:w-[clamp(9rem,15vw,15rem)]"
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
                   setSearchOpen(false);
@@ -449,7 +436,7 @@ export function PublicProfileCollectionView({
               ) : null}
             </div>
 
-            <div className="w-full md:min-w-0 md:flex-1">
+            <div className="w-full md:w-max md:flex-none">
               <FilterBar
                 genres={genres}
                 showSort={false}
@@ -462,7 +449,7 @@ export function PublicProfileCollectionView({
                 idPrefix="shared"
                 popoverClassName="z-[80]"
                 groupControls
-                className="mb-0 w-full flex-wrap gap-2 md:w-max md:flex-nowrap md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segmented]:h-10 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 lg:[&_.filter-segment]:px-2.5"
+                className="mb-0 w-full flex-wrap gap-2 md:w-max md:flex-nowrap md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segmented]:h-10 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden lg:[&_[data-filter-clear-label]]:inline lg:[&_.filter-segment]:px-2.5"
               />
             </div>
           </div>
@@ -486,6 +473,7 @@ export function PublicProfileCollectionView({
                   titleHrefBase={`/u/${username}/title`}
                   titleHrefSearch="?view=shelf"
                   activeTitleId={shelfTitle?.id}
+                  presentation="profile"
                   onTitleSelect={openShelfTitle}
                 />
               ) : (

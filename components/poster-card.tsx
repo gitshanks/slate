@@ -37,6 +37,33 @@ interface PosterCardProps {
   onOpen?: () => void;
   compactMobile?: boolean;
   highlighted?: boolean;
+  /** Public-profile shelf cards use the same visual language as Space. */
+  presentation?: "default" | "profile";
+}
+
+function profileStatusPresentation(status: PosterCardProps["title"]["status"]) {
+  if (status === "watching") {
+    return {
+      label: "Watching",
+      borderClass: "border-primary/80",
+      hoverBorderClass: "group-hover:border-primary",
+      metaClass: "text-primary",
+    };
+  }
+  if (status === "watched") {
+    return {
+      label: "Watched",
+      borderClass: "border-primary/35",
+      hoverBorderClass: "group-hover:border-primary/65",
+      metaClass: "text-primary/65",
+    };
+  }
+  return {
+    label: "Up Next",
+    borderClass: "border-white/12",
+    hoverBorderClass: "group-hover:border-white/35",
+    metaClass: "text-white/42",
+  };
 }
 
 export function PosterCard({
@@ -49,6 +76,7 @@ export function PosterCard({
   onOpen,
   compactMobile = false,
   highlighted = false,
+  presentation = "default",
 }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
@@ -57,6 +85,10 @@ export function PosterCard({
   const mc = formatMetacriticScore(title.metacritic_score);
   const hasRating = Boolean(imdb || rt || mc);
   const genre = title.genres?.[0]?.name ?? null;
+  const profilePresentation = presentation === "profile";
+  const profileStatus = profilePresentation
+    ? profileStatusPresentation(title.status)
+    : null;
 
   const content = (
     <>
@@ -64,9 +96,14 @@ export function PosterCard({
         data-rail-poster
         className={cn(
           "relative aspect-[2/3] overflow-hidden rounded-xl",
-          compactMobile && "max-[639px]:rounded-[0.65rem]",
+          compactMobile && !profilePresentation && "max-[639px]:rounded-[0.65rem]",
           "bg-card hairline",
           "transition-all duration-200 ease-out",
+          profilePresentation && [
+            "rounded-[1rem] border bg-white/[0.035] shadow-[0_28px_65px_-28px_rgba(0,0,0,0.9)]",
+            profileStatus?.borderClass,
+            profileStatus?.hoverBorderClass,
+          ],
           highlighted &&
             "ring-2 ring-primary/90 shadow-[0_0_0_5px_hsl(var(--primary)/0.12),0_24px_64px_-20px_hsl(var(--primary)/0.55)]",
           dragPreview &&
@@ -111,21 +148,27 @@ export function PosterCard({
           </div>
         )}
 
-        {/* Bottom gradient + title meta on hover (pointer devices only) */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-0 transition-opacity duration-200 hoverable:group-hover:opacity-100" />
+        {profilePresentation ? (
+          <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        ) : (
+          <>
+            {/* Bottom gradient + title meta on hover (pointer devices only) */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-0 transition-opacity duration-200 hoverable:group-hover:opacity-100" />
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pb-12 opacity-0 translate-y-1 transition-all duration-200 hoverable:group-hover:opacity-100 hoverable:group-hover:translate-y-0">
-          <p className="text-sm font-medium text-white line-clamp-2 leading-snug">
-            {title.title}
-          </p>
-          <div className="mt-1 flex items-center gap-2 text-[11px] text-white/70 font-mono">
-            <span className="uppercase tracking-wider">{title.media_type}</span>
-            {year && <span>· {year}</span>}
-          </div>
-        </div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pb-12 opacity-0 translate-y-1 transition-all duration-200 hoverable:group-hover:opacity-100 hoverable:group-hover:translate-y-0">
+              <p className="text-sm font-medium text-white line-clamp-2 leading-snug">
+                {title.title}
+              </p>
+              <div className="mt-1 flex items-center gap-2 text-[11px] text-white/70 font-mono">
+                <span className="uppercase tracking-wider">{title.media_type}</span>
+                {year && <span>· {year}</span>}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* IMDB rating + RT score chip (top-left) — hidden on hover */}
-        {hasRating && (
+        {!profilePresentation && hasRating && (
           <div
             className={cn(
               "absolute left-2 top-2 rounded-full bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm transition-opacity duration-200 hoverable:group-hover:opacity-0",
@@ -144,7 +187,7 @@ export function PosterCard({
         )}
 
         {/* Sentiment badge (bottom-right) — only when the title has a user rating */}
-        {title.rating != null && (
+        {!profilePresentation && title.rating != null && (
           <div
             className="absolute bottom-2 right-2 rounded-full bg-black/55 backdrop-blur-sm p-1.5"
             aria-label={
@@ -173,33 +216,56 @@ export function PosterCard({
         )}
       </div>
 
-      {/* Always-visible title under poster on mobile */}
-      <div
-        className={cn("mt-2 px-0.5 sm:hidden", compactMobile && "mt-1.5")}
-      >
-        <p
-          className={cn(
-            "line-clamp-1 text-sm font-medium text-foreground",
-            compactMobile && "text-[10px] leading-tight",
-          )}
-        >
-          {title.title}
-        </p>
-        <div
-          className={cn(
-            "flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground",
-            compactMobile && "gap-1 text-[8px] leading-tight",
-          )}
-        >
-          {year && <span>{year}</span>}
-          {genre && (
-            <>
-              {year && <span>·</span>}
-              <span className="line-clamp-1">{genre}</span>
-            </>
-          )}
+      {profilePresentation ? (
+        <div className={cn("mt-2.5 block px-0.5", compactMobile && "mt-1.5")}>
+          <p
+            className={cn(
+              "truncate text-[12px] font-medium text-white/82",
+              compactMobile && "text-[10px] leading-tight",
+            )}
+          >
+            {title.title}
+          </p>
+          <div
+            className={cn(
+              "mt-1 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.1em]",
+              profileStatus?.metaClass,
+              compactMobile && "mt-0.5 gap-1 text-[8px] leading-tight",
+            )}
+          >
+            <span>{profileStatus?.label}</span>
+            {year ? <span className="ml-auto text-white/28">{year}</span> : null}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Always-visible title under poster on mobile */
+        <div
+          className={cn("mt-2 px-0.5 sm:hidden", compactMobile && "mt-1.5")}
+        >
+          <p
+            className={cn(
+              "line-clamp-1 text-sm font-medium text-foreground",
+              compactMobile && "text-[10px] leading-tight",
+            )}
+          >
+            {title.title}
+          </p>
+          <div
+            className={cn(
+              "flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground",
+              compactMobile && "gap-1 text-[8px] leading-tight",
+            )}
+          >
+            {year && <span>{year}</span>}
+            {genre && (
+              <>
+                {year && <span>·</span>}
+                <span className="line-clamp-1">{genre}</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 

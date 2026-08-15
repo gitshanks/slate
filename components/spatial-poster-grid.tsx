@@ -23,6 +23,10 @@ import { ImdbBadge, MetacriticBadge, RottenTomatoesBadge } from "@/components/ra
 import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import type { PublicSpatialTitleDetail } from "@/lib/public-spatial-detail-types";
+import {
+  getCachedPublicTitleDetail,
+  loadPublicTitleDetail,
+} from "@/lib/public-title-detail-cache";
 import { posterUrl, profileUrl } from "@/lib/tmdb-image";
 import type { TitleRow } from "@/lib/types";
 import {
@@ -220,7 +224,7 @@ function shelfPresentation(title: TitleRow) {
     };
   }
   return {
-    label: "Watchlist",
+    label: "Up Next",
     icon: Clock,
     borderClass: "border-white/12",
     hoverBorderClass: "group-hover:border-white/35",
@@ -272,7 +276,6 @@ function FisheyePosterCell({
   const src = posterUrl(title.poster_path, "w500");
   const selected = title.id === selectedId;
   const shelf = shelfPresentation(title);
-  const PosterShelfIcon = shelf.icon;
   const lensTransform = useTransform(() => {
     const worldScale = cameraScale.get();
     const screenX = point.x * worldScale + wrappedCameraX.get();
@@ -372,7 +375,6 @@ function FisheyePosterCell({
             shelf.metaClass,
           )}
         >
-          <PosterShelfIcon className="h-2.5 w-2.5" aria-hidden />
           <span>{shelf.label}</span>
           {formatYear(title.release_date) ? (
             <span className="ml-auto text-white/28">
@@ -769,26 +771,27 @@ export function PublicTitleDetailOverlay({
   }, []);
 
   React.useEffect(() => {
-    const controller = new AbortController();
+    let current = true;
+    const cached = getCachedPublicTitleDetail(username, title.id);
+    if (cached) {
+      setDetail(cached);
+      setLoading(false);
+      setError(null);
+      return () => {
+        current = false;
+      };
+    }
+
     setDetail(null);
     setLoading(true);
     setError(null);
 
-    void fetch(
-      `/api/public/${encodeURIComponent(username)}/titles/${encodeURIComponent(title.id)}`,
-      { cache: "no-store", signal: controller.signal },
-    )
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error("Title details are unavailable right now.");
-        }
-        return (await response.json()) as PublicSpatialTitleDetail;
-      })
+    void loadPublicTitleDetail(username, title.id)
       .then((nextDetail) => {
-        if (!controller.signal.aborted) setDetail(nextDetail);
+        if (current) setDetail(nextDetail);
       })
       .catch((reason: unknown) => {
-        if (controller.signal.aborted) return;
+        if (!current) return;
         setError(
           reason instanceof Error
             ? reason.message
@@ -796,10 +799,12 @@ export function PublicTitleDetailOverlay({
         );
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (current) setLoading(false);
       });
 
-    return () => controller.abort();
+    return () => {
+      current = false;
+    };
   }, [title.id, username]);
 
   return (
@@ -1039,7 +1044,9 @@ export function SpatialPosterGrid({
   const loadDetail = React.useCallback(
     async (title: TitleRow) => {
       const request = ++detailRequestRef.current;
-      const cached = detailCacheRef.current.get(title.id);
+      const cached =
+        detailCacheRef.current.get(title.id) ??
+        getCachedPublicTitleDetail(username, title.id);
       if (cached) {
         setDetail(cached);
         setDetailLoading(false);
@@ -1051,12 +1058,7 @@ export function SpatialPosterGrid({
       setDetailLoading(true);
       setDetailError(null);
       try {
-        const response = await fetch(
-          `/api/public/${encodeURIComponent(username)}/titles/${encodeURIComponent(title.id)}`,
-          { cache: "no-store" },
-        );
-        if (!response.ok) throw new Error("Title details are unavailable right now.");
-        const nextDetail = (await response.json()) as PublicSpatialTitleDetail;
+        const nextDetail = await loadPublicTitleDetail(username, title.id);
         detailCacheRef.current.set(title.id, nextDetail);
         if (request !== detailRequestRef.current) return;
         setDetail(nextDetail);
