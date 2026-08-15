@@ -3,9 +3,14 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Clock, Eye, LayoutGrid, Search, X } from "lucide-react";
+import { Box, Check, Clock, Eye, Film, LayoutGrid, Search, X } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
+import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
+import { MediaGrid } from "@/components/media-grid";
+import type { SpatialCameraState } from "@/components/spatial-poster-grid";
 import { extractGenres, filterAndSort } from "@/lib/filter-utils";
+import { cn } from "@/lib/utils";
 import type { TitleRow } from "@/lib/types";
 
 const loadSpatialPosterGrid = () => import("@/components/spatial-poster-grid");
@@ -25,6 +30,8 @@ const SpatialPosterGrid = dynamic(
     ),
   },
 );
+
+type ViewMode = "shelf" | "space";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All", icon: LayoutGrid },
@@ -46,13 +53,20 @@ export function PublicProfileCollectionView({
   displayName,
   avatarUrl,
 }: PublicProfileCollectionViewProps) {
+  const [mode, setMode] = React.useState<ViewMode>("space");
   const [query, setQuery] = React.useState("");
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [searchTarget, setSearchTarget] = React.useState<{
     titleId: string;
     request: number;
   } | null>(null);
+  const [spatialCamera, setSpatialCamera] = React.useState<SpatialCameraState>({
+    x: 0,
+    y: 0,
+    scale: 0.88,
+  });
   const searchRequestRef = React.useRef(0);
+  const reducedMotion = useReducedMotion();
   const router = useRouter();
   const searchParams = useSearchParams();
   const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -82,6 +96,17 @@ export function PublicProfileCollectionView({
       filterParams,
     );
   }, [filterParams, status, titles]);
+  const visibleShelfTitles = React.useMemo(
+    () =>
+      normalizedQuery
+        ? filteredTitles.filter((title) =>
+            `${title.title} ${title.original_title ?? ""}`
+              .toLocaleLowerCase()
+              .includes(normalizedQuery),
+          )
+        : filteredTitles,
+    [filteredTitles, normalizedQuery],
+  );
   const genres = React.useMemo(() => extractGenres(titles), [titles]);
   const matches = React.useMemo(() => {
     if (!normalizedQuery) return [];
@@ -99,15 +124,38 @@ export function PublicProfileCollectionView({
     setSearchTarget({ titleId, request: searchRequestRef.current });
   }, []);
 
+  const selectMode = React.useCallback(
+    (nextMode: ViewMode) => {
+      if (nextMode === mode) return;
+      setMode(nextMode);
+      if (nextMode === "shelf") setSearchTarget(null);
+      setSearchOpen(normalizedQuery.length > 0);
+    },
+    [mode, normalizedQuery.length],
+  );
+
   const selectSearchResult = React.useCallback(
     (title: TitleRow) => {
       setSearchOpen(false);
-      focusTitle(title.id);
+      if (mode === "space") {
+        focusTitle(title.id);
+        return;
+      }
+      router.push(`/u/${username}/title/${title.id}`);
     },
-    [focusTitle],
+    [focusTitle, mode, router, username],
   );
 
   React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadSpatialPosterGrid();
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  React.useEffect(() => {
+    if (mode !== "space") return;
+
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverflow = document.body.style.overflow;
     document.documentElement.style.overflow = "hidden";
@@ -117,14 +165,12 @@ export function PublicProfileCollectionView({
       document.documentElement.style.overflow = previousHtmlOverflow;
       document.body.style.overflow = previousBodyOverflow;
     };
-  }, []);
-
-  const keepSpaceOpen = React.useCallback(() => undefined, []);
+  }, [mode]);
 
   return (
-    <>
+    <div className="dark min-h-dvh bg-[#080a09] text-white">
       <header
-        className="dark pointer-events-none fixed inset-x-0 top-0 z-[70] px-3 pb-8 text-white sm:px-6 sm:pb-7"
+        className="pointer-events-none fixed inset-x-0 top-0 z-[70] px-3 pb-8 text-white sm:px-6 sm:pb-7"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         aria-label={`${displayName}'s slate controls`}
       >
@@ -166,13 +212,56 @@ export function PublicProfileCollectionView({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => router.push("/login")}
-            className="col-start-2 row-start-1 inline-flex h-8 shrink-0 items-center rounded-full border border-primary/25 bg-primary/10 px-3 text-[10px] font-semibold text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] sm:col-start-3 sm:h-9 sm:border-0 sm:bg-primary sm:px-3.5 sm:text-xs sm:text-primary-foreground sm:hover:bg-primary/90 xl:justify-self-end"
-          >
-            Make your own
-          </button>
+          <div className="col-start-2 row-start-1 flex items-center justify-end gap-1.5 sm:col-start-3 sm:gap-2 xl:justify-self-end">
+            <div
+              className="relative grid h-8 grid-cols-2 rounded-full border border-white/12 bg-white/[0.055] p-0.5 sm:h-9"
+              role="group"
+              aria-label="Collection view"
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  "pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-0.125rem)] rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.18)] transition-[transform,background-color] duration-[240ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
+                  mode === "shelf"
+                    ? "translate-x-0 bg-white"
+                    : "translate-x-full bg-primary",
+                )}
+              />
+              <button
+                type="button"
+                onClick={() => selectMode("shelf")}
+                aria-pressed={mode === "shelf"}
+                className={cn(
+                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1.5 rounded-full px-2.5 text-[9px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[4.5rem] sm:px-3.5 sm:text-[10px]",
+                  mode === "shelf" ? "text-black" : "text-white/52 hover:text-white",
+                )}
+              >
+                <LayoutGrid className="h-3 w-3" />
+                Shelf
+              </button>
+              <button
+                type="button"
+                onClick={() => selectMode("space")}
+                aria-pressed={mode === "space"}
+                className={cn(
+                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1.5 rounded-full px-2.5 text-[9px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[4.5rem] sm:px-3.5 sm:text-[10px]",
+                  mode === "space"
+                    ? "text-primary-foreground"
+                    : "text-white/52 hover:text-white",
+                )}
+              >
+                <Box className="h-3 w-3" />
+                Space
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/login")}
+              className="inline-flex h-8 shrink-0 items-center rounded-full border border-primary/25 bg-primary/10 px-3 text-[10px] font-semibold text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] sm:h-9 sm:border-0 sm:bg-primary sm:px-3.5 sm:text-xs sm:text-primary-foreground sm:hover:bg-primary/90"
+            >
+              Make your own
+            </button>
+          </div>
 
           <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-col gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:flex-row sm:items-center sm:gap-2.5 xl:justify-self-center">
             <div
@@ -236,9 +325,7 @@ export function PublicProfileCollectionView({
                       >
                         <span className="truncate">{title.title}</span>
                         <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.08em] text-white/34">
-                          {title.status === "want"
-                            ? "Watchlist"
-                            : title.status}
+                          {title.status === "want" ? "Watchlist" : title.status}
                         </span>
                       </button>
                     ))
@@ -261,7 +348,7 @@ export function PublicProfileCollectionView({
                 statusOptions={STATUS_OPTIONS}
                 statusParam="spaceStatus"
                 fullHeightStatus
-                idPrefix="space"
+                idPrefix="shared"
                 popoverClassName="z-[80]"
                 groupControls
                 className="mb-0 w-max flex-nowrap gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5"
@@ -271,14 +358,73 @@ export function PublicProfileCollectionView({
         </div>
       </header>
 
-      <div className="fixed inset-0 z-40 bg-[#080a09]">
+      <motion.div
+        aria-hidden={mode === "space" || undefined}
+        inert={mode === "space" ? true : undefined}
+        initial={false}
+        animate={{ opacity: mode === "shelf" ? 1 : 0 }}
+        transition={{ duration: reducedMotion ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className={cn(
+          "min-h-dvh bg-[#080a09] px-3 pb-12 pt-40 sm:px-6 sm:pt-24",
+          mode === "shelf" ? "pointer-events-auto" : "pointer-events-none",
+        )}
+      >
+        <div className="mx-auto w-full max-w-[1540px]">
+          {visibleShelfTitles.length ? (
+            <MediaGrid
+              titles={visibleShelfTitles}
+              readOnly
+              compactMobile
+              titleHrefBase={`/u/${username}/title`}
+            />
+          ) : (
+            <EmptyState
+              icon={<Film className="h-6 w-6" />}
+              title={
+                titles.length
+                  ? "No titles match these filters"
+                  : "Nothing here yet"
+              }
+              description={
+                titles.length
+                  ? "Try a different filter or search."
+                  : "This slate is waiting for its first title."
+              }
+            />
+          )}
+        </div>
+      </motion.div>
+
+      <motion.div
+        role="dialog"
+        aria-modal={mode === "space" || undefined}
+        aria-label="Space view"
+        aria-hidden={mode !== "space" || undefined}
+        inert={mode !== "space" ? true : undefined}
+        initial={false}
+        animate={{
+          opacity: mode === "space" ? 1 : 0,
+          transform:
+            reducedMotion || mode === "space" ? "scale(1)" : "scale(1.008)",
+        }}
+        transition={{
+          duration: reducedMotion ? 0 : mode === "space" ? 0.26 : 0.2,
+          ease: [0.65, 0, 0.35, 1],
+        }}
+        className={cn(
+          "fixed inset-0 z-40 bg-[#080a09] will-change-[opacity,transform]",
+          mode === "space" ? "pointer-events-auto" : "pointer-events-none",
+        )}
+      >
         <SpatialPosterGrid
           titles={filteredTitles}
           username={username}
-          onExit={keepSpaceOpen}
+          onExit={() => selectMode("shelf")}
           searchTarget={searchTarget}
+          initialCamera={spatialCamera}
+          onCameraChange={setSpatialCamera}
         />
-      </div>
-    </>
+      </motion.div>
+    </div>
   );
 }
