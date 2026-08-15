@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ArrowUpDown, Film, Tv, LayoutGrid, ChevronDown, X, Heart, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -42,6 +42,8 @@ export interface FilterBarProps {
   popoverClassName?: string;
   /** Keeps primary and secondary controls together when the bar wraps. */
   groupControls?: boolean;
+  /** Keeps the sort slot's width when a view intentionally hides ordering. */
+  reserveSortControl?: boolean;
   className?: string;
 }
 
@@ -80,15 +82,16 @@ export function FilterBar({
   idPrefix = "library",
   popoverClassName,
   groupControls = false,
+  reserveSortControl = false,
   className,
 }: FilterBarProps) {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const currentType = searchParams.get("type") ?? "";
   const currentGenre = searchParams.get("genre") ?? "";
   const currentYear = searchParams.get("year") ?? "";
-  const currentSort = showSort ? (searchParams.get("sort") ?? "") : "";
+  const selectedSort = searchParams.get("sort") ?? "";
+  const currentSort = showSort ? selectedSort : "";
   const currentSentiment = searchParams.get("sentiment") ?? "";
   const currentStatus = statusOptions ? (searchParams.get(statusParam) ?? "") : "";
 
@@ -105,13 +108,16 @@ export function FilterBar({
       if (value) params.set(key, value);
       else params.delete(key);
       const qs = params.toString();
+      // Use the visible browser pathname. Hosted Slate serves /app through a
+      // rewrite, so usePathname can describe the internal destination instead.
+      const browserPathname = window.location.pathname;
       window.history.replaceState(
         null,
         "",
-        qs ? `${pathname}?${qs}` : pathname
+        qs ? `${browserPathname}?${qs}` : browserPathname
       );
     },
-    [pathname, searchParams]
+    [searchParams]
   );
 
   const clearFilters = React.useCallback(() => {
@@ -127,12 +133,13 @@ export function FilterBar({
       params.delete(key);
     }
     const qs = params.toString();
+    const browserPathname = window.location.pathname;
     window.history.replaceState(
       null,
       "",
-      qs ? `${pathname}?${qs}` : pathname
+      qs ? `${browserPathname}?${qs}` : browserPathname
     );
-  }, [pathname, searchParams, showSort, statusOptions, statusParam]);
+  }, [searchParams, showSort, statusOptions, statusParam]);
 
   const hasAny =
     currentType ||
@@ -338,7 +345,7 @@ export function FilterBar({
         </PopoverContent>
       </Popover>
 
-      {showSort && (
+      {showSort ? (
         <Popover>
           <PopoverTrigger asChild>
             <button
@@ -384,7 +391,23 @@ export function FilterBar({
             </div>
           </PopoverContent>
         </Popover>
-      )}
+      ) : reserveSortControl ? (
+        <button
+          type="button"
+          aria-hidden
+          tabIndex={-1}
+          disabled
+          data-filter-sort
+          className="filter-chip invisible inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium"
+        >
+          <ArrowUpDown className="h-3 w-3 shrink-0" />
+          <span data-filter-sort-label>
+            {sortOptions.find((option) => option.value === selectedSort)?.label ??
+              "Your order"}
+          </span>
+          <ChevronDown className="h-3 w-3" />
+        </button>
+      ) : null}
 
       {showSentiment && sentimentDisplay === "segmented" && (
         <SegmentedFilter
@@ -462,6 +485,20 @@ export function FilterBar({
           <span data-filter-clear-label>Clear</span>
         </button>
       )}
+
+      {reserveSortControl && !showSort && selectedSort && !hasAny ? (
+        <button
+          type="button"
+          aria-hidden
+          tabIndex={-1}
+          disabled
+          data-filter-clear
+          className="filter-chip invisible inline-flex h-9 items-center gap-1 rounded-full px-2 text-[11px]"
+        >
+          <X className="h-3 w-3" />
+          <span data-filter-clear-label>Clear</span>
+        </button>
+      ) : null}
       </div>
     </div>
   );
