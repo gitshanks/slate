@@ -13,51 +13,18 @@ import {
   searchMulti,
   type TmdbMediaResult,
 } from "@/lib/tmdb";
-import Anthropic from "@anthropic-ai/sdk";
+import {
+  AI_PROVIDER,
+  ANTHROPIC_MODEL,
+  getAnthropic,
+  getOpenAIBackend,
+  getOpenAIFallback,
+  type OpenAIBackend,
+} from "@/lib/ai-provider";
+import type Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 
-// ─── Provider resolution ────────────────────────────────────────────
-//
-// Mirrors lib/ai-search.ts so both modules stay in lockstep on which
-// backend wins when both keys are set.
-
-type Provider = "anthropic" | "openai";
-
-function resolveProvider(): Provider | null {
-  const explicit = process.env.AI_PROVIDER?.toLowerCase();
-  if (explicit === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";
-  if (explicit === "openai" && process.env.OPENAI_API_KEY) return "openai";
-  if (process.env.OPENAI_API_KEY) return "openai";
-  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
-  return null;
-}
-
-const PROVIDER = resolveProvider();
-export const aiChatEnabled = PROVIDER !== null;
-
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "llama-3.3-70b-versatile";
-const OPENAI_BASE_URL =
-  process.env.OPENAI_BASE_URL || "https://api.groq.com/openai/v1";
-
-let anthropicClient: Anthropic | null = null;
-function getAnthropic(): Anthropic {
-  if (!anthropicClient) {
-    anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  }
-  return anthropicClient;
-}
-
-let openaiClient: OpenAI | null = null;
-function getOpenAI(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: OPENAI_BASE_URL,
-    });
-  }
-  return openaiClient;
-}
+export const aiChatEnabled = AI_PROVIDER !== null;
 
 // ─── Wire types ─────────────────────────────────────────────────────
 
@@ -86,13 +53,13 @@ const ALL_GENRES = Array.from(
 // One JSON schema, reused for both providers' tool-definition shapes.
 // Mirrors `SearchIntent` minus `interpretation` (the chat prose replaces it).
 //
-// Designed conservatively for Llama-3.3-70B function calling on Groq:
-// - no `type: ["X", "null"]` unions (Llama generates `null` literals that
-//   sometimes fail Groq's tool-call validator).
+// Designed conservatively for OpenAI-compatible function calling:
+// - no `type: ["X", "null"]` unions, which some models emit unreliably and
+//   can fail strict tool-call validation.
 // - nullable fields are simply optional (omitted from `required`).
 // - no `enum` containing `null`.
-// - no `additionalProperties: false` (overly strict — Llama occasionally
-//   emits an extra commentary field and Groq rejects the whole call).
+// - no `additionalProperties: false`; some models add a commentary field and
+//   strict providers reject the whole call.
 // `normalizeIntent()` below treats missing or extra fields as "no constraint".
 const SEARCH_TOOL_PARAMETERS = {
   type: "object" as const,
@@ -131,8 +98,8 @@ const SEARCH_TOOL_PARAMETERS = {
       description: "TMDB user rating floor (0-10). Omit for no floor.",
     },
   },
-  // Keep required minimal — anything Llama can sensibly omit shouldn't be
-  // mandatory, since Groq's validator is strict about presence.
+  // Keep required minimal. Anything a model can sensibly omit should not be
+  // mandatory because several providers validate required fields strictly.
   required: ["media_type", "genres"],
 };
 
@@ -218,15 +185,31 @@ Length: 2-4 sentences. Always include at least 2 title names from the result lis
 export async function* streamChat(
   messages: ChatMessage[],
 ): AsyncIterableIterator<ChatEvent> {
-  if (!PROVIDER) {
+  if (!AI_PROVIDER) {
     yield { type: "error", message: "AI chat is not configured" };
     return;
   }
+
   try {
-    if (PROVIDER === "openai") {
-      yield* streamOpenAIChat(messages);
-    } else {
+    if (AI_PROVIDER === "anthropic") {
       yield* streamAnthropicChat(messages);
+      return;
+    }
+
+    const primary = getOpenAIBackend(AI_PROVIDER);
+    let emitted = false;
+    try {
+      for await (const event of streamOpenAIChat(messages, primary)) {
+        emitted = true;
+        yield event;
+      }
+    } catch (error) {
+      const fallback = getOpenAIFallback(AI_PROVIDER);
+      if (!emitted && fallback) {
+        yield* streamOpenAIChat(messages, fallback);
+        return;
+      }
+      throw error;
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "chat failed";
@@ -638,6 +621,7 @@ function normalizeIntent(raw: Record<string, unknown>): SearchIntent {
 
 async function* streamOpenAIChat(
   messages: ChatMessage[],
+  backend: OpenAIBackend,
 ): AsyncIterableIterator<ChatEvent> {
   type Msg = OpenAI.Chat.Completions.ChatCompletionMessageParam;
 
@@ -661,34 +645,42 @@ async function* streamOpenAIChat(
   // follow-ups answer conversationally from the prior prose in context.
   const isFollowUp = messages.filter((m) => m.role === "user").length > 1;
 
-  // Whether we've already retried with tools disabled. The retry is the
-  // graceful-degradation path when Groq rejects a tool call: drop the tools
-  // parameter and let the model respond conversationally.
-  let triedFallback = false;
+  // Whether the OpenAI-compatible fallback has already retried with tools
+  // disabled after a malformed tool call. Gemini errors are sent to the
+  // provider-level fallback instead of producing ungrounded prose.
+  let triedToollessRecovery = false;
 
   for (let hop = 0; hop < MAX_HOPS; hop++) {
     // Accumulate tool calls and prose across the stream.
-    type PendingCall = { id: string; name: string; args: string };
+    type PendingCall = {
+      id: string;
+      name: string;
+      args: string;
+      extraContent?: Record<string, unknown>;
+    };
     const pendingCalls = new Map<number, PendingCall>();
     let proseAcc = "";
     let finishReason: string | null = null;
     let toolFailureSeen = false;
 
     try {
-      const stream = await getOpenAI().chat.completions.create({
-        model: OPENAI_MODEL,
+      const stream = await backend.client.chat.completions.create({
+        model: backend.model,
         messages: wireMessages,
+        ...(backend.provider === "gemini"
+          ? { reasoning_effort: "low" as const }
+          : {}),
         // Pin temperature/top_p so identical queries from different devices
         // get the same tool args (and thus the same results). The previous
         // implementation used the provider default (~0.7) which made the
         // same query return wildly different rails on each device. This
-        // doesn't make TMDB results deterministic — it just stops Llama
-        // from emitting a fresh `query_text` each time.
+        // doesn't make TMDB results deterministic; it stops the model from
+        // emitting a fresh `query_text` each time.
         temperature: 0,
         top_p: 1,
-        // Skip tools on the fallback retry — this is what avoids the
-        // `failed_generation` loop when Groq dislikes whatever Llama emits.
-        ...(triedFallback
+        // Skip tools on the compatibility recovery request. This avoids a
+        // repeated `failed_generation` loop after malformed tool output.
+        ...(triedToollessRecovery
           ? {}
           : {
               tools: [
@@ -717,8 +709,8 @@ async function* streamOpenAIChat(
                   },
                 },
               ],
-              // Force a real tool call on the first hop. Without this, Llama
-              // 3.3 sometimes "narrates" tool usage in prose ("I just got
+              // Force a real tool call on the first hop. Some models otherwise
+              // "narrate" tool usage in prose ("I just got
               // some great options with find_similar({title: \"...\"})...")
               // and then hallucinates results from training instead of
               // emitting a structured function call. On hop 1 we omit
@@ -735,7 +727,8 @@ async function* streamOpenAIChat(
       // user never sees hallucinated text on screen.
       // On follow-ups we don't force a tool, so hop-0 prose is a real answer —
       // surface it rather than suppressing it as ungrounded.
-      const shouldYieldText = hop > 0 || triedFallback || isFollowUp;
+      const shouldYieldText =
+        hop > 0 || triedToollessRecovery || isFollowUp;
 
       for await (const chunk of stream) {
         const choice = chunk.choices[0];
@@ -750,17 +743,24 @@ async function* streamOpenAIChat(
         if (delta?.tool_calls) {
           for (const tc of delta.tool_calls) {
             const idx = tc.index;
+            const extraContent = (
+              tc as unknown as {
+                extra_content?: Record<string, unknown>;
+              }
+            ).extra_content;
             const existing = pendingCalls.get(idx);
             if (!existing) {
               pendingCalls.set(idx, {
                 id: tc.id ?? "",
                 name: tc.function?.name ?? "",
                 args: tc.function?.arguments ?? "",
+                ...(extraContent ? { extraContent } : {}),
               });
             } else {
               if (tc.id) existing.id = tc.id;
               if (tc.function?.name) existing.name = tc.function.name;
               if (tc.function?.arguments) existing.args += tc.function.arguments;
+              if (extraContent) existing.extraContent = extraContent;
             }
           }
         }
@@ -773,8 +773,8 @@ async function* streamOpenAIChat(
           raw,
         );
 
-      // Recovery for a known Groq parser bug: when Llama 3.3 emits a tool
-      // call in a non-canonical format, Groq sometimes glues the JSON args
+      // Recovery for a Groq parser edge case: when a model emits a tool call
+      // in a non-canonical format, Groq can glue the JSON args
       // into the tool name and rejects it as "not in request.tools". The
       // error message contains the original shape verbatim — we can pluck
       // it out, execute the tool ourselves, and synthesize the assistant
@@ -782,7 +782,11 @@ async function* streamOpenAIChat(
       const malformed = raw.match(
         /'(search_titles|find_similar|recommend_from_library)\s+(\{[^']*?\})'/,
       );
-      if (malformed && hop < MAX_HOPS - 1) {
+      if (
+        backend.provider === "openai" &&
+        malformed &&
+        hop < MAX_HOPS - 1
+      ) {
         try {
           const [, toolName, jsonArgs] = malformed;
           const parsedArgs = JSON.parse(jsonArgs) as Record<string, unknown>;
@@ -818,39 +822,41 @@ async function* streamOpenAIChat(
         }
       }
 
-      if (isToolFailure && !triedFallback) {
+      if (
+        backend.provider === "openai" &&
+        isToolFailure &&
+        !triedToollessRecovery
+      ) {
         // One-shot retry without tools so the user gets *some* response. The
         // model can't ground its answer in the catalogue this turn but at
         // least the conversation doesn't dead-end.
-        triedFallback = true;
+        triedToollessRecovery = true;
         toolFailureSeen = true;
       } else {
-        const friendly = isToolFailure
-          ? "Couldn't run the search for that — try rephrasing?"
-          : raw;
-        yield { type: "error", message: friendly };
-        return;
+        throw err;
       }
     }
 
     if (toolFailureSeen) {
       // Restart this hop without tools. The continue jumps to the loop
-      // condition, which is fine — `triedFallback` is now true so the next
-      // create() call omits the tools array.
+      // condition; `triedToollessRecovery` makes the next request omit tools.
       continue;
     }
 
     // Defiance check: hop 0 was supposed to emit a tool call (we set
-    // tool_choice="required"). If it didn't, Llama ignored the constraint
+    // tool_choice="required"). If it didn't, the model ignored the constraint
     // and any prose it produced is ungrounded — we already suppressed the
     // text deltas above, so just trigger the fallback retry.
     if (
       hop === 0 &&
-      !triedFallback &&
+      !triedToollessRecovery &&
       !isFollowUp &&
       (finishReason !== "tool_calls" || pendingCalls.size === 0)
     ) {
-      triedFallback = true;
+      if (backend.provider === "gemini") {
+        throw new Error("Gemini did not return a required tool call");
+      }
+      triedToollessRecovery = true;
       proseAcc = "";
       continue;
     }
@@ -861,16 +867,35 @@ async function* streamOpenAIChat(
     }
 
     // Append the assistant turn (with tool_calls) to the running history.
-    const calls = Array.from(pendingCalls.values());
+    const calls = Array.from(pendingCalls.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([, call]) => call);
+    const assistantToolCalls = calls.map((c, index) => ({
+      id: c.id,
+      type: "function" as const,
+      function: { name: c.name, arguments: c.args },
+      ...(c.extraContent
+        ? { extra_content: c.extraContent }
+        : backend.provider === "gemini" && index === 0
+          ? {
+              // Gemini 3 requires a thought signature when a function call is
+              // returned on the next request. The compatibility endpoint
+              // normally streams the real signature in `extra_content`; this
+              // documented sentinel keeps validation intact if an SDK version
+              // fails to surface that provider-specific field.
+              extra_content: {
+                google: {
+                  thought_signature: "skip_thought_signature_validator",
+                },
+              },
+            }
+          : {}),
+    }));
     wireMessages.push({
       role: "assistant",
       content: proseAcc || null,
-      tool_calls: calls.map((c) => ({
-        id: c.id,
-        type: "function" as const,
-        function: { name: c.name, arguments: c.args },
-      })),
-    });
+      tool_calls: assistantToolCalls,
+    } as Msg);
 
     // Execute each tool call and append its result.
     for (const call of calls) {

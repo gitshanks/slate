@@ -1,61 +1,20 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
-import OpenAI from "openai";
+import {
+  AI_PROVIDER,
+  ANTHROPIC_MODEL,
+  getAnthropic,
+  getOpenAIBackend,
+  getOpenAIFallback,
+  type OpenAIBackend,
+} from "@/lib/ai-provider";
 
 // ─── Provider resolution ────────────────────────────────────────────
 //
-// Two backends are supported:
-//   - "openai":     any OpenAI-compatible endpoint. Defaults to Groq's
-//                   free-tier Llama 3.3 70B. Also works with OpenRouter,
-//                   Ollama, LM Studio, vLLM, llama.cpp server, etc.
-//   - "anthropic":  Claude via the official Anthropic SDK.
-//
-// Provider is auto-detected from whichever API key is set. When both are
-// present, OpenAI-compat wins (it's the recommended path); set AI_PROVIDER
-// to override.
-
-type Provider = "anthropic" | "openai";
-
-function resolveProvider(): Provider | null {
-  const explicit = process.env.AI_PROVIDER?.toLowerCase();
-  if (explicit === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";
-  if (explicit === "openai" && process.env.OPENAI_API_KEY) return "openai";
-  if (process.env.OPENAI_API_KEY) return "openai";
-  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
-  return null;
-}
-
-const PROVIDER = resolveProvider();
-
 /**
  * Whether AI search is wired up. The palette uses this to hide the toggle
  * entirely when no provider is configured — no broken UX, no client error.
  */
-export const aiSearchEnabled = PROVIDER !== null;
-
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "llama-3.3-70b-versatile";
-const OPENAI_BASE_URL =
-  process.env.OPENAI_BASE_URL || "https://api.groq.com/openai/v1";
-
-let anthropicClient: Anthropic | null = null;
-function getAnthropic(): Anthropic {
-  if (!anthropicClient) {
-    anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  }
-  return anthropicClient;
-}
-
-let openaiClient: OpenAI | null = null;
-function getOpenAI(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: OPENAI_BASE_URL,
-    });
-  }
-  return openaiClient;
-}
+export const aiSearchEnabled = AI_PROVIDER !== null;
 
 // ─── TMDB genre tables ──────────────────────────────────────────────
 // Stable IDs from TMDB — hardcoded so we don't pay a request per query.
@@ -262,9 +221,8 @@ Rules:
 //
 // Both helpers return parsed JSON. Anthropic uses schema enforcement;
 // OpenAI-compat relies on `json_object` mode + the schema described in
-// the system prompt. In practice Llama 3.3 70B / Qwen 72B / GPT-4 class
-// models follow a well-described shape reliably; the JSON.parse() catches
-// the rare miss.
+// the system prompt. Strong instruction-following models generally follow a
+// well-described shape reliably; JSON.parse() catches the rare miss.
 
 async function callAnthropicJSON<T>(
   system: string,
@@ -293,13 +251,17 @@ async function callAnthropicJSON<T>(
 }
 
 async function callOpenAIJSON<T>(
+  backend: OpenAIBackend,
   system: string,
   user: string,
   maxTokens: number,
 ): Promise<T> {
-  const res = await getOpenAI().chat.completions.create({
-    model: OPENAI_MODEL,
+  const res = await backend.client.chat.completions.create({
+    model: backend.model,
     max_tokens: maxTokens,
+    ...(backend.provider === "gemini"
+      ? { reasoning_effort: "low" as const }
+      : {}),
     // See callAnthropicJSON for rationale — pin sampling so the same query
     // produces the same parsed intent/suggestions across devices.
     temperature: 0,
@@ -315,6 +277,27 @@ async function callOpenAIJSON<T>(
   return JSON.parse(text) as T;
 }
 
+async function callConfiguredJSON<T>(
+  system: string,
+  user: string,
+  schema: Record<string, unknown>,
+  maxTokens: number,
+): Promise<T> {
+  if (!AI_PROVIDER) throw new Error("AI search is not configured");
+  if (AI_PROVIDER === "anthropic") {
+    return callAnthropicJSON<T>(system, user, schema, maxTokens);
+  }
+
+  const primary = getOpenAIBackend(AI_PROVIDER);
+  try {
+    return await callOpenAIJSON<T>(primary, system, user, maxTokens);
+  } catch (error) {
+    const fallback = getOpenAIFallback(AI_PROVIDER);
+    if (!fallback) throw error;
+    return callOpenAIJSON<T>(fallback, system, user, maxTokens);
+  }
+}
+
 // ─── Public API ─────────────────────────────────────────────────────
 
 /**
@@ -324,17 +307,12 @@ async function callOpenAIJSON<T>(
 export async function parseSearchIntent(query: string): Promise<SearchIntent> {
   const trimmed = query.trim();
   if (!trimmed) throw new Error("query is empty");
-  if (!PROVIDER) throw new Error("AI search is not configured");
-
-  const raw =
-    PROVIDER === "anthropic"
-      ? await callAnthropicJSON<SearchIntent>(
-          INTENT_SYSTEM,
-          trimmed,
-          INTENT_SCHEMA,
-          1024,
-        )
-      : await callOpenAIJSON<SearchIntent>(INTENT_SYSTEM, trimmed, 1024);
+  const raw = await callConfiguredJSON<SearchIntent>(
+    INTENT_SYSTEM,
+    trimmed,
+    INTENT_SCHEMA,
+    1024,
+  );
 
   return normalizeIntent(raw);
 }
@@ -344,24 +322,17 @@ export async function parseSearchIntent(query: string): Promise<SearchIntent> {
  * if the model fails or AI isn't configured — never throws to the caller.
  */
 export async function suggestQueries(partial: string): Promise<string[]> {
-  if (!PROVIDER) return [];
+  if (!AI_PROVIDER) return [];
   const trimmed = partial.trim();
   if (trimmed.length < 2) return [];
   try {
     const userMsg = `Partial query: "${trimmed}"`;
-    const raw =
-      PROVIDER === "anthropic"
-        ? await callAnthropicJSON<{ suggestions: string[] }>(
-            SUGGESTIONS_SYSTEM,
-            userMsg,
-            SUGGESTIONS_SCHEMA,
-            512,
-          )
-        : await callOpenAIJSON<{ suggestions: string[] }>(
-            SUGGESTIONS_SYSTEM,
-            userMsg,
-            512,
-          );
+    const raw = await callConfiguredJSON<{ suggestions: string[] }>(
+      SUGGESTIONS_SYSTEM,
+      userMsg,
+      SUGGESTIONS_SCHEMA,
+      512,
+    );
     return Array.isArray(raw?.suggestions)
       ? raw.suggestions
           .filter((s): s is string => typeof s === "string" && s.length > 0)
@@ -380,24 +351,17 @@ export async function suggestQueries(partial: string): Promise<string[]> {
 export async function extractSharedTitleMentions(
   content: string,
 ): Promise<SharedTitleMention[]> {
-  if (!PROVIDER) return [];
+  if (!AI_PROVIDER) return [];
   const trimmed = content.trim().slice(0, 24_000);
   if (!trimmed) return [];
 
   try {
-    const raw =
-      PROVIDER === "anthropic"
-        ? await callAnthropicJSON<{ titles: SharedTitleMention[] }>(
-            SHARED_TITLES_SYSTEM,
-            trimmed,
-            SHARED_TITLES_SCHEMA,
-            1600,
-          )
-        : await callOpenAIJSON<{ titles: SharedTitleMention[] }>(
-            SHARED_TITLES_SYSTEM,
-            trimmed,
-            1600,
-          );
+    const raw = await callConfiguredJSON<{ titles: SharedTitleMention[] }>(
+      SHARED_TITLES_SYSTEM,
+      trimmed,
+      SHARED_TITLES_SCHEMA,
+      1600,
+    );
 
     const titles = Array.isArray(raw?.titles) ? raw.titles : [];
     const seen = new Set<string>();
