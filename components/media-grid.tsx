@@ -49,6 +49,8 @@ interface MediaGridProps {
   reorderContext?: MediaGridReorderContext;
   readOnly?: boolean;
   titleHrefBase?: string;
+  /** Optional query string preserved when opening a title from this grid. */
+  titleHrefSearch?: string;
   /** Keep the collection to one horizontally scrollable poster row. */
   horizontal?: boolean;
   /** Fit four smaller cards across narrow shared-profile screens. */
@@ -194,7 +196,7 @@ function OrderedMediaGrid(props: MediaGridProps) {
             compactMobile={props.compactMobile}
             href={
               props.titleHrefBase
-                ? `${props.titleHrefBase}/${title.id}`
+                ? `${props.titleHrefBase}/${title.id}${props.titleHrefSearch ?? ""}`
                 : undefined
             }
           />
@@ -209,6 +211,7 @@ function MediaGridState({
   reorderContext,
   readOnly = false,
   titleHrefBase,
+  titleHrefSearch,
   horizontal = false,
   compactMobile = false,
 }: MediaGridProps) {
@@ -332,7 +335,9 @@ function MediaGridState({
               readOnly
               compactMobile={compactMobile}
               href={
-                titleHrefBase ? `${titleHrefBase}/${title.id}` : undefined
+                titleHrefBase
+                  ? `${titleHrefBase}/${title.id}${titleHrefSearch ?? ""}`
+                  : undefined
               }
             />
           </motion.article>

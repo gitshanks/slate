@@ -3,7 +3,17 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Box, Check, Clock, Eye, Film, LayoutGrid, Search, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  Box,
+  Check,
+  Clock,
+  Eye,
+  Film,
+  LayoutGrid,
+  Search,
+  X,
+} from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
@@ -53,7 +63,6 @@ export function PublicProfileCollectionView({
   displayName,
   avatarUrl,
 }: PublicProfileCollectionViewProps) {
-  const [mode, setMode] = React.useState<ViewMode>("space");
   const [query, setQuery] = React.useState("");
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [searchTarget, setSearchTarget] = React.useState<{
@@ -65,10 +74,15 @@ export function PublicProfileCollectionView({
     y: 0,
     scale: 0.88,
   });
+  const [isSwitching, setIsSwitching] = React.useState(false);
   const searchRequestRef = React.useRef(0);
+  const viewSwitchTimerRef = React.useRef<number | null>(null);
   const reducedMotion = useReducedMotion();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [mode, setMode] = React.useState<ViewMode>(() =>
+    searchParams.get("view") === "shelf" ? "shelf" : "space",
+  );
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const status = searchParams.get("spaceStatus");
   const filterParams = React.useMemo(
@@ -126,12 +140,28 @@ export function PublicProfileCollectionView({
 
   const selectMode = React.useCallback(
     (nextMode: ViewMode) => {
-      if (nextMode === mode) return;
-      setMode(nextMode);
-      if (nextMode === "shelf") setSearchTarget(null);
-      setSearchOpen(normalizedQuery.length > 0);
+      if (nextMode === mode || isSwitching) return;
+      setIsSwitching(true);
+      setSearchOpen(false);
+      const params = new URLSearchParams(window.location.search);
+      if (nextMode === "shelf") params.set("view", "shelf");
+      else params.delete("view");
+      const queryString = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname,
+      );
+      viewSwitchTimerRef.current = window.setTimeout(
+        () => {
+          setMode(nextMode);
+          if (nextMode === "shelf") setSearchTarget(null);
+          viewSwitchTimerRef.current = null;
+        },
+        reducedMotion ? 0 : 110,
+      );
     },
-    [mode, normalizedQuery.length],
+    [isSwitching, mode, reducedMotion],
   );
 
   const selectSearchResult = React.useCallback(
@@ -154,6 +184,23 @@ export function PublicProfileCollectionView({
   }, []);
 
   React.useEffect(() => {
+    if (!isSwitching) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (viewSwitchTimerRef.current === null) setIsSwitching(false);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isSwitching, mode]);
+
+  React.useEffect(
+    () => () => {
+      if (viewSwitchTimerRef.current !== null) {
+        window.clearTimeout(viewSwitchTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  React.useEffect(() => {
     if (mode !== "space") return;
 
     const previousHtmlOverflow = document.documentElement.style.overflow;
@@ -170,7 +217,7 @@ export function PublicProfileCollectionView({
   return (
     <div className="dark min-h-dvh bg-[#080a09] text-white">
       <header
-        className="pointer-events-none fixed inset-x-0 top-0 z-[70] px-3 pb-8 text-white sm:px-6 sm:pb-7"
+        className="pointer-events-none fixed inset-x-0 top-0 z-[70] px-2.5 pb-8 text-white min-[380px]:px-3 sm:px-6 sm:pb-7"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         aria-label={`${displayName}'s slate controls`}
       >
@@ -187,32 +234,32 @@ export function PublicProfileCollectionView({
           />
         </div>
 
-        <div className="pointer-events-auto grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-5 xl:grid-cols-[minmax(9rem,1fr)_minmax(0,max-content)_minmax(9rem,1fr)]">
-          <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2.5 pl-1 sm:pl-0.5 xl:justify-self-start">
+        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-3 xl:grid-cols-[minmax(11rem,1fr)_minmax(0,48rem)_minmax(11rem,1fr)] xl:gap-x-5">
+          <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 pl-0.5 sm:gap-2.5 xl:justify-self-start">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={avatarUrl}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="h-8 w-8 shrink-0 rounded-full border border-white/15 object-cover sm:h-9 sm:w-9"
+                className="h-7 w-7 shrink-0 rounded-full border border-white/15 object-cover min-[380px]:h-8 min-[380px]:w-8 sm:h-9 sm:w-9"
               />
             ) : (
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.07] text-[11px] font-semibold text-white/72 sm:h-9 sm:w-9 sm:text-xs">
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.07] text-[10px] font-semibold text-white/72 min-[380px]:h-8 min-[380px]:w-8 min-[380px]:text-[11px] sm:h-9 sm:w-9 sm:text-xs">
                 {displayName.slice(0, 1).toLocaleUpperCase()}
               </span>
             )}
             <div className="min-w-0 leading-none">
-              <p className="truncate text-[13px] font-semibold tracking-[-0.02em] text-white sm:text-sm">
+              <p className="truncate text-xs font-semibold tracking-[-0.02em] text-white min-[380px]:text-[13px] sm:text-sm">
                 {displayName}&rsquo;s slate
               </p>
-              <p className="mt-1 truncate font-mono text-[9px] tracking-[0.08em] text-white/40">
+              <p className="mt-1 hidden truncate font-mono text-[9px] tracking-[0.08em] text-white/40 min-[380px]:block">
                 @{username}
               </p>
             </div>
           </div>
 
-          <div className="col-start-2 row-start-1 flex items-center justify-end gap-1.5 sm:col-start-3 sm:gap-2 xl:justify-self-end">
+          <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 sm:col-start-3 sm:gap-2 xl:justify-self-end">
             <div
               className="relative grid h-8 grid-cols-2 rounded-full border border-white/12 bg-white/[0.055] p-0.5 sm:h-9"
               role="group"
@@ -232,8 +279,9 @@ export function PublicProfileCollectionView({
                 onClick={() => selectMode("shelf")}
                 aria-pressed={mode === "shelf"}
                 aria-label="Shelf view"
+                disabled={isSwitching}
                 className={cn(
-                  "relative z-10 inline-flex w-8 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:w-9",
+                  "relative z-10 inline-flex w-8 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none sm:w-9",
                   mode === "shelf" ? "text-black" : "text-white/52 hover:text-white",
                 )}
               >
@@ -244,8 +292,9 @@ export function PublicProfileCollectionView({
                 onClick={() => selectMode("space")}
                 aria-pressed={mode === "space"}
                 aria-label="Space view"
+                disabled={isSwitching}
                 className={cn(
-                  "relative z-10 inline-flex w-8 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:w-9",
+                  "relative z-10 inline-flex w-8 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none sm:w-9",
                   mode === "space"
                     ? "text-primary-foreground"
                     : "text-white/52 hover:text-white",
@@ -257,15 +306,17 @@ export function PublicProfileCollectionView({
             <button
               type="button"
               onClick={() => router.push("/login")}
-              className="inline-flex h-8 shrink-0 items-center rounded-full border border-primary/25 bg-primary/10 px-3 text-[10px] font-semibold text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] sm:h-9 sm:border-0 sm:bg-primary sm:px-3.5 sm:text-xs sm:text-primary-foreground sm:hover:bg-primary/90"
+              aria-label="Make your own slate"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] min-[420px]:w-auto min-[420px]:px-3 sm:h-9 sm:border-0 sm:bg-primary sm:px-3.5 sm:text-xs sm:text-primary-foreground sm:hover:bg-primary/90"
             >
-              Make your own
+              <ArrowUpRight className="h-3.5 w-3.5 min-[420px]:mr-1.5" />
+              <span className="hidden min-[420px]:inline">Make your own</span>
             </button>
           </div>
 
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-col gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:flex-row sm:items-center sm:gap-2.5 xl:justify-self-center">
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-col gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:flex-row sm:items-center sm:gap-2.5 xl:w-full xl:justify-self-center">
             <div
-              className="relative min-w-0 shrink-0 sm:w-[clamp(12rem,20vw,18rem)]"
+              className="relative min-w-0 shrink-0 sm:w-[clamp(10rem,19vw,17rem)]"
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
                   setSearchOpen(false);
@@ -361,7 +412,7 @@ export function PublicProfileCollectionView({
       {mode === "shelf" ? (
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={{ opacity: isSwitching ? 0.16 : 1, y: isSwitching ? 2 : 0 }}
           transition={{ duration: reducedMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
           className="min-h-dvh bg-[#080a09] px-3 pb-12 pt-40 sm:px-6 sm:pt-24"
         >
@@ -372,6 +423,7 @@ export function PublicProfileCollectionView({
                 readOnly
                 compactMobile
                 titleHrefBase={`/u/${username}/title`}
+                titleHrefSearch="?view=shelf"
               />
             ) : (
               <EmptyState
@@ -396,7 +448,7 @@ export function PublicProfileCollectionView({
           aria-modal="true"
           aria-label="Space view"
           initial={reducedMotion ? false : { opacity: 0, scale: 1.008 }}
-          animate={{ opacity: 1, scale: 1 }}
+          animate={{ opacity: isSwitching ? 0.16 : 1, scale: isSwitching ? 1.002 : 1 }}
           transition={{ duration: reducedMotion ? 0 : 0.22, ease: [0.65, 0, 0.35, 1] }}
           className="fixed inset-0 z-40 bg-[#080a09] will-change-[opacity,transform]"
         >

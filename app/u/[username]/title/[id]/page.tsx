@@ -64,6 +64,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 export default async function PublicTitlePage(props: Props) {
   const { username, id } = await props.params;
+  const searchParams = await props.searchParams;
   const record = await getPublicProfileTitle(username, id);
   if (!record) notFound();
 
@@ -106,11 +107,13 @@ export default async function PublicTitlePage(props: Props) {
       : null;
   const shelf =
     title.status === "watching"
-      ? { label: "Watching", icon: Eye, href: `?tab=watching` }
+      ? { label: "Watching", icon: Eye }
       : title.status === "watched"
-        ? { label: "Watched", icon: Check, href: `?tab=watched` }
-        : { label: "Watchlist", icon: Clock, href: "" };
-  const profileHref = `/u/${profile.username}${shelf.href}`;
+        ? { label: "Watched", icon: Check }
+        : { label: "Watchlist", icon: Clock };
+  const profileHref = `/u/${profile.username}${
+    searchParams.view === "shelf" ? "?view=shelf" : ""
+  }`;
   const ShelfIcon = shelf.icon;
   const sentiment =
     title.rating === 3
