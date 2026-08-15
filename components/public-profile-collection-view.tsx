@@ -449,7 +449,7 @@ export function PublicProfileCollectionView({
                 idPrefix="shared"
                 popoverClassName="z-[80]"
                 groupControls
-                className="mb-0 w-max flex-nowrap gap-2 md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segmented]:h-10 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden lg:[&_[data-filter-clear-label]]:inline lg:[&_.filter-segment]:px-2.5"
+                className="mb-0 w-max flex-nowrap gap-2 md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segment:first-child]:px-3.5 [&_.filter-segmented]:h-10 [&_[data-filter-clear]]:px-3 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden lg:[&_[data-filter-clear-label]]:inline lg:[&_.filter-segment]:px-2.5"
               />
             </div>
           </div>
