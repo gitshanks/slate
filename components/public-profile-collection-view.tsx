@@ -231,27 +231,27 @@ export function PublicProfileCollectionView({
                 type="button"
                 onClick={() => selectMode("shelf")}
                 aria-pressed={mode === "shelf"}
+                aria-label="Shelf view"
                 className={cn(
-                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1.5 rounded-full px-2.5 text-[9px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[4.5rem] sm:px-3.5 sm:text-[10px]",
+                  "relative z-10 inline-flex w-8 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:w-9",
                   mode === "shelf" ? "text-black" : "text-white/52 hover:text-white",
                 )}
               >
-                <LayoutGrid className="h-3 w-3" />
-                Shelf
+                <LayoutGrid className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
                 onClick={() => selectMode("space")}
                 aria-pressed={mode === "space"}
+                aria-label="Space view"
                 className={cn(
-                  "relative z-10 inline-flex min-w-[3.75rem] items-center justify-center gap-1.5 rounded-full px-2.5 text-[9px] font-medium transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:min-w-[4.5rem] sm:px-3.5 sm:text-[10px]",
+                  "relative z-10 inline-flex w-8 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 sm:w-9",
                   mode === "space"
                     ? "text-primary-foreground"
                     : "text-white/52 hover:text-white",
                 )}
               >
-                <Box className="h-3 w-3" />
-                Space
+                <Box className="h-3.5 w-3.5" />
               </button>
             </div>
             <button
