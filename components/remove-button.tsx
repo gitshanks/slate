@@ -16,6 +16,8 @@ export function RemoveButton({
   iconOnly = false,
   variant,
   className,
+  redirectOnRemove = true,
+  onRemoved,
 }: {
   titleId: string;
   titleName: string;
@@ -23,6 +25,9 @@ export function RemoveButton({
   /** "row" renders a full-width destructive menu row (mobile More sheet). */
   variant?: "row";
   className?: string;
+  /** Keep an in-place inspector open long enough to close cleanly. */
+  redirectOnRemove?: boolean;
+  onRemoved?: () => void;
 }) {
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -33,7 +38,9 @@ export function RemoveButton({
       try {
         await removeTitle(titleId);
         toast.success("Removed");
-        router.push(APP_ROOT);
+        onRemoved?.();
+        if (redirectOnRemove) router.push(APP_ROOT);
+        else router.refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Failed");
       }

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const OPTIONS: { value: TitleStatus; label: string; icon: React.ElementType }[] = [
-  { value: "want", label: "Want", icon: Clock },
+  { value: "want", label: "Up Next", icon: Clock },
   { value: "watching", label: "Watching", icon: Eye },
   { value: "watched", label: "Watched", icon: Check },
 ];

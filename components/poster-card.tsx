@@ -39,6 +39,8 @@ interface PosterCardProps {
   highlighted?: boolean;
   /** Public-profile shelf cards use the same visual language as Space. */
   presentation?: "default" | "profile";
+  /** Hide inline quick actions when the surrounding inspector owns edits. */
+  showActions?: boolean;
 }
 
 function profileStatusPresentation(status: PosterCardProps["title"]["status"]) {
@@ -77,6 +79,7 @@ export function PosterCard({
   compactMobile = false,
   highlighted = false,
   presentation = "default",
+  showActions = true,
 }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
@@ -207,7 +210,7 @@ export function PosterCard({
         )}
 
         {/* Quick-action strip: status + delete */}
-        {!dragPreview && !readOnly && (
+        {!dragPreview && !readOnly && showActions && (
           <PosterCardActions
             titleId={title.id}
             titleName={title.title}
@@ -278,7 +281,12 @@ export function PosterCard({
 
   if (onOpen) {
     return (
-      <button type="button" onClick={onOpen} className={cn(className, "w-full text-left")}>
+      <button
+        type="button"
+        data-drag-card
+        onClick={onOpen}
+        className={cn(className, "w-full text-left")}
+      >
         {content}
       </button>
     );

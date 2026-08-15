@@ -13,9 +13,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { PwaInstallButton } from "@/components/pwa-install-button";
 
 const LINKS = [
-  { href: APP_ROOT, label: "Watchlist" },
-  { href: "/watching", label: "Watching" },
-  { href: "/watched", label: "Watched" },
+  { href: APP_ROOT, label: "Library" },
+  { href: "/discover", label: "Discover" },
   { href: "/lists", label: "Lists" },
   { href: "/import", label: "Import" },
 ];
@@ -34,6 +33,10 @@ export function TopNav({
 }) {
   const pathname = usePathname();
   const { open } = useCommandPalette();
+
+  // The unified Library owns the same collection chrome as shared profiles.
+  // Other app routes retain this global navigation bar.
+  if (pathname === APP_ROOT) return null;
 
   return (
     <>

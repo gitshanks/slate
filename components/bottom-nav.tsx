@@ -4,20 +4,20 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { Clock, Eye, Check, Layers, Upload } from "lucide-react";
+import { Compass, LayoutGrid, Layers, Upload, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_ROOT } from "@/lib/public-mode";
 import { EASE, DUR } from "@/lib/motion";
 
-// Icons mirror AddStatusDropdown's want/watching/watched mapping (Clock /
-// Eye / Check) so the same metaphor reads everywhere a title's status is
-// surfaced — chip on poster cards, status dropdown, and now the tab bar.
+// Status now lives in the Library's pinned collection filter. The bottom bar
+// is reserved for primary destinations, so every major app capability stays
+// reachable without leaving Shelf or Space in an ambiguous state.
 const TABS = [
-  { href: APP_ROOT, label: "Watchlist", icon: Clock },
-  { href: "/watching", label: "Watching", icon: Eye },
-  { href: "/watched", label: "Watched", icon: Check },
+  { href: APP_ROOT, label: "Library", icon: LayoutGrid },
+  { href: "/discover", label: "Discover", icon: Compass },
   { href: "/lists", label: "Lists", icon: Layers },
   { href: "/import", label: "Import", icon: Upload },
+  { href: "/profile", label: "Profile", icon: UserRound },
 ] as const;
 
 const STORAGE_KEY = "slate:lastBottomNavTab";
@@ -65,13 +65,18 @@ export function BottomNav() {
   // If the user is on a tab, the URL wins. Otherwise fall back to the
   // remembered tab so the bar shows their origin.
   const activeHref = findCurrentTab(pathname) ?? rememberedTab;
+  const librarySurface = pathname === APP_ROOT;
 
   // This is an ordinary, non-shrinking row in the mobile app shell. The middle
   // content region scrolls independently, so the bar never uses fixed/sticky
   // positioning and cannot be stranded by iOS after search closes.
   return (
     <nav
-      className="relative z-40 w-full shrink-0 glass border-t border-border/60 md:hidden"
+      className={cn(
+        "relative z-40 w-full shrink-0 glass border-t border-border/60 md:hidden",
+        librarySurface &&
+          "dark border-white/10 bg-[#080a09]/90 text-white backdrop-blur-2xl",
+      )}
       aria-label="Primary"
       style={{
         // Lift the inner row above the iOS home indicator AND add a notch

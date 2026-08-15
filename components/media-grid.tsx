@@ -57,10 +57,14 @@ interface MediaGridProps {
   activeTitleId?: string | null;
   /** Applies the Space card treatment to a public Shelf grid. */
   presentation?: "default" | "profile";
+  /** Keeps mutation controls in the inspector while retaining sortable cards. */
+  showCardActions?: boolean;
   /** Keep the collection to one horizontally scrollable poster row. */
   horizontal?: boolean;
   /** Fit four smaller cards across narrow shared-profile screens. */
   compactMobile?: boolean;
+  /** Disable per-card entrance staggering when a parent owns result motion. */
+  animateEntrance?: boolean;
 }
 
 const mediaGridClassName =
@@ -76,23 +80,27 @@ function MediaLayout({
   children,
   horizontal = false,
   compactMobile = false,
+  animateEntrance = true,
 }: {
   children: React.ReactNode;
   horizontal?: boolean;
   compactMobile?: boolean;
+  animateEntrance?: boolean;
 }) {
-  const grid = (
+  const gridClassName =
+    horizontal
+      ? mediaRailClassName
+      : compactMobile
+        ? compactMobileGridClassName
+        : mediaGridClassName;
+  const grid = animateEntrance ? (
     <MotionGrid
-      className={
-        horizontal
-          ? mediaRailClassName
-          : compactMobile
-            ? compactMobileGridClassName
-            : mediaGridClassName
-      }
+      className={gridClassName}
     >
       {children}
     </MotionGrid>
+  ) : (
+    <div className={gridClassName}>{children}</div>
   );
 
   return <RailScroller enabled={horizontal}>{grid}</RailScroller>;
@@ -116,6 +124,7 @@ const titleSensors = [
 
       // Quick actions remain immediately clickable. The poster link itself is
       // intentionally allowed so a hold anywhere on the card can pick it up.
+      if (target.closest("[data-drag-card]")) return false;
       return Boolean(
         target.closest(
           "button, input, textarea, select, [contenteditable='true'], [data-no-drag]"
@@ -185,6 +194,7 @@ function OrderedMediaGrid(props: MediaGridProps) {
     <MediaLayout
       horizontal={props.horizontal}
       compactMobile={props.compactMobile}
+      animateEntrance={props.animateEntrance}
     >
       {props.titles.map((title, index) => (
         <motion.article
@@ -219,6 +229,7 @@ function OrderedMediaGrid(props: MediaGridProps) {
             compactMobile={props.compactMobile}
             highlighted={props.activeTitleId === title.id}
             presentation={props.presentation}
+            showActions={props.showCardActions}
             onOpen={
               props.onTitleSelect
                 ? () => props.onTitleSelect?.(title)
@@ -245,8 +256,10 @@ function MediaGridState({
   onTitleSelect,
   activeTitleId,
   presentation = "default",
+  showCardActions = true,
   horizontal = false,
   compactMobile = false,
+  animateEntrance = true,
 }: MediaGridProps) {
   const [orderedTitles, setOrderedTitles] = useState(titles);
   const [announcement, setAnnouncement] = useState("");
@@ -355,7 +368,11 @@ function MediaGridState({
 
   if (readOnly) {
     return (
-      <MediaLayout horizontal={horizontal} compactMobile={compactMobile}>
+      <MediaLayout
+        horizontal={horizontal}
+        compactMobile={compactMobile}
+        animateEntrance={animateEntrance}
+      >
         {orderedTitles.map((title, index) => (
           <motion.article
             key={title.id}
@@ -388,6 +405,7 @@ function MediaGridState({
               compactMobile={compactMobile}
               highlighted={activeTitleId === title.id}
               presentation={presentation}
+              showActions={showCardActions}
               onOpen={onTitleSelect ? () => onTitleSelect(title) : undefined}
               href={
                 titleHrefBase
@@ -409,7 +427,11 @@ function MediaGridState({
     >
       <DragSessionRecovery />
 
-      <MediaLayout horizontal={horizontal} compactMobile={compactMobile}>
+      <MediaLayout
+        horizontal={horizontal}
+        compactMobile={compactMobile}
+        animateEntrance={animateEntrance}
+      >
         {orderedTitles.map((title, index) => (
           <SortablePoster
             key={title.id}
@@ -420,6 +442,14 @@ function MediaGridState({
             priority={index < 8}
             horizontal={horizontal}
             suppressClicksUntilRef={suppressClicksUntilRef}
+            compactMobile={compactMobile}
+            presentation={presentation}
+            active={activeTitleId === title.id}
+            onTitleSelect={onTitleSelect}
+            readOnly={readOnly}
+            titleHrefBase={titleHrefBase}
+            titleHrefSearch={titleHrefSearch}
+            showCardActions={showCardActions}
           />
         ))}
       </MediaLayout>
@@ -548,6 +578,14 @@ interface SortablePosterProps {
   priority: boolean;
   horizontal: boolean;
   suppressClicksUntilRef: MutableRefObject<number>;
+  compactMobile: boolean;
+  presentation: "default" | "profile";
+  active: boolean;
+  onTitleSelect?: (title: TitleRow) => void;
+  readOnly: boolean;
+  titleHrefBase?: string;
+  titleHrefSearch?: string;
+  showCardActions: boolean;
 }
 
 function SortablePoster({
@@ -558,6 +596,14 @@ function SortablePoster({
   priority,
   horizontal,
   suppressClicksUntilRef,
+  compactMobile,
+  presentation,
+  active,
+  onTitleSelect,
+  readOnly,
+  titleHrefBase,
+  titleHrefSearch,
+  showCardActions,
 }: SortablePosterProps) {
   const { ref, isDragging, isDropping } = useSortable({
     id: title.id,
@@ -596,6 +642,7 @@ function SortablePoster({
       }}
       className={cn(
         "relative touch-manipulation rounded-xl outline-none",
+        active && "z-10",
         horizontal && "snap-start",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         !disabled &&
@@ -603,13 +650,29 @@ function SortablePoster({
         (isDragging || isDropping) && "sortable-title-dragging z-30"
       )}
       whileTap={disabled || isDragging ? undefined : { scale: 0.985 }}
-      transition={{ duration: DUR.fast, ease: EASE }}
+      animate={active ? { scale: [1, 1.018, 1] } : { scale: 1 }}
+      transition={
+        active
+          ? { duration: 1.65, repeat: Infinity, ease: "easeInOut" }
+          : { duration: DUR.fast, ease: EASE }
+      }
     >
       <div className={cn((isDragging || isDropping) && "opacity-0")}>
         <PosterCard
           title={title}
           priority={priority}
           suppressLongPressMenu={!disabled}
+          compactMobile={compactMobile}
+          highlighted={active}
+          presentation={presentation}
+          readOnly={readOnly}
+          onOpen={onTitleSelect ? () => onTitleSelect(title) : undefined}
+          href={
+            titleHrefBase
+              ? `${titleHrefBase}/${title.id}${titleHrefSearch ?? ""}`
+              : undefined
+          }
+          showActions={showCardActions}
         />
       </div>
     </motion.div>

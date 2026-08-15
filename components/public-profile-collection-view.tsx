@@ -281,7 +281,7 @@ export function PublicProfileCollectionView({
           />
         </div>
 
-        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-x-0.5 lg:gap-x-2.5 xl:gap-x-5">
+        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-0.5 lg:gap-x-2.5 xl:gap-x-5">
           <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 pl-0.5 md:gap-1.5 lg:gap-2.5 xl:justify-self-start">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -289,14 +289,14 @@ export function PublicProfileCollectionView({
                 src={avatarUrl}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="h-7 w-7 shrink-0 rounded-full border border-white/15 object-cover min-[380px]:h-8 min-[380px]:w-8 md:max-lg:hidden lg:h-9 lg:w-9"
+                className="h-7 w-7 shrink-0 rounded-full border border-white/15 object-cover min-[380px]:h-8 min-[380px]:w-8 lg:h-9 lg:w-9"
               />
             ) : (
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.07] text-[10px] font-semibold text-white/72 min-[380px]:h-8 min-[380px]:w-8 min-[380px]:text-[11px] md:max-lg:hidden lg:h-9 lg:w-9 lg:text-xs">
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.07] text-[10px] font-semibold text-white/72 min-[380px]:h-8 min-[380px]:w-8 min-[380px]:text-[11px] lg:h-9 lg:w-9 lg:text-xs">
                 {displayName.slice(0, 1).toLocaleUpperCase()}
               </span>
             )}
-            <div className="min-w-0 leading-none">
+            <div className="min-w-0 leading-none md:max-lg:hidden">
               <p className="truncate text-xs font-semibold tracking-[-0.02em] text-white min-[380px]:text-[13px] lg:text-sm">
                 {displayName}&rsquo;s slate
               </p>
@@ -308,7 +308,7 @@ export function PublicProfileCollectionView({
 
           <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">
             <div
-              className="relative grid h-10 grid-cols-2 rounded-full border border-white/12 bg-white/[0.055] p-0.5"
+              className="relative grid h-10 w-[5.25rem] shrink-0 grid-cols-2 rounded-full border border-white/12 bg-white/[0.055] p-0.5"
               role="group"
               aria-label="Collection view"
             >
@@ -361,7 +361,7 @@ export function PublicProfileCollectionView({
             </button>
           </div>
 
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-max md:flex-nowrap md:justify-self-center md:gap-0.5">
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-center md:gap-0.5">
             <div
               className="relative w-full min-w-0 md:w-[clamp(4rem,9vw,6.5rem)] md:shrink-0 lg:w-[clamp(9rem,15vw,15rem)]"
               onBlur={(event) => {
@@ -449,7 +449,7 @@ export function PublicProfileCollectionView({
                 idPrefix="shared"
                 popoverClassName="z-[80]"
                 groupControls
-                className="mb-0 w-max flex-nowrap gap-2 md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segment:first-child]:px-3.5 [&_.filter-segmented]:h-10 [&_[data-filter-clear]]:px-3 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden lg:[&_[data-filter-clear-label]]:inline lg:[&_.filter-segment]:px-2.5"
+                className="mb-0 w-max flex-nowrap gap-2 md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segment:first-child]:px-3.5 [&_.filter-segmented]:h-10 [&_[data-filter-clear]]:px-3 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden md:max-lg:[&_.filter-chip]:px-1.5 md:max-lg:[&_.filter-chip]:text-[10px] md:max-lg:[&_.filter-chip_.lucide-chevron-down]:hidden md:max-lg:[&_.filter-control-group]:gap-0.5 md:max-lg:[&_.filter-segment]:px-1 md:max-lg:[&_.filter-segment]:text-[10px] md:max-lg:[&_[data-filter-sentiment]]:w-10 md:max-lg:[&_[data-filter-sentiment]]:justify-center md:max-lg:[&_[data-filter-sentiment]]:px-0 md:max-lg:[&_[data-filter-sentiment-label]]:hidden lg:[&_[data-filter-clear-label]]:inline lg:[&_.filter-segment]:px-2.5"
               />
             </div>
           </div>

@@ -38,9 +38,23 @@ import {
   formatYear,
 } from "@/lib/utils";
 
+export interface TitleDetailSource {
+  getCached: (title: TitleRow) => PublicSpatialTitleDetail | null;
+  load: (title: TitleRow) => Promise<PublicSpatialTitleDetail>;
+}
+
+export type TitleDetailActionsRenderer = (title: TitleRow) => React.ReactNode;
+
 interface SpatialPosterGridProps {
   titles: TitleRow[];
-  username: string;
+  /**
+   * Kept for public-profile callers. Generic collection surfaces should pass
+   * a detailSource instead so their ownership/authentication stays outside
+   * the spatial renderer.
+   */
+  username?: string;
+  detailSource?: TitleDetailSource;
+  renderActions?: TitleDetailActionsRenderer;
   onExit: () => void;
   searchTarget: { titleId: string; request: number } | null;
   initialCamera?: SpatialCameraState;
@@ -100,6 +114,20 @@ const DESKTOP_CAMERA_SCALE = 0.88;
 const MOBILE_CAMERA_SCALE = 0.7;
 const TITLE_FRAME_DURATION_SECONDS = 0.24;
 const TITLE_FRAME_REVEAL_DELAY_MS = 260;
+
+const unavailableTitleDetailSource: TitleDetailSource = {
+  getCached: () => null,
+  load: async () => {
+    throw new Error("Title details are unavailable right now.");
+  },
+};
+
+function publicTitleDetailSource(username: string): TitleDetailSource {
+  return {
+    getCached: (title) => getCachedPublicTitleDetail(username, title.id),
+    load: (title) => loadPublicTitleDetail(username, title.id),
+  };
+}
 
 function modulo(value: number, divisor: number) {
   return ((value % divisor) + divisor) % divisor;
@@ -487,6 +515,7 @@ function TitleDetailSlab({
   detail,
   loading,
   error,
+  renderActions,
   className,
   contentClassName,
   entryOffsetX = 28,
@@ -495,6 +524,7 @@ function TitleDetailSlab({
   detail: PublicSpatialTitleDetail | null;
   loading: boolean;
   error: string | null;
+  renderActions?: TitleDetailActionsRenderer;
   className?: string;
   contentClassName?: string;
   entryOffsetX?: number;
@@ -578,16 +608,24 @@ function TitleDetailSlab({
         )}
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground">
-            <ShelfIcon className="h-3.5 w-3.5" />
-            {shelf.label}
-          </span>
-          {sentiment && SentimentIcon ? (
-            <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-[11px] font-medium text-white/85">
-              <SentimentIcon className={cn("h-3.5 w-3.5", sentiment.className)} />
-              {sentiment.label}
-            </span>
-          ) : null}
+          {renderActions ? (
+            renderActions(title)
+          ) : (
+            <>
+              <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground">
+                <ShelfIcon className="h-3.5 w-3.5" />
+                {shelf.label}
+              </span>
+              {sentiment && SentimentIcon ? (
+                <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-[11px] font-medium text-white/85">
+                  <SentimentIcon
+                    className={cn("h-3.5 w-3.5", sentiment.className)}
+                  />
+                  {sentiment.label}
+                </span>
+              ) : null}
+            </>
+          )}
           {detail?.trailerKey ? (
             <TrailerButton trailerKey={detail.trailerKey} titleName={title.title} />
           ) : null}
@@ -682,17 +720,22 @@ function TitleDetailSlab({
   );
 }
 
-export function PublicTitleDetailOverlay({
+export function CollectionTitleDetailOverlay({
   title,
-  username,
+  detailSource,
   onClose,
   anchorTitleId,
+  renderActions,
+  scrollContainerId,
 }: {
   title: TitleRow;
-  username: string;
+  detailSource: TitleDetailSource;
   onClose: () => void;
   /** The Shelf source card this slab should sit alongside. */
   anchorTitleId?: string;
+  renderActions?: TitleDetailActionsRenderer;
+  /** Mobile app content scrolls in a persistent middle region, not the body. */
+  scrollContainerId?: string;
 }) {
   const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -757,6 +800,17 @@ export function PublicTitleDetailOverlay({
   }, [updatePosition]);
 
   React.useEffect(() => {
+    const scrollContainer = scrollContainerId
+      ? document.getElementById(scrollContainerId)
+      : null;
+    if (scrollContainer) {
+      const previousOverflow = scrollContainer.style.overflow;
+      scrollContainer.style.overflow = "hidden";
+      return () => {
+        scrollContainer.style.overflow = previousOverflow;
+      };
+    }
+
     const html = document.documentElement;
     const body = document.body;
     const previousHtmlOverflow = html.style.overflow;
@@ -768,11 +822,11 @@ export function PublicTitleDetailOverlay({
       html.style.overflow = previousHtmlOverflow;
       body.style.overflow = previousBodyOverflow;
     };
-  }, []);
+  }, [scrollContainerId]);
 
   React.useEffect(() => {
     let current = true;
-    const cached = getCachedPublicTitleDetail(username, title.id);
+    const cached = detailSource.getCached(title);
     if (cached) {
       setDetail(cached);
       setLoading(false);
@@ -786,7 +840,8 @@ export function PublicTitleDetailOverlay({
     setLoading(true);
     setError(null);
 
-    void loadPublicTitleDetail(username, title.id)
+    void detailSource
+      .load(title)
       .then((nextDetail) => {
         if (current) setDetail(nextDetail);
       })
@@ -805,7 +860,7 @@ export function PublicTitleDetailOverlay({
     return () => {
       current = false;
     };
-  }, [title.id, username]);
+  }, [detailSource, title]);
 
   return (
     <>
@@ -839,6 +894,7 @@ export function PublicTitleDetailOverlay({
             detail={detail}
             loading={loading}
             error={error}
+            renderActions={renderActions}
             className="w-full"
             contentClassName={
               position.placement === "below"
@@ -859,15 +915,52 @@ export function PublicTitleDetailOverlay({
   );
 }
 
+export function PublicTitleDetailOverlay({
+  title,
+  username,
+  onClose,
+  anchorTitleId,
+}: {
+  title: TitleRow;
+  username: string;
+  onClose: () => void;
+  /** The Shelf source card this slab should sit alongside. */
+  anchorTitleId?: string;
+}) {
+  const detailSource = React.useMemo(
+    () => publicTitleDetailSource(username),
+    [username],
+  );
+
+  return (
+    <CollectionTitleDetailOverlay
+      title={title}
+      detailSource={detailSource}
+      onClose={onClose}
+      anchorTitleId={anchorTitleId}
+    />
+  );
+}
+
 export function SpatialPosterGrid({
   titles,
   username,
+  detailSource,
+  renderActions,
   onExit,
   searchTarget,
   initialCamera,
   onCameraChange,
 }: SpatialPosterGridProps) {
   const reducedMotion = useReducedMotion() ?? false;
+  const resolvedTitleDetailSource = React.useMemo(
+    () =>
+      detailSource ??
+      (username
+        ? publicTitleDetailSource(username)
+        : unavailableTitleDetailSource),
+    [detailSource, username],
+  );
   const [renderedTitles, setRenderedTitles] = React.useState(titles);
   const [resultsTransitionPhase, setResultsTransitionPhase] =
     React.useState<ResultsTransitionPhase>("idle");
@@ -1046,7 +1139,7 @@ export function SpatialPosterGrid({
       const request = ++detailRequestRef.current;
       const cached =
         detailCacheRef.current.get(title.id) ??
-        getCachedPublicTitleDetail(username, title.id);
+        resolvedTitleDetailSource.getCached(title);
       if (cached) {
         setDetail(cached);
         setDetailLoading(false);
@@ -1058,7 +1151,7 @@ export function SpatialPosterGrid({
       setDetailLoading(true);
       setDetailError(null);
       try {
-        const nextDetail = await loadPublicTitleDetail(username, title.id);
+        const nextDetail = await resolvedTitleDetailSource.load(title);
         detailCacheRef.current.set(title.id, nextDetail);
         if (request !== detailRequestRef.current) return;
         setDetail(nextDetail);
@@ -1073,7 +1166,7 @@ export function SpatialPosterGrid({
         if (request === detailRequestRef.current) setDetailLoading(false);
       }
     },
-    [username],
+    [resolvedTitleDetailSource],
   );
 
   const selectTitle = React.useCallback(
@@ -1382,6 +1475,7 @@ export function SpatialPosterGrid({
                 detail={detail}
                 loading={detailLoading}
                 error={detailError}
+                renderActions={renderActions}
               />
             </div>
           ) : null}

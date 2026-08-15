@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import { APP_ROOT } from "@/lib/public-mode";
+import { cn } from "@/lib/utils";
 
 /**
  * The mobile app scrolls this middle region instead of the document, keeping
@@ -12,6 +14,7 @@ export function AppScrollArea({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const previousPathname = React.useRef(pathname);
   const scrollArea = React.useRef<HTMLElement>(null);
+  const immersiveLibrary = pathname === APP_ROOT;
 
   React.useLayoutEffect(() => {
     if (previousPathname.current === pathname) return;
@@ -27,7 +30,12 @@ export function AppScrollArea({ children }: { children: React.ReactNode }) {
     <main
       id="app-scroll-area"
       ref={scrollArea}
-      className="min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 pt-5 pb-6 sm:px-6 sm:pt-6 md:overflow-visible md:overscroll-auto md:pb-6 lg:px-10 lg:pt-8 lg:pb-8"
+      className={cn(
+        "min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain",
+        immersiveLibrary
+          ? "h-full bg-[#080a09] p-0 md:h-dvh md:overscroll-y-contain"
+          : "px-4 pt-5 pb-6 sm:px-6 sm:pt-6 md:overflow-visible md:overscroll-auto md:pb-6 lg:px-10 lg:pt-8 lg:pb-8",
+      )}
     >
       {children}
     </main>

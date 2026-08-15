@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useSearchParams, usePathname } from "next/navigation";
-import { Film, Tv, LayoutGrid, ChevronDown, X, Heart, ThumbsUp, ThumbsDown } from "lucide-react";
+import { ArrowUpDown, Film, Tv, LayoutGrid, ChevronDown, X, Heart, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Popover,
@@ -97,6 +97,7 @@ export function FilterBar({
   const activeSentiment = SENTIMENT_OPTIONS.find(
     (option) => option.value === currentSentiment,
   );
+  const SentimentTriggerIcon = activeSentiment?.icon ?? Heart;
 
   const setParam = React.useCallback(
     (key: string, value: string) => {
@@ -158,7 +159,7 @@ export function FilterBar({
       <div
         className={cn(
           groupControls
-            ? "flex shrink-0 items-center gap-1.5"
+            ? "filter-control-group flex shrink-0 items-center gap-1.5"
             : "contents",
         )}
       >
@@ -185,7 +186,7 @@ export function FilterBar({
       <div
         className={cn(
           groupControls
-            ? "flex shrink-0 items-center gap-1.5"
+            ? "filter-control-group flex shrink-0 items-center gap-1.5"
             : "contents",
         )}
       >
@@ -342,6 +343,8 @@ export function FilterBar({
           <PopoverTrigger asChild>
             <button
               type="button"
+              data-filter-sort
+              aria-label={`Sort: ${sortOptions.find((o) => o.value === currentSort)?.label ?? "Sort"}`}
               data-active={Boolean(currentSort)}
               className={cn(
                 "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
@@ -350,7 +353,10 @@ export function FilterBar({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {sortOptions.find((o) => o.value === currentSort)?.label ?? "Sort"}
+              <ArrowUpDown className="h-3 w-3 shrink-0" />
+              <span data-filter-sort-label>
+                {sortOptions.find((o) => o.value === currentSort)?.label ?? "Sort"}
+              </span>
               <ChevronDown className="h-3 w-3" />
             </button>
           </PopoverTrigger>
@@ -394,6 +400,8 @@ export function FilterBar({
           <PopoverTrigger asChild>
             <button
               type="button"
+              data-filter-sentiment
+              aria-label={`Reaction: ${activeSentiment?.label ?? "Any"}`}
               data-active={Boolean(currentSentiment)}
               className={cn(
                 "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
@@ -402,9 +410,12 @@ export function FilterBar({
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {activeSentiment && activeSentiment.value
-                ? activeSentiment.label
-                : "Reaction"}
+              <SentimentTriggerIcon className="h-3 w-3 shrink-0" />
+              <span data-filter-sentiment-label>
+                {activeSentiment && activeSentiment.value
+                  ? activeSentiment.label
+                  : "Reaction"}
+              </span>
               <ChevronDown className="h-3 w-3" />
             </button>
           </PopoverTrigger>
