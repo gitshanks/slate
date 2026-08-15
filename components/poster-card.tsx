@@ -36,6 +36,7 @@ interface PosterCardProps {
   href?: string;
   onOpen?: () => void;
   compactMobile?: boolean;
+  highlighted?: boolean;
 }
 
 export function PosterCard({
@@ -47,6 +48,7 @@ export function PosterCard({
   href,
   onOpen,
   compactMobile = false,
+  highlighted = false,
 }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
   const year = formatYear(title.release_date);
@@ -65,6 +67,8 @@ export function PosterCard({
           compactMobile && "max-[639px]:rounded-[0.65rem]",
           "bg-card hairline",
           "transition-all duration-200 ease-out",
+          highlighted &&
+            "ring-2 ring-primary/90 shadow-[0_0_0_5px_hsl(var(--primary)/0.12),0_24px_64px_-20px_hsl(var(--primary)/0.55)]",
           dragPreview &&
             "ring-1 ring-black/10 shadow-[0_22px_56px_-18px_rgba(0,0,0,0.85)] dark:ring-white/15",
           "hoverable:group-hover:-translate-y-1 hoverable:group-hover:shadow-[0_24px_60px_-20px_hsl(var(--primary)/0.35)]"

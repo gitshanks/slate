@@ -485,11 +485,17 @@ function TitleDetailSlab({
   detail,
   loading,
   error,
+  className,
+  contentClassName,
+  entryOffsetX = 28,
 }: {
   title: TitleRow;
   detail: PublicSpatialTitleDetail | null;
   loading: boolean;
   error: string | null;
+  className?: string;
+  contentClassName?: string;
+  entryOffsetX?: number;
 }) {
   const year = formatYear(title.release_date);
   const runtime = formatRuntime(title.runtime);
@@ -505,16 +511,22 @@ function TitleDetailSlab({
   return (
     <motion.div
       data-spatial-control
-      initial={{ opacity: 0, x: 28, rotateY: -5 }}
+      initial={{ opacity: 0, x: entryOffsetX, rotateY: -5 }}
       animate={{ opacity: 1, x: 0, rotateY: -1.5 }}
-      exit={{ opacity: 0, x: 20 }}
+      exit={{ opacity: 0, x: entryOffsetX * 0.7 }}
       transition={{ type: "spring", stiffness: 260, damping: 28, mass: 0.8 }}
-      className="dark pointer-events-auto isolate w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-white/15 bg-[#070807]/95 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_40px_110px_-34px_rgba(0,0,0,0.98)] backdrop-blur-2xl"
+      className={cn(
+        "dark pointer-events-auto isolate w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-white/15 bg-[#070807]/95 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_40px_110px_-34px_rgba(0,0,0,0.98)] backdrop-blur-2xl",
+        className,
+      )}
       style={{ transformStyle: "preserve-3d" }}
     >
       <div
         data-spatial-control
-        className="scrollbar-hide max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain p-5 sm:p-6"
+        className={cn(
+          "scrollbar-hide max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain p-5 sm:p-6",
+          contentClassName,
+        )}
         style={{ touchAction: "pan-y" }}
       >
         <div className="min-w-0">
@@ -672,14 +684,89 @@ export function PublicTitleDetailOverlay({
   title,
   username,
   onClose,
+  anchorTitleId,
 }: {
   title: TitleRow;
   username: string;
   onClose: () => void;
+  /** The Shelf source card this slab should sit alongside. */
+  anchorTitleId?: string;
 }) {
   const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [position, setPosition] = React.useState<{
+    left: number;
+    top: number;
+    width: number;
+    placement: "left" | "right" | "below";
+  } | null>(null);
+
+  const updatePosition = React.useCallback(() => {
+    if (!anchorTitleId) {
+      setPosition(null);
+      return;
+    }
+
+    const source = document.getElementById(`shelf-title-${anchorTitleId}`);
+    if (!source) return;
+
+    const rect = source.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const narrow = viewportWidth < 640;
+    const edge = narrow ? 12 : 24;
+    const gap = narrow ? 12 : 20;
+    const sideRoom = {
+      left: rect.left - gap - edge,
+      right: viewportWidth - rect.right - gap - edge,
+    };
+
+    // A mobile poster grid has no honest side-by-side room. A panel directly
+    // beneath the source keeps the poster visible instead of covering it.
+    if (narrow || Math.max(sideRoom.left, sideRoom.right) < 280) {
+      const width = viewportWidth - edge * 2;
+      const top = Math.min(
+        Math.max(edge, rect.bottom + gap),
+        viewportHeight - edge - Math.min(viewportHeight * 0.54, 430),
+      );
+      setPosition({ left: edge, top, width, placement: "below" });
+      return;
+    }
+
+    const placement = sideRoom.right >= sideRoom.left ? "right" : "left";
+    const available = sideRoom[placement];
+    const width = Math.min(432, available);
+    setPosition({
+      left:
+        placement === "right"
+          ? rect.right + gap
+          : rect.left - gap - width,
+      top: viewportHeight / 2,
+      width,
+      placement,
+    });
+  }, [anchorTitleId]);
+
+  React.useEffect(() => {
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    return () => window.removeEventListener("resize", updatePosition);
+  }, [updatePosition]);
+
+  React.useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+
+    return () => {
+      html.style.overflow = previousHtmlOverflow;
+      body.style.overflow = previousBodyOverflow;
+    };
+  }, []);
 
   React.useEffect(() => {
     const controller = new AbortController();
@@ -721,22 +808,48 @@ export function PublicTitleDetailOverlay({
         data-spatial-dismiss-layer
         aria-hidden
         className="fixed inset-0 z-[55] cursor-default"
-        onClick={onClose}
+        onPointerDown={onClose}
       />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${title.title} details`}
-        className="fixed left-1/2 top-1/2 z-[60] origin-center -translate-x-1/2 -translate-y-1/2 scale-[0.86] sm:-translate-x-[20%] sm:scale-100"
-      >
-        <TitleDetailSlab
-          key={title.id}
-          title={title}
-          detail={detail}
-          loading={loading}
-          error={error}
-        />
-      </div>
+      {position ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${title.title} details`}
+          data-spatial-slab
+          className={cn(
+            "fixed z-[60] origin-center",
+            position.placement === "below"
+              ? ""
+              : "-translate-y-1/2",
+          )}
+          style={{
+            left: position.left,
+            top: position.top,
+            width: position.width,
+          }}
+        >
+          <TitleDetailSlab
+            key={title.id}
+            title={title}
+            detail={detail}
+            loading={loading}
+            error={error}
+            className="w-full"
+            contentClassName={
+              position.placement === "below"
+                ? "max-h-[min(54dvh,27rem)]"
+                : undefined
+            }
+            entryOffsetX={
+              position.placement === "left"
+                ? -18
+                : position.placement === "right"
+                  ? 18
+                  : 0
+            }
+          />
+        </div>
+      ) : null}
     </>
   );
 }

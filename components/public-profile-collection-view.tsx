@@ -84,6 +84,7 @@ export function PublicProfileCollectionView({
   const [shelfTitle, setShelfTitle] = React.useState<TitleRow | null>(null);
   const searchRequestRef = React.useRef(0);
   const viewSwitchTimerRef = React.useRef<number | null>(null);
+  const shelfRevealTimerRef = React.useRef<number | null>(null);
   const reducedMotion = useReducedMotion();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -145,6 +146,55 @@ export function PublicProfileCollectionView({
     setSearchTarget({ titleId, request: searchRequestRef.current });
   }, []);
 
+  const closeShelfTitle = React.useCallback(() => {
+    if (shelfRevealTimerRef.current !== null) {
+      window.clearTimeout(shelfRevealTimerRef.current);
+      shelfRevealTimerRef.current = null;
+    }
+    setShelfTitle(null);
+  }, []);
+
+  const openShelfTitle = React.useCallback(
+    (title: TitleRow) => {
+      if (shelfRevealTimerRef.current !== null) {
+        window.clearTimeout(shelfRevealTimerRef.current);
+        shelfRevealTimerRef.current = null;
+      }
+
+      const source = document.getElementById(`shelf-title-${title.id}`);
+      if (!source) {
+        setShelfTitle(title);
+        return;
+      }
+
+      const sourceRect = source.getBoundingClientRect();
+      const narrow = window.matchMedia("(max-width: 639px)").matches;
+      // Desktop slabs sit level with their source; compact screens reserve
+      // room directly beneath the card rather than covering it.
+      const targetCenter = window.innerHeight * (narrow ? 0.28 : 0.5);
+      const delta =
+        sourceRect.top + sourceRect.height / 2 - targetCenter;
+
+      if (Math.abs(delta) > 2) {
+        window.scrollBy({
+          top: delta,
+          behavior: reducedMotion ? "auto" : "smooth",
+        });
+      }
+
+      const reveal = () => {
+        setShelfTitle(title);
+        shelfRevealTimerRef.current = null;
+      };
+      if (reducedMotion || Math.abs(delta) <= 2) {
+        reveal();
+      } else {
+        shelfRevealTimerRef.current = window.setTimeout(reveal, 420);
+      }
+    },
+    [reducedMotion],
+  );
+
   const selectMode = React.useCallback(
     (nextMode: ViewMode) => {
       if (nextMode === mode || isSwitching) return;
@@ -178,9 +228,9 @@ export function PublicProfileCollectionView({
         focusTitle(title.id);
         return;
       }
-      router.push(`/u/${username}/title/${title.id}`);
+      openShelfTitle(title);
     },
-    [focusTitle, mode, router, username],
+    [focusTitle, mode, openShelfTitle],
   );
 
   React.useEffect(() => {
@@ -203,6 +253,9 @@ export function PublicProfileCollectionView({
       if (viewSwitchTimerRef.current !== null) {
         window.clearTimeout(viewSwitchTimerRef.current);
       }
+      if (shelfRevealTimerRef.current !== null) {
+        window.clearTimeout(shelfRevealTimerRef.current);
+      }
     },
     [],
   );
@@ -224,7 +277,7 @@ export function PublicProfileCollectionView({
   return (
     <div className="dark min-h-dvh bg-[#080a09] text-white">
       <header
-        className="pointer-events-none fixed inset-x-0 top-0 z-[70] px-2.5 pb-8 text-white min-[380px]:px-3 sm:px-6 sm:pb-7"
+        className="pointer-events-none fixed inset-x-0 top-0 z-[70] px-2.5 pb-8 text-white min-[380px]:px-3 md:px-3 md:pb-7 lg:px-5 xl:px-6"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         aria-label={`${displayName}'s slate controls`}
       >
@@ -241,23 +294,23 @@ export function PublicProfileCollectionView({
           />
         </div>
 
-        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-3 xl:grid-cols-[minmax(10rem,1fr)_minmax(0,2fr)_minmax(10rem,1fr)] xl:gap-x-5">
-          <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 pl-0.5 sm:gap-2.5 xl:justify-self-start">
+        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-1.5 lg:gap-x-2.5 xl:grid-cols-[minmax(10rem,1fr)_minmax(0,2fr)_minmax(10rem,1fr)] xl:gap-x-5">
+          <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 pl-0.5 md:gap-1.5 lg:gap-2.5 xl:justify-self-start">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={avatarUrl}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="h-7 w-7 shrink-0 rounded-full border border-white/15 object-cover min-[380px]:h-8 min-[380px]:w-8 sm:h-9 sm:w-9"
+                className="h-7 w-7 shrink-0 rounded-full border border-white/15 object-cover min-[380px]:h-8 min-[380px]:w-8 md:max-lg:hidden lg:h-9 lg:w-9"
               />
             ) : (
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.07] text-[10px] font-semibold text-white/72 min-[380px]:h-8 min-[380px]:w-8 min-[380px]:text-[11px] sm:h-9 sm:w-9 sm:text-xs">
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.07] text-[10px] font-semibold text-white/72 min-[380px]:h-8 min-[380px]:w-8 min-[380px]:text-[11px] md:max-lg:hidden lg:h-9 lg:w-9 lg:text-xs">
                 {displayName.slice(0, 1).toLocaleUpperCase()}
               </span>
             )}
             <div className="min-w-0 leading-none">
-              <p className="truncate text-xs font-semibold tracking-[-0.02em] text-white min-[380px]:text-[13px] sm:text-sm">
+              <p className="truncate text-xs font-semibold tracking-[-0.02em] text-white min-[380px]:text-[13px] lg:text-sm">
                 {displayName}&rsquo;s slate
               </p>
               <p className="mt-1 hidden truncate font-mono text-[9px] tracking-[0.08em] text-white/40 min-[380px]:block">
@@ -266,7 +319,7 @@ export function PublicProfileCollectionView({
             </div>
           </div>
 
-          <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 sm:col-start-3 sm:gap-2 xl:justify-self-end">
+          <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">
             <div
               className="relative grid h-10 grid-cols-2 rounded-full border border-white/12 bg-white/[0.055] p-0.5"
               role="group"
@@ -314,16 +367,16 @@ export function PublicProfileCollectionView({
               type="button"
               onClick={() => router.push("/login")}
               aria-label="Get slate"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] min-[460px]:w-auto min-[460px]:px-3 sm:border-0 sm:bg-primary sm:px-3.5 sm:text-xs sm:text-primary-foreground sm:hover:bg-primary/90"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] lg:w-auto lg:border-0 lg:bg-primary lg:px-3.5 lg:text-xs lg:text-primary-foreground lg:hover:bg-primary/90"
             >
-              <ArrowUpRight className="h-3.5 w-3.5 min-[460px]:mr-1.5" />
-              <span className="hidden min-[460px]:inline">Get slate</span>
+              <ArrowUpRight className="h-3.5 w-3.5 lg:mr-1.5" />
+              <span className="hidden lg:inline">Get slate</span>
             </button>
           </div>
 
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:flex-nowrap sm:gap-2.5 xl:w-full xl:justify-self-center">
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:flex-nowrap md:gap-1 xl:w-full xl:justify-self-center">
             <div
-              className="relative w-full min-w-0 sm:w-[clamp(9rem,15vw,15rem)] sm:shrink-0"
+              className="relative w-full min-w-0 md:w-[clamp(5.5rem,11vw,8.5rem)] md:shrink-0 lg:w-[clamp(9rem,15vw,15rem)]"
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
                   setSearchOpen(false);
@@ -396,7 +449,7 @@ export function PublicProfileCollectionView({
               ) : null}
             </div>
 
-            <div className="w-full sm:min-w-0 sm:flex-1 sm:overflow-x-auto sm:pb-1">
+            <div className="w-full md:min-w-0 md:flex-1">
               <FilterBar
                 genres={genres}
                 showSort={false}
@@ -409,7 +462,7 @@ export function PublicProfileCollectionView({
                 idPrefix="shared"
                 popoverClassName="z-[80]"
                 groupControls
-                className="mb-0 w-full flex-wrap gap-2 sm:w-max sm:flex-nowrap [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segmented]:h-10"
+                className="mb-0 w-full flex-wrap gap-2 md:w-max md:flex-nowrap md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segmented]:h-10 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 lg:[&_.filter-segment]:px-2.5"
               />
             </div>
           </div>
@@ -432,7 +485,8 @@ export function PublicProfileCollectionView({
                   compactMobile
                   titleHrefBase={`/u/${username}/title`}
                   titleHrefSearch="?view=shelf"
-                  onTitleSelect={setShelfTitle}
+                  activeTitleId={shelfTitle?.id}
+                  onTitleSelect={openShelfTitle}
                 />
               ) : (
                 <EmptyState
@@ -455,7 +509,8 @@ export function PublicProfileCollectionView({
             <PublicTitleDetailOverlay
               title={shelfTitle}
               username={username}
-              onClose={() => setShelfTitle(null)}
+              anchorTitleId={shelfTitle.id}
+              onClose={closeShelfTitle}
             />
           ) : null}
         </>
