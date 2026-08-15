@@ -63,7 +63,10 @@ interface MediaGridProps {
   horizontal?: boolean;
   /** Fit four smaller cards across narrow shared-profile screens. */
   compactMobile?: boolean;
-  /** Disable per-card entrance staggering when a parent owns result motion. */
+  /**
+   * Disable per-card staggering when a parent owns result motion. Cards also
+   * opt out of inherited route variants so they cannot remain visually hidden.
+   */
   animateEntrance?: boolean;
 }
 
@@ -190,6 +193,8 @@ export function MediaGrid(props: MediaGridProps) {
  * mounts a fresh sortable grid from the canonical order supplied by the server.
  */
 function OrderedMediaGrid(props: MediaGridProps) {
+  const animateEntrance = props.animateEntrance !== false;
+
   return (
     <MediaLayout
       horizontal={props.horizontal}
@@ -199,7 +204,8 @@ function OrderedMediaGrid(props: MediaGridProps) {
       {props.titles.map((title, index) => (
         <motion.article
           key={title.id}
-          variants={staggerChild}
+          variants={animateEntrance ? staggerChild : undefined}
+          initial={animateEntrance ? undefined : false}
           id={`shelf-title-${title.id}`}
           data-shelf-title-id={title.id}
           animate={
@@ -376,7 +382,8 @@ function MediaGridState({
         {orderedTitles.map((title, index) => (
           <motion.article
             key={title.id}
-            variants={staggerChild}
+            variants={animateEntrance ? staggerChild : undefined}
+            initial={animateEntrance ? undefined : false}
             id={`shelf-title-${title.id}`}
             data-shelf-title-id={title.id}
             animate={
@@ -450,6 +457,7 @@ function MediaGridState({
             titleHrefBase={titleHrefBase}
             titleHrefSearch={titleHrefSearch}
             showCardActions={showCardActions}
+            animateEntrance={animateEntrance}
           />
         ))}
       </MediaLayout>
@@ -586,6 +594,7 @@ interface SortablePosterProps {
   titleHrefBase?: string;
   titleHrefSearch?: string;
   showCardActions: boolean;
+  animateEntrance: boolean;
 }
 
 function SortablePoster({
@@ -604,6 +613,7 @@ function SortablePoster({
   titleHrefBase,
   titleHrefSearch,
   showCardActions,
+  animateEntrance,
 }: SortablePosterProps) {
   const { ref, isDragging, isDropping } = useSortable({
     id: title.id,
@@ -620,7 +630,8 @@ function SortablePoster({
   return (
     <motion.div
       ref={ref}
-      variants={staggerChild}
+      variants={animateEntrance ? staggerChild : undefined}
+      initial={animateEntrance ? undefined : false}
       tabIndex={disabled ? undefined : 0}
       role={disabled ? undefined : "group"}
       aria-roledescription={disabled ? undefined : "sortable title"}
