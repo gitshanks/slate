@@ -411,7 +411,7 @@ export function PublicProfileCollectionView({
           transition={{ duration: reducedMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
           className="min-h-dvh bg-[#080a09] px-3 pb-12 pt-48 sm:px-6 sm:pt-32"
         >
-          <div className="mx-auto w-full max-w-[1540px]">
+          <div className="w-full">
             {visibleShelfTitles.length ? (
               <MediaGrid
                 titles={visibleShelfTitles}
