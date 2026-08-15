@@ -737,9 +737,15 @@ export function CollectionTitleDetailOverlay({
   /** Mobile app content scrolls in a persistent middle region, not the body. */
   scrollContainerId?: string;
 }) {
-  const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(null);
-  const [loading, setLoading] = React.useState(true);
+  const reducedMotion = useReducedMotion() ?? false;
+  const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(
+    () => detailSource.getCached(title),
+  );
+  const [loading, setLoading] = React.useState(
+    () => detailSource.getCached(title) === null,
+  );
   const [error, setError] = React.useState<string | null>(null);
+  const [revealReady, setRevealReady] = React.useState(false);
   const [position, setPosition] = React.useState<{
     left: number;
     top: number;
@@ -793,11 +799,35 @@ export function CollectionTitleDetailOverlay({
     });
   }, [anchorTitleId]);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     updatePosition();
+    const scrollTarget = scrollContainerId
+      ? document.getElementById(scrollContainerId)
+      : window;
     window.addEventListener("resize", updatePosition);
-    return () => window.removeEventListener("resize", updatePosition);
-  }, [updatePosition]);
+    scrollTarget?.addEventListener("scroll", updatePosition, { passive: true });
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      scrollTarget?.removeEventListener("scroll", updatePosition);
+    };
+  }, [scrollContainerId, updatePosition]);
+
+  React.useEffect(() => {
+    if (reducedMotion) return;
+    const timer = window.setTimeout(
+      () => setRevealReady(true),
+      TITLE_FRAME_REVEAL_DELAY_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [reducedMotion]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   React.useEffect(() => {
     const scrollContainer = scrollContainerId
@@ -870,7 +900,7 @@ export function CollectionTitleDetailOverlay({
         className="fixed inset-0 z-[55] cursor-default"
         onPointerDown={onClose}
       />
-      {position ? (
+      {position && (reducedMotion || revealReady) ? (
         <div
           role="dialog"
           aria-modal="true"
@@ -901,13 +931,7 @@ export function CollectionTitleDetailOverlay({
                 ? "max-h-[min(54dvh,27rem)]"
                 : undefined
             }
-            entryOffsetX={
-              position.placement === "left"
-                ? -18
-                : position.placement === "right"
-                  ? 18
-                  : 0
-            }
+            entryOffsetX={28}
           />
         </div>
       ) : null}
@@ -1462,7 +1486,7 @@ export function SpatialPosterGrid({
             data-spatial-dismiss-layer
             aria-hidden
             className="fixed inset-0 z-[55] cursor-default"
-            onClick={closeDetail}
+            onPointerDown={closeDetail}
           />
           {slabOpen ? (
             <div

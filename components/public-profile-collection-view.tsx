@@ -15,14 +15,16 @@ import { motion, useReducedMotion } from "motion/react";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { MediaGrid } from "@/components/media-grid";
-import type { SpatialCameraState } from "@/components/spatial-poster-grid";
+import {
+  PublicTitleDetailOverlay,
+  type SpatialCameraState,
+} from "@/components/spatial-poster-grid";
 import { extractGenres, filterAndSort } from "@/lib/filter-utils";
 import { loadPublicTitleDetail } from "@/lib/public-title-detail-cache";
 import { cn } from "@/lib/utils";
 import type { TitleRow } from "@/lib/types";
 
 const loadSpatialPosterGrid = () => import("@/components/spatial-poster-grid");
-const loadPublicTitleDetailOverlay = () => import("@/components/spatial-poster-grid");
 
 const SpatialPosterGrid = dynamic(
   () => loadSpatialPosterGrid().then((module) => module.SpatialPosterGrid),
@@ -38,14 +40,6 @@ const SpatialPosterGrid = dynamic(
       </div>
     ),
   },
-);
-
-const PublicTitleDetailOverlay = dynamic(
-  () =>
-    loadPublicTitleDetailOverlay().then(
-      (module) => module.PublicTitleDetailOverlay,
-    ),
-  { ssr: false },
 );
 
 type ViewMode = "shelf" | "space";
@@ -154,7 +148,7 @@ export function PublicProfileCollectionView({
     (title: TitleRow) => {
       // Begin the request at press time. The slab consumes this same in-flight
       // result as soon as it mounts, matching Space's immediate detail path.
-      void loadPublicTitleDetail(username, title.id);
+      void loadPublicTitleDetail(username, title.id).catch(() => undefined);
       const source = document.getElementById(`shelf-title-${title.id}`);
       if (!source) {
         setShelfTitle(title);
@@ -172,14 +166,13 @@ export function PublicProfileCollectionView({
       if (Math.abs(delta) > 2) {
         window.scrollBy({
           top: delta,
-          // Settle the source first so the adjacent slab can open in the same
-          // interaction, rather than waiting behind a timed scroll animation.
-          behavior: "auto",
+          // Match Space's framing beat before the shared slab settles beside it.
+          behavior: reducedMotion ? "auto" : "smooth",
         });
       }
       setShelfTitle(title);
     },
-    [username],
+    [reducedMotion, username],
   );
 
   const selectMode = React.useCallback(
@@ -221,9 +214,8 @@ export function PublicProfileCollectionView({
   );
 
   React.useEffect(() => {
-    // Shelf opens its title slab on the first press as well, so warm that
-    // lightweight client boundary while the profile is being read.
-    void loadPublicTitleDetailOverlay();
+    // Shelf's shared inspector is eager; warm the heavier spatial renderer
+    // shortly after the profile becomes interactive.
     const timer = window.setTimeout(() => {
       void loadSpatialPosterGrid();
     }, 600);
@@ -495,6 +487,7 @@ export function PublicProfileCollectionView({
           </motion.div>
           {shelfTitle ? (
             <PublicTitleDetailOverlay
+              key={shelfTitle.id}
               title={shelfTitle}
               username={username}
               anchorTitleId={shelfTitle.id}

@@ -31,9 +31,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCommandPalette } from "@/components/command-palette";
-import type {
-  SpatialCameraState,
-  TitleDetailSource,
+import {
+  CollectionTitleDetailOverlay,
+  type SpatialCameraState,
+  type TitleDetailSource,
 } from "@/components/spatial-poster-grid";
 import { extractGenres, filterAndSort } from "@/lib/filter-utils";
 import {
@@ -59,14 +60,6 @@ const SpatialPosterGrid = dynamic(
       </div>
     ),
   },
-);
-
-const CollectionTitleDetailOverlay = dynamic(
-  () =>
-    loadSpatialPosterGrid().then(
-      (module) => module.CollectionTitleDetailOverlay,
-    ),
-  { ssr: false },
 );
 
 type ViewMode = "shelf" | "space";
@@ -446,11 +439,16 @@ export function LibraryCollectionView({
         const targetCenter =
           scrollRect.top + scrollRect.height * (narrow ? 0.28 : 0.5);
         const delta = sourceRect.top + sourceRect.height / 2 - targetCenter;
-        if (Math.abs(delta) > 2) scrollArea.scrollBy({ top: delta, behavior: "auto" });
+        if (Math.abs(delta) > 2) {
+          scrollArea.scrollBy({
+            top: delta,
+            behavior: reducedMotion ? "auto" : "smooth",
+          });
+        }
       }
       setShelfTitle(title);
     },
-    [titleDetailSource],
+    [reducedMotion, titleDetailSource],
   );
 
   const selectSearchResult = React.useCallback(
@@ -742,6 +740,7 @@ export function LibraryCollectionView({
 
       {shelfTitle ? (
         <CollectionTitleDetailOverlay
+          key={shelfTitle.id}
           title={shelfTitle}
           detailSource={titleDetailSource}
           renderActions={renderActions}

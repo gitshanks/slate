@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
 /**
  * Horizontal scroll container with Netflix-style arrow navigation.
  *
- * - Touch devices: native pan-x scroll (iPad swipe scrolls horizontally).
+ * - Touch devices: native axis locking lets horizontal flicks move the rail
+ *   while vertical swipes that begin on a poster keep moving the page.
  * - Desktop: left/right arrow buttons that scroll by one "page" width.
  * - Arrows auto-hide when scrolled to the respective edge.
  */
@@ -107,7 +108,7 @@ export function RailScroller({
         ref={ref}
         className={cn(
           enabled
-            ? "touch-pan-x flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            ? "touch-manipulation flex snap-x snap-proximity gap-3 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             : "overflow-visible",
         )}
       >
