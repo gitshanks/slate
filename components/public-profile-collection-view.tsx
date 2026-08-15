@@ -358,73 +358,58 @@ export function PublicProfileCollectionView({
         </div>
       </header>
 
-      <motion.div
-        aria-hidden={mode === "space" || undefined}
-        inert={mode === "space" ? true : undefined}
-        initial={false}
-        animate={{ opacity: mode === "shelf" ? 1 : 0 }}
-        transition={{ duration: reducedMotion ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className={cn(
-          "min-h-dvh bg-[#080a09] px-3 pb-12 pt-40 sm:px-6 sm:pt-24",
-          mode === "shelf" ? "pointer-events-auto" : "pointer-events-none",
-        )}
-      >
-        <div className="mx-auto w-full max-w-[1540px]">
-          {visibleShelfTitles.length ? (
-            <MediaGrid
-              titles={visibleShelfTitles}
-              readOnly
-              compactMobile
-              titleHrefBase={`/u/${username}/title`}
-            />
-          ) : (
-            <EmptyState
-              icon={<Film className="h-6 w-6" />}
-              title={
-                titles.length
-                  ? "No titles match these filters"
-                  : "Nothing here yet"
-              }
-              description={
-                titles.length
-                  ? "Try a different filter or search."
-                  : "This slate is waiting for its first title."
-              }
-            />
-          )}
-        </div>
-      </motion.div>
-
-      <motion.div
-        role="dialog"
-        aria-modal={mode === "space" || undefined}
-        aria-label="Space view"
-        aria-hidden={mode !== "space" || undefined}
-        inert={mode !== "space" ? true : undefined}
-        initial={false}
-        animate={{
-          opacity: mode === "space" ? 1 : 0,
-          transform:
-            reducedMotion || mode === "space" ? "scale(1)" : "scale(1.008)",
-        }}
-        transition={{
-          duration: reducedMotion ? 0 : mode === "space" ? 0.26 : 0.2,
-          ease: [0.65, 0, 0.35, 1],
-        }}
-        className={cn(
-          "fixed inset-0 z-40 bg-[#080a09] will-change-[opacity,transform]",
-          mode === "space" ? "pointer-events-auto" : "pointer-events-none",
-        )}
-      >
-        <SpatialPosterGrid
-          titles={filteredTitles}
-          username={username}
-          onExit={() => selectMode("shelf")}
-          searchTarget={searchTarget}
-          initialCamera={spatialCamera}
-          onCameraChange={setSpatialCamera}
-        />
-      </motion.div>
+      {mode === "shelf" ? (
+        <motion.div
+          initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reducedMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+          className="min-h-dvh bg-[#080a09] px-3 pb-12 pt-40 sm:px-6 sm:pt-24"
+        >
+          <div className="mx-auto w-full max-w-[1540px]">
+            {visibleShelfTitles.length ? (
+              <MediaGrid
+                titles={visibleShelfTitles}
+                readOnly
+                compactMobile
+                titleHrefBase={`/u/${username}/title`}
+              />
+            ) : (
+              <EmptyState
+                icon={<Film className="h-6 w-6" />}
+                title={
+                  titles.length
+                    ? "No titles match these filters"
+                    : "Nothing here yet"
+                }
+                description={
+                  titles.length
+                    ? "Try a different filter or search."
+                    : "This slate is waiting for its first title."
+                }
+              />
+            )}
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Space view"
+          initial={reducedMotion ? false : { opacity: 0, scale: 1.008 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: reducedMotion ? 0 : 0.22, ease: [0.65, 0, 0.35, 1] }}
+          className="fixed inset-0 z-40 bg-[#080a09] will-change-[opacity,transform]"
+        >
+          <SpatialPosterGrid
+            titles={filteredTitles}
+            username={username}
+            onExit={() => selectMode("shelf")}
+            searchTarget={searchTarget}
+            initialCamera={spatialCamera}
+            onCameraChange={setSpatialCamera}
+          />
+        </motion.div>
+      )}
     </div>
   );
 }
