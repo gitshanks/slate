@@ -321,9 +321,9 @@ export function PublicProfileCollectionView({
             </button>
           </div>
 
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 xl:w-full xl:justify-self-center">
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:flex-nowrap sm:gap-2.5 xl:w-full xl:justify-self-center">
             <div
-              className="relative w-full min-w-0 sm:w-[clamp(10rem,19vw,17rem)]"
+              className="relative w-full min-w-0 sm:w-[clamp(9rem,15vw,15rem)] sm:shrink-0"
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
                   setSearchOpen(false);
@@ -396,20 +396,22 @@ export function PublicProfileCollectionView({
               ) : null}
             </div>
 
-            <FilterBar
-              genres={genres}
-              showSort={false}
-              typeDisplay="menu"
-              showSentiment={status === "watched"}
-              sentimentDisplay="menu"
-              statusOptions={STATUS_OPTIONS}
-              statusParam="spaceStatus"
-              fullHeightStatus
-              idPrefix="shared"
-              popoverClassName="z-[80]"
-              groupControls
-              className="mb-0 w-full flex-wrap gap-2 sm:w-auto sm:flex-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segmented]:h-10"
-            />
+            <div className="w-full sm:min-w-0 sm:flex-1 sm:overflow-x-auto sm:pb-1">
+              <FilterBar
+                genres={genres}
+                showSort={false}
+                typeDisplay="menu"
+                showSentiment={status === "watched"}
+                sentimentDisplay="menu"
+                statusOptions={STATUS_OPTIONS}
+                statusParam="spaceStatus"
+                fullHeightStatus
+                idPrefix="shared"
+                popoverClassName="z-[80]"
+                groupControls
+                className="mb-0 w-full flex-wrap gap-2 sm:w-max sm:flex-nowrap [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segmented]:h-10"
+              />
+            </div>
           </div>
         </div>
       </header>
