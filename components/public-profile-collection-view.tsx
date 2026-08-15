@@ -231,7 +231,7 @@ export function PublicProfileCollectionView({
           />
         </div>
 
-        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-3 xl:grid-cols-[minmax(11rem,1fr)_minmax(0,48rem)_minmax(11rem,1fr)] xl:gap-x-5">
+        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-3 xl:grid-cols-[minmax(10rem,1fr)_minmax(0,2fr)_minmax(10rem,1fr)] xl:gap-x-5">
           <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 pl-0.5 sm:gap-2.5 xl:justify-self-start">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -258,7 +258,7 @@ export function PublicProfileCollectionView({
 
           <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 sm:col-start-3 sm:gap-2 xl:justify-self-end">
             <div
-              className="relative grid h-8 grid-cols-2 rounded-full border border-white/12 bg-white/[0.055] p-0.5 sm:h-9"
+              className="relative grid h-10 grid-cols-2 rounded-full border border-white/12 bg-white/[0.055] p-0.5"
               role="group"
               aria-label="Collection view"
             >
@@ -278,7 +278,7 @@ export function PublicProfileCollectionView({
                 aria-label="Shelf view"
                 disabled={isSwitching}
                 className={cn(
-                  "relative z-10 inline-flex w-8 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none sm:w-9",
+                  "relative z-10 inline-flex w-10 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none",
                   mode === "shelf" ? "text-black" : "text-white/52 hover:text-white",
                 )}
               >
@@ -291,7 +291,7 @@ export function PublicProfileCollectionView({
                 aria-label="Space view"
                 disabled={isSwitching}
                 className={cn(
-                  "relative z-10 inline-flex w-8 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none sm:w-9",
+                  "relative z-10 inline-flex w-10 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none",
                   mode === "space"
                     ? "text-primary-foreground"
                     : "text-white/52 hover:text-white",
@@ -303,17 +303,17 @@ export function PublicProfileCollectionView({
             <button
               type="button"
               onClick={() => router.push("/login")}
-              aria-label="Make your own slate"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] min-[420px]:w-auto min-[420px]:px-3 sm:h-9 sm:border-0 sm:bg-primary sm:px-3.5 sm:text-xs sm:text-primary-foreground sm:hover:bg-primary/90"
+              aria-label="Get slate"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary transition-[border-color,background-color,transform] duration-150 hover:border-primary/40 hover:bg-primary/15 active:scale-[0.97] min-[460px]:w-auto min-[460px]:px-3 sm:border-0 sm:bg-primary sm:px-3.5 sm:text-xs sm:text-primary-foreground sm:hover:bg-primary/90"
             >
-              <ArrowUpRight className="h-3.5 w-3.5 min-[420px]:mr-1.5" />
-              <span className="hidden min-[420px]:inline">Make your own</span>
+              <ArrowUpRight className="h-3.5 w-3.5 min-[460px]:mr-1.5" />
+              <span className="hidden min-[460px]:inline">Get slate</span>
             </button>
           </div>
 
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-col gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:flex-row sm:items-center sm:gap-2.5 xl:w-full xl:justify-self-center">
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 xl:w-full xl:justify-self-center">
             <div
-              className="relative min-w-0 shrink-0 sm:w-[clamp(10rem,19vw,17rem)]"
+              className="relative w-full min-w-0 sm:w-[clamp(10rem,19vw,17rem)]"
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
                   setSearchOpen(false);
@@ -373,7 +373,7 @@ export function PublicProfileCollectionView({
                       >
                         <span className="truncate">{title.title}</span>
                         <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.08em] text-white/34">
-                          {title.status === "want" ? "Watchlist" : title.status}
+                          {title.status === "want" ? "Up Next" : title.status}
                         </span>
                       </button>
                     ))
@@ -386,22 +386,20 @@ export function PublicProfileCollectionView({
               ) : null}
             </div>
 
-            <div className="-mx-1 min-w-0 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-1 sm:px-0">
-              <FilterBar
-                genres={genres}
-                showSort={false}
-                typeDisplay="menu"
-                showSentiment={status === "watched"}
-                sentimentDisplay="menu"
-                statusOptions={STATUS_OPTIONS}
-                statusParam="spaceStatus"
-                fullHeightStatus
-                idPrefix="shared"
-                popoverClassName="z-[80]"
-                groupControls
-                className="mb-0 w-max flex-nowrap gap-1.5 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5"
-              />
-            </div>
+            <FilterBar
+              genres={genres}
+              showSort={false}
+              typeDisplay="menu"
+              showSentiment={status === "watched"}
+              sentimentDisplay="menu"
+              statusOptions={STATUS_OPTIONS}
+              statusParam="spaceStatus"
+              fullHeightStatus
+              idPrefix="shared"
+              popoverClassName="z-[80]"
+              groupControls
+              className="mb-0 w-full flex-wrap gap-2 sm:w-auto sm:flex-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segmented]:h-10"
+            />
           </div>
         </div>
       </header>
@@ -411,7 +409,7 @@ export function PublicProfileCollectionView({
           initial={reducedMotion ? false : { opacity: 0, y: 6 }}
           animate={{ opacity: isSwitching ? 0.16 : 1, y: isSwitching ? 2 : 0 }}
           transition={{ duration: reducedMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
-          className="min-h-dvh bg-[#080a09] px-3 pb-12 pt-40 sm:px-6 sm:pt-24"
+          className="min-h-dvh bg-[#080a09] px-3 pb-12 pt-48 sm:px-6 sm:pt-32"
         >
           <div className="mx-auto w-full max-w-[1540px]">
             {visibleShelfTitles.length ? (

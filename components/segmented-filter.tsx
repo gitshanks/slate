@@ -33,7 +33,7 @@ export function SegmentedFilter({
     <LayoutGroup id={id}>
       <div
         className={cn(
-          "inline-flex h-9 items-center rounded-full border border-border bg-card p-1 shadow-sm",
+          "filter-segmented inline-flex h-9 items-center rounded-full border border-border bg-card p-1 shadow-sm",
           fullHeight && "p-0",
           className,
         )}
