@@ -436,7 +436,7 @@ export function LibraryCollectionView({
 
   const openShelfTitle = React.useCallback(
     (title: TitleRow) => {
-      void titleDetailSource.load(title);
+      void titleDetailSource.load(title).catch(() => undefined);
       const source = document.getElementById(`shelf-title-${title.id}`);
       const scrollArea = document.getElementById("app-scroll-area");
       if (source && scrollArea) {

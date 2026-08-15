@@ -630,6 +630,8 @@ function SortablePoster({
   return (
     <motion.div
       ref={ref}
+      id={`shelf-title-${title.id}`}
+      data-shelf-title-id={title.id}
       variants={animateEntrance ? staggerChild : undefined}
       initial={animateEntrance ? undefined : false}
       tabIndex={disabled ? undefined : 0}

@@ -24,12 +24,14 @@ export function DiscoverView({
   title,
   summary,
   hasIntent,
+  defaultContent,
 }: {
   serverMedia: TmdbMediaResult[];
   serverSaved: number[];
   title: string;
   summary: string;
   hasIntent: boolean;
+  defaultContent: React.ReactNode;
 }) {
   const { turns } = useAiConversation();
 
@@ -38,13 +40,7 @@ export function DiscoverView({
 
   // No conversation → the URL-intent grid the server prefetched (shareable).
   if (!hasIntent) {
-    return (
-      <EmptyState
-        icon={<Sparkles className="h-6 w-6" />}
-        title="Nothing to browse yet"
-        description="Open ⌘K, switch to AI mode, and choose “Browse all” on a set of results."
-      />
-    );
+    return defaultContent;
   }
 
   return (

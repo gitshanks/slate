@@ -15,6 +15,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
       key={pathname}
+      className="h-full min-h-0"
       variants={pageEnter}
       initial="hidden"
       animate="visible"

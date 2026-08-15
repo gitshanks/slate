@@ -3,6 +3,7 @@ import { runDiscoverForIntent } from "@/lib/ai-chat";
 import { savedAmong } from "@/lib/search";
 import type { SearchIntent } from "@/lib/ai-search";
 import { DiscoverView } from "@/components/discover-view";
+import { DiscoverDefault } from "@/components/discover-default";
 
 export const metadata: Metadata = {
   title: "slate · AI search",
@@ -80,6 +81,7 @@ export default async function DiscoverPage(props: PageProps<"/discover">) {
       title={title}
       summary={hasIntent ? summarize(intent) : ""}
       hasIntent={hasIntent}
+      defaultContent={hasIntent ? null : <DiscoverDefault />}
     />
   );
 }
