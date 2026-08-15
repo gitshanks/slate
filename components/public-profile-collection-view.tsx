@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import type { TitleRow } from "@/lib/types";
 
 const loadSpatialPosterGrid = () => import("@/components/spatial-poster-grid");
+const loadPublicTitleDetailOverlay = () => import("@/components/spatial-poster-grid");
 
 const SpatialPosterGrid = dynamic(
   () => loadSpatialPosterGrid().then((module) => module.SpatialPosterGrid),
@@ -36,6 +37,14 @@ const SpatialPosterGrid = dynamic(
       </div>
     ),
   },
+);
+
+const PublicTitleDetailOverlay = dynamic(
+  () =>
+    loadPublicTitleDetailOverlay().then(
+      (module) => module.PublicTitleDetailOverlay,
+    ),
+  { ssr: false },
 );
 
 type ViewMode = "shelf" | "space";
@@ -72,6 +81,7 @@ export function PublicProfileCollectionView({
     scale: 0.88,
   });
   const [isSwitching, setIsSwitching] = React.useState(false);
+  const [shelfTitle, setShelfTitle] = React.useState<TitleRow | null>(null);
   const searchRequestRef = React.useRef(0);
   const viewSwitchTimerRef = React.useRef<number | null>(null);
   const reducedMotion = useReducedMotion();
@@ -405,38 +415,48 @@ export function PublicProfileCollectionView({
       </header>
 
       {mode === "shelf" ? (
-        <motion.div
-          initial={reducedMotion ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: isSwitching ? 0.16 : 1, y: isSwitching ? 2 : 0 }}
-          transition={{ duration: reducedMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
-          className="min-h-dvh bg-[#080a09] px-3 pb-12 pt-48 sm:px-6 sm:pt-32"
-        >
-          <div className="w-full">
-            {visibleShelfTitles.length ? (
-              <MediaGrid
-                titles={visibleShelfTitles}
-                readOnly
-                compactMobile
-                titleHrefBase={`/u/${username}/title`}
-                titleHrefSearch="?view=shelf"
-              />
-            ) : (
-              <EmptyState
-                icon={<Film className="h-6 w-6" />}
-                title={
-                  titles.length
-                    ? "No titles match these filters"
-                    : "Nothing here yet"
-                }
-                description={
-                  titles.length
-                    ? "Try a different filter or search."
-                    : "This slate is waiting for its first title."
-                }
-              />
-            )}
-          </div>
-        </motion.div>
+        <>
+          <motion.div
+            initial={reducedMotion ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: isSwitching ? 0.16 : 1, y: isSwitching ? 2 : 0 }}
+            transition={{ duration: reducedMotion ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="min-h-dvh bg-[#080a09] px-3 pb-12 pt-48 sm:px-6 sm:pt-32"
+          >
+            <div className="w-full">
+              {visibleShelfTitles.length ? (
+                <MediaGrid
+                  titles={visibleShelfTitles}
+                  readOnly
+                  compactMobile
+                  titleHrefBase={`/u/${username}/title`}
+                  titleHrefSearch="?view=shelf"
+                  onTitleSelect={setShelfTitle}
+                />
+              ) : (
+                <EmptyState
+                  icon={<Film className="h-6 w-6" />}
+                  title={
+                    titles.length
+                      ? "No titles match these filters"
+                      : "Nothing here yet"
+                  }
+                  description={
+                    titles.length
+                      ? "Try a different filter or search."
+                      : "This slate is waiting for its first title."
+                  }
+                />
+              )}
+            </div>
+          </motion.div>
+          {shelfTitle ? (
+            <PublicTitleDetailOverlay
+              title={shelfTitle}
+              username={username}
+              onClose={() => setShelfTitle(null)}
+            />
+          ) : null}
+        </>
       ) : (
         <motion.div
           role="dialog"

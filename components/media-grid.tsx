@@ -51,6 +51,8 @@ interface MediaGridProps {
   titleHrefBase?: string;
   /** Optional query string preserved when opening a title from this grid. */
   titleHrefSearch?: string;
+  /** Opens a title in-place instead of navigating to its page. */
+  onTitleSelect?: (title: TitleRow) => void;
   /** Keep the collection to one horizontally scrollable poster row. */
   horizontal?: boolean;
   /** Fit four smaller cards across narrow shared-profile screens. */
@@ -194,6 +196,11 @@ function OrderedMediaGrid(props: MediaGridProps) {
             priority={index < 8}
             readOnly={props.readOnly}
             compactMobile={props.compactMobile}
+            onOpen={
+              props.onTitleSelect
+                ? () => props.onTitleSelect?.(title)
+                : undefined
+            }
             href={
               props.titleHrefBase
                 ? `${props.titleHrefBase}/${title.id}${props.titleHrefSearch ?? ""}`
@@ -212,6 +219,7 @@ function MediaGridState({
   readOnly = false,
   titleHrefBase,
   titleHrefSearch,
+  onTitleSelect,
   horizontal = false,
   compactMobile = false,
 }: MediaGridProps) {
@@ -334,6 +342,7 @@ function MediaGridState({
               priority={index < 8}
               readOnly
               compactMobile={compactMobile}
+              onOpen={onTitleSelect ? () => onTitleSelect(title) : undefined}
               href={
                 titleHrefBase
                   ? `${titleHrefBase}/${title.id}${titleHrefSearch ?? ""}`

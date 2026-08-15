@@ -34,6 +34,7 @@ interface PosterCardProps {
   suppressLongPressMenu?: boolean;
   readOnly?: boolean;
   href?: string;
+  onOpen?: () => void;
   compactMobile?: boolean;
 }
 
@@ -44,6 +45,7 @@ export function PosterCard({
   suppressLongPressMenu = false,
   readOnly = false,
   href,
+  onOpen,
   compactMobile = false,
 }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
@@ -203,6 +205,14 @@ export function PosterCard({
   );
 
   const targetHref = href ?? (readOnly ? null : `/title/${title.id}`);
+
+  if (onOpen) {
+    return (
+      <button type="button" onClick={onOpen} className={cn(className, "w-full text-left")}>
+        {content}
+      </button>
+    );
+  }
 
   if (!targetHref) return <div className={className}>{content}</div>;
 

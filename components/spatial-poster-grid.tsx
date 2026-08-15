@@ -668,6 +668,79 @@ function TitleDetailSlab({
   );
 }
 
+export function PublicTitleDetailOverlay({
+  title,
+  username,
+  onClose,
+}: {
+  title: TitleRow;
+  username: string;
+  onClose: () => void;
+}) {
+  const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    setDetail(null);
+    setLoading(true);
+    setError(null);
+
+    void fetch(
+      `/api/public/${encodeURIComponent(username)}/titles/${encodeURIComponent(title.id)}`,
+      { cache: "no-store", signal: controller.signal },
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Title details are unavailable right now.");
+        }
+        return (await response.json()) as PublicSpatialTitleDetail;
+      })
+      .then((nextDetail) => {
+        if (!controller.signal.aborted) setDetail(nextDetail);
+      })
+      .catch((reason: unknown) => {
+        if (controller.signal.aborted) return;
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : "Title details are unavailable right now.",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [title.id, username]);
+
+  return (
+    <>
+      <div
+        data-spatial-dismiss-layer
+        aria-hidden
+        className="fixed inset-0 z-[55] cursor-default"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${title.title} details`}
+        className="fixed left-1/2 top-1/2 z-[60] origin-center -translate-x-1/2 -translate-y-1/2 scale-[0.86] sm:-translate-x-[20%] sm:scale-100"
+      >
+        <TitleDetailSlab
+          key={title.id}
+          title={title}
+          detail={detail}
+          loading={loading}
+          error={error}
+        />
+      </div>
+    </>
+  );
+}
+
 export function SpatialPosterGrid({
   titles,
   username,
