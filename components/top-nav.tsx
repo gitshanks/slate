@@ -43,7 +43,10 @@ export function TopNav({
       {/* Mobile keeps the header in the app shell's normal flow so iOS cannot
           drift it after the keyboard closes. Desktop still uses the existing
           fixed header, with the spacer below preserving document flow. */}
-      <header className="relative z-40 w-full shrink-0 glass border-b border-border/60 md:fixed md:inset-x-0 md:top-0">
+      <header
+        id="app-top-nav"
+        className="relative z-40 w-full shrink-0 glass border-b border-border/60 md:fixed md:inset-x-0 md:top-0"
+      >
         <div className="flex h-14 w-full items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
           <div className="flex items-center gap-3">
             <Link

@@ -216,6 +216,8 @@ export async function getNativeDiscoverDetail(
     savedTitle: existingResult.data
       ? titleDTO(existingResult.data as TitleRow)
       : null,
+    tagline: meta.tagline,
+    directedBy: meta.directedBy,
     trailerKey: meta.trailerKey,
     cast: meta.cast.map((person) => ({
       id: person.id,
@@ -231,7 +233,10 @@ export async function getNativeDiscoverDetail(
     })),
     recommendations: meta.recommendations.map((item) => catalogueResultDTO({
       ...item,
-      media_type: item.media_type === "tv" ? "tv" : mediaType,
+      media_type:
+        item.media_type === "movie" || item.media_type === "tv"
+          ? item.media_type
+          : mediaType,
     })),
     watchProviders: meta.watchProviders
       ? {

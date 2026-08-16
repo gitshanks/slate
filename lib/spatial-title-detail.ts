@@ -40,6 +40,20 @@ export async function buildSpatialTitleDetail(
       subtitle: person.job || null,
       profilePath: person.profile_path,
     })),
+    recommendations: meta.recommendations.map((item) => ({
+      tmdbId: item.id,
+      mediaType:
+        item.media_type === "movie" || item.media_type === "tv"
+          ? item.media_type
+          : title.media_type,
+      title: item.title || item.name || "Untitled",
+      originalTitle: item.original_title || item.original_name || null,
+      overview: item.overview || null,
+      posterPath: item.poster_path,
+      backdropPath: item.backdrop_path,
+      releaseDate: item.release_date || item.first_air_date || null,
+      tmdbRating: item.vote_average ?? null,
+    })),
     watchProviders: meta.watchProviders
       ? {
           link: meta.watchProviders.link,

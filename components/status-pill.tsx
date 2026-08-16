@@ -23,9 +23,11 @@ const OPTIONS: { value: TitleStatus; label: string; icon: React.ElementType }[] 
 export function StatusPill({
   titleId,
   status,
+  onStatusChange,
 }: {
   titleId: string;
   status: TitleStatus;
+  onStatusChange?: (status: TitleStatus) => void;
 }) {
   const [, startTransition] = useTransition();
   const [optimisticStatus, setOptimisticStatus] = useOptimistic<TitleStatus, TitleStatus>(
@@ -39,6 +41,7 @@ export function StatusPill({
       setOptimisticStatus(next);
       try {
         await setStatus(titleId, next);
+        onStatusChange?.(next);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Failed");
       }

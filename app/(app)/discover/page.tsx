@@ -4,6 +4,7 @@ import { savedAmong } from "@/lib/search";
 import type { SearchIntent } from "@/lib/ai-search";
 import { DiscoverView } from "@/components/discover-view";
 import { DiscoverDefault } from "@/components/discover-default";
+import { DiscoverTitleOverlayProvider } from "@/components/discover-title-overlay";
 
 export const metadata: Metadata = {
   title: "slate · AI search",
@@ -75,13 +76,15 @@ export default async function DiscoverPage(props: PageProps<"/discover">) {
   const savedTmdbIds = await savedAmong(media.map((m) => m.id));
 
   return (
-    <DiscoverView
-      serverMedia={media}
-      serverSaved={[...savedTmdbIds]}
-      title={title}
-      summary={hasIntent ? summarize(intent) : ""}
-      hasIntent={hasIntent}
-      defaultContent={hasIntent ? null : <DiscoverDefault />}
-    />
+    <DiscoverTitleOverlayProvider>
+      <DiscoverView
+        serverMedia={media}
+        serverSaved={[...savedTmdbIds]}
+        title={title}
+        summary={hasIntent ? summarize(intent) : ""}
+        hasIntent={hasIntent}
+        defaultContent={hasIntent ? null : <DiscoverDefault />}
+      />
+    </DiscoverTitleOverlayProvider>
   );
 }

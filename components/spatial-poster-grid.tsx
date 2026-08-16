@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import {
   animate,
@@ -24,7 +25,11 @@ import {
 import { ImdbBadge, MetacriticBadge, RottenTomatoesBadge } from "@/components/rating-icons";
 import { TrailerButton } from "@/components/trailer-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
-import type { PublicSpatialTitleDetail } from "@/lib/public-spatial-detail-types";
+import type {
+  PublicSpatialPerson,
+  PublicSpatialRecommendation,
+  PublicSpatialTitleDetail,
+} from "@/lib/public-spatial-detail-types";
 import {
   getCachedPublicTitleDetail,
   loadPublicTitleDetail,
@@ -45,7 +50,10 @@ export interface TitleDetailSource {
   load: (title: TitleRow) => Promise<PublicSpatialTitleDetail>;
 }
 
-export type TitleDetailActionsRenderer = (title: TitleRow) => React.ReactNode;
+export type TitleDetailActionsRenderer = (
+  title: TitleRow,
+  detail: PublicSpatialTitleDetail | null,
+) => React.ReactNode;
 
 interface SpatialPosterGridProps {
   titles: TitleRow[];
@@ -535,6 +543,116 @@ function DetailLoading() {
   );
 }
 
+function DetailPeopleRail({
+  label,
+  people,
+}: {
+  label: "Cast" | "Crew";
+  people: PublicSpatialPerson[];
+}) {
+  if (people.length === 0) return null;
+
+  return (
+    <section className="mt-7">
+      <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </h4>
+      <div className="scrollbar-hide -mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-1">
+        {people.map((person) => {
+          const image = profileUrl(person.profilePath, "w185");
+          return (
+            <div key={`${person.id}-${person.subtitle}`} className="w-16 shrink-0">
+              <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-border bg-muted/50">
+                {image ? (
+                  <Image
+                    src={image}
+                    alt=""
+                    fill
+                    sizes="56px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <span className="grid h-full place-items-center font-mono text-[10px] text-muted-foreground/75">
+                    {person.name
+                      .split(" ")
+                      .map((part) => part[0])
+                      .join("")
+                      .slice(0, 2)}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1.5 line-clamp-2 text-[10px] leading-tight text-foreground/80">
+                {person.name}
+              </p>
+              {person.subtitle ? (
+                <p className="mt-0.5 line-clamp-2 text-[9px] leading-tight text-muted-foreground">
+                  {person.subtitle}
+                </p>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function DetailRecommendations({
+  title,
+  items,
+}: {
+  title: string;
+  items: PublicSpatialRecommendation[];
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <section className="mt-8">
+      <h4 className="text-sm font-semibold tracking-[-0.02em] text-foreground/90">
+        If you liked {title}&hellip;
+      </h4>
+      <div className="scrollbar-hide -mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-2">
+        {items.map((item) => {
+          const image = posterUrl(item.posterPath, "w342");
+          const year = formatYear(item.releaseDate);
+          return (
+            <Link
+              key={`${item.mediaType}-${item.tmdbId}`}
+              href={`/discover/${item.mediaType}/${item.tmdbId}`}
+              prefetch={false}
+              className="group w-[5.75rem] shrink-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            >
+              <span className="relative block aspect-[2/3] overflow-hidden rounded-xl border border-border bg-muted/50 transition-[border-color,transform,box-shadow] duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/45 group-hover:shadow-[0_16px_36px_-20px_hsl(var(--primary)/0.6)]">
+                {image ? (
+                  <Image
+                    src={image}
+                    alt=""
+                    fill
+                    sizes="92px"
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.025]"
+                  />
+                ) : (
+                  <span className="grid h-full place-items-center px-2 text-center text-[9px] text-muted-foreground">
+                    {item.title}
+                  </span>
+                )}
+              </span>
+              <span className="mt-1.5 block truncate text-[10px] font-medium text-foreground/80">
+                {item.title}
+              </span>
+              {year ? (
+                <span className="mt-0.5 block font-mono text-[8px] text-muted-foreground">
+                  {year}
+                </span>
+              ) : null}
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function TitleDetailDismissLayer({
   onDismiss,
   style,
@@ -595,19 +713,23 @@ function TitleDetailSlab({
   contentClassName?: string;
   entryOffsetX?: number;
 }) {
-  const year = formatYear(title.release_date);
-  const runtime = formatRuntime(title.runtime);
-  const imdb = formatImdbRating(title.imdb_rating);
-  const rt = formatRtScore(title.rt_score);
-  const metacritic = formatMetacriticScore(title.metacritic_score);
-  const shelf = shelfPresentation(title);
+  const resolvedTitle = detail?.resolvedTitle
+    ? { ...title, ...detail.resolvedTitle }
+    : title;
+  const year = formatYear(resolvedTitle.release_date);
+  const runtime = formatRuntime(resolvedTitle.runtime);
+  const imdb = formatImdbRating(resolvedTitle.imdb_rating);
+  const rt = formatRtScore(resolvedTitle.rt_score);
+  const metacritic = formatMetacriticScore(resolvedTitle.metacritic_score);
+  const shelf = shelfPresentation(resolvedTitle);
   const ShelfIcon = shelf.icon;
-  const sentiment = sentimentPresentation(title);
+  const sentiment = sentimentPresentation(resolvedTitle);
   const SentimentIcon = sentiment?.icon;
-  const summary = detail?.summary || title.omdb_plot || title.overview;
+  const summary =
+    detail?.summary || resolvedTitle.omdb_plot || resolvedTitle.overview;
   const backdrop =
-    backdropUrl(title.backdrop_path, "w780") ??
-    posterUrl(title.poster_path, "w500");
+    backdropUrl(resolvedTitle.backdrop_path, "w780") ??
+    posterUrl(resolvedTitle.poster_path, "w500");
 
   return (
     <motion.div
@@ -680,10 +802,10 @@ function TitleDetailSlab({
       >
         <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/75">
-            {title.media_type === "movie" ? "Film" : "Series"}
+            {resolvedTitle.media_type === "movie" ? "Film" : "Series"}
           </p>
           <h3 className="mt-2 text-balance text-2xl font-semibold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-[2rem]">
-            {title.title}
+            {resolvedTitle.title}
           </h3>
         </div>
 
@@ -696,7 +818,7 @@ function TitleDetailSlab({
         <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
           {runtime ? <span className="text-foreground/85">{runtime}</span> : null}
           {year ? <span>{year}</span> : null}
-          {title.genres?.slice(0, 2).map((genre) => (
+          {resolvedTitle.genres?.slice(0, 2).map((genre) => (
             <span key={genre.id}>{genre.name}</span>
           ))}
         </div>
@@ -711,13 +833,13 @@ function TitleDetailSlab({
             ) : null}
             {rt ? (
               <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] text-foreground/85">
-                <RottenTomatoesBadge score={title.rt_score} className="h-3 w-auto" />
+                <RottenTomatoesBadge score={resolvedTitle.rt_score} className="h-3 w-auto" />
                 <span className="font-mono">{rt}</span>
               </span>
             ) : null}
             {metacritic ? (
               <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] text-foreground/85">
-                <MetacriticBadge score={title.metacritic_score} className="h-3 w-auto" />
+                <MetacriticBadge score={resolvedTitle.metacritic_score} className="h-3 w-auto" />
                 <span className="font-mono">{metacritic}</span>
               </span>
             ) : null}
@@ -726,7 +848,7 @@ function TitleDetailSlab({
 
         <div className="mt-5 flex flex-wrap gap-2">
           {renderActions ? (
-            renderActions(title)
+            renderActions(resolvedTitle, detail)
           ) : (
             <>
               <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground">
@@ -744,7 +866,10 @@ function TitleDetailSlab({
             </>
           )}
           {detail?.trailerKey ? (
-            <TrailerButton trailerKey={detail.trailerKey} titleName={title.title} />
+            <TrailerButton
+              trailerKey={detail.trailerKey}
+              titleName={resolvedTitle.title}
+            />
           ) : null}
           {detail?.watchProviders?.providers.length ? (
             <WatchProvidersButton
@@ -754,7 +879,7 @@ function TitleDetailSlab({
                 logo_path: provider.logoPath,
               }))}
               link={detail.watchProviders.link}
-              titleName={title.title}
+              titleName={resolvedTitle.title}
             />
           ) : null}
         </div>
@@ -777,64 +902,60 @@ function TitleDetailSlab({
         {!loading && detail?.directedBy.length ? (
           <p className="mt-5 text-xs text-muted-foreground">
             <span className="text-foreground/85">
-              {title.media_type === "movie" ? "Directed by" : "Created by"}
+              {resolvedTitle.media_type === "movie"
+                ? "Directed by"
+                : "Created by"}
             </span>{" "}
             {detail.directedBy.join(", ")}
           </p>
         ) : null}
 
         {!loading && detail?.cast.length ? (
-          <section className="mt-7">
-            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Cast
-            </h4>
-            <div className="scrollbar-hide -mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-1">
-              {detail.cast.map((person) => {
-                const image = profileUrl(person.profilePath, "w185");
-                return (
-                  <div key={`${person.id}-${person.subtitle}`} className="w-14 shrink-0">
-                    <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-border bg-muted/50">
-                      {image ? (
-                        <Image
-                          src={image}
-                          alt=""
-                          fill
-                          sizes="56px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <span className="grid h-full place-items-center font-mono text-[10px] text-muted-foreground/75">
-                          {person.name
-                            .split(" ")
-                            .map((part) => part[0])
-                            .join("")
-                            .slice(0, 2)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1.5 line-clamp-2 text-[10px] leading-tight text-foreground/75">
-                      {person.name}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+          <DetailPeopleRail label="Cast" people={detail.cast} />
         ) : null}
 
-        {title.review ? (
+        {!loading && detail?.crew.length ? (
+          <DetailPeopleRail label="Crew" people={detail.crew} />
+        ) : null}
+
+        {resolvedTitle.review ? (
           <section className="mt-7 rounded-2xl border border-border bg-muted/40 p-4">
             <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               Note
             </h4>
             <p className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/75">
-              {title.review}
+              {resolvedTitle.review}
             </p>
           </section>
+        ) : null}
+
+        {!loading && detail?.recommendations?.length ? (
+          <DetailRecommendations
+            title={resolvedTitle.title}
+            items={detail.recommendations}
+          />
         ) : null}
       </div>
     </motion.div>
   );
+}
+
+function resolveScrollableElement(id?: string) {
+  if (!id) return null;
+  const element = document.getElementById(id);
+  if (!element) return null;
+  const lockedByInspector =
+    element.dataset.spatialInspectorScrollLock === "true";
+  const lockedOverflow = element.style.overflow;
+  if (lockedByInspector) element.style.overflow = "";
+  const overflowY = window.getComputedStyle(element).overflowY;
+  if (lockedByInspector) element.style.overflow = lockedOverflow;
+  // Mobile AppScrollArea is the visual frame even when its current contents
+  // are too short to scroll. Desktop Discover switches that same element to
+  // overflow-visible, so it correctly falls back to the window there. While
+  // the inspector owns the scroll lock, briefly read through its inline
+  // overflow:hidden so breakpoint changes still resolve the right frame.
+  return overflowY === "auto" || overflowY === "scroll" ? element : null;
 }
 
 export function CollectionTitleDetailOverlay({
@@ -842,6 +963,7 @@ export function CollectionTitleDetailOverlay({
   detailSource,
   onClose,
   anchorTitleId,
+  anchorElementId,
   renderActions,
   scrollContainerId,
   centerAfterId,
@@ -851,6 +973,8 @@ export function CollectionTitleDetailOverlay({
   onClose: () => void;
   /** The Shelf source card this slab should sit alongside. */
   anchorTitleId?: string;
+  /** Exact source element for repeated catalogue titles in Discover rails. */
+  anchorElementId?: string;
   renderActions?: TitleDetailActionsRenderer;
   /** Mobile app content scrolls in a persistent middle region, not the body. */
   scrollContainerId?: string;
@@ -885,9 +1009,21 @@ export function CollectionTitleDetailOverlay({
   const frameAnimationRef = React.useRef<
     ReturnType<typeof animateTitleFrameScroll> | null
   >(null);
+  const resolveScrollFrame = React.useCallback(
+    () => resolveScrollableElement(scrollContainerId),
+    [scrollContainerId],
+  );
+
+  const resolveAnchorElement = React.useCallback(() => {
+    if (anchorElementId) return document.getElementById(anchorElementId);
+    if (anchorTitleId) {
+      return document.getElementById(`shelf-title-${anchorTitleId}`);
+    }
+    return null;
+  }, [anchorElementId, anchorTitleId]);
 
   const updatePosition = React.useCallback(() => {
-    if (!anchorTitleId) {
+    if (!anchorTitleId && !anchorElementId) {
       setPosition(null);
       return;
     }
@@ -895,9 +1031,7 @@ export function CollectionTitleDetailOverlay({
     const viewportWidth = window.innerWidth;
     const narrow = viewportWidth < 640;
     const slabWidth = Math.min(viewportWidth * 0.84, 432);
-    const scrollContainer = scrollContainerId
-      ? document.getElementById(scrollContainerId)
-      : null;
+    const scrollContainer = resolveScrollFrame();
     const containerRect = scrollContainer?.getBoundingClientRect();
     const topAnchor = centerAfterId
       ? document.getElementById(centerAfterId)
@@ -927,7 +1061,7 @@ export function CollectionTitleDetailOverlay({
       return;
     }
 
-    const source = document.getElementById(`shelf-title-${anchorTitleId}`);
+    const source = resolveAnchorElement();
     if (!source) return;
 
     const rect = source.getBoundingClientRect();
@@ -952,20 +1086,24 @@ export function CollectionTitleDetailOverlay({
       width,
       placement,
     });
-  }, [anchorTitleId, centerAfterId, scrollContainerId]);
+  }, [
+    anchorElementId,
+    anchorTitleId,
+    centerAfterId,
+    resolveAnchorElement,
+    resolveScrollFrame,
+  ]);
 
   React.useLayoutEffect(() => {
     updatePosition();
-    const scrollTarget = scrollContainerId
-      ? document.getElementById(scrollContainerId)
-      : window;
+    const scrollTarget = resolveScrollFrame() ?? window;
     window.addEventListener("resize", updatePosition);
     scrollTarget?.addEventListener("scroll", updatePosition, { passive: true });
     return () => {
       window.removeEventListener("resize", updatePosition);
       scrollTarget?.removeEventListener("scroll", updatePosition);
     };
-  }, [scrollContainerId, updatePosition]);
+  }, [resolveScrollFrame, updatePosition]);
 
   React.useLayoutEffect(() => {
     let cancelled = false;
@@ -981,8 +1119,8 @@ export function CollectionTitleDetailOverlay({
     };
 
     const frameSelection = () => {
-      if (!anchorTitleId) return;
-      const source = document.getElementById(`shelf-title-${anchorTitleId}`);
+      if (!anchorTitleId && !anchorElementId) return;
+      const source = resolveAnchorElement();
       if (!source) {
         attempts += 1;
         if (attempts < 24) {
@@ -992,9 +1130,7 @@ export function CollectionTitleDetailOverlay({
       }
 
       updatePosition();
-      const scrollContainer = scrollContainerId
-        ? document.getElementById(scrollContainerId)
-        : null;
+      const scrollContainer = resolveScrollFrame();
       const containerRect = scrollContainer?.getBoundingClientRect();
       const topAnchorRect = centerAfterId
         ? document.getElementById(centerAfterId)?.getBoundingClientRect()
@@ -1043,9 +1179,11 @@ export function CollectionTitleDetailOverlay({
     };
   }, [
     anchorTitleId,
+    anchorElementId,
     centerAfterId,
     reducedMotion,
-    scrollContainerId,
+    resolveAnchorElement,
+    resolveScrollFrame,
     updatePosition,
   ]);
 
@@ -1059,14 +1197,21 @@ export function CollectionTitleDetailOverlay({
 
   React.useEffect(() => {
     if (!reducedMotion && !revealReady) return;
-    const scrollContainer = scrollContainerId
-      ? document.getElementById(scrollContainerId)
-      : null;
+    const scrollContainer = resolveScrollFrame();
     if (scrollContainer) {
       const previousOverflow = scrollContainer.style.overflow;
+      const previousLockOwner =
+        scrollContainer.dataset.spatialInspectorScrollLock;
+      scrollContainer.dataset.spatialInspectorScrollLock = "true";
       scrollContainer.style.overflow = "hidden";
       return () => {
         scrollContainer.style.overflow = previousOverflow;
+        if (previousLockOwner === undefined) {
+          delete scrollContainer.dataset.spatialInspectorScrollLock;
+        } else {
+          scrollContainer.dataset.spatialInspectorScrollLock =
+            previousLockOwner;
+        }
       };
     }
 
@@ -1081,7 +1226,7 @@ export function CollectionTitleDetailOverlay({
       html.style.overflow = previousHtmlOverflow;
       body.style.overflow = previousBodyOverflow;
     };
-  }, [reducedMotion, revealReady, scrollContainerId]);
+  }, [reducedMotion, revealReady, resolveScrollFrame]);
 
   React.useEffect(() => {
     let current = true;
