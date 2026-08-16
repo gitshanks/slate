@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -44,6 +45,7 @@ import {
 } from "@/lib/library-title-detail-cache";
 import { cn } from "@/lib/utils";
 import type { TitleRow } from "@/lib/types";
+import { APP_ROOT } from "@/lib/public-mode";
 
 const loadSpatialPosterGrid = () => import("@/components/spatial-poster-grid");
 
@@ -137,16 +139,37 @@ function ViewSwitcher({
   );
 }
 
-function OwnerMenu({ onAddTitle }: { onAddTitle: () => void }) {
+function OwnerMenu({
+  onAddTitle,
+  avatarUrl,
+  displayName,
+}: {
+  onAddTitle: () => void;
+  avatarUrl: string | null;
+  displayName: string;
+}) {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          aria-label="Open library menu"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.055] text-white/62 transition-[border-color,background-color,color,transform] duration-150 hover:border-white/20 hover:bg-white/[0.09] hover:text-white active:scale-[0.97]"
+          aria-label="Open profile menu"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/12 bg-white/[0.055] text-white/62 transition-[border-color,background-color,color,transform] duration-150 hover:border-white/20 hover:bg-white/[0.09] hover:text-white active:scale-[0.97]"
         >
-          <Ellipsis className="h-4 w-4" />
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="h-full w-full object-cover md:hidden"
+            />
+          ) : (
+            <span className="grid h-full w-full place-items-center text-xs font-semibold text-white/75 md:hidden">
+              {displayName.slice(0, 1).toLocaleUpperCase()}
+            </span>
+          )}
+          <Ellipsis className="hidden h-4 w-4 md:block" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -552,6 +575,7 @@ export function LibraryCollectionView({
       className="dark flex h-full min-h-full w-full flex-col bg-[#080a09] text-white md:min-h-dvh"
     >
       <header
+        id="library-collection-controls"
         className="pointer-events-none sticky inset-x-0 top-0 z-50 shrink-0 px-2.5 pb-7 text-white min-[380px]:px-3 md:px-2 md:pb-6 lg:px-5 xl:px-6"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         aria-label="Your slate controls"
@@ -571,8 +595,22 @@ export function LibraryCollectionView({
 
         <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-0.5 lg:gap-x-2.5 xl:gap-x-5">
           <Link
+            href={APP_ROOT}
+            aria-label="slate home"
+            className="col-start-1 row-start-1 inline-flex items-center pl-0.5 outline-none transition-opacity hover:opacity-82 focus-visible:ring-1 focus-visible:ring-primary/60 md:hidden"
+          >
+            <Image
+              src="/brand/logo-light.svg"
+              alt="slate"
+              width={62}
+              height={17}
+              loading="eager"
+            />
+          </Link>
+
+          <Link
             href="/profile"
-            className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 rounded-full pl-0.5 outline-none transition-opacity hover:opacity-82 focus-visible:ring-1 focus-visible:ring-primary/60 md:gap-1.5 lg:gap-2.5 xl:justify-self-start"
+            className="col-start-1 row-start-1 hidden min-w-0 items-center gap-1.5 rounded-full pl-0.5 outline-none transition-opacity hover:opacity-82 focus-visible:ring-1 focus-visible:ring-primary/60 md:flex lg:gap-2.5 xl:justify-self-start"
           >
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -580,18 +618,18 @@ export function LibraryCollectionView({
                 src={avatarUrl}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="h-7 w-7 shrink-0 rounded-full border border-white/15 object-cover min-[380px]:h-8 min-[380px]:w-8 lg:h-9 lg:w-9"
+                className="h-8 w-8 shrink-0 rounded-full border border-white/15 object-cover lg:h-9 lg:w-9"
               />
             ) : (
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.07] text-[10px] font-semibold text-white/72 min-[380px]:h-8 min-[380px]:w-8 min-[380px]:text-[11px] lg:h-9 lg:w-9 lg:text-xs">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.07] text-[11px] font-semibold text-white/72 lg:h-9 lg:w-9 lg:text-xs">
                 {displayName.slice(0, 1).toLocaleUpperCase()}
               </span>
             )}
-              <span className="min-w-0 leading-none md:max-lg:hidden">
-              <span className="block truncate text-xs font-semibold tracking-[-0.02em] text-white min-[380px]:text-[13px] lg:text-sm">
+            <span className="min-w-0 leading-none md:max-lg:hidden">
+              <span className="block truncate text-[13px] font-semibold tracking-[-0.02em] text-white lg:text-sm">
                 {username ? <>{displayName}&rsquo;s slate</> : "Your slate"}
               </span>
-              <span className="mt-1 hidden truncate font-mono text-[9px] tracking-[0.08em] text-white/40 min-[380px]:block">
+              <span className="mt-1 block truncate font-mono text-[9px] tracking-[0.08em] text-white/40">
                 {username ? `@${username}` : "Your library"}
               </span>
             </span>
@@ -599,7 +637,11 @@ export function LibraryCollectionView({
 
           <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">
             <ViewSwitcher mode={mode} disabled={isSwitching} onSelect={selectMode} />
-            <OwnerMenu onAddTitle={openCommandPalette} />
+            <OwnerMenu
+              onAddTitle={openCommandPalette}
+              avatarUrl={avatarUrl}
+              displayName={displayName}
+            />
             <button
               type="button"
               onClick={openCommandPalette}
@@ -782,6 +824,7 @@ export function LibraryCollectionView({
           renderActions={renderActions}
           anchorTitleId={shelfTitle.id}
           scrollContainerId="app-scroll-area"
+          centerAfterId="library-collection-controls"
           onClose={closeShelfTitle}
         />
       ) : null}

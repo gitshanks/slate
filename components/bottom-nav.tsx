@@ -4,7 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { Compass, LayoutGrid, Layers, Upload, UserRound } from "lucide-react";
+import { Compass, LayoutGrid, Layers, Plus } from "lucide-react";
+import { useCommandPalette } from "@/components/command-palette";
 import { cn } from "@/lib/utils";
 import { APP_ROOT } from "@/lib/public-mode";
 import { EASE, DUR } from "@/lib/motion";
@@ -16,8 +17,6 @@ const TABS = [
   { href: APP_ROOT, label: "Library", icon: LayoutGrid },
   { href: "/discover", label: "Discover", icon: Compass },
   { href: "/lists", label: "Lists", icon: Layers },
-  { href: "/import", label: "Import", icon: Upload },
-  { href: "/profile", label: "Profile", icon: UserRound },
 ] as const;
 
 const STORAGE_KEY = "slate:lastBottomNavTab";
@@ -44,6 +43,7 @@ function findCurrentTab(pathname: string): string | null {
  */
 export function BottomNav() {
   const pathname = usePathname();
+  const { open: openCommandPalette } = useCommandPalette();
   const [rememberedTab, setRememberedTab] = React.useState<string | null>(null);
 
   // Hydrate from sessionStorage on mount so a hard reload on a detail
@@ -64,7 +64,11 @@ export function BottomNav() {
 
   // If the user is on a tab, the URL wins. Otherwise fall back to the
   // remembered tab so the bar shows their origin.
-  const activeHref = findCurrentTab(pathname) ?? rememberedTab;
+  const menuOnlySurface = ["/profile", "/import", "/share"].some((href) =>
+    pathname.startsWith(href),
+  );
+  const activeHref =
+    findCurrentTab(pathname) ?? (menuOnlySurface ? null : rememberedTab);
   const librarySurface = pathname === APP_ROOT;
 
   // This is an ordinary, non-shrinking row in the mobile app shell. The middle
@@ -124,6 +128,19 @@ export function BottomNav() {
             </li>
           );
         })}
+        <li className="relative flex-1">
+          <button
+            type="button"
+            onClick={openCommandPalette}
+            className="flex w-full flex-col items-center gap-1.5 rounded-md px-1 py-1 text-[11px] font-medium tracking-tight text-primary transition-[color,transform] active:scale-[0.97]"
+            aria-label="Find and add a title"
+          >
+            <span className="grid h-[22px] w-[22px] place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_18px_-7px_rgba(173,235,179,0.9)]">
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+            </span>
+            <span>Add</span>
+          </button>
+        </li>
       </ul>
     </nav>
   );

@@ -27,7 +27,7 @@ import {
   getCachedPublicTitleDetail,
   loadPublicTitleDetail,
 } from "@/lib/public-title-detail-cache";
-import { posterUrl, profileUrl } from "@/lib/tmdb-image";
+import { backdropUrl, posterUrl, profileUrl } from "@/lib/tmdb-image";
 import type { TitleRow } from "@/lib/types";
 import {
   cn,
@@ -525,7 +525,13 @@ function DetailLoading() {
   );
 }
 
-function TitleDetailDismissLayer({ onDismiss }: { onDismiss: () => void }) {
+function TitleDetailDismissLayer({
+  onDismiss,
+  style,
+}: {
+  onDismiss: () => void;
+  style?: React.CSSProperties;
+}) {
   const consumeGesture = React.useCallback(
     (event: React.SyntheticEvent<HTMLDivElement>) => {
       event.stopPropagation();
@@ -538,6 +544,7 @@ function TitleDetailDismissLayer({ onDismiss }: { onDismiss: () => void }) {
       data-spatial-dismiss-layer
       aria-hidden
       className="fixed inset-0 z-[55] cursor-default touch-none select-none"
+      style={style}
       onPointerDown={consumeGesture}
       onPointerUp={consumeGesture}
       onPointerCancel={(event) => {
@@ -586,6 +593,9 @@ function TitleDetailSlab({
   const sentiment = sentimentPresentation(title);
   const SentimentIcon = sentiment?.icon;
   const summary = detail?.summary || title.omdb_plot || title.overview;
+  const backdrop =
+    backdropUrl(title.backdrop_path, "w780") ??
+    posterUrl(title.poster_path, "w500");
 
   return (
     <motion.div
@@ -595,15 +605,46 @@ function TitleDetailSlab({
       exit={{ opacity: 0, x: entryOffsetX * 0.7 }}
       transition={{ type: "spring", stiffness: 260, damping: 28, mass: 0.8 }}
       className={cn(
-        "dark pointer-events-auto isolate w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-white/15 bg-[#070807]/95 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_40px_110px_-34px_rgba(0,0,0,0.98)] backdrop-blur-2xl",
+        "dark pointer-events-auto isolate w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-white/15 bg-[#070807] text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_40px_110px_-34px_rgba(0,0,0,0.98)]",
         className,
       )}
       style={{ transformStyle: "preserve-3d" }}
     >
       <div
+        data-title-detail-backdrop
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[21rem] overflow-hidden"
+      >
+        {backdrop ? (
+          <Image
+            src={backdrop}
+            alt=""
+            fill
+            sizes="(max-width: 639px) 84vw, 27rem"
+            loading="eager"
+            className="scale-[1.015] object-cover object-center opacity-60 saturate-[1.08]"
+          />
+        ) : null}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to right, rgba(7,8,7,0.96) 0%, rgba(7,8,7,0.79) 38%, rgba(7,8,7,0.38) 68%, rgba(7,8,7,0.22) 100%)",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to top, #070807 0%, rgba(7,8,7,0.92) 18%, rgba(7,8,7,0.42) 52%, transparent 88%)",
+          }}
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(173,235,179,0.13),transparent_62%)]" />
+      </div>
+      <div
         data-spatial-control
         className={cn(
-          "scrollbar-hide max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain p-5 sm:p-6",
+          "scrollbar-hide relative z-10 max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain p-5 sm:p-6",
           contentClassName,
         )}
         style={{ touchAction: "pan-y" }}
@@ -774,6 +815,7 @@ export function CollectionTitleDetailOverlay({
   anchorTitleId,
   renderActions,
   scrollContainerId,
+  centerAfterId,
 }: {
   title: TitleRow;
   detailSource: TitleDetailSource;
@@ -783,6 +825,8 @@ export function CollectionTitleDetailOverlay({
   renderActions?: TitleDetailActionsRenderer;
   /** Mobile app content scrolls in a persistent middle region, not the body. */
   scrollContainerId?: string;
+  /** Match Space's usable canvas below the collection controls. */
+  centerAfterId?: string;
 }) {
   const reducedMotion = useReducedMotion() ?? false;
   const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(
@@ -793,8 +837,14 @@ export function CollectionTitleDetailOverlay({
   );
   const [error, setError] = React.useState<string | null>(null);
   const [revealReady, setRevealReady] = React.useState(false);
+  const [interactionBounds, setInteractionBounds] = React.useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const [position, setPosition] = React.useState<
-    | { placement: "center" }
+    | { placement: "center"; top: number }
     | {
         left: number;
         top: number;
@@ -813,10 +863,35 @@ export function CollectionTitleDetailOverlay({
     const viewportWidth = window.innerWidth;
     const narrow = viewportWidth < 640;
     const slabWidth = Math.min(viewportWidth * 0.84, 432);
+    const scrollContainer = scrollContainerId
+      ? document.getElementById(scrollContainerId)
+      : null;
+    const containerRect = scrollContainer?.getBoundingClientRect();
+    const topAnchor = centerAfterId
+      ? document.getElementById(centerAfterId)
+      : null;
+    const topAnchorRect = topAnchor?.getBoundingClientRect();
+    const bounds = {
+      left: containerRect?.left ?? 0,
+      top: Math.max(containerRect?.top ?? 0, topAnchorRect?.bottom ?? 0),
+      right: containerRect?.right ?? window.innerWidth,
+      bottom: containerRect?.bottom ?? window.innerHeight,
+    };
+    setInteractionBounds({
+      left: bounds.left,
+      top: bounds.top,
+      width: Math.max(0, bounds.right - bounds.left),
+      height: Math.max(0, bounds.bottom - bounds.top),
+    });
 
-    // Match Space exactly on mobile: the same width, scale, and viewport center.
+    // Space is centered in the collection canvas between the controls and app
+    // navigation. Shelf uses that same explicit frame instead of inheriting a
+    // different fixed-position containing block.
     if (narrow) {
-      setPosition({ placement: "center" });
+      setPosition({
+        placement: "center",
+        top: bounds.top + (bounds.bottom - bounds.top) / 2,
+      });
       return;
     }
 
@@ -845,7 +920,7 @@ export function CollectionTitleDetailOverlay({
       width,
       placement,
     });
-  }, [anchorTitleId]);
+  }, [anchorTitleId, centerAfterId, scrollContainerId]);
 
   React.useLayoutEffect(() => {
     updatePosition();
@@ -943,7 +1018,10 @@ export function CollectionTitleDetailOverlay({
 
   return (
     <>
-      <TitleDetailDismissLayer onDismiss={onClose} />
+      <TitleDetailDismissLayer
+        onDismiss={onClose}
+        style={interactionBounds ?? undefined}
+      />
       {position && (reducedMotion || revealReady) ? (
         <div
           role="dialog"
@@ -953,12 +1031,12 @@ export function CollectionTitleDetailOverlay({
           className={cn(
             "fixed z-[60] origin-center scale-[0.86] sm:scale-100",
             position.placement === "center"
-              ? "left-1/2 top-1/2 w-[min(84vw,27rem)] -translate-x-1/2 -translate-y-1/2"
+              ? "left-1/2 w-[min(84vw,27rem)] -translate-x-1/2 -translate-y-1/2"
               : "-translate-y-1/2",
           )}
           style={
             position.placement === "center"
-              ? undefined
+              ? { top: position.top }
               : {
                   left: position.left,
                   top: position.top,

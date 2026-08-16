@@ -26,7 +26,7 @@ import { PosterCard } from "@/components/poster-card";
 import { MotionGrid } from "@/components/motion-grid";
 import { RailScroller } from "@/components/rail-scroller";
 import { reorderListTitles, reorderStatusTitles } from "@/lib/actions";
-import { DUR, EASE, staggerChild } from "@/lib/motion";
+import { staggerChild } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { TitleRow } from "@/lib/supabase";
 
@@ -208,20 +208,12 @@ function OrderedMediaGrid(props: MediaGridProps) {
           initial={animateEntrance ? undefined : false}
           id={`shelf-title-${title.id}`}
           data-shelf-title-id={title.id}
-          animate={
-            props.activeTitleId === title.id
-              ? { scale: [1, 1.018, 1] }
-              : { scale: 1 }
-          }
-          transition={
-            props.activeTitleId === title.id
-              ? {
-                  duration: 1.65,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }
-              : { duration: 0.18, ease: "easeOut" }
-          }
+          animate={{
+            scale: props.activeTitleId === title.id ? 1.055 : 1,
+            opacity:
+              props.activeTitleId && props.activeTitleId !== title.id ? 0.62 : 1,
+          }}
+          transition={{ type: "spring", stiffness: 300, damping: 24 }}
           className={cn(
             "relative rounded-xl",
             props.activeTitleId === title.id && "z-10",
@@ -386,20 +378,12 @@ function MediaGridState({
             initial={animateEntrance ? undefined : false}
             id={`shelf-title-${title.id}`}
             data-shelf-title-id={title.id}
-            animate={
-              activeTitleId === title.id
-                ? { scale: [1, 1.018, 1] }
-                : { scale: 1 }
-            }
-            transition={
-              activeTitleId === title.id
-                ? {
-                    duration: 1.65,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }
-                : { duration: 0.18, ease: "easeOut" }
-            }
+            animate={{
+              scale: activeTitleId === title.id ? 1.055 : 1,
+              opacity:
+                activeTitleId && activeTitleId !== title.id ? 0.62 : 1,
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 24 }}
             className={cn(
               activeTitleId === title.id && "relative z-10",
               horizontal && "snap-start",
@@ -452,6 +436,7 @@ function MediaGridState({
             compactMobile={compactMobile}
             presentation={presentation}
             active={activeTitleId === title.id}
+            dimmed={Boolean(activeTitleId && activeTitleId !== title.id)}
             onTitleSelect={onTitleSelect}
             readOnly={readOnly}
             titleHrefBase={titleHrefBase}
@@ -589,6 +574,7 @@ interface SortablePosterProps {
   compactMobile: boolean;
   presentation: "default" | "profile";
   active: boolean;
+  dimmed: boolean;
   onTitleSelect?: (title: TitleRow) => void;
   readOnly: boolean;
   titleHrefBase?: string;
@@ -608,6 +594,7 @@ function SortablePoster({
   compactMobile,
   presentation,
   active,
+  dimmed,
   onTitleSelect,
   readOnly,
   titleHrefBase,
@@ -663,12 +650,8 @@ function SortablePoster({
         (isDragging || isDropping) && "sortable-title-dragging z-30"
       )}
       whileTap={disabled || isDragging ? undefined : { scale: 0.985 }}
-      animate={active ? { scale: [1, 1.018, 1] } : { scale: 1 }}
-      transition={
-        active
-          ? { duration: 1.65, repeat: Infinity, ease: "easeInOut" }
-          : { duration: DUR.fast, ease: EASE }
-      }
+      animate={{ scale: active ? 1.055 : 1, opacity: dimmed ? 0.62 : 1 }}
+      transition={{ type: "spring", stiffness: 300, damping: 24 }}
     >
       <div className={cn((isDragging || isDropping) && "opacity-0")}>
         <PosterCard
