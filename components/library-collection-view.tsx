@@ -7,16 +7,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Box,
-  Compass,
   Ellipsis,
   Film,
   LayoutGrid,
-  Layers,
   Plus,
   Search,
+  Settings,
   Share2,
   Upload,
-  UserRound,
   X,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -140,11 +138,9 @@ function ViewSwitcher({
 }
 
 function OwnerMenu({
-  onAddTitle,
   avatarUrl,
   displayName,
 }: {
-  onAddTitle: () => void;
   avatarUrl: string | null;
   displayName: string;
 }) {
@@ -177,26 +173,6 @@ function OwnerMenu({
         sideOffset={8}
         className="dark z-[90] w-48 border-white/12 bg-[#0c0e0d]/96 p-1.5 text-white shadow-[0_24px_70px_-24px_rgba(0,0,0,0.95)] backdrop-blur-2xl"
       >
-        <DropdownMenuItem
-          onClick={onAddTitle}
-          className="gap-2 rounded-lg focus:bg-white/8"
-        >
-          <Plus className="h-3.5 w-3.5 text-white/45" />
-          Add a title
-        </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-white/10" />
-        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-white/8">
-          <Link href="/discover">
-            <Compass className="h-3.5 w-3.5 text-white/45" />
-            Discover
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-white/8">
-          <Link href="/lists">
-            <Layers className="h-3.5 w-3.5 text-white/45" />
-            Lists
-          </Link>
-        </DropdownMenuItem>
         <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-white/8">
           <Link href="/import">
             <Upload className="h-3.5 w-3.5 text-white/45" />
@@ -207,13 +183,13 @@ function OwnerMenu({
         <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-white/8">
           <Link href="/share">
             <Share2 className="h-3.5 w-3.5 text-white/45" />
-            Share your slate
+            Share your profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-white/8">
           <Link href="/profile">
-            <UserRound className="h-3.5 w-3.5 text-white/45" />
-            Profile
+            <Settings className="h-3.5 w-3.5 text-white/45" />
+            Settings
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -638,7 +614,6 @@ export function LibraryCollectionView({
           <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">
             <ViewSwitcher mode={mode} disabled={isSwitching} onSelect={selectMode} />
             <OwnerMenu
-              onAddTitle={openCommandPalette}
               avatarUrl={avatarUrl}
               displayName={displayName}
             />
