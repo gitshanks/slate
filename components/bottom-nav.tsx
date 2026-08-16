@@ -79,7 +79,7 @@ export function BottomNav() {
       className={cn(
         "relative isolate z-40 w-full shrink-0 border-t md:hidden",
         librarySurface &&
-          "dark border-transparent bg-transparent text-white",
+          "border-transparent bg-transparent text-foreground",
         !librarySurface && "glass border-border/60",
       )}
       aria-label="Primary"
@@ -96,7 +96,13 @@ export function BottomNav() {
           aria-hidden
           className="pointer-events-none absolute inset-x-0 -top-8 bottom-0 -z-10 overflow-hidden"
         >
-          <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(8,10,9,0.98)_0%,rgba(8,10,9,0.9)_54%,rgba(8,10,9,0.54)_76%,rgba(8,10,9,0)_100%)]" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to top, hsl(var(--background) / 0.98) 0%, hsl(var(--background) / 0.9) 54%, hsl(var(--background) / 0.54) 76%, hsl(var(--background) / 0) 100%)",
+            }}
+          />
           <div
             className="absolute inset-0 backdrop-blur-2xl"
             style={{
@@ -154,7 +160,12 @@ export function BottomNav() {
             className="flex w-full flex-col items-center gap-1.5 rounded-md px-1 py-1 text-[11px] font-medium tracking-tight text-primary transition-[color,transform] active:scale-[0.97]"
             aria-label="Find and add a title"
           >
-            <span className="grid h-[22px] w-[22px] place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_18px_-7px_rgba(173,235,179,0.9)]">
+            <span
+              className="grid h-[22px] w-[22px] place-items-center rounded-full bg-primary text-primary-foreground"
+              style={{
+                boxShadow: "0 0 18px -7px hsl(var(--primary) / 0.9)",
+              }}
+            >
               <Plus className="h-3.5 w-3.5" aria-hidden />
             </span>
             <span>Add</span>

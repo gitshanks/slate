@@ -52,9 +52,9 @@ const SpatialPosterGrid = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="relative grid h-full w-full place-items-center overflow-hidden bg-[#080a09]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(173,235,179,0.08),transparent_46%)]" />
-        <div className="relative flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
+      <div className="relative grid h-full w-full place-items-center overflow-hidden bg-background">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,hsl(var(--primary)/0.1),transparent_46%)]" />
+        <div className="relative flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
           Opening Space
         </div>
@@ -92,7 +92,7 @@ function ViewSwitcher({
 }) {
   return (
     <div
-      className="relative grid h-10 w-[5.25rem] shrink-0 grid-cols-2 rounded-full border border-white/12 bg-white/[0.055] p-0.5"
+      className="relative grid h-10 w-[5.25rem] shrink-0 grid-cols-2 rounded-full border border-border bg-foreground/[0.055] p-0.5"
       role="group"
       aria-label="Library view"
     >
@@ -101,7 +101,7 @@ function ViewSwitcher({
         className={cn(
           "pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-0.125rem)] rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.18)] transition-[transform,background-color] duration-[240ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
           mode === "shelf"
-            ? "translate-x-0 bg-white"
+            ? "translate-x-0 bg-foreground"
             : "translate-x-full bg-primary",
         )}
       />
@@ -113,7 +113,9 @@ function ViewSwitcher({
         disabled={disabled}
         className={cn(
           "relative z-10 inline-flex w-10 items-center justify-center rounded-full outline-none transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none",
-          mode === "shelf" ? "text-black" : "text-white/52 hover:text-white",
+          mode === "shelf"
+            ? "text-background"
+            : "text-muted-foreground hover:text-foreground",
         )}
       >
         <LayoutGrid className="h-3.5 w-3.5" />
@@ -128,7 +130,7 @@ function ViewSwitcher({
           "relative z-10 inline-flex w-10 items-center justify-center rounded-full outline-none transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none",
           mode === "space"
             ? "text-primary-foreground"
-            : "text-white/52 hover:text-white",
+            : "text-muted-foreground hover:text-foreground",
         )}
       >
         <Box className="h-3.5 w-3.5" />
@@ -150,7 +152,7 @@ function OwnerMenu({
         <button
           type="button"
           aria-label="Open profile menu"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/12 bg-white/[0.055] text-white/62 transition-[border-color,background-color,color,transform] duration-150 hover:border-white/20 hover:bg-white/[0.09] hover:text-white active:scale-[0.97]"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-foreground/[0.055] text-muted-foreground transition-[border-color,background-color,color,transform] duration-150 hover:border-foreground/20 hover:bg-foreground/[0.09] hover:text-foreground active:scale-[0.97]"
         >
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -161,7 +163,7 @@ function OwnerMenu({
               className="h-full w-full object-cover md:hidden"
             />
           ) : (
-            <span className="grid h-full w-full place-items-center text-xs font-semibold text-white/75 md:hidden">
+            <span className="grid h-full w-full place-items-center text-xs font-semibold text-foreground/75 md:hidden">
               {displayName.slice(0, 1).toLocaleUpperCase()}
             </span>
           )}
@@ -171,24 +173,24 @@ function OwnerMenu({
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="dark z-[90] w-48 border-white/12 bg-[#0c0e0d]/96 p-1.5 text-white shadow-[0_24px_70px_-24px_rgba(0,0,0,0.95)] backdrop-blur-2xl"
+        className="z-[90] w-48 border-border bg-popover/96 p-1.5 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.55)] backdrop-blur-2xl"
       >
-        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-white/8">
+        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-accent">
           <Link href="/import">
-            <Upload className="h-3.5 w-3.5 text-white/45" />
+            <Upload className="h-3.5 w-3.5 text-muted-foreground" />
             Import
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-white/10" />
-        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-white/8">
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-accent">
           <Link href="/share">
-            <Share2 className="h-3.5 w-3.5 text-white/45" />
+            <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
             Share your profile
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-white/8">
+        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-accent">
           <Link href="/profile">
-            <Settings className="h-3.5 w-3.5 text-white/45" />
+            <Settings className="h-3.5 w-3.5 text-muted-foreground" />
             Settings
           </Link>
         </DropdownMenuItem>
@@ -500,18 +502,24 @@ export function LibraryCollectionView({
     <div
       data-library-collection
       className={cn(
-        "dark flex min-h-full w-full flex-col bg-[#080a09] text-white md:min-h-dvh",
+        "flex min-h-full w-full flex-col bg-background text-foreground md:min-h-dvh",
         mode === "space" && "h-full",
       )}
     >
       <header
         id="library-collection-controls"
-        className="pointer-events-none sticky inset-x-0 top-0 z-50 shrink-0 px-2.5 pb-7 text-white min-[380px]:px-3 md:px-2 md:pb-6 lg:px-5 xl:px-6"
+        className="pointer-events-none sticky inset-x-0 top-0 z-50 shrink-0 px-2.5 pb-7 text-foreground min-[380px]:px-3 md:px-2 md:pb-6 lg:px-5 xl:px-6"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         aria-label="Your slate controls"
       >
         <div aria-hidden className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(8,10,9,0.98)_0%,rgba(8,10,9,0.9)_54%,rgba(8,10,9,0.54)_76%,rgba(8,10,9,0)_100%)]" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to bottom, hsl(var(--background) / 0.98) 0%, hsl(var(--background) / 0.9) 54%, hsl(var(--background) / 0.54) 76%, hsl(var(--background) / 0) 100%)",
+            }}
+          />
           <div
             className="absolute inset-0 backdrop-blur-2xl"
             style={{
@@ -535,6 +543,15 @@ export function LibraryCollectionView({
               width={62}
               height={17}
               loading="eager"
+              className="hidden dark:block"
+            />
+            <Image
+              src="/brand/logo-dark.svg"
+              alt="slate"
+              width={62}
+              height={17}
+              loading="eager"
+              className="dark:hidden"
             />
           </Link>
 
@@ -548,18 +565,18 @@ export function LibraryCollectionView({
                 src={avatarUrl}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="h-8 w-8 shrink-0 rounded-full border border-white/15 object-cover lg:h-9 lg:w-9"
+                className="h-8 w-8 shrink-0 rounded-full border border-border object-cover lg:h-9 lg:w-9"
               />
             ) : (
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.07] text-[11px] font-semibold text-white/72 lg:h-9 lg:w-9 lg:text-xs">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-border bg-foreground/[0.07] text-[11px] font-semibold text-foreground/72 lg:h-9 lg:w-9 lg:text-xs">
                 {displayName.slice(0, 1).toLocaleUpperCase()}
               </span>
             )}
             <span className="min-w-0 leading-none md:max-lg:hidden">
-              <span className="block truncate text-[13px] font-semibold tracking-[-0.02em] text-white lg:text-sm">
+              <span className="block truncate text-[13px] font-semibold tracking-[-0.02em] text-foreground lg:text-sm">
                 {username ? <>{displayName}&rsquo;s slate</> : "Your slate"}
               </span>
-              <span className="mt-1 block truncate font-mono text-[9px] tracking-[0.08em] text-white/40">
+              <span className="mt-1 block truncate font-mono text-[9px] tracking-[0.08em] text-muted-foreground">
                 {username ? `@${username}` : "Your library"}
               </span>
             </span>
@@ -567,7 +584,7 @@ export function LibraryCollectionView({
 
           <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">
             <ViewSwitcher mode={mode} disabled={isSwitching} onSelect={selectMode} />
-            <ThemeToggle className="h-10 w-10 shrink-0 border border-white/12 bg-white/[0.055] text-white/62 hover:bg-white/[0.09] hover:text-white md:hidden" />
+            <ThemeToggle className="h-10 w-10 shrink-0 border border-border bg-foreground/[0.055] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground md:hidden" />
             <OwnerMenu
               avatarUrl={avatarUrl}
               displayName={displayName}
@@ -592,7 +609,7 @@ export function LibraryCollectionView({
                 }
               }}
             >
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/42 md:max-lg:left-2" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground md:max-lg:left-2" />
               <input
                 value={query}
                 onChange={(event) => {
@@ -615,7 +632,7 @@ export function LibraryCollectionView({
                 }}
                 placeholder="Find a title"
                 aria-label="Find a title in your slate"
-                className="h-10 w-full rounded-2xl border border-white/12 bg-white/[0.065] pl-10 pr-10 text-sm text-white outline-none transition-[border-color,background-color] duration-150 placeholder:text-white/38 focus:border-primary/45 focus:bg-white/[0.09] sm:rounded-full sm:focus:border-primary/55 md:max-lg:pl-7 md:max-lg:pr-1"
+                className="h-10 w-full rounded-2xl border border-border bg-foreground/[0.065] pl-10 pr-10 text-sm text-foreground outline-none transition-[border-color,background-color] duration-150 placeholder:text-muted-foreground focus:border-primary/55 focus:bg-foreground/[0.09] sm:rounded-full md:max-lg:pl-7 md:max-lg:pr-1"
               />
               {query ? (
                 <button
@@ -625,7 +642,7 @@ export function LibraryCollectionView({
                     setSearchOpen(false);
                     setSearchTarget(null);
                   }}
-                  className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-white/42 transition-[color,background-color,transform] duration-150 hover:bg-white/10 hover:text-white active:scale-[0.96]"
+                  className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-[color,background-color,transform] duration-150 hover:bg-foreground/10 hover:text-foreground active:scale-[0.96]"
                   aria-label="Clear search"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -633,7 +650,7 @@ export function LibraryCollectionView({
               ) : null}
 
               {normalizedQuery && searchOpen ? (
-                <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-10 overflow-hidden rounded-2xl border border-white/12 bg-[#080908]/95 p-1.5 shadow-[0_24px_70px_-24px_rgba(0,0,0,0.95)] backdrop-blur-2xl">
+                <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-10 overflow-hidden rounded-2xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
                   {matches.length ? (
                     matches.map((title) => (
                       <button
@@ -641,10 +658,10 @@ export function LibraryCollectionView({
                         type="button"
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => selectSearchResult(title)}
-                        className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-white/78 transition-[color,background-color,transform] duration-150 hover:bg-white/8 hover:text-white active:scale-[0.99]"
+                        className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-foreground/80 transition-[color,background-color,transform] duration-150 hover:bg-accent hover:text-foreground active:scale-[0.99]"
                       >
                         <span className="truncate">{title.title}</span>
-                        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.08em] text-white/34">
+                        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground">
                           {title.status === "want" ? "Up Next" : title.status}
                         </span>
                       </button>
@@ -654,7 +671,7 @@ export function LibraryCollectionView({
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={openCommandPalette}
-                      className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-white/72 transition-colors hover:bg-white/8 hover:text-white"
+                      className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     >
                       <span>Search and add a new title</span>
                       <Plus className="h-3.5 w-3.5" />
@@ -675,10 +692,10 @@ export function LibraryCollectionView({
                 statusParam="status"
                 fullHeightStatus
                 idPrefix="owned-library"
-                popoverClassName="dark z-[90] border-white/12 bg-[#0c0e0d] text-white"
+                popoverClassName="z-[90] border-border bg-popover text-popover-foreground"
                 groupControls
                 reserveSortControl
-                className="mb-0 w-max flex-nowrap gap-2 md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segment:first-child]:px-3.5 [&_.filter-segmented]:h-10 [&_.filter-segmented]:border-white/12 [&_.filter-segmented]:bg-white/[0.055] [&_[data-filter-clear]]:px-3 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden md:max-lg:[&_.filter-chip]:px-1.5 md:max-lg:[&_.filter-chip]:text-[10px] md:max-lg:[&_.filter-chip_.lucide-chevron-down]:hidden md:max-lg:[&_.filter-control-group]:gap-0.5 md:max-lg:[&_.filter-segment]:px-1 md:max-lg:[&_.filter-segment]:text-[10px] md:max-lg:[&_[data-filter-sentiment]]:w-10 md:max-lg:[&_[data-filter-sentiment]]:justify-center md:max-lg:[&_[data-filter-sentiment]]:px-0 md:max-lg:[&_[data-filter-sentiment-label]]:hidden md:max-lg:[&_[data-filter-sort]]:w-10 md:max-lg:[&_[data-filter-sort]]:justify-center md:max-lg:[&_[data-filter-sort]]:px-0 md:max-lg:[&_[data-filter-sort-label]]:hidden lg:[&_[data-filter-clear-label]]:inline lg:[&_.filter-segment]:px-2.5"
+                className="mb-0 w-max flex-nowrap gap-2 md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-border [&_.filter-chip]:bg-foreground/[0.065] [&_.filter-chip]:text-muted-foreground [&_.filter-chip:hover]:text-foreground [&_.filter-chip[data-active=true]]:border-primary/50 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segment:first-child]:px-3.5 [&_.filter-segmented]:h-10 [&_.filter-segmented]:border-border [&_.filter-segmented]:bg-foreground/[0.055] [&_[data-filter-clear]]:px-3 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden md:max-lg:[&_.filter-chip]:px-1.5 md:max-lg:[&_.filter-chip]:text-[10px] md:max-lg:[&_.filter-chip_.lucide-chevron-down]:hidden md:max-lg:[&_.filter-control-group]:gap-0.5 md:max-lg:[&_.filter-segment]:px-1 md:max-lg:[&_.filter-segment]:text-[10px] md:max-lg:[&_[data-filter-sentiment]]:w-10 md:max-lg:[&_[data-filter-sentiment]]:justify-center md:max-lg:[&_[data-filter-sentiment]]:px-0 md:max-lg:[&_[data-filter-sentiment-label]]:hidden md:max-lg:[&_[data-filter-sort]]:w-10 md:max-lg:[&_[data-filter-sort]]:justify-center md:max-lg:[&_[data-filter-sort]]:px-0 md:max-lg:[&_[data-filter-sort-label]]:hidden lg:[&_[data-filter-clear-label]]:inline lg:[&_.filter-segment]:px-2.5"
               />
             </div>
           </div>
@@ -732,7 +749,7 @@ export function LibraryCollectionView({
             duration: reducedMotion ? 0 : 0.22,
             ease: [0.65, 0, 0.35, 1],
           }}
-          className="relative min-h-0 flex-1 bg-[#080a09] will-change-[opacity,transform]"
+          className="relative min-h-0 flex-1 bg-background will-change-[opacity,transform]"
         >
           <SpatialPosterGrid
             titles={filteredTitles}

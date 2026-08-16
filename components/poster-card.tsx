@@ -62,9 +62,9 @@ function profileStatusPresentation(status: PosterCardProps["title"]["status"]) {
   }
   return {
     label: "Up Next",
-    borderClass: "border-white/12",
-    hoverBorderClass: "group-hover:border-white/35",
-    metaClass: "text-white/42",
+    borderClass: "border-border",
+    hoverBorderClass: "group-hover:border-foreground/35",
+    metaClass: "text-muted-foreground",
   };
 }
 
@@ -103,7 +103,7 @@ export function PosterCard({
           "bg-card hairline",
           "transition-all duration-200 ease-out",
           profilePresentation && [
-            "rounded-[1rem] border bg-white/[0.035] shadow-[0_28px_65px_-28px_rgba(0,0,0,0.9)]",
+            "rounded-[1rem] border bg-card/60 shadow-[0_24px_54px_-28px_rgba(15,23,42,0.32)] dark:shadow-[0_28px_65px_-28px_rgba(0,0,0,0.9)]",
             profileStatus?.borderClass,
             profileStatus?.hoverBorderClass,
           ],
@@ -223,7 +223,7 @@ export function PosterCard({
         <div className={cn("mt-2.5 block px-0.5", compactMobile && "mt-1.5")}>
           <p
             className={cn(
-              "truncate text-[12px] font-medium text-white/82",
+              "truncate text-[12px] font-medium text-foreground/85",
               compactMobile && "text-[10px] leading-tight",
             )}
           >
@@ -237,7 +237,7 @@ export function PosterCard({
             )}
           >
             <span>{profileStatus?.label}</span>
-            {year ? <span className="ml-auto text-white/28">{year}</span> : null}
+            {year ? <span className="ml-auto text-muted-foreground/70">{year}</span> : null}
           </div>
         </div>
       ) : (

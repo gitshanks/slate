@@ -271,9 +271,9 @@ function shelfPresentation(title: TitleRow) {
   return {
     label: "Up Next",
     icon: Clock,
-    borderClass: "border-white/12",
-    hoverBorderClass: "group-hover:border-white/35",
-    metaClass: "text-white/42",
+    borderClass: "border-border",
+    hoverBorderClass: "group-hover:border-foreground/35",
+    metaClass: "text-muted-foreground",
   };
 }
 
@@ -389,11 +389,19 @@ function FisheyePosterCell({
       >
         <span
           className={cn(
-            "relative block aspect-[2/3] overflow-hidden rounded-[1rem] border bg-white/[0.035] shadow-[0_28px_65px_-28px_rgba(0,0,0,0.9)] transition-[border-color,box-shadow] duration-300",
+            "relative block aspect-[2/3] overflow-hidden rounded-[1rem] border bg-card/60 shadow-[0_24px_54px_-28px_rgba(15,23,42,0.32)] transition-[border-color,box-shadow] duration-300 dark:shadow-[0_28px_65px_-28px_rgba(0,0,0,0.9)]",
             selected
-              ? "border-primary/80 shadow-[0_0_0_4px_rgba(173,235,179,0.1),0_34px_90px_-28px_rgba(173,235,179,0.45)]"
+              ? "border-primary/80"
               : [shelf.borderClass, shelf.hoverBorderClass],
           )}
+          style={
+            selected
+              ? {
+                  boxShadow:
+                    "0 0 0 4px hsl(var(--primary) / 0.1), 0 34px 90px -28px hsl(var(--primary) / 0.45)",
+                }
+              : undefined
+          }
         >
           {src ? (
             <Image
@@ -405,13 +413,13 @@ function FisheyePosterCell({
               className="select-none object-cover"
             />
           ) : (
-            <span className="grid h-full place-items-center p-4 text-center text-xs text-white/45">
+            <span className="grid h-full place-items-center p-4 text-center text-xs text-muted-foreground">
               {title.title}
             </span>
           )}
           <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         </span>
-        <span className="mt-2.5 block truncate text-[12px] font-medium text-white/82">
+        <span className="mt-2.5 block truncate text-[12px] font-medium text-foreground/85">
           {title.title}
         </span>
         <span
@@ -422,7 +430,7 @@ function FisheyePosterCell({
         >
           <span>{shelf.label}</span>
           {formatYear(title.release_date) ? (
-            <span className="ml-auto text-white/28">
+            <span className="ml-auto text-muted-foreground/70">
               {formatYear(title.release_date)}
             </span>
           ) : null}
@@ -509,17 +517,17 @@ function SpatialPosterWorld({
 function DetailLoading() {
   return (
     <div className="mt-7 space-y-5" aria-label="Loading title details">
-      <div className="h-3 w-4/5 animate-pulse rounded-full bg-white/10" />
+      <div className="h-3 w-4/5 animate-pulse rounded-full bg-muted" />
       <div className="space-y-2">
-        <div className="h-2.5 w-full animate-pulse rounded-full bg-white/8" />
-        <div className="h-2.5 w-[92%] animate-pulse rounded-full bg-white/8" />
-        <div className="h-2.5 w-[68%] animate-pulse rounded-full bg-white/8" />
+        <div className="h-2.5 w-full animate-pulse rounded-full bg-muted" />
+        <div className="h-2.5 w-[92%] animate-pulse rounded-full bg-muted" />
+        <div className="h-2.5 w-[68%] animate-pulse rounded-full bg-muted" />
       </div>
       <div className="flex gap-3 pt-2">
         {Array.from({ length: 4 }, (_, index) => (
           <div key={index} className="space-y-2">
-            <div className="h-12 w-12 animate-pulse rounded-xl bg-white/8" />
-            <div className="h-2 w-12 animate-pulse rounded-full bg-white/8" />
+            <div className="h-12 w-12 animate-pulse rounded-xl bg-muted" />
+            <div className="h-2 w-12 animate-pulse rounded-full bg-muted" />
           </div>
         ))}
       </div>
@@ -609,7 +617,7 @@ function TitleDetailSlab({
       exit={{ opacity: 0, x: entryOffsetX * 0.7 }}
       transition={{ type: "spring", stiffness: 260, damping: 28, mass: 0.8 }}
       className={cn(
-        "dark pointer-events-auto isolate w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-white/15 bg-[#070807] text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_40px_110px_-34px_rgba(0,0,0,0.98)]",
+        "pointer-events-auto isolate w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-border bg-card text-left text-card-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06),0_40px_110px_-34px_rgba(15,23,42,0.34)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_40px_110px_-34px_rgba(0,0,0,0.98)]",
         className,
       )}
       style={{ transformStyle: "preserve-3d" }}
@@ -633,17 +641,23 @@ function TitleDetailSlab({
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to right, rgba(7,8,7,0.96) 0%, rgba(7,8,7,0.79) 38%, rgba(7,8,7,0.38) 68%, rgba(7,8,7,0.22) 100%)",
+              "linear-gradient(to right, hsl(var(--card) / 0.96) 0%, hsl(var(--card) / 0.79) 38%, hsl(var(--card) / 0.38) 68%, hsl(var(--card) / 0.22) 100%)",
           }}
         />
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to top, #070807 0%, rgba(7,8,7,0.92) 18%, rgba(7,8,7,0.42) 52%, transparent 88%)",
+              "linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.92) 18%, hsl(var(--card) / 0.42) 52%, transparent 88%)",
           }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(173,235,179,0.13),transparent_62%)]" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at top right, hsl(var(--primary) / 0.13), transparent 62%)",
+          }}
+        />
       </div>
       {onClose ? (
         <button
@@ -651,7 +665,7 @@ function TitleDetailSlab({
           data-spatial-control
           aria-label="Close title details"
           onClick={onClose}
-          className="absolute right-3 top-3 z-30 grid h-9 w-9 place-items-center rounded-full border border-white/14 bg-black/55 text-white/76 shadow-[0_12px_32px_-14px_rgba(0,0,0,0.9)] backdrop-blur-md transition-[border-color,background-color,color,transform] duration-150 hover:border-white/24 hover:bg-black/72 hover:text-white active:scale-[0.96] sm:hidden"
+          className="absolute right-3 top-3 z-30 grid h-9 w-9 place-items-center rounded-full border border-border bg-background/70 text-foreground/75 shadow-[0_12px_32px_-14px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[border-color,background-color,color,transform] duration-150 hover:border-foreground/25 hover:bg-background/90 hover:text-foreground active:scale-[0.96] sm:hidden"
         >
           <X className="h-4 w-4" aria-hidden />
         </button>
@@ -668,19 +682,19 @@ function TitleDetailSlab({
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/75">
             {title.media_type === "movie" ? "Film" : "Series"}
           </p>
-          <h3 className="mt-2 text-balance text-2xl font-semibold leading-[1.02] tracking-[-0.04em] text-white sm:text-[2rem]">
+          <h3 className="mt-2 text-balance text-2xl font-semibold leading-[1.02] tracking-[-0.04em] text-foreground sm:text-[2rem]">
             {title.title}
           </h3>
         </div>
 
         {detail?.tagline ? (
-          <p className="mt-3 text-sm italic leading-relaxed text-white/58">
+          <p className="mt-3 text-sm italic leading-relaxed text-muted-foreground">
             {detail.tagline}
           </p>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 font-mono text-[10px] uppercase tracking-[0.08em] text-white/55">
-          {runtime ? <span className="text-white/82">{runtime}</span> : null}
+        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+          {runtime ? <span className="text-foreground/85">{runtime}</span> : null}
           {year ? <span>{year}</span> : null}
           {title.genres?.slice(0, 2).map((genre) => (
             <span key={genre.id}>{genre.name}</span>
@@ -690,19 +704,19 @@ function TitleDetailSlab({
         {(imdb || rt || metacritic) && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {imdb ? (
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-2.5 text-[11px] text-white/85">
+              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] text-foreground/85">
                 <ImdbBadge className="h-3 w-auto" />
                 <span className="font-mono">{imdb}</span>
               </span>
             ) : null}
             {rt ? (
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-2.5 text-[11px] text-white/85">
+              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] text-foreground/85">
                 <RottenTomatoesBadge score={title.rt_score} className="h-3 w-auto" />
                 <span className="font-mono">{rt}</span>
               </span>
             ) : null}
             {metacritic ? (
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-2.5 text-[11px] text-white/85">
+              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] text-foreground/85">
                 <MetacriticBadge score={title.metacritic_score} className="h-3 w-auto" />
                 <span className="font-mono">{metacritic}</span>
               </span>
@@ -720,7 +734,7 @@ function TitleDetailSlab({
                 {shelf.label}
               </span>
               {sentiment && SentimentIcon ? (
-                <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-[11px] font-medium text-white/85">
+                <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-background/55 px-3 text-[11px] font-medium text-foreground/85">
                   <SentimentIcon
                     className={cn("h-3.5 w-3.5", sentiment.className)}
                   />
@@ -747,13 +761,13 @@ function TitleDetailSlab({
 
         {loading ? <DetailLoading /> : null}
         {error ? (
-          <p className="mt-6 rounded-xl border border-white/10 bg-white/[0.045] p-3 text-sm text-white/65">
+          <p className="mt-6 rounded-xl border border-border bg-muted/60 p-3 text-sm text-muted-foreground">
             {error}
           </p>
         ) : null}
 
         {!loading && !error && summary ? (
-          <div className="mt-6 space-y-3 text-[13px] leading-relaxed text-white/74">
+          <div className="mt-6 space-y-3 text-[13px] leading-relaxed text-foreground/75">
             {summary.split(/\n{2,}/).map((paragraph, index) => (
               <p key={index}>{paragraph}</p>
             ))}
@@ -761,8 +775,8 @@ function TitleDetailSlab({
         ) : null}
 
         {!loading && detail?.directedBy.length ? (
-          <p className="mt-5 text-xs text-white/55">
-            <span className="text-white/85">
+          <p className="mt-5 text-xs text-muted-foreground">
+            <span className="text-foreground/85">
               {title.media_type === "movie" ? "Directed by" : "Created by"}
             </span>{" "}
             {detail.directedBy.join(", ")}
@@ -771,7 +785,7 @@ function TitleDetailSlab({
 
         {!loading && detail?.cast.length ? (
           <section className="mt-7">
-            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">
+            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               Cast
             </h4>
             <div className="scrollbar-hide -mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-1">
@@ -779,7 +793,7 @@ function TitleDetailSlab({
                 const image = profileUrl(person.profilePath, "w185");
                 return (
                   <div key={`${person.id}-${person.subtitle}`} className="w-14 shrink-0">
-                    <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-white/10 bg-white/[0.045]">
+                    <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-border bg-muted/50">
                       {image ? (
                         <Image
                           src={image}
@@ -789,7 +803,7 @@ function TitleDetailSlab({
                           className="object-cover"
                         />
                       ) : (
-                        <span className="grid h-full place-items-center font-mono text-[10px] text-white/35">
+                        <span className="grid h-full place-items-center font-mono text-[10px] text-muted-foreground/75">
                           {person.name
                             .split(" ")
                             .map((part) => part[0])
@@ -798,7 +812,7 @@ function TitleDetailSlab({
                         </span>
                       )}
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-[10px] leading-tight text-white/75">
+                    <p className="mt-1.5 line-clamp-2 text-[10px] leading-tight text-foreground/75">
                       {person.name}
                     </p>
                   </div>
@@ -809,11 +823,11 @@ function TitleDetailSlab({
         ) : null}
 
         {title.review ? (
-          <section className="mt-7 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">
+          <section className="mt-7 rounded-2xl border border-border bg-muted/40 p-4">
+            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               Note
             </h4>
-            <p className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-white/75">
+            <p className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/75">
               {title.review}
             </p>
           </section>
@@ -1613,7 +1627,7 @@ export function SpatialPosterGrid({
     <>
       <section
         ref={viewportRef}
-        className="relative h-full w-full cursor-grab overflow-hidden bg-[#080a09] text-white active:cursor-grabbing"
+        className="relative h-full w-full cursor-grab overflow-hidden bg-background text-foreground active:cursor-grabbing"
         style={{ touchAction: "none", perspective: "1150px" }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -1627,14 +1641,18 @@ export function SpatialPosterGrid({
         className="pointer-events-none absolute inset-0 opacity-50"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(173,235,179,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(173,235,179,0.055) 1px, transparent 1px)",
+            "linear-gradient(hsl(var(--primary) / 0.055) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / 0.055) 1px, transparent 1px)",
           backgroundSize: "72px 72px",
           maskImage: "radial-gradient(circle at center, black 5%, transparent 76%)",
         }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(173,235,179,0.08),transparent_42%),linear-gradient(to_bottom,rgba(8,10,9,0.18),rgba(8,10,9,0.72))]"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 48%, hsl(var(--primary) / 0.08), transparent 42%), linear-gradient(to bottom, hsl(var(--background) / 0.18), hsl(var(--background) / 0.72))",
+        }}
       />
 
       <motion.div
@@ -1668,10 +1686,10 @@ export function SpatialPosterGrid({
         {renderedTitles.length === 0 ? (
           <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center px-6 text-center">
             <div>
-              <p className="text-sm font-medium text-white/72">
+              <p className="text-sm font-medium text-foreground/75">
                 No titles match
               </p>
-              <p className="mt-1 text-xs text-white/38">Try another filter.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Try another filter.</p>
             </div>
           </div>
         ) : null}
@@ -1698,7 +1716,11 @@ export function SpatialPosterGrid({
 
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 z-30 shadow-[inset_0_0_120px_45px_#080a09] sm:shadow-[inset_0_0_190px_58px_#080a09]"
+          className="pointer-events-none absolute inset-0 z-30"
+          style={{
+            boxShadow:
+              "inset 0 0 clamp(120px, 13vw, 190px) clamp(45px, 4vw, 58px) hsl(var(--background))",
+          }}
         />
       </section>
 
