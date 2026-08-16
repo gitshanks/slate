@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import {
   animate,
   motion,
@@ -18,6 +19,7 @@ import {
   Heart,
   ThumbsDown,
   ThumbsUp,
+  X,
 } from "lucide-react";
 import { ImdbBadge, MetacriticBadge, RottenTomatoesBadge } from "@/components/rating-icons";
 import { TrailerButton } from "@/components/trailer-button";
@@ -570,6 +572,7 @@ function TitleDetailSlab({
   loading,
   error,
   renderActions,
+  onClose,
   className,
   contentClassName,
   entryOffsetX = 28,
@@ -579,6 +582,7 @@ function TitleDetailSlab({
   loading: boolean;
   error: string | null;
   renderActions?: TitleDetailActionsRenderer;
+  onClose?: () => void;
   className?: string;
   contentClassName?: string;
   entryOffsetX?: number;
@@ -641,10 +645,21 @@ function TitleDetailSlab({
         />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(173,235,179,0.13),transparent_62%)]" />
       </div>
+      {onClose ? (
+        <button
+          type="button"
+          data-spatial-control
+          aria-label="Close title details"
+          onClick={onClose}
+          className="absolute right-3 top-3 z-30 grid h-9 w-9 place-items-center rounded-full border border-white/14 bg-black/55 text-white/76 shadow-[0_12px_32px_-14px_rgba(0,0,0,0.9)] backdrop-blur-md transition-[border-color,background-color,color,transform] duration-150 hover:border-white/24 hover:bg-black/72 hover:text-white active:scale-[0.96] sm:hidden"
+        >
+          <X className="h-4 w-4" aria-hidden />
+        </button>
+      ) : null}
       <div
         data-spatial-control
         className={cn(
-          "scrollbar-hide relative z-10 max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain p-5 sm:p-6",
+          "scrollbar-hide relative z-10 max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain p-5 pr-16 sm:p-6",
           contentClassName,
         )}
         style={{ touchAction: "pan-y" }}
@@ -853,6 +868,9 @@ export function CollectionTitleDetailOverlay({
       }
     | null
   >(null);
+  const frameAnimationRef = React.useRef<
+    ReturnType<typeof animateTitleFrameScroll> | null
+  >(null);
 
   const updatePosition = React.useCallback(() => {
     if (!anchorTitleId) {
@@ -935,14 +953,87 @@ export function CollectionTitleDetailOverlay({
     };
   }, [scrollContainerId, updatePosition]);
 
-  React.useEffect(() => {
-    if (reducedMotion) return;
-    const timer = window.setTimeout(
-      () => setRevealReady(true),
-      TITLE_FRAME_REVEAL_DELAY_MS,
-    );
-    return () => window.clearTimeout(timer);
-  }, [reducedMotion]);
+  React.useLayoutEffect(() => {
+    let cancelled = false;
+    let retryFrame: number | null = null;
+    let attempts = 0;
+    setRevealReady(false);
+
+    const finish = () => {
+      if (cancelled) return;
+      frameAnimationRef.current = null;
+      updatePosition();
+      setRevealReady(true);
+    };
+
+    const frameSelection = () => {
+      if (!anchorTitleId) return;
+      const source = document.getElementById(`shelf-title-${anchorTitleId}`);
+      if (!source) {
+        attempts += 1;
+        if (attempts < 24) {
+          retryFrame = window.requestAnimationFrame(frameSelection);
+        }
+        return;
+      }
+
+      updatePosition();
+      const scrollContainer = scrollContainerId
+        ? document.getElementById(scrollContainerId)
+        : null;
+      const containerRect = scrollContainer?.getBoundingClientRect();
+      const topAnchorRect = centerAfterId
+        ? document.getElementById(centerAfterId)?.getBoundingClientRect()
+        : null;
+      const frameTop = Math.max(
+        containerRect?.top ?? 0,
+        topAnchorRect?.bottom ?? 0,
+      );
+      const frameBottom = containerRect?.bottom ?? window.innerHeight;
+      const targetCenter = frameTop + (frameBottom - frameTop) / 2;
+      const sourceRect = source.getBoundingClientRect();
+      const delta = sourceRect.top + sourceRect.height / 2 - targetCenter;
+      const current = scrollContainer?.scrollTop ?? window.scrollY;
+      const maxScroll = scrollContainer
+        ? Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight)
+        : Math.max(
+            0,
+            document.documentElement.scrollHeight - window.innerHeight,
+          );
+      const target = Math.max(0, Math.min(current + delta, maxScroll));
+      const applyScroll = (value: number) => {
+        if (scrollContainer) scrollContainer.scrollTop = value;
+        else window.scrollTo(0, value);
+      };
+
+      if (reducedMotion || Math.abs(target - current) <= 2) {
+        applyScroll(target);
+        finish();
+        return;
+      }
+
+      frameAnimationRef.current = animateTitleFrameScroll(
+        current,
+        target,
+        applyScroll,
+        finish,
+      );
+    };
+
+    retryFrame = window.requestAnimationFrame(frameSelection);
+    return () => {
+      cancelled = true;
+      if (retryFrame !== null) window.cancelAnimationFrame(retryFrame);
+      frameAnimationRef.current?.stop();
+      frameAnimationRef.current = null;
+    };
+  }, [
+    anchorTitleId,
+    centerAfterId,
+    reducedMotion,
+    scrollContainerId,
+    updatePosition,
+  ]);
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1016,12 +1107,14 @@ export function CollectionTitleDetailOverlay({
     };
   }, [detailSource, title]);
 
-  return (
+  const overlay = (
     <>
-      <TitleDetailDismissLayer
-        onDismiss={onClose}
-        style={interactionBounds ?? undefined}
-      />
+      {position ? (
+        <TitleDetailDismissLayer
+          onDismiss={onClose}
+          style={interactionBounds ?? undefined}
+        />
+      ) : null}
       {position && (reducedMotion || revealReady) ? (
         <div
           role="dialog"
@@ -1051,6 +1144,7 @@ export function CollectionTitleDetailOverlay({
             loading={loading}
             error={error}
             renderActions={renderActions}
+            onClose={onClose}
             className="w-full"
             entryOffsetX={28}
           />
@@ -1058,6 +1152,13 @@ export function CollectionTitleDetailOverlay({
       ) : null}
     </>
   );
+
+  // Keep Shelf inspectors outside internal scroll containers. Mobile Safari
+  // otherwise treats the fixed layer as part of deeply scrolled content and
+  // can leave only the selected-poster highlight visible.
+  return typeof document === "undefined"
+    ? null
+    : createPortal(overlay, document.body);
 }
 
 export function PublicTitleDetailOverlay({
@@ -1616,6 +1717,7 @@ export function SpatialPosterGrid({
                 loading={detailLoading}
                 error={detailError}
                 renderActions={renderActions}
+                onClose={closeDetail}
               />
             </div>
           ) : null}

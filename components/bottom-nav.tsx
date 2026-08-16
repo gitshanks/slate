@@ -77,9 +77,10 @@ export function BottomNav() {
   return (
     <nav
       className={cn(
-        "relative z-40 w-full shrink-0 glass border-t border-border/60 md:hidden",
+        "relative isolate z-40 w-full shrink-0 border-t md:hidden",
         librarySurface &&
-          "dark border-white/10 bg-[#080a09]/90 text-white backdrop-blur-2xl",
+          "dark border-transparent bg-transparent text-white",
+        !librarySurface && "glass border-border/60",
       )}
       aria-label="Primary"
       style={{
@@ -90,7 +91,25 @@ export function BottomNav() {
         paddingBottom: "max(calc(env(safe-area-inset-bottom) + 0.5rem), 1.5rem)",
       }}
     >
-      <ul className="flex items-stretch px-1 pt-3">
+      {librarySurface ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 -top-8 bottom-0 -z-10 overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(8,10,9,0.98)_0%,rgba(8,10,9,0.9)_54%,rgba(8,10,9,0.54)_76%,rgba(8,10,9,0)_100%)]" />
+          <div
+            className="absolute inset-0 backdrop-blur-2xl"
+            style={{
+              WebkitMaskImage:
+                "linear-gradient(to top, black 0%, black 48%, rgba(0,0,0,0.72) 68%, transparent 100%)",
+              maskImage:
+                "linear-gradient(to top, black 0%, black 48%, rgba(0,0,0,0.72) 68%, transparent 100%)",
+            }}
+          />
+        </div>
+      ) : null}
+
+      <ul className="relative flex items-stretch px-1 pt-3">
         {TABS.map((t) => {
           const active = t.href === activeHref;
           const Icon = t.icon;

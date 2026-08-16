@@ -27,7 +27,14 @@ export const fadeInUp: Variants = {
 
 export const pageEnter: Variants = {
   hidden: { opacity: 0, transform: `translateY(${RISE}px)` },
-  visible: { opacity: 1, transform: "translateY(0px)", transition: baseTransition },
+  visible: {
+    opacity: 1,
+    transform: "translateY(0px)",
+    transition: baseTransition,
+    // A lingering zero-value transform still creates a fixed-position
+    // containing block and can break sticky chrome inside the app scroller.
+    transitionEnd: { transform: "none" },
+  },
 };
 
 export function staggerContainer(childCount: number): Variants {
