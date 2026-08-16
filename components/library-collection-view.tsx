@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCommandPalette } from "@/components/command-palette";
 import {
+  animateTitleFrameScroll,
   CollectionTitleDetailOverlay,
   type SpatialCameraState,
   type TitleDetailSource,
@@ -332,6 +333,9 @@ export function LibraryCollectionView({
   const [shelfTitle, setShelfTitle] = React.useState<TitleRow | null>(null);
   const searchRequestRef = React.useRef(0);
   const switchTimerRef = React.useRef<number | null>(null);
+  const shelfScrollAnimationRef = React.useRef<
+    ReturnType<typeof animateTitleFrameScroll> | null
+  >(null);
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const status = searchParams.get("status") ?? "";
   const activeStatus =
@@ -410,7 +414,11 @@ export function LibraryCollectionView({
     [activeStatus, filterParams.sort, mode, statusOrder],
   );
 
-  const closeShelfTitle = React.useCallback(() => setShelfTitle(null), []);
+  const closeShelfTitle = React.useCallback(() => {
+    shelfScrollAnimationRef.current?.stop();
+    shelfScrollAnimationRef.current = null;
+    setShelfTitle(null);
+  }, []);
   const renderActions = React.useCallback(
     (title: TitleRow) => (
       <LibraryTitleActions
@@ -430,20 +438,47 @@ export function LibraryCollectionView({
   const openShelfTitle = React.useCallback(
     (title: TitleRow) => {
       void titleDetailSource.load(title).catch(() => undefined);
+      shelfScrollAnimationRef.current?.stop();
+      shelfScrollAnimationRef.current = null;
       const source = document.getElementById(`shelf-title-${title.id}`);
       const scrollArea = document.getElementById("app-scroll-area");
       if (source && scrollArea) {
+        const narrow = window.matchMedia("(max-width: 639px)").matches;
+        // Mobile uses the same fixed, centered inspector as Space. Keep the
+        // Shelf still beneath it instead of introducing a second framing move.
+        if (narrow) {
+          setShelfTitle(title);
+          return;
+        }
         const sourceRect = source.getBoundingClientRect();
         const scrollRect = scrollArea.getBoundingClientRect();
-        const narrow = window.matchMedia("(max-width: 639px)").matches;
-        const targetCenter =
-          scrollRect.top + scrollRect.height * (narrow ? 0.28 : 0.5);
+        const targetCenter = scrollRect.top + scrollRect.height * 0.5;
         const delta = sourceRect.top + sourceRect.height / 2 - targetCenter;
         if (Math.abs(delta) > 2) {
-          scrollArea.scrollBy({
-            top: delta,
-            behavior: reducedMotion ? "auto" : "smooth",
-          });
+          const target = Math.max(
+            0,
+            Math.min(
+              scrollArea.scrollTop + delta,
+              scrollArea.scrollHeight - scrollArea.clientHeight,
+            ),
+          );
+          if (reducedMotion) {
+            scrollArea.scrollTop = target;
+          } else {
+            const controls = animateTitleFrameScroll(
+              scrollArea.scrollTop,
+              target,
+              (value) => {
+                scrollArea.scrollTop = value;
+              },
+              () => {
+                if (shelfScrollAnimationRef.current === controls) {
+                  shelfScrollAnimationRef.current = null;
+                }
+              },
+            );
+            shelfScrollAnimationRef.current = controls;
+          }
         }
       }
       setShelfTitle(title);
@@ -465,7 +500,7 @@ export function LibraryCollectionView({
       if (nextMode === mode || isSwitching) return;
       setIsSwitching(true);
       setSearchOpen(false);
-      setShelfTitle(null);
+      closeShelfTitle();
       const params = new URLSearchParams(window.location.search);
       if (nextMode === "space") params.set("view", "space");
       else params.delete("view");
@@ -486,12 +521,13 @@ export function LibraryCollectionView({
         reducedMotion ? 0 : 110,
       );
     },
-    [isSwitching, mode, reducedMotion],
+    [closeShelfTitle, isSwitching, mode, reducedMotion],
   );
 
   React.useEffect(() => {
     void loadSpatialPosterGrid();
     return () => {
+      shelfScrollAnimationRef.current?.stop();
       if (switchTimerRef.current !== null) {
         window.clearTimeout(switchTimerRef.current);
       }
@@ -506,9 +542,9 @@ export function LibraryCollectionView({
 
   React.useEffect(() => {
     if (shelfTitle && !titles.some((title) => title.id === shelfTitle.id)) {
-      setShelfTitle(null);
+      closeShelfTitle();
     }
-  }, [shelfTitle, titles]);
+  }, [closeShelfTitle, shelfTitle, titles]);
 
   return (
     <div

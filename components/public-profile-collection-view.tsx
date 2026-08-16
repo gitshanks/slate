@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { MediaGrid } from "@/components/media-grid";
 import {
+  animateTitleFrameScroll,
   PublicTitleDetailOverlay,
   type SpatialCameraState,
 } from "@/components/spatial-poster-grid";
@@ -79,6 +80,9 @@ export function PublicProfileCollectionView({
   const [shelfTitle, setShelfTitle] = React.useState<TitleRow | null>(null);
   const searchRequestRef = React.useRef(0);
   const viewSwitchTimerRef = React.useRef<number | null>(null);
+  const shelfScrollAnimationRef = React.useRef<
+    ReturnType<typeof animateTitleFrameScroll> | null
+  >(null);
   const reducedMotion = useReducedMotion();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -141,6 +145,8 @@ export function PublicProfileCollectionView({
   }, []);
 
   const closeShelfTitle = React.useCallback(() => {
+    shelfScrollAnimationRef.current?.stop();
+    shelfScrollAnimationRef.current = null;
     setShelfTitle(null);
   }, []);
 
@@ -149,26 +155,49 @@ export function PublicProfileCollectionView({
       // Begin the request at press time. The slab consumes this same in-flight
       // result as soon as it mounts, matching Space's immediate detail path.
       void loadPublicTitleDetail(username, title.id).catch(() => undefined);
+      shelfScrollAnimationRef.current?.stop();
+      shelfScrollAnimationRef.current = null;
       const source = document.getElementById(`shelf-title-${title.id}`);
       if (!source) {
         setShelfTitle(title);
         return;
       }
 
-      const sourceRect = source.getBoundingClientRect();
       const narrow = window.matchMedia("(max-width: 639px)").matches;
-      // Desktop slabs sit level with their source; compact screens reserve
-      // room directly beneath the card rather than covering it.
-      const targetCenter = window.innerHeight * (narrow ? 0.28 : 0.5);
+      // Mobile uses Space's fixed, centered inspector without moving the Shelf.
+      if (narrow) {
+        setShelfTitle(title);
+        return;
+      }
+
+      const sourceRect = source.getBoundingClientRect();
+      const targetCenter = window.innerHeight * 0.5;
       const delta =
         sourceRect.top + sourceRect.height / 2 - targetCenter;
 
       if (Math.abs(delta) > 2) {
-        window.scrollBy({
-          top: delta,
-          // Match Space's framing beat before the shared slab settles beside it.
-          behavior: reducedMotion ? "auto" : "smooth",
-        });
+        const target = Math.max(
+          0,
+          Math.min(
+            window.scrollY + delta,
+            document.documentElement.scrollHeight - window.innerHeight,
+          ),
+        );
+        if (reducedMotion) {
+          window.scrollTo(0, target);
+        } else {
+          const controls = animateTitleFrameScroll(
+            window.scrollY,
+            target,
+            (value) => window.scrollTo(0, value),
+            () => {
+              if (shelfScrollAnimationRef.current === controls) {
+                shelfScrollAnimationRef.current = null;
+              }
+            },
+          );
+          shelfScrollAnimationRef.current = controls;
+        }
       }
       setShelfTitle(title);
     },
@@ -232,6 +261,7 @@ export function PublicProfileCollectionView({
 
   React.useEffect(
     () => () => {
+      shelfScrollAnimationRef.current?.stop();
       if (viewSwitchTimerRef.current !== null) {
         window.clearTimeout(viewSwitchTimerRef.current);
       }

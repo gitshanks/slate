@@ -114,6 +114,21 @@ const DESKTOP_CAMERA_SCALE = 0.88;
 const MOBILE_CAMERA_SCALE = 0.7;
 const TITLE_FRAME_DURATION_SECONDS = 0.24;
 const TITLE_FRAME_REVEAL_DELAY_MS = 260;
+const TITLE_FRAME_EASE = [0.77, 0, 0.175, 1] as const;
+
+export function animateTitleFrameScroll(
+  from: number,
+  to: number,
+  onUpdate: (value: number) => void,
+  onComplete?: () => void,
+) {
+  return animate(from, to, {
+    duration: TITLE_FRAME_DURATION_SECONDS,
+    ease: TITLE_FRAME_EASE,
+    onUpdate,
+    onComplete,
+  });
+}
 
 const unavailableTitleDetailSource: TitleDetailSource = {
   getCached: () => null,
@@ -529,6 +544,10 @@ function TitleDetailDismissLayer({ onDismiss }: { onDismiss: () => void }) {
         event.stopPropagation();
         onDismiss();
       }}
+      onWheel={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -774,12 +793,16 @@ export function CollectionTitleDetailOverlay({
   );
   const [error, setError] = React.useState<string | null>(null);
   const [revealReady, setRevealReady] = React.useState(false);
-  const [position, setPosition] = React.useState<{
-    left: number;
-    top: number;
-    width: number;
-    placement: "left" | "right" | "below";
-  } | null>(null);
+  const [position, setPosition] = React.useState<
+    | { placement: "center" }
+    | {
+        left: number;
+        top: number;
+        width: number;
+        placement: "left" | "right";
+      }
+    | null
+  >(null);
 
   const updatePosition = React.useCallback(() => {
     if (!anchorTitleId) {
@@ -787,48 +810,39 @@ export function CollectionTitleDetailOverlay({
       return;
     }
 
+    const viewportWidth = window.innerWidth;
+    const narrow = viewportWidth < 640;
+    const slabWidth = Math.min(viewportWidth * 0.84, 432);
+
+    // Match Space exactly on mobile: the same width, scale, and viewport center.
+    if (narrow) {
+      setPosition({ placement: "center" });
+      return;
+    }
+
     const source = document.getElementById(`shelf-title-${anchorTitleId}`);
     if (!source) return;
 
     const rect = source.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const narrow = viewportWidth < 640;
-    const edge = narrow ? 12 : 24;
-    const gap = narrow ? 12 : 20;
-    const slabWidth = Math.min(viewportWidth * 0.84, 432);
+    const edge = 24;
+    const gap = 20;
+
     const sideRoom = {
       left: rect.left - gap - edge,
       right: viewportWidth - rect.right - gap - edge,
     };
 
-    // A mobile poster grid has no honest side-by-side room. A panel directly
-    // beneath the source keeps the poster visible instead of covering it.
-    if (narrow || Math.max(sideRoom.left, sideRoom.right) < slabWidth) {
-      const renderedScale = narrow ? 0.86 : 1;
-      const renderedMaxHeight =
-        Math.min(viewportHeight * 0.69, 688) * renderedScale;
-      const top = Math.min(
-        Math.max(edge, rect.bottom + gap),
-        viewportHeight - edge - renderedMaxHeight,
-      );
-      setPosition({
-        left: (viewportWidth - slabWidth) / 2,
-        top,
-        width: slabWidth,
-        placement: "below",
-      });
-      return;
-    }
-
+    // Desktop always anchors beside the selected poster. The scroll listener
+    // keeps both vertical centers locked together throughout the framing move.
     const placement = sideRoom.right >= sideRoom.left ? "right" : "left";
+    const width = Math.min(slabWidth, sideRoom[placement]);
     setPosition({
       left:
         placement === "right"
           ? rect.right + gap
-          : rect.left - gap - slabWidth,
-      top: viewportHeight / 2,
-      width: slabWidth,
+          : rect.left - gap - width,
+      top: rect.top + rect.height / 2,
+      width,
       placement,
     });
   }, [anchorTitleId]);
@@ -864,6 +878,7 @@ export function CollectionTitleDetailOverlay({
   }, [onClose]);
 
   React.useEffect(() => {
+    if (!reducedMotion && !revealReady) return;
     const scrollContainer = scrollContainerId
       ? document.getElementById(scrollContainerId)
       : null;
@@ -886,7 +901,7 @@ export function CollectionTitleDetailOverlay({
       html.style.overflow = previousHtmlOverflow;
       body.style.overflow = previousBodyOverflow;
     };
-  }, [scrollContainerId]);
+  }, [reducedMotion, revealReady, scrollContainerId]);
 
   React.useEffect(() => {
     let current = true;
@@ -937,15 +952,19 @@ export function CollectionTitleDetailOverlay({
           data-spatial-slab
           className={cn(
             "fixed z-[60] origin-center scale-[0.86] sm:scale-100",
-            position.placement === "below"
-              ? ""
+            position.placement === "center"
+              ? "left-1/2 top-1/2 w-[min(84vw,27rem)] -translate-x-1/2 -translate-y-1/2"
               : "-translate-y-1/2",
           )}
-          style={{
-            left: position.left,
-            top: position.top,
-            width: position.width,
-          }}
+          style={
+            position.placement === "center"
+              ? undefined
+              : {
+                  left: position.left,
+                  top: position.top,
+                  width: position.width,
+                }
+          }
         >
           <TitleDetailSlab
             key={title.id}
@@ -1129,7 +1148,7 @@ export function SpatialPosterGrid({
       const transition = gentle
         ? {
             duration: TITLE_FRAME_DURATION_SECONDS,
-            ease: [0.77, 0, 0.175, 1] as const,
+            ease: TITLE_FRAME_EASE,
           }
         : { type: "spring" as const, stiffness: 105, damping: 22, mass: 0.9 };
       animationRef.current = [
