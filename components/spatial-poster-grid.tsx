@@ -880,6 +880,7 @@ function TitleDetailSlab({
               }))}
               link={detail.watchProviders.link}
               titleName={resolvedTitle.title}
+              presentation="inline"
             />
           ) : null}
         </div>
