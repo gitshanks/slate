@@ -553,11 +553,11 @@ function DetailPeopleRail({
   if (people.length === 0) return null;
 
   return (
-    <section className="mt-7">
-      <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+    <section className="-mx-5 mt-7 sm:-mx-6">
+      <h4 className="px-5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:px-6">
         {label}
       </h4>
-      <div className="scrollbar-hide -mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-1">
+      <div className="scrollbar-hide mt-3 flex gap-3 overflow-x-auto overscroll-x-contain px-5 pb-1 sm:px-6">
         {people.map((person) => {
           const image = profileUrl(person.profilePath, "w185");
           return (
@@ -607,11 +607,11 @@ function DetailRecommendations({
   if (items.length === 0) return null;
 
   return (
-    <section className="mt-8">
-      <h4 className="text-sm font-semibold tracking-[-0.02em] text-foreground/90">
+    <section className="-mx-5 mt-8 sm:-mx-6">
+      <h4 className="text-balance px-5 text-sm font-semibold leading-snug tracking-[-0.02em] text-foreground/90 sm:px-6">
         If you liked {title}&hellip;
       </h4>
-      <div className="scrollbar-hide -mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-2">
+      <div className="scrollbar-hide mt-3 flex gap-3 overflow-x-auto overscroll-x-contain px-5 pb-2 sm:px-6">
         {items.map((item) => {
           const image = posterUrl(item.posterPath, "w342");
           const year = formatYear(item.releaseDate);
@@ -795,12 +795,12 @@ function TitleDetailSlab({
       <div
         data-spatial-control
         className={cn(
-          "scrollbar-hide relative z-10 max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain p-5 pr-16 sm:p-6",
+          "scrollbar-hide relative z-10 max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain p-5 sm:p-6",
           contentClassName,
         )}
         style={{ touchAction: "pan-y" }}
       >
-        <div className="min-w-0">
+        <div className="min-w-0 pr-11 sm:pr-0">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/75">
             {resolvedTitle.media_type === "movie" ? "Film" : "Series"}
           </p>

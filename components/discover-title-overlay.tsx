@@ -4,8 +4,6 @@ import * as React from "react";
 import {
   Check,
   ChevronDown,
-  Clock,
-  Eye,
   Plus,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -98,11 +96,10 @@ function catalogueTitle(item: TmdbSearchResult): TitleRow {
 const STATUS_OPTIONS: {
   value: Exclude<TitleStatus, "dropped">;
   label: string;
-  icon: React.ElementType;
 }[] = [
-  { value: "want", label: "Up Next", icon: Clock },
-  { value: "watching", label: "Watching", icon: Eye },
-  { value: "watched", label: "Watched", icon: Check },
+  { value: "want", label: "Up Next" },
+  { value: "watching", label: "Watching" },
+  { value: "watched", label: "Watched" },
 ];
 
 function DiscoverTitleActions({
@@ -172,10 +169,9 @@ function DiscoverTitleActions({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="z-[80] min-w-[10rem]">
-        {STATUS_OPTIONS.map(({ value, label, icon: Icon }) => (
+        {STATUS_OPTIONS.map(({ value, label }) => (
           <DropdownMenuItem
             key={value}
-            className="gap-2"
             onClick={() => {
               startTransition(async () => {
                 try {
@@ -197,7 +193,6 @@ function DiscoverTitleActions({
               });
             }}
           >
-            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
             {label}
           </DropdownMenuItem>
         ))}

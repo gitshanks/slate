@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useTransition } from "react";
-import { Check, Eye, Clock, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TitleStatus } from "@/lib/supabase";
 import { setStatus } from "@/lib/actions";
@@ -14,10 +14,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const OPTIONS: { value: TitleStatus; label: string; icon: React.ElementType }[] = [
-  { value: "want", label: "Up Next", icon: Clock },
-  { value: "watching", label: "Watching", icon: Eye },
-  { value: "watched", label: "Watched", icon: Check },
+const OPTIONS: { value: TitleStatus; label: string }[] = [
+  { value: "want", label: "Up Next" },
+  { value: "watching", label: "Watching" },
+  { value: "watched", label: "Watched" },
 ];
 
 export function StatusPill({
@@ -49,7 +49,6 @@ export function StatusPill({
   }
 
   const active = OPTIONS.find((o) => o.value === optimisticStatus) ?? OPTIONS[0];
-  const Icon = active.icon;
 
   return (
     <DropdownMenu modal={false}>
@@ -58,7 +57,6 @@ export function StatusPill({
           type="button"
           className="inline-flex h-9 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3.5 text-xs font-medium text-primary shadow-sm transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Icon className="h-3.5 w-3.5" />
           <span>{active.label}</span>
           <ChevronDown className="h-3 w-3 text-primary/60" />
         </button>
@@ -68,16 +66,15 @@ export function StatusPill({
           value={optimisticStatus}
           onValueChange={(v) => update(v as TitleStatus)}
         >
-          {OPTIONS.map(({ value, label, icon: Opt }) => (
+          {OPTIONS.map(({ value, label }) => (
             <DropdownMenuRadioItem
               key={value}
               value={value}
               className={cn(
-                "gap-2 pl-8",
+                "pl-8",
                 value === optimisticStatus && "text-foreground"
               )}
             >
-              <Opt className="h-3.5 w-3.5" />
               {label}
             </DropdownMenuRadioItem>
           ))}

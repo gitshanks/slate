@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Clock, Eye, Check, ChevronDown, Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,10 +11,10 @@ import {
 import { addTitleWithStatus } from "@/lib/actions";
 import type { TitleStatus } from "@/lib/supabase";
 
-const OPTIONS: { value: TitleStatus; label: string; icon: React.ElementType }[] = [
-  { value: "want", label: "Want", icon: Clock },
-  { value: "watching", label: "Watching", icon: Eye },
-  { value: "watched", label: "Watched", icon: Check },
+const OPTIONS: { value: TitleStatus; label: string }[] = [
+  { value: "want", label: "Up Next" },
+  { value: "watching", label: "Watching" },
+  { value: "watched", label: "Watched" },
 ];
 
 interface AddStatusDropdownProps {
@@ -55,13 +55,11 @@ export function AddStatusDropdown({ tmdbId, mediaType }: AddStatusDropdownProps)
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[9rem]">
-        {OPTIONS.map(({ value, label, icon: Icon }) => (
+        {OPTIONS.map(({ value, label }) => (
           <DropdownMenuItem
             key={value}
             onClick={() => add(value)}
-            className="gap-2"
           >
-            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
             {label}
           </DropdownMenuItem>
         ))}
