@@ -5,15 +5,13 @@ import { libraryClientForOwner } from "@/lib/library-db";
 import { titleDTO } from "@/lib/native-api/dto";
 import { NativeApiError } from "@/lib/native-api/http";
 import { getOmdbMetadata, isOmdbConfigured } from "@/lib/omdb";
+import { buildPersonProfileDetail } from "@/lib/person-detail";
 import {
   getMovie,
-  getPersonCredits,
-  getPersonDetail,
   getTitleMeta,
   getTv,
   normalizeForStorage,
   searchAll,
-  type TmdbMediaResult,
   type TmdbMovieDetail,
   type TmdbSearchResult,
   type TmdbTvDetail,
@@ -252,21 +250,5 @@ export async function getNativeDiscoverDetail(
 }
 
 export async function getNativePerson(id: number) {
-  const [person, credits] = await Promise.all([
-    getPersonDetail(id),
-    getPersonCredits(id),
-  ]);
-  return {
-    id: person.id,
-    name: person.name,
-    biography: person.biography || null,
-    birthday: person.birthday,
-    placeOfBirth: person.place_of_birth,
-    profilePath: person.profile_path,
-    knownForDepartment: person.known_for_department,
-    knownFor: credits.map((credit) => catalogueResultDTO({
-      ...credit,
-      media_type: credit.media_type,
-    } as TmdbMediaResult)),
-  };
+  return buildPersonProfileDetail(id);
 }

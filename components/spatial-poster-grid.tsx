@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import {
   animate,
+  AnimatePresence,
   motion,
   useMotionValue,
   useReducedMotion,
@@ -14,6 +15,7 @@ import {
   type MotionValue,
 } from "motion/react";
 import {
+  ArrowLeft,
   Check,
   Clock,
   Eye,
@@ -30,6 +32,14 @@ import type {
   PublicSpatialRecommendation,
   PublicSpatialTitleDetail,
 } from "@/lib/public-spatial-detail-types";
+import {
+  getCachedPersonDetail,
+  loadPersonDetail,
+} from "@/lib/person-detail-cache";
+import type {
+  PersonKnownForTitle,
+  PersonProfileDetail,
+} from "@/lib/person-detail-types";
 import {
   getCachedPublicTitleDetail,
   loadPublicTitleDetail,
@@ -546,9 +556,15 @@ function DetailLoading() {
 function DetailPeopleRail({
   label,
   people,
+  onSelect,
 }: {
   label: "Cast" | "Crew";
   people: PublicSpatialPerson[];
+  onSelect: (
+    person: PublicSpatialPerson,
+    source: "Cast" | "Crew",
+    trigger: HTMLButtonElement,
+  ) => void;
 }) {
   if (people.length === 0) return null;
 
@@ -561,8 +577,26 @@ function DetailPeopleRail({
         {people.map((person) => {
           const image = profileUrl(person.profilePath, "w185");
           return (
-            <div key={`${person.id}-${person.subtitle}`} className="w-16 shrink-0">
-              <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-border bg-muted/50">
+            <button
+              key={`${person.id}-${person.subtitle}`}
+              type="button"
+              data-spatial-control
+              onClick={(event) =>
+                onSelect(person, label, event.currentTarget)
+              }
+              onPointerEnter={() => {
+                void loadPersonDetail(person.id).catch(() => undefined);
+              }}
+              onFocus={() => {
+                void loadPersonDetail(person.id).catch(() => undefined);
+              }}
+              onTouchStart={() => {
+                void loadPersonDetail(person.id).catch(() => undefined);
+              }}
+              aria-label={`Open ${person.name} profile`}
+              className="group w-16 shrink-0 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            >
+              <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-border bg-muted/50 transition-[border-color,transform,box-shadow] duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-[0_12px_28px_-16px_hsl(var(--primary)/0.55)] group-active:scale-[0.98]">
                 {image ? (
                   <Image
                     src={image}
@@ -581,7 +615,7 @@ function DetailPeopleRail({
                   </span>
                 )}
               </div>
-              <p className="mt-1.5 line-clamp-2 text-[10px] leading-tight text-foreground/80">
+              <p className="mt-1.5 line-clamp-2 text-[10px] leading-tight text-foreground/80 transition-colors group-hover:text-foreground">
                 {person.name}
               </p>
               {person.subtitle ? (
@@ -589,11 +623,294 @@ function DetailPeopleRail({
                   {person.subtitle}
                 </p>
               ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function formatPersonBirthday(value: string | null) {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value;
+  const month = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ][Number(match[2]) - 1];
+  return month ? `${month} ${Number(match[3])}, ${match[1]}` : value;
+}
+
+function PersonDetailLoading() {
+  return (
+    <div className="mt-7 space-y-5" aria-label="Loading person details">
+      <div className="flex flex-wrap gap-2">
+        <div className="h-3 w-20 animate-pulse rounded-full bg-muted" />
+        <div className="h-3 w-32 animate-pulse rounded-full bg-muted" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-2.5 w-full animate-pulse rounded-full bg-muted" />
+        <div className="h-2.5 w-[94%] animate-pulse rounded-full bg-muted" />
+        <div className="h-2.5 w-[82%] animate-pulse rounded-full bg-muted" />
+        <div className="h-2.5 w-[58%] animate-pulse rounded-full bg-muted" />
+      </div>
+      <div className="flex gap-3 pt-2">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className="w-20 shrink-0 space-y-2">
+            <div className="aspect-[2/3] animate-pulse rounded-xl bg-muted" />
+            <div className="h-2 w-16 animate-pulse rounded-full bg-muted" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PersonKnownForRail({ items }: { items: PersonKnownForTitle[] }) {
+  if (items.length === 0) return null;
+
+  return (
+    <section className="-mx-5 mt-8 sm:-mx-6" aria-label="Known for">
+      <h4 className="px-5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:px-6">
+        Known for
+      </h4>
+      <div
+        role="list"
+        className="scrollbar-hide mt-3 flex gap-3 overflow-x-auto overscroll-x-contain px-5 pb-2 sm:px-6"
+      >
+        {items.map((item) => {
+          const image = posterUrl(item.posterPath, "w342");
+          const year = formatYear(item.releaseDate);
+          return (
+            <div
+              key={`${item.mediaType}-${item.tmdbId}`}
+              role="listitem"
+              className="w-[5.25rem] shrink-0"
+              title={item.title}
+            >
+              <div className="relative aspect-[2/3] overflow-hidden rounded-xl border border-border bg-muted/50">
+                {image ? (
+                  <Image
+                    src={image}
+                    alt=""
+                    fill
+                    sizes="84px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <span className="grid h-full place-items-center px-2 text-center text-[9px] text-muted-foreground">
+                    {item.title}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1.5 truncate text-[10px] font-medium text-foreground/80">
+                {item.title}
+              </p>
+              {year ? (
+                <p className="mt-0.5 font-mono text-[8px] text-muted-foreground">
+                  {year}
+                </p>
+              ) : null}
             </div>
           );
         })}
       </div>
     </section>
+  );
+}
+
+function PersonDetailPanel({
+  person,
+  source,
+  titleName,
+  onBack,
+}: {
+  person: PublicSpatialPerson;
+  source: "Cast" | "Crew";
+  titleName: string;
+  onBack: () => void;
+}) {
+  const [retryCount, setRetryCount] = React.useState(0);
+  const [detail, setDetail] = React.useState<PersonProfileDetail | null>(() =>
+    getCachedPersonDetail(person.id),
+  );
+  const [loading, setLoading] = React.useState(
+    () => getCachedPersonDetail(person.id) === null,
+  );
+  const [error, setError] = React.useState<string | null>(null);
+  const backRef = React.useRef<HTMLButtonElement>(null);
+
+  React.useEffect(() => {
+    backRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  React.useEffect(() => {
+    let current = true;
+    const cached = getCachedPersonDetail(person.id);
+    if (cached) {
+      setDetail(cached);
+      setLoading(false);
+      setError(null);
+      return () => {
+        current = false;
+      };
+    }
+
+    setLoading(true);
+    setError(null);
+    void loadPersonDetail(person.id)
+      .then((nextDetail) => {
+        if (current) setDetail(nextDetail);
+      })
+      .catch((reason: unknown) => {
+        if (!current) return;
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : "This person’s details are unavailable right now.",
+        );
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+
+    return () => {
+      current = false;
+    };
+  }, [person.id, retryCount]);
+
+  const name = detail?.name || person.name;
+  const photo = profileUrl(
+    detail?.profilePath ?? person.profilePath,
+    "w342",
+  );
+  const birthday = formatPersonBirthday(detail?.birthday ?? null);
+
+  return (
+    <div className="relative min-h-full p-5 sm:p-6">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[18rem] overflow-hidden"
+      >
+        {photo ? (
+          <Image
+            src={photo}
+            alt=""
+            fill
+            sizes="(max-width: 639px) 84vw, 27rem"
+            loading="eager"
+            className="scale-110 object-cover object-top opacity-30 blur-[2px] saturate-[0.9]"
+          />
+        ) : null}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--card)/0.96)_0%,hsl(var(--card)/0.72)_52%,hsl(var(--card)/0.34)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_top,hsl(var(--card))_4%,hsl(var(--card)/0.82)_43%,transparent_100%)]" />
+      </div>
+
+      <div className="relative z-10">
+        <button
+          ref={backRef}
+          type="button"
+          data-spatial-control
+          onClick={onBack}
+          className="inline-flex h-8 max-w-[calc(100%-3rem)] items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] font-medium text-foreground/75 backdrop-blur-md transition-[border-color,background-color,color,transform] hover:border-foreground/20 hover:bg-background/75 hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span className="truncate">Back to {titleName}</span>
+        </button>
+
+        <div className="mt-5 flex items-end gap-4">
+          <div className="relative aspect-[2/3] w-[5.25rem] shrink-0 overflow-hidden rounded-2xl border border-border bg-muted/60 shadow-[0_18px_38px_-22px_rgba(0,0,0,0.85)]">
+            {photo ? (
+              <Image
+                src={photo}
+                alt=""
+                fill
+                sizes="84px"
+                loading="eager"
+                className="object-cover object-top"
+              />
+            ) : (
+              <span className="grid h-full place-items-center font-mono text-sm text-muted-foreground">
+                {name
+                  .split(" ")
+                  .map((part) => part[0])
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .join("")}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0 pb-1">
+            <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-primary/75">
+              {source}
+              {person.subtitle ? ` · ${person.subtitle}` : ""}
+            </p>
+            <h3 className="mt-2 text-balance text-[1.65rem] font-semibold leading-[0.98] tracking-[-0.04em] text-foreground">
+              {name}
+            </h3>
+            {detail?.knownForDepartment ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {detail.knownForDepartment}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        {loading ? <PersonDetailLoading /> : null}
+
+        {error ? (
+          <div className="mt-7 rounded-2xl border border-border bg-background/45 p-4">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {error}
+            </p>
+            <button
+              type="button"
+              onClick={() => setRetryCount((count) => count + 1)}
+              className="mt-3 inline-flex h-8 items-center rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground transition-transform active:scale-[0.98]"
+            >
+              Try again
+            </button>
+          </div>
+        ) : null}
+
+        {!loading && !error && detail ? (
+          <>
+            {(birthday || detail.placeOfBirth) && (
+              <div className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground">
+                {birthday ? <span>{birthday}</span> : null}
+                {birthday && detail.placeOfBirth ? <span>·</span> : null}
+                {detail.placeOfBirth ? <span>{detail.placeOfBirth}</span> : null}
+              </div>
+            )}
+
+            {detail.biography ? (
+              <div className="mt-5 space-y-3 text-[13px] leading-relaxed text-foreground/75">
+                {detail.biography.split(/\n{2,}/).map((paragraph, index) => (
+                  <p key={index}>{paragraph}</p>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-5 text-[13px] leading-relaxed text-muted-foreground">
+                No biography is available yet.
+              </p>
+            )}
+
+            <PersonKnownForRail items={detail.knownFor} />
+          </>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -730,6 +1047,47 @@ function TitleDetailSlab({
   const backdrop =
     backdropUrl(resolvedTitle.backdrop_path, "w780") ??
     posterUrl(resolvedTitle.poster_path, "w500");
+  const [selectedPerson, setSelectedPerson] = React.useState<{
+    person: PublicSpatialPerson;
+    source: "Cast" | "Crew";
+  } | null>(null);
+  const returnFocusRef = React.useRef<HTMLButtonElement | null>(null);
+
+  const openPerson = React.useCallback(
+    (
+      person: PublicSpatialPerson,
+      source: "Cast" | "Crew",
+      trigger: HTMLButtonElement,
+    ) => {
+      returnFocusRef.current = trigger;
+      setSelectedPerson({ person, source });
+    },
+    [],
+  );
+
+  const returnToTitle = React.useCallback(() => {
+    setSelectedPerson(null);
+    window.setTimeout(() => {
+      const trigger = returnFocusRef.current;
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+    }, 210);
+  }, []);
+
+  React.useEffect(() => {
+    if (!selectedPerson) return;
+    const handlePersonEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      returnToTitle();
+    };
+    window.addEventListener("keydown", handlePersonEscape, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", handlePersonEscape, {
+        capture: true,
+      });
+    };
+  }, [returnToTitle, selectedPerson]);
 
   return (
     <motion.div
@@ -739,7 +1097,7 @@ function TitleDetailSlab({
       exit={{ opacity: 0, x: entryOffsetX * 0.7 }}
       transition={{ type: "spring", stiffness: 260, damping: 28, mass: 0.8 }}
       className={cn(
-        "pointer-events-auto isolate w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-border bg-card text-left text-card-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06),0_40px_110px_-34px_rgba(15,23,42,0.34)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_40px_110px_-34px_rgba(0,0,0,0.98)]",
+        "pointer-events-auto relative isolate w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-border bg-card text-left text-card-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06),0_40px_110px_-34px_rgba(15,23,42,0.34)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_40px_110px_-34px_rgba(0,0,0,0.98)]",
         className,
       )}
       style={{ transformStyle: "preserve-3d" }}
@@ -785,20 +1143,31 @@ function TitleDetailSlab({
         <button
           type="button"
           data-spatial-control
-          aria-label="Close title details"
+          aria-label={
+            selectedPerson ? "Close person details" : "Close title details"
+          }
           onClick={onClose}
           className="absolute right-3 top-3 z-30 grid h-9 w-9 place-items-center rounded-full border border-border bg-background/70 text-foreground/75 shadow-[0_12px_32px_-14px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[border-color,background-color,color,transform] duration-150 hover:border-foreground/25 hover:bg-background/90 hover:text-foreground active:scale-[0.96] sm:hidden"
         >
           <X className="h-4 w-4" aria-hidden />
         </button>
       ) : null}
-      <div
+      <motion.div
         data-spatial-control
+        aria-hidden={selectedPerson ? true : undefined}
+        inert={selectedPerson ? true : undefined}
+        animate={
+          selectedPerson
+            ? { x: -18, opacity: 0.42, scale: 0.985 }
+            : { x: 0, opacity: 1, scale: 1 }
+        }
+        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         className={cn(
           "scrollbar-hide relative z-10 max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain p-5 sm:p-6",
+          selectedPerson && "pointer-events-none",
           contentClassName,
         )}
-        style={{ touchAction: "pan-y" }}
+        style={{ touchAction: "pan-x pan-y", transformOrigin: "left center" }}
       >
         <div className="min-w-0 pr-11 sm:pr-0">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/75">
@@ -912,11 +1281,19 @@ function TitleDetailSlab({
         ) : null}
 
         {!loading && detail?.cast.length ? (
-          <DetailPeopleRail label="Cast" people={detail.cast} />
+          <DetailPeopleRail
+            label="Cast"
+            people={detail.cast}
+            onSelect={openPerson}
+          />
         ) : null}
 
         {!loading && detail?.crew.length ? (
-          <DetailPeopleRail label="Crew" people={detail.crew} />
+          <DetailPeopleRail
+            label="Crew"
+            people={detail.crew}
+            onSelect={openPerson}
+          />
         ) : null}
 
         {resolvedTitle.review ? (
@@ -936,7 +1313,31 @@ function TitleDetailSlab({
             items={detail.recommendations}
           />
         ) : null}
-      </div>
+      </motion.div>
+
+      <AnimatePresence initial={false}>
+        {selectedPerson ? (
+          <motion.div
+            key={selectedPerson.person.id}
+            data-spatial-control
+            role="region"
+            aria-label={`${selectedPerson.person.name} profile`}
+            initial={{ x: "100%", opacity: 0.65 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0.65 }}
+            transition={{ duration: 0.21, ease: [0.22, 1, 0.36, 1] }}
+            className="scrollbar-hide absolute inset-0 z-20 max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain bg-card"
+            style={{ touchAction: "pan-x pan-y" }}
+          >
+            <PersonDetailPanel
+              person={selectedPerson.person}
+              source={selectedPerson.source}
+              titleName={resolvedTitle.title}
+              onBack={returnToTitle}
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </motion.div>
   );
 }

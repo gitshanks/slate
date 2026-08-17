@@ -321,6 +321,9 @@ export interface TmdbCombinedCredit {
   media_type: "movie" | "tv";
   title?: string;
   name?: string;
+  original_title?: string;
+  original_name?: string;
+  overview?: string;
   poster_path: string | null;
   backdrop_path: string | null;
   release_date?: string;
@@ -705,17 +708,18 @@ export async function getPersonDetail(id: number): Promise<TmdbPersonDetail> {
 export async function getPersonCredits(id: number): Promise<TmdbCombinedCredit[]> {
   const res = await tmdb<{
     cast: TmdbCombinedCredit[];
+    crew: TmdbCombinedCredit[];
   }>(`/person/${id}/combined_credits`, { language: "en-US" });
 
   const seen = new Set<string>();
-  return res.cast
+  return [...(res.cast ?? []), ...(res.crew ?? [])]
+    .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
     .filter((c) => {
       const key = `${c.media_type}-${c.id}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return c.media_type === "movie" || c.media_type === "tv";
     })
-    .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
     .slice(0, 20);
 }
 
