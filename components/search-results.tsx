@@ -4,6 +4,7 @@ import * as React from "react";
 import { Film, Tv, LayoutGrid } from "lucide-react";
 import { MediaGrid } from "@/components/media-grid";
 import { MotionGrid, MotionItem } from "@/components/motion-grid";
+import { LIBRARY_POSTER_GRID_CLASS_NAME } from "@/components/poster-grid-geometry";
 import { TmdbTile } from "@/components/tmdb-tile";
 import { PeopleGrid, type PersonTile } from "@/components/people-grid";
 import { SegmentedFilter } from "@/components/segmented-filter";
@@ -21,6 +22,9 @@ const TYPE_OPTIONS = [
 const GRID_CLASS =
   "grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10";
 
+const CONTAINER_SIZED_LIBRARY_GRID_CLASS =
+  "grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-x-5 gap-y-10";
+
 const SECTION_HEADING =
   "mb-4 text-lg font-semibold tracking-tight text-foreground sm:text-xl";
 
@@ -35,11 +39,16 @@ export function SearchResults({
   media,
   people,
   savedTmdbIds,
+  presentation = "default",
+  containerSized = false,
 }: {
   library: TitleRow[];
   media: TmdbMediaResult[];
   people: PersonTile[];
   savedTmdbIds: number[];
+  presentation?: "default" | "library";
+  /** Size Library-style tiles from this results column, not the viewport. */
+  containerSized?: boolean;
 }) {
   const [type, setType] = React.useState<TypeFilter>("");
   const savedSet = React.useMemo(() => new Set(savedTmdbIds), [savedTmdbIds]);
@@ -50,6 +59,7 @@ export function SearchResults({
   const hasTitleResults = library.length > 0 || media.length > 0;
   const mediaHeading = type === "movie" ? "Films" : type === "tv" ? "Series" : "Movies & TV";
   const noneAfterFilter = filteredLibrary.length === 0 && filteredMedia.length === 0;
+  const matchLibrary = presentation === "library";
 
   return (
     <>
@@ -66,20 +76,33 @@ export function SearchResults({
       {filteredLibrary.length > 0 && (
         <section>
           <h2 className={SECTION_HEADING}>In your library</h2>
-          <MediaGrid titles={filteredLibrary} />
+          <MediaGrid
+            titles={filteredLibrary}
+            compactMobile={matchLibrary}
+            presentation={matchLibrary ? "profile" : "default"}
+          />
         </section>
       )}
 
       {filteredMedia.length > 0 && (
         <section className={filteredLibrary.length > 0 ? "mt-12" : undefined}>
           <h2 className={SECTION_HEADING}>{mediaHeading}</h2>
-          <MotionGrid className={GRID_CLASS}>
+          <MotionGrid
+            className={
+              matchLibrary
+                ? containerSized
+                  ? CONTAINER_SIZED_LIBRARY_GRID_CLASS
+                  : LIBRARY_POSTER_GRID_CLASS_NAME
+                : GRID_CLASS
+            }
+          >
             {filteredMedia.map((item) => (
               <MotionItem key={`${item.media_type}-${item.id}`}>
                 <TmdbTile
                   item={item}
                   variant="grid"
                   saved={savedSet.has(item.id)}
+                  presentation={presentation}
                 />
               </MotionItem>
             ))}

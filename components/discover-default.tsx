@@ -1,5 +1,7 @@
 import { TmdbRailAsync } from "@/components/tmdb-rail-async";
+import { LIBRARY_CONTENT_GUTTER_CLASS_NAME } from "@/components/poster-grid-geometry";
 import { getLibraryClient } from "@/lib/library-db";
+import { cn } from "@/lib/utils";
 import {
   getNowPlaying,
   getRecommendedFromWatched,
@@ -14,7 +16,7 @@ export async function DiscoverDefault() {
   );
 
   return (
-    <div className="w-full pb-8">
+    <div className={cn("pb-8", LIBRARY_CONTENT_GUTTER_CLASS_NAME)}>
       <header>
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
           Discover
@@ -29,16 +31,21 @@ export async function DiscoverDefault() {
         fetcher={getRecommendedFromWatched}
         savedTmdbIds={savedTmdbIds}
         className="mt-8"
+        presentation="library"
       />
       <TmdbRailAsync
         title="Trending this week"
         fetcher={getTrending}
         savedTmdbIds={savedTmdbIds}
+        className="mt-8"
+        presentation="library"
       />
       <TmdbRailAsync
         title="Now playing"
         fetcher={getNowPlaying}
         savedTmdbIds={savedTmdbIds}
+        className="mt-8"
+        presentation="library"
       />
     </div>
   );

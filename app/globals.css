@@ -534,22 +534,92 @@ body[data-scroll-locked] {
   animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* No root crossfade — Motion owns the page entrance (app/(app)/template.tsx),
-   so a root crossfade would only double up. View Transitions stay scoped to
-   the shared-element poster morph. */
+/* No root crossfade. Primary app tabs own a smaller, content-only transition,
+   while shared poster transitions remain independently scoped. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none !important;
 }
 
-/* Mobile: the shared-element FLIP morph is choppy on iOS Safari, so turn
-   View Transitions off entirely here and let Motion's page entrance carry
-   the continuity. */
+/* Mobile: full-page and poster FLIP transitions are still disabled because
+   they are expensive in iOS Safari. The primary tab surface gets a short,
+   opacity-only handoff below; opacity keeps it compositor-friendly even while
+   a destination is streaming in. */
 @media (max-width: 767px) {
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation: none !important;
+  }
+
+  /* Keep the real app chrome live instead of showing a frozen root snapshot.
+     The tab surface is clipped above the dock below, so the active indicator
+     can respond immediately while content crossfades behind it. */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    display: none;
+  }
+
+  ::view-transition-group(.app-tab-switch) {
+    clip-path: inset(0 0 calc(76px + env(safe-area-inset-bottom, 0px)) 0);
+  }
+}
+
+/* Library, Discover, and Lists are sibling views of one app surface. Their
+   transition is a neutral crossfade rather than a directional page slide.
+   The browser's generated group transform carries the small shell geometry
+   change while the images crossfade, so Library's immersive chrome never
+   snaps against the standard app header. */
+::view-transition-group(.app-tab-switch) {
+  z-index: 1;
+  animation-duration: 180ms !important;
+  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1) !important;
+}
+
+::view-transition-image-pair(.app-tab-switch),
+::view-transition-old(.app-tab-switch),
+::view-transition-new(.app-tab-switch) {
+  isolation: isolate;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(.app-tab-switch) {
+  animation: app-tab-fade-out 120ms cubic-bezier(0.23, 1, 0.32, 1) both !important;
+}
+
+::view-transition-new(.app-tab-switch) {
+  animation: app-tab-fade-in 180ms cubic-bezier(0.23, 1, 0.32, 1) both !important;
+}
+
+::view-transition-group(.app-top-nav-enter),
+::view-transition-group(.app-top-nav-exit) {
+  z-index: 60;
+  animation: none !important;
+}
+
+::view-transition-new(.app-top-nav-enter) {
+  animation: app-tab-fade-in 180ms cubic-bezier(0.23, 1, 0.32, 1) both !important;
+}
+
+::view-transition-old(.app-top-nav-exit) {
+  animation: app-tab-fade-out 120ms cubic-bezier(0.23, 1, 0.32, 1) both !important;
+}
+
+@keyframes app-tab-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes app-tab-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -583,6 +653,26 @@ body[data-scroll-locked] {
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  /* Explicitly keep the primary-tab handoff motionless even though its
+     selectors intentionally override the mobile wildcard above. */
+  ::view-transition-group(.app-tab-switch),
+  ::view-transition-image-pair(.app-tab-switch),
+  ::view-transition-old(.app-tab-switch),
+  ::view-transition-new(.app-tab-switch) {
+    animation: none !important;
+  }
+
+  ::view-transition-group(.app-top-nav-enter),
+  ::view-transition-group(.app-top-nav-exit),
+  ::view-transition-image-pair(.app-top-nav-enter),
+  ::view-transition-image-pair(.app-top-nav-exit),
+  ::view-transition-old(.app-top-nav-enter),
+  ::view-transition-old(.app-top-nav-exit),
+  ::view-transition-new(.app-top-nav-enter),
+  ::view-transition-new(.app-top-nav-exit) {
     animation: none !important;
   }
 

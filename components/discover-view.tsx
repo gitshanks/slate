@@ -8,6 +8,10 @@ import { UserBubble, AssistantBubble } from "@/components/ai-chat-panel";
 import { SearchResults } from "@/components/search-results";
 import { EmptyState } from "@/components/empty-state";
 import { RailScroller } from "@/components/rail-scroller";
+import {
+  LIBRARY_CONTENT_GUTTER_CLASS_NAME,
+  LIBRARY_POSTER_RAIL_CLASS_NAME,
+} from "@/components/poster-grid-geometry";
 import { TmdbTile } from "@/components/tmdb-tile";
 import type { TmdbMediaResult } from "@/lib/tmdb";
 
@@ -49,7 +53,7 @@ export function DiscoverView({
   }
 
   return (
-    <div>
+    <div className={LIBRARY_CONTENT_GUTTER_CLASS_NAME}>
       <div className="mb-8">
         <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
           <Sparkles className="h-3 w-3" />
@@ -67,7 +71,13 @@ export function DiscoverView({
           description="Try a broader ask in AI mode."
         />
       ) : (
-        <SearchResults library={[]} media={serverMedia} people={[]} savedTmdbIds={serverSaved} />
+        <SearchResults
+          library={[]}
+          media={serverMedia}
+          people={[]}
+          savedTmdbIds={serverSaved}
+          presentation="library"
+        />
       )}
     </div>
   );
@@ -249,14 +259,17 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
         {media.length > 0 && (
           <div className="-mr-4 shrink-0 pb-3">
             <RailScroller>
-              {media.map((m) => (
-                <TmdbTile
-                  key={`${m.media_type}-${m.id}`}
-                  item={m}
-                  variant="rail"
-                  saved={Boolean(m.library_id)}
-                />
-              ))}
+              <div className={LIBRARY_POSTER_RAIL_CLASS_NAME}>
+                {media.map((m) => (
+                  <TmdbTile
+                    key={`${m.media_type}-${m.id}`}
+                    item={m}
+                    variant="grid"
+                    saved={Boolean(m.library_id)}
+                    presentation="library"
+                  />
+                ))}
+              </div>
             </RailScroller>
           </div>
         )}
@@ -285,6 +298,8 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
               media={media}
               people={[]}
               savedTmdbIds={savedMediaIds}
+              presentation="library"
+              containerSized
             />
           ) : (
             <p className="text-sm text-muted-foreground">No results for this turn.</p>

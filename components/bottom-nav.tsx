@@ -8,7 +8,7 @@ import { Compass, LayoutGrid, Layers, Plus } from "lucide-react";
 import { useCommandPalette } from "@/components/command-palette";
 import { cn } from "@/lib/utils";
 import { APP_ROOT } from "@/lib/public-mode";
-import { EASE, DUR } from "@/lib/motion";
+import { EASE, DUR, PRIMARY_TAB_TRANSITION } from "@/lib/motion";
 
 // Status now lives in the Library's pinned collection filter. The bottom bar
 // is reserved for primary destinations, so every major app capability stays
@@ -69,6 +69,7 @@ export function BottomNav() {
   );
   const activeHref =
     findCurrentTab(pathname) ?? (menuOnlySurface ? null : rememberedTab);
+  const isExactPrimaryTab = TABS.some((tab) => pathname === tab.href);
   // This is an ordinary, non-shrinking row in the mobile app shell. The middle
   // content region scrolls independently, so the bar never uses fixed/sticky
   // positioning and cannot be stranded by iOS after search closes.
@@ -84,7 +85,7 @@ export function BottomNav() {
       }}
     >
       <div
-        className="mx-auto grid h-[76px] w-full max-w-[430px] grid-cols-[minmax(0,1fr)_60px] gap-2.5 py-2"
+        className="relative isolate mx-auto grid h-[76px] w-full max-w-[430px] grid-cols-[minmax(0,1fr)_60px] gap-2.5 py-2"
         style={{
           paddingInlineStart:
             "max(0.75rem, calc(env(safe-area-inset-left) + 0.5rem))",
@@ -92,18 +93,28 @@ export function BottomNav() {
             "max(0.75rem, calc(env(safe-area-inset-right) + 0.5rem))",
         }}
       >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-2 z-0 rounded-full"
+          style={{
+            insetInlineStart:
+              "max(0.75rem, calc(env(safe-area-inset-left) + 0.5rem))",
+            insetInlineEnd:
+              "max(0.75rem, calc(env(safe-area-inset-right) + 0.5rem))",
+            // A single shared compositor layer gives both pieces the same
+            // poster diffusion while the transparent gap stays unpainted.
+            WebkitBackdropFilter: "blur(10px) saturate(1.08)",
+            backdropFilter: "blur(10px) saturate(1.08)",
+          }}
+        />
+
         <ul
-          className="pointer-events-auto relative grid min-w-0 grid-cols-3 rounded-full border border-foreground/[0.12] bg-background/[0.58] p-1 ring-1 ring-foreground/[0.05]"
+          className="pointer-events-auto relative z-10 grid min-w-0 grid-cols-3 rounded-full border border-foreground/[0.12] bg-background/[0.58] p-1 ring-1 ring-foreground/[0.05]"
           style={{
             background:
               "linear-gradient(180deg, hsl(var(--foreground) / 0.12) 0%, hsl(var(--foreground) / 0.035) 42%, transparent 72%), hsl(var(--background) / 0.58)",
             boxShadow:
               "0 18px 42px -28px rgb(0 0 0 / 0.9), inset 0 1px 0 hsl(var(--foreground) / 0.14), inset 0 -1px 0 hsl(var(--background) / 0.55)",
-            // One restrained live blur is enough to diffuse posters without
-            // recreating the multi-layer Safari compositing jank this shell
-            // was designed to avoid.
-            WebkitBackdropFilter: "blur(10px) saturate(1.08)",
-            backdropFilter: "blur(10px) saturate(1.08)",
           }}
         >
           {TABS.map((t) => {
@@ -114,6 +125,11 @@ export function BottomNav() {
                 <Link
                   href={t.href}
                   prefetch
+                  transitionTypes={
+                    isExactPrimaryTab && pathname !== t.href
+                      ? [PRIMARY_TAB_TRANSITION]
+                      : undefined
+                  }
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "relative isolate grid h-full touch-manipulation grid-rows-[20px_11px] content-center justify-items-center gap-[5px] overflow-hidden rounded-full px-1 text-[11px] font-medium tracking-tight outline-none transition-[color,transform] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97]",
@@ -149,19 +165,23 @@ export function BottomNav() {
         <button
           type="button"
           onClick={() => openCommandPalette()}
-          className="pointer-events-auto relative grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-primary/55 bg-primary/80 text-primary-foreground outline-none transition-[filter,transform] hover:brightness-[1.04] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.95]"
+          className="pointer-events-auto relative z-10 grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-foreground/[0.14] bg-background/[0.54] text-primary outline-none ring-1 ring-primary/[0.18] transition-[filter,transform] hover:brightness-[1.08] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.95]"
           aria-label="Find and add a title"
           aria-haspopup="dialog"
           style={{
             background:
-              "linear-gradient(180deg, hsl(var(--foreground) / 0.2) 0%, transparent 42%), hsl(var(--primary) / 0.78)",
+              "linear-gradient(180deg, hsl(var(--foreground) / 0.16) 0%, hsl(var(--foreground) / 0.035) 43%, transparent 72%), radial-gradient(circle at 50% 112%, hsl(var(--primary) / 0.38), transparent 68%), hsl(var(--background) / 0.54)",
             boxShadow:
-              "0 16px 34px -18px hsl(var(--primary) / 0.82), inset 0 1px 0 hsl(var(--foreground) / 0.28), inset 0 -1px 0 hsl(var(--background) / 0.2)",
+              "0 16px 34px -22px hsl(var(--primary) / 0.75), inset 0 1px 0 hsl(var(--foreground) / 0.18), inset 0 -1px 0 hsl(var(--background) / 0.56)",
           }}
         >
           <span
             aria-hidden
-            className="absolute inset-x-2 top-1 h-4 rounded-full bg-white/10 blur-sm"
+            className="absolute inset-1 rounded-full border border-primary/[0.1] bg-primary/[0.06]"
+          />
+          <span
+            aria-hidden
+            className="absolute inset-x-2 top-1 h-4 rounded-full bg-white/[0.08] blur-sm"
           />
           <Plus className="relative h-6 w-6" strokeWidth={2.1} aria-hidden />
         </button>

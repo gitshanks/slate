@@ -2,25 +2,43 @@
 
 import { motion } from "motion/react";
 import { usePathname } from "next/navigation";
-import { pageEnter } from "@/lib/motion";
+import { ViewTransition } from "@/components/view-transition";
+import { pageEnter, PRIMARY_TAB_TRANSITION } from "@/lib/motion";
+import { APP_ROOT } from "@/lib/public-mode";
 
-// A template (unlike a layout) lets us animate content in on navigation.
-// Keying on the pathname guarantees the entrance fires on every route change,
-// including sibling routes under the (app) route group where the template
-// may not remount on its own. Enter-only: the App Router unmounts old content
-// immediately, so a reliable exit animation isn't available — and a fast,
-// clean enter is the Linear/Vercel feel anyway.
+const PRIMARY_TABS = new Set([APP_ROOT, "/discover", "/lists"]);
+
 export default function Template({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  // Detail and utility pages keep the established lightweight entrance. Only
+  // the three sibling tab destinations participate in the shared crossfade.
+  if (!PRIMARY_TABS.has(pathname)) {
+    return (
+      <motion.div
+        key={pathname}
+        className="h-full min-h-0"
+        variants={pageEnter}
+        initial="hidden"
+        animate="visible"
+      >
+        {children}
+      </motion.div>
+    );
+  }
+
   return (
-    <motion.div
-      key={pathname}
-      className="h-full min-h-0"
-      variants={pageEnter}
-      initial="hidden"
-      animate="visible"
+    <ViewTransition
+      name="app-primary-tab-page"
+      default="none"
+      enter="none"
+      exit="none"
+      share={{
+        [PRIMARY_TAB_TRANSITION]: "app-tab-switch",
+        default: "none",
+      }}
     >
-      {children}
-    </motion.div>
+      <div className="h-full min-h-0">{children}</div>
+    </ViewTransition>
   );
 }

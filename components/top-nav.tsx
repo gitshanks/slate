@@ -6,11 +6,12 @@ import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { Search, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EASE, DUR } from "@/lib/motion";
+import { EASE, DUR, PRIMARY_TAB_TRANSITION } from "@/lib/motion";
 import { APP_ROOT } from "@/lib/public-mode";
 import { useCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PwaInstallButton } from "@/components/pwa-install-button";
+import { ViewTransition } from "@/components/view-transition";
 
 const LINKS = [
   { href: APP_ROOT, label: "Library" },
@@ -18,6 +19,8 @@ const LINKS = [
   { href: "/lists", label: "Lists" },
   { href: "/import", label: "Import" },
 ];
+
+const PRIMARY_TAB_HREFS = new Set([APP_ROOT, "/discover", "/lists"]);
 
 /**
  * Top navigation. On desktop (md+) it's a single bar with the logo, the
@@ -33,13 +36,27 @@ export function TopNav({
 }) {
   const pathname = usePathname();
   const { open } = useCommandPalette();
+  const isExactPrimaryTab = PRIMARY_TAB_HREFS.has(pathname);
 
   // The unified Library owns the same collection chrome as shared profiles.
   // Other app routes retain this global navigation bar.
   if (pathname === APP_ROOT) return null;
 
   return (
-    <>
+    <ViewTransition
+      name="app-top-nav"
+      default="none"
+      enter={{
+        [PRIMARY_TAB_TRANSITION]: "app-top-nav-enter",
+        default: "none",
+      }}
+      exit={{
+        [PRIMARY_TAB_TRANSITION]: "app-top-nav-exit",
+        default: "none",
+      }}
+      share="none"
+    >
+      <div className="shrink-0">
       {/* Mobile keeps the header in the app shell's normal flow so iOS cannot
           drift it after the keyboard closes. Desktop still uses the existing
           fixed header, with the spacer below preserving document flow. */}
@@ -52,6 +69,9 @@ export function TopNav({
             <Link
               href={APP_ROOT}
               prefetch
+              transitionTypes={
+                isExactPrimaryTab ? [PRIMARY_TAB_TRANSITION] : undefined
+              }
               className="group flex items-center pt-1 pb-2"
               aria-label="slate home"
             >
@@ -84,6 +104,13 @@ export function TopNav({
                     key={l.href}
                     href={l.href}
                     prefetch
+                    transitionTypes={
+                      isExactPrimaryTab &&
+                      PRIMARY_TAB_HREFS.has(l.href) &&
+                      pathname !== l.href
+                        ? [PRIMARY_TAB_TRANSITION]
+                        : undefined
+                    }
                     className={cn(
                       "relative rounded-full px-3.5 py-1.5 text-sm transition-colors",
                       active
@@ -152,6 +179,7 @@ export function TopNav({
         </div>
       </header>
       <div className="hidden h-16 md:block" aria-hidden />
-    </>
+      </div>
+    </ViewTransition>
   );
 }

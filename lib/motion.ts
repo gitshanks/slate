@@ -2,6 +2,7 @@ import type { Variants, Transition } from "motion/react";
 
 // Matches the easing the View Transitions already use, so CSS + JS motion feel identical.
 export const EASE = [0.32, 0.72, 0, 1] as const;
+export const PRIMARY_TAB_TRANSITION = "app-primary-tab";
 
 export const DUR = {
   fast: 0.14, // taps, toggles, hovers
