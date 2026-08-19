@@ -65,7 +65,6 @@ const SpatialPosterGrid = dynamic(
 );
 
 type ViewMode = "shelf" | "space";
-type ResultsTransitionPhase = "idle" | "fading-out" | "fading-in";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All" },
@@ -199,134 +198,6 @@ function OwnerMenu({
   );
 }
 
-function SmoothShelfResults({
-  titles,
-  transitionKey,
-  selectedTitleId,
-  onTitleSelect,
-  reorderContext,
-}: {
-  titles: TitleRow[];
-  /** Changes only when the user changes the visible filter/query. */
-  transitionKey: string;
-  selectedTitleId: string | null;
-  onTitleSelect: (title: TitleRow) => void;
-  reorderContext?: MediaGridReorderContext;
-}) {
-  const reducedMotion = useReducedMotion() ?? false;
-  const [renderedTitles, setRenderedTitles] = React.useState(titles);
-  const incomingSignature = titles
-    .map((title) =>
-      [title.id, title.status, title.rating ?? "", title.review ?? ""].join(":"),
-    )
-    .join("|");
-  const [renderedSignature, setRenderedSignature] =
-    React.useState(incomingSignature);
-  const [renderedTransitionKey, setRenderedTransitionKey] =
-    React.useState(transitionKey);
-  const [phase, setPhase] =
-    React.useState<ResultsTransitionPhase>("idle");
-  const pendingTitles = React.useRef(titles);
-  const pendingTransitionKey = React.useRef(transitionKey);
-
-  React.useEffect(() => {
-    pendingTitles.current = titles;
-    pendingTransitionKey.current = transitionKey;
-  }, [titles, transitionKey]);
-
-  React.useEffect(() => {
-    if (reducedMotion) {
-      setRenderedTitles(pendingTitles.current);
-      setRenderedSignature(incomingSignature);
-      setRenderedTransitionKey(transitionKey);
-      setPhase("idle");
-      return;
-    }
-
-    // A save, status update, or background refresh is a data reconciliation,
-    // not a new result set. Keep the existing surface fully opaque and let
-    // React reconcile the changed cards in place.
-    if (transitionKey === renderedTransitionKey) {
-      if (incomingSignature === renderedSignature) return;
-      setRenderedTitles(pendingTitles.current);
-      setRenderedSignature(incomingSignature);
-      setPhase("idle");
-      return;
-    }
-
-    // Different controls can occasionally resolve to the same titles. There
-    // is nothing visual to transition in that case.
-    if (incomingSignature === renderedSignature) {
-      setRenderedTransitionKey(transitionKey);
-      setPhase("idle");
-      return;
-    }
-
-    setPhase("fading-out");
-  }, [
-    incomingSignature,
-    reducedMotion,
-    renderedSignature,
-    renderedTransitionKey,
-    transitionKey,
-  ]);
-
-  const handleComplete = React.useCallback(() => {
-    if (phase === "fading-out") {
-      setRenderedTitles(pendingTitles.current);
-      setRenderedSignature(
-        pendingTitles.current
-          .map((title) =>
-            [title.id, title.status, title.rating ?? "", title.review ?? ""].join(
-              ":",
-            ),
-          )
-          .join("|"),
-      );
-      setRenderedTransitionKey(pendingTransitionKey.current);
-      setPhase("fading-in");
-    } else if (phase === "fading-in") {
-      setPhase("idle");
-    }
-  }, [phase]);
-
-  return (
-    <motion.div
-      initial={false}
-      animate={{
-        opacity: phase === "fading-out" ? 0.28 : 1,
-        y: phase === "fading-out" ? 3 : 0,
-      }}
-      transition={{
-        duration: reducedMotion ? 0 : phase === "fading-out" ? 0.13 : 0.21,
-        ease: phase === "fading-out" ? [0.4, 0, 1, 1] : [0.16, 1, 0.3, 1],
-      }}
-      onAnimationComplete={handleComplete}
-      className="will-change-[opacity,transform]"
-      style={{ pointerEvents: phase === "idle" ? "auto" : "none" }}
-    >
-      {renderedTitles.length ? (
-        <MediaGrid
-          titles={renderedTitles}
-          reorderContext={reorderContext}
-          compactMobile
-          presentation="profile"
-          showCardActions={false}
-          animateEntrance={false}
-          activeTitleId={selectedTitleId}
-          onTitleSelect={onTitleSelect}
-        />
-      ) : (
-        <EmptyState
-          icon={<Film className="h-6 w-6" />}
-          title="No titles match"
-          description="Try another filter or search."
-        />
-      )}
-    </motion.div>
-  );
-}
-
 export function LibraryCollectionView({
   titles,
   displayName,
@@ -388,10 +259,6 @@ export function LibraryCollectionView({
         filterParams.sentiment ?? "",
       ].join("\u001f"),
     [activeStatus, filterParams],
-  );
-  const shelfTransitionKey = React.useMemo(
-    () => `${filterTransitionKey}\u001f${normalizedQuery}`,
-    [filterTransitionKey, normalizedQuery],
   );
   const filteredTitles = React.useMemo(() => {
     const scopedTitles = activeStatus
@@ -798,13 +665,25 @@ export function LibraryCollectionView({
           className="w-full flex-1 px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 md:px-5 md:pb-12 lg:px-8 xl:px-10"
         >
           {titles.length ? (
-            <SmoothShelfResults
-              titles={visibleShelfTitles}
-              transitionKey={shelfTransitionKey}
-              selectedTitleId={shelfTitle?.id ?? null}
-              onTitleSelect={openShelfTitle}
-              reorderContext={reorderContext}
-            />
+            visibleShelfTitles.length ? (
+              <MediaGrid
+                titles={visibleShelfTitles}
+                reorderContext={reorderContext}
+                preserveGridAcrossReorderModes
+                compactMobile
+                presentation="profile"
+                showCardActions={false}
+                animateEntrance={false}
+                activeTitleId={shelfTitle?.id ?? null}
+                onTitleSelect={openShelfTitle}
+              />
+            ) : (
+              <EmptyState
+                icon={<Film className="h-6 w-6" />}
+                title="No titles match"
+                description="Try another filter or search."
+              />
+            )
           ) : (
             <div className="grid min-h-[48dvh] place-items-center">
               <EmptyState

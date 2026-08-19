@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, ThumbsUp, ThumbsDown } from "lucide-react";
-import { ViewTransition } from "@/components/view-transition";
 import { PosterCardActions } from "@/components/poster-card-actions";
 import { RatingPair } from "@/components/rating-pair";
 import {
@@ -129,21 +128,19 @@ export function PosterCard({
               className="object-cover"
             />
           ) : (
-            <ViewTransition name={`poster-${title.id}`}>
-              <Image
-                src={src}
-                alt={title.title}
-                fill
-                draggable={false}
-                priority={priority}
-                sizes={
-                  compactMobile
-                    ? "(max-width: 640px) 25vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
-                    : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
-                }
-                className="object-cover transition-transform duration-300 ease-out hoverable:group-hover:scale-[1.04]"
-              />
-            </ViewTransition>
+            <Image
+              src={src}
+              alt={title.title}
+              fill
+              draggable={false}
+              priority={priority}
+              sizes={
+                compactMobile
+                  ? "(max-width: 640px) 25vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
+                  : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 240px"
+              }
+              className="object-cover transition-transform duration-300 ease-out hoverable:group-hover:scale-[1.04]"
+            />
           )
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">

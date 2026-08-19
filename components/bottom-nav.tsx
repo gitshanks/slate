@@ -152,22 +152,18 @@ export function BottomNav() {
         <button
           type="button"
           onClick={() => openCommandPalette()}
-          className="pointer-events-auto relative z-10 grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-foreground/[0.14] bg-background/[0.54] text-primary outline-none ring-1 ring-primary/[0.18] transition-[filter,transform] hover:brightness-[1.08] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.95]"
+          className="pointer-events-auto relative z-10 grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-foreground/[0.14] bg-background/[0.54] text-primary outline-none transition-[filter,transform] hover:brightness-[1.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.95]"
           aria-label="Find and add a title"
           aria-haspopup="dialog"
           style={{
             background:
               "linear-gradient(180deg, hsl(var(--foreground) / 0.16) 0%, hsl(var(--foreground) / 0.035) 43%, transparent 72%), radial-gradient(circle at 50% 112%, hsl(var(--primary) / 0.38), transparent 68%), hsl(var(--background) / 0.54)",
             boxShadow:
-              "0 16px 34px -22px hsl(var(--primary) / 0.75), inset 0 1px 0 hsl(var(--foreground) / 0.18), inset 0 -1px 0 hsl(var(--background) / 0.56)",
+              "0 16px 34px -22px hsl(var(--primary) / 0.75)",
             WebkitBackdropFilter: "blur(8px) saturate(1.08)",
             backdropFilter: "blur(8px) saturate(1.08)",
           }}
         >
-          <span
-            aria-hidden
-            className="absolute inset-1 rounded-full border border-primary/[0.1] bg-primary/[0.06]"
-          />
           <span
             aria-hidden
             className="absolute inset-x-2 top-1 h-4 rounded-full bg-white/[0.08] blur-sm"

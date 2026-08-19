@@ -7,7 +7,6 @@ import { CreateListForm } from "@/components/create-list-form";
 import { DeleteListButton } from "@/components/delete-list-button";
 import { ShareListButton } from "@/components/share-list-button";
 import { ListPlus, Film } from "lucide-react";
-import { MotionGrid, MotionItem } from "@/components/motion-grid";
 
 export const dynamic = "force-dynamic";
 
@@ -76,14 +75,14 @@ export default async function ListsPage() {
           description="Group titles into themed collections — Cozy winter, A24 horror, Long flights…"
         />
       ) : (
-        <MotionGrid className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(lists as ListRow[]).map((list) => {
             const covers = posters[list.id] ?? [];
             const count = counts[list.id] ?? 0;
             return (
               // Wrapper so we can absolutely position the action buttons
               // without nesting interactive elements inside <Link>.
-              <MotionItem key={list.id} className="relative group/card">
+              <div key={list.id} className="relative group/card">
                 <Link
                   href={`/lists/${list.slug}`}
                   className="block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)]"
@@ -100,7 +99,10 @@ export default async function ListsPage() {
                               key={i}
                               src={`https://image.tmdb.org/t/p/w185${p}`}
                               alt=""
+                              width={185}
+                              height={278}
                               loading="lazy"
+                              decoding="async"
                               className="h-[78%] w-auto rounded-md object-cover shadow-lg shadow-black/40 ring-1 ring-white/10 transition-transform duration-300 ease-out group-hover/card:-translate-y-0.5"
                               style={{ transform: `rotate(${(i - (covers.length - 1) / 2) * 5}deg)` }}
                             />
@@ -139,10 +141,10 @@ export default async function ListsPage() {
                   <ShareListButton listSlug={list.slug} listName={list.name} />
                   <DeleteListButton listId={list.id} listName={list.name} iconOnly />
                 </div>
-              </MotionItem>
+              </div>
             );
           })}
-        </MotionGrid>
+        </div>
       )}
     </div>
   );

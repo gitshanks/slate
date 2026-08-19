@@ -3,6 +3,8 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type MutableRefObject,
@@ -62,6 +64,11 @@ interface MediaGridProps {
   showCardActions?: boolean;
   /** Keep the collection to one horizontally scrollable poster row. */
   horizontal?: boolean;
+  /**
+   * Keep the sortable grid mounted while filters temporarily disable custom
+   * ordering. This preserves poster/image nodes across owned-library filters.
+   */
+  preserveGridAcrossReorderModes?: boolean;
   /** Fit four smaller cards across narrow shared-profile screens. */
   compactMobile?: boolean;
   /**
@@ -171,7 +178,7 @@ function mergeVisibleOrder(
 }
 
 export function MediaGrid(props: MediaGridProps) {
-  if (!props.reorderContext) {
+  if (!props.reorderContext && !props.preserveGridAcrossReorderModes) {
     return <OrderedMediaGrid {...props} />;
   }
 
@@ -252,37 +259,62 @@ function MediaGridState({
   compactMobile = false,
   animateEntrance = true,
 }: MediaGridProps) {
-  const [orderedTitles, setOrderedTitles] = useState(titles);
+  const reorderContextKey = reorderContext
+    ? reorderContext.kind === "status"
+      ? `status:${reorderContext.status}`
+      : `list:${reorderContext.listId}`
+    : null;
+  const [optimisticOrder, setOptimisticOrder] = useState<{
+    contextKey: string | null;
+    titles: TitleRow[];
+  }>(() => ({ contextKey: reorderContextKey, titles }));
   const [announcement, setAnnouncement] = useState("");
-  const orderedRef = useRef(titles);
+  const incomingById = useMemo(
+    () => new Map(titles.map((title) => [title.id, title])),
+    [titles],
+  );
+  const optimisticOrderIsCurrent =
+    reorderContextKey !== null &&
+    optimisticOrder.contextKey === reorderContextKey &&
+    optimisticOrder.titles.length === titles.length &&
+    optimisticOrder.titles.every((title) => incomingById.has(title.id));
+  const orderedTitles = useMemo(
+    () =>
+      optimisticOrderIsCurrent
+        ? optimisticOrder.titles.map(
+            (title) => incomingById.get(title.id) ?? title,
+          )
+        : titles,
+    [incomingById, optimisticOrder.titles, optimisticOrderIsCurrent, titles],
+  );
+  const orderedRef = useRef(orderedTitles);
   const suppressClicksUntilRef = useRef(0);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
 
-  useEffect(() => {
-    const incomingById = new Map(titles.map((title) => [title.id, title]));
-    const current = orderedRef.current;
-    const sameMembership =
-      current.length === titles.length &&
-      current.every((title) => incomingById.has(title.id));
+  useLayoutEffect(() => {
+    // Events always read the exact collection painted in this commit. When a
+    // filter changes membership or ordering mode, show its canonical result
+    // immediately rather than leaking the previous shelf for one frame.
+    orderedRef.current = orderedTitles;
 
-    // Preserve an optimistic drag order across its Server Component refresh.
-    // When membership changes (filter, add, remove), use the server's new
-    // canonical order while keeping every unchanged poster component mounted.
-    const next = sameMembership
-      ? current.map((title) => incomingById.get(title.id) ?? title)
-      : titles;
-
-    if (
-      next.length === current.length &&
-      next.every((title, index) => title === current[index])
-    ) {
+    if (reorderContextKey === null) {
+      if (optimisticOrder.contextKey !== null) {
+        setOptimisticOrder({ contextKey: null, titles });
+      }
       return;
     }
 
-    orderedRef.current = next;
-    setOrderedTitles(next);
-  }, [titles]);
+    if (!optimisticOrderIsCurrent) {
+      setOptimisticOrder({ contextKey: reorderContextKey, titles });
+    }
+  }, [
+    optimisticOrder.contextKey,
+    optimisticOrderIsCurrent,
+    orderedTitles,
+    reorderContextKey,
+    titles,
+  ]);
 
   const getPersistedOrder = useCallback(
     (visibleTitleIds: string[]) => {
@@ -325,14 +357,14 @@ function MediaGridState({
       void save.catch((error) => {
         if (version === saveVersionRef.current) {
           orderedRef.current = titles;
-          setOrderedTitles(titles);
+          setOptimisticOrder({ contextKey: reorderContextKey, titles });
           toast.error(
             error instanceof Error ? error.message : "Couldn’t save order"
           );
         }
       });
     },
-    [getPersistedOrder, reorderContext, titles]
+    [getPersistedOrder, reorderContext, reorderContextKey, titles]
   );
 
   const canReorder = Boolean(reorderContext && orderedTitles.length > 1);
@@ -366,7 +398,7 @@ function MediaGridState({
         if (next === orderedRef.current) return;
 
         orderedRef.current = next;
-        setOrderedTitles(next);
+        setOptimisticOrder({ contextKey: reorderContextKey, titles: next });
         const moved = next[source.index];
         setAnnouncement(
           `${moved.title} moved to position ${source.index + 1} of ${next.length}.`
@@ -379,7 +411,7 @@ function MediaGridState({
         skipPostDropPhase();
       }
     },
-    [persistOrder]
+    [persistOrder, reorderContextKey]
   );
 
   if (readOnly) {

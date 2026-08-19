@@ -1,4 +1,4 @@
-import { TmdbRailAsync } from "@/components/tmdb-rail-async";
+import { TmdbRail } from "@/components/tmdb-rail";
 import { LIBRARY_CONTENT_GUTTER_CLASS_NAME } from "@/components/poster-grid-geometry";
 import { getLibraryClient } from "@/lib/library-db";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,12 @@ import {
 
 export async function DiscoverDefault() {
   const db = await getLibraryClient();
-  const { data } = await db.from("titles").select("tmdb_id");
+  const [{ data }, recommended, trending, nowPlaying] = await Promise.all([
+    db.from("titles").select("tmdb_id"),
+    getRecommendedFromWatched(),
+    getTrending(),
+    getNowPlaying(),
+  ]);
   const savedTmdbIds = new Set(
     ((data ?? []) as { tmdb_id: number }[]).map((title) => title.tmdb_id),
   );
@@ -31,23 +36,23 @@ export async function DiscoverDefault() {
         </h1>
       </header>
 
-      <TmdbRailAsync
+      <TmdbRail
         title="You might like"
-        fetcher={getRecommendedFromWatched}
+        items={recommended}
         savedTmdbIds={savedTmdbIds}
         className="mt-8"
         presentation="library"
       />
-      <TmdbRailAsync
+      <TmdbRail
         title="Trending this week"
-        fetcher={getTrending}
+        items={trending}
         savedTmdbIds={savedTmdbIds}
         className="mt-8"
         presentation="library"
       />
-      <TmdbRailAsync
+      <TmdbRail
         title="Now playing"
-        fetcher={getNowPlaying}
+        items={nowPlaying}
         savedTmdbIds={savedTmdbIds}
         className="mt-8"
         presentation="library"

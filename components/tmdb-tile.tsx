@@ -140,7 +140,7 @@ export function TmdbTile({
         className={cn(
           wrapperClass,
           "transition-[opacity,transform] duration-200",
-          active && "relative z-10 scale-[1.025]",
+          active && "relative z-10",
           dimmed && "opacity-[0.62]",
         )}
       >

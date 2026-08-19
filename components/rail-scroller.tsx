@@ -82,7 +82,7 @@ export function RailScroller({
   }, []);
 
   return (
-    <div className="group/rail relative">
+    <div className="group/rail relative flow-root">
       {/* Left arrow — chevron in a soft pill so the fade doesn't bleed
           a white block over the rail content in light mode. */}
       <button
@@ -108,7 +108,7 @@ export function RailScroller({
         ref={ref}
         className={cn(
           enabled
-            ? "touch-manipulation flex snap-x snap-proximity gap-3 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            ? "-mt-1.5 touch-manipulation flex snap-x snap-proximity gap-3 overflow-x-auto overscroll-x-contain pt-1.5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             : "overflow-visible",
         )}
       >
