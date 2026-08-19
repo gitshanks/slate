@@ -1069,20 +1069,22 @@ async function* streamOpenAIChat(
     try {
       const stream = await backend.client.chat.completions.create({
         model: backend.model,
-        max_tokens: 1200,
+        // Gemini thinking tokens share the completion budget. A 1,200-token
+        // cap can be exhausted before the model emits any visible text or a
+        // function call, so leave enough room for low thinking plus the real
+        // answer. The non-reasoning compatibility fallback stays tightly
+        // capped.
+        max_tokens: backend.provider === "gemini" ? 4096 : 1200,
         messages: wireMessages,
         ...(backend.provider === "gemini"
           ? {
-              reasoning_effort:
-                hop === 0 && requireRetrieval
-                  ? ("medium" as const)
-                  : ("low" as const),
+              reasoning_effort: "low" as const,
             }
-          : {}),
-        // Keep planning reliable, then let the prose breathe. The old global
-        // temperature of zero made every response follow the same cadence.
-        temperature: hop === 0 && requireRetrieval ? 0.1 : 0.55,
-        top_p: hop === 0 && requireRetrieval ? 1 : 0.92,
+          : {
+              // Keep tool planning reliable, then let the prose breathe.
+              temperature: hop === 0 && requireRetrieval ? 0.1 : 0.55,
+              top_p: hop === 0 && requireRetrieval ? 1 : 0.92,
+            }),
         // Skip tools on the compatibility recovery request. This avoids a
         // repeated `failed_generation` loop after malformed tool output.
         ...(triedToollessRecovery || hop > 0
@@ -1249,13 +1251,22 @@ async function* streamOpenAIChat(
       continue;
     }
 
+    // An empty provider completion must never be mistaken for a successful
+    // answer. Throw before returning so the provider-level fallback can run
+    // when this was the first hop, and so future compatibility regressions
+    // surface as a real error rather than a vague UI placeholder.
+    if (pendingCalls.size === 0 && !proseAcc.trim()) {
+      throw new Error(
+        `${backend.provider} returned an empty completion (${finishReason || "unknown finish"})`,
+      );
+    }
+
     // Automatic tool-choice turns are buffered until the finish reason is
     // known. That prevents a model preamble from appearing before a second,
     // tool-grounded answer while still allowing natural direct replies.
     if (
       hop === 0 &&
       !requireRetrieval &&
-      finishReason !== "tool_calls" &&
       pendingCalls.size === 0 &&
       proseAcc
     ) {
@@ -1270,7 +1281,7 @@ async function* streamOpenAIChat(
       hop === 0 &&
       !triedToollessRecovery &&
       requireRetrieval &&
-      (finishReason !== "tool_calls" || pendingCalls.size === 0)
+      pendingCalls.size === 0
     ) {
       if (backend.provider === "gemini") {
         throw new Error("Gemini did not return a required tool call");
@@ -1281,7 +1292,7 @@ async function* streamOpenAIChat(
     }
 
     // No tool call → model's final answer. Done.
-    if (finishReason !== "tool_calls" || pendingCalls.size === 0) {
+    if (pendingCalls.size === 0) {
       return;
     }
 

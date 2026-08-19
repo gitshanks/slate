@@ -234,6 +234,7 @@ export async function POST(request: Request) {
   let closed = false;
   const stream = new ReadableStream({
     async start(controller) {
+      let meaningfulEventCount = 0;
       const send = (event: object) => {
         if (closed || streamAbort.signal.aborted) return false;
         try {
@@ -251,7 +252,20 @@ export async function POST(request: Request) {
           context,
           streamAbort.signal,
         )) {
+          if (
+            (event.type === "text" && event.delta.trim().length > 0) ||
+            (event.type === "search_result" && event.results.length > 0) ||
+            event.type === "error"
+          ) {
+            meaningfulEventCount += 1;
+          }
           if (!send(event)) break;
+        }
+        if (meaningfulEventCount === 0 && !streamAbort.signal.aborted) {
+          send({
+            type: "error",
+            message: "Slate couldn't complete that response. Please try again.",
+          });
         }
         send({ type: "done" });
       } catch (err) {

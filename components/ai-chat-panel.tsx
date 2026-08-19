@@ -234,7 +234,7 @@ export function AssistantBubble({
           <Sparkles className="h-3.5 w-3.5" />
         </div>
         <div className="min-w-0 flex-1 text-sm text-foreground">
-          {turn.content ? (
+          {turn.content.trim() ? (
             <span className="whitespace-pre-wrap">
               {turn.content}
               {!turn.done && !turn.error && (

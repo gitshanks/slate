@@ -29,7 +29,7 @@ export const AI_PROVIDER = resolveProvider();
 export const ANTHROPIC_MODEL =
   process.env.ANTHROPIC_MODEL || "claude-opus-4-7";
 export const GEMINI_MODEL =
-  process.env.GEMINI_MODEL || "gemini-3.7-flash";
+  process.env.GEMINI_MODEL || "gemini-3.6-flash";
 export const OPENAI_MODEL =
   process.env.OPENAI_MODEL || "openai/gpt-oss-120b";
 

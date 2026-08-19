@@ -77,10 +77,10 @@ export function BottomNav() {
       className="relative isolate z-40 w-full shrink-0 bg-transparent text-foreground md:hidden"
       aria-label="Primary"
       style={{
-        // Own the bottom inset exactly once. The dock remains a normal-flow
-        // sibling of the scroller, so content can never slide underneath it.
-        paddingBottom:
-          "max(calc(env(safe-area-inset-bottom) + 0.5rem), 1rem)",
+        // Cosmetic breathing room lives in the dock row below. This owns only
+        // the device inset, so top and bottom spacing stay optically equal on
+        // browsers without a home indicator as well.
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
       <div
@@ -97,7 +97,7 @@ export function BottomNav() {
       </div>
 
       <div
-        className="mx-auto grid h-[68px] w-full max-w-[430px] grid-cols-[minmax(0,1fr)_60px] gap-2.5 pt-2"
+        className="mx-auto grid h-[76px] w-full max-w-[430px] grid-cols-[minmax(0,1fr)_60px] gap-2.5 py-2"
         style={{
           paddingInlineStart:
             "max(0.75rem, calc(env(safe-area-inset-left) + 0.5rem))",
@@ -106,10 +106,12 @@ export function BottomNav() {
         }}
       >
         <ul
-          className="relative grid min-w-0 grid-cols-3 rounded-[22px] border border-border/70 bg-background/[0.9] p-1 ring-1 ring-foreground/[0.025]"
+          className="relative grid min-w-0 grid-cols-3 rounded-full border border-foreground/[0.1] bg-background/[0.78] p-1 ring-1 ring-foreground/[0.04]"
           style={{
+            background:
+              "linear-gradient(180deg, hsl(var(--foreground) / 0.09) 0%, hsl(var(--foreground) / 0.025) 42%, transparent 72%), hsl(var(--background) / 0.78)",
             boxShadow:
-              "0 18px 42px -28px rgb(0 0 0 / 0.9), inset 0 1px 0 hsl(var(--foreground) / 0.07)",
+              "0 18px 42px -28px rgb(0 0 0 / 0.9), inset 0 1px 0 hsl(var(--foreground) / 0.14), inset 0 -1px 0 hsl(var(--background) / 0.55)",
           }}
         >
           {TABS.map((t) => {
@@ -122,7 +124,7 @@ export function BottomNav() {
                   prefetch
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "relative isolate flex h-full touch-manipulation flex-col items-center justify-center gap-1 overflow-hidden rounded-[17px] px-1 text-[11px] font-medium tracking-tight outline-none transition-[color,transform] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97]",
+                    "relative isolate grid h-full touch-manipulation grid-rows-[20px_11px] content-center justify-items-center gap-[5px] overflow-hidden rounded-full px-1 text-[11px] font-medium tracking-tight outline-none transition-[color,transform] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97]",
                     active
                       ? "text-primary"
                       : "text-muted-foreground hover:text-foreground",
@@ -133,7 +135,7 @@ export function BottomNav() {
                       layoutId="bottomnav-active"
                       initial={false}
                       transition={{ duration: DUR.base, ease: EASE }}
-                      className="absolute inset-0 -z-10 rounded-[17px] border border-primary/15 bg-primary/[0.12]"
+                      className="absolute inset-0 -z-10 rounded-full border border-primary/20 bg-primary/[0.14]"
                     />
                   ) : null}
                   <Icon
@@ -143,7 +145,9 @@ export function BottomNav() {
                     )}
                     aria-hidden
                   />
-                  <span className="max-w-full truncate">{t.label}</span>
+                  <span className="max-w-full truncate leading-[11px]">
+                    {t.label}
+                  </span>
                 </Link>
               </li>
             );
@@ -157,8 +161,10 @@ export function BottomNav() {
           aria-label="Find and add a title"
           aria-haspopup="dialog"
           style={{
+            background:
+              "linear-gradient(180deg, hsl(var(--foreground) / 0.18) 0%, transparent 42%), hsl(var(--primary) / 0.88)",
             boxShadow:
-              "0 16px 34px -18px hsl(var(--primary) / 0.82), inset 0 1px 0 rgb(255 255 255 / 0.3)",
+              "0 16px 34px -18px hsl(var(--primary) / 0.82), inset 0 1px 0 hsl(var(--foreground) / 0.28), inset 0 -1px 0 hsl(var(--background) / 0.2)",
           }}
         >
           <span

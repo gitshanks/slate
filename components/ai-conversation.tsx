@@ -144,6 +144,23 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
       );
     } else if (event.type === "error") {
       setTurns((prev) => mutateLastAssistant(prev, (a) => ({ ...a, error: event.message, done: true })));
+    } else if (event.type === "done") {
+      setTurns((prev) =>
+        mutateLastAssistant(prev, (a) => {
+          const hasResponse =
+            Boolean(a.content.trim()) ||
+            Boolean(a.results?.length) ||
+            Boolean(a.error);
+          return {
+            ...a,
+            done: true,
+            searching: false,
+            error: hasResponse
+              ? a.error
+              : "Slate couldn't complete that response. Please try again.",
+          };
+        }),
+      );
     }
   }, []);
 
@@ -217,6 +234,15 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buf = "";
+        const consumeLine = (line: string) => {
+          if (!line.trim()) return;
+          try {
+            applyEvent(JSON.parse(line) as ChatEvent);
+          } catch {
+            // Ignore a malformed event without discarding the rest of the
+            // stream. The API emits one complete JSON object per line.
+          }
+        };
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -225,16 +251,11 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
           const lines = buf.split("\n");
           buf = lines.pop() ?? "";
           for (const line of lines) {
-            if (!line.trim()) continue;
-            let event: ChatEvent;
-            try {
-              event = JSON.parse(line) as ChatEvent;
-            } catch {
-              continue;
-            }
-            applyEvent(event);
+            consumeLine(line);
           }
         }
+        buf += decoder.decode();
+        consumeLine(buf);
       } catch (err) {
         if ((err as Error)?.name === "AbortError") return;
         const errMessage = err instanceof Error ? err.message : "chat error";
