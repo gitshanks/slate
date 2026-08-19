@@ -47,6 +47,7 @@ export interface TmdbSearchResult {
   release_date?: string;   // movie
   first_air_date?: string; // tv
   vote_average?: number;
+  popularity?: number;
   // person results (media_type === "person")
   profile_path?: string | null;
   known_for_department?: string;
@@ -183,11 +184,10 @@ function filterPeopleResults(results: TmdbSearchResult[]): TmdbPersonResult[] {
 }
 
 /**
- * Full `multi` search for the results *page* — keeps both the movie/TV titles
- * AND the people (`searchMultiWithFallback` throws people away because the
- * command-palette overlay only adds titles). One `searchMulti` call feeds
- * both buckets; if the exact query yields nothing we reuse the same word-drop
- * fuzzy retry so a trailing typo still surfaces results.
+ * Full `multi` search that keeps both movie/TV titles and people. One
+ * `searchMulti` call feeds both buckets; if the exact query yields nothing we
+ * reuse the same word-drop fuzzy retry so a trailing typo still surfaces
+ * results.
  */
 export async function searchAll(query: string): Promise<{
   media: TmdbMediaResult[];
@@ -329,8 +329,11 @@ export interface TmdbCombinedCredit {
   release_date?: string;
   first_air_date?: string;
   vote_average?: number;
+  vote_count?: number;
   popularity: number;
   character?: string;
+  department?: string;
+  job?: string;
 }
 
 export interface TmdbVideo {
@@ -706,21 +709,85 @@ export async function getPersonDetail(id: number): Promise<TmdbPersonDetail> {
  * Returns the top 20 unique titles (movie or TV).
  */
 export async function getPersonCredits(id: number): Promise<TmdbCombinedCredit[]> {
-  const res = await tmdb<{
-    cast: TmdbCombinedCredit[];
-    crew: TmdbCombinedCredit[];
-  }>(`/person/${id}/combined_credits`, { language: "en-US" });
+  const res = await getPersonCombinedCredits(id);
+  return rankPersonCredits([...(res.cast ?? []), ...(res.crew ?? [])]);
+}
 
+interface TmdbPersonCombinedCredits {
+  cast: TmdbCombinedCredit[];
+  crew: TmdbCombinedCredit[];
+}
+
+async function getPersonCombinedCredits(
+  id: number,
+): Promise<TmdbPersonCombinedCredits> {
+  return tmdb<TmdbPersonCombinedCredits>(`/person/${id}/combined_credits`, {
+    language: "en-US",
+  });
+}
+
+function rankPersonCredits(
+  credits: TmdbCombinedCredit[],
+): TmdbCombinedCredit[] {
   const seen = new Set<string>();
-  return [...(res.cast ?? []), ...(res.crew ?? [])]
-    .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
-    .filter((c) => {
-      const key = `${c.media_type}-${c.id}`;
+  return credits
+    .slice()
+    .sort((a, b) => personCreditScore(b) - personCreditScore(a))
+    .filter((credit) => {
+      if (credit.media_type !== "movie" && credit.media_type !== "tv") {
+        return false;
+      }
+      const key = `${credit.media_type}-${credit.id}`;
       if (seen.has(key)) return false;
       seen.add(key);
-      return c.media_type === "movie" || c.media_type === "tv";
+      return true;
     })
     .slice(0, 20);
+}
+
+function personCreditScore(credit: TmdbCombinedCredit): number {
+  // Raw TMDB popularity heavily favors currently-airing talk shows. Audience
+  // vote volume is a much better signal for the titles people associate with
+  // a cast member, while popularity still breaks ties for newer work.
+  const votes = Math.log1p(Math.max(0, credit.vote_count ?? 0)) * 3;
+  const popularity = Math.log1p(Math.max(0, credit.popularity ?? 0));
+  const rating = Math.max(0, credit.vote_average ?? 0) * 0.15;
+  const movieBias = credit.media_type === "movie" ? 0.35 : 0;
+  return votes + popularity + rating + movieBias;
+}
+
+function isSelfAppearance(credit: TmdbCombinedCredit): boolean {
+  return /\b(self|himself|herself|themself|archive footage|host|presenter|guest)\b/i.test(
+    credit.character ?? "",
+  );
+}
+
+/**
+ * Credits that match the person's primary TMDB department. Actor searches
+ * stay focused on roles they appeared in; director/writer searches use crew
+ * credits instead of mixing in unrelated cameos.
+ */
+export async function getPersonRelevantCredits(
+  id: number,
+  knownForDepartment?: string | null,
+): Promise<TmdbCombinedCredit[]> {
+  const res = await getPersonCombinedCredits(id);
+  const department = knownForDepartment?.trim().toLocaleLowerCase();
+  const cast = (res.cast ?? []).filter((credit) => !isSelfAppearance(credit));
+  const departmentCrew = department
+    ? (res.crew ?? []).filter(
+        (credit) => credit.department?.trim().toLocaleLowerCase() === department,
+      )
+    : [];
+  const relevant =
+    department === "acting"
+      ? cast
+      : department
+        ? departmentCrew.length > 0
+          ? departmentCrew
+          : res.crew ?? []
+        : [...cast, ...(res.crew ?? [])];
+  return rankPersonCredits(relevant);
 }
 
 /** Normalise either a movie or TV detail into the shape we store. */

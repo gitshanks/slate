@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   Plus,
   Search,
+  Sparkles,
   Settings,
   Share2,
   Upload,
@@ -333,7 +334,11 @@ export function LibraryCollectionView({
   lists,
 }: LibraryCollectionViewProps) {
   const searchParams = useSearchParams();
-  const { open: openCommandPalette } = useCommandPalette();
+  const {
+    open: openCommandPalette,
+    openWith: openSmartSearch,
+    aiEnabled,
+  } = useCommandPalette();
   const reducedMotion = useReducedMotion() ?? false;
   const [query, setQuery] = React.useState("");
   const [searchOpen, setSearchOpen] = React.useState(false);
@@ -483,6 +488,33 @@ export function LibraryCollectionView({
     [focusTitle, mode, openShelfTitle],
   );
 
+  const openExpandedSearch = React.useCallback(
+    (nextMode: "search" | "ask") => {
+      openSmartSearch({
+        initialQuery: query,
+        mode: nextMode,
+        submit: nextMode === "ask" && Boolean(normalizedQuery),
+        onLibrarySelect: (selection) => {
+          const selected = titles.find(
+            (title) =>
+              title.id === selection.id ||
+              (title.tmdb_id === selection.tmdbId &&
+                title.media_type === selection.mediaType),
+          );
+          if (selected) {
+            // A cast/crew query usually does not contain the selected title's
+            // name. Clear the inline filter before opening so the poster is
+            // present for Shelf anchoring (and visible in Space).
+            setQuery("");
+            selectSearchResult(selected);
+          }
+        },
+      });
+      setSearchOpen(false);
+    },
+    [normalizedQuery, openSmartSearch, query, selectSearchResult, titles],
+  );
+
   const selectMode = React.useCallback(
     (nextMode: ViewMode) => {
       if (nextMode === mode || isSwitching) return;
@@ -600,28 +632,27 @@ export function LibraryCollectionView({
               avatarUrl={avatarUrl}
               displayName={displayName}
             />
-            <button
-              type="button"
-              onClick={openCommandPalette}
-              aria-label="Find and add a title"
-              className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.97] min-[900px]:inline-flex xl:w-auto xl:px-3.5 xl:text-xs xl:font-medium"
-            >
-              <Plus className="h-4 w-4 xl:mr-1.5" />
-              <span className="hidden xl:inline">Add title</span>
-            </button>
           </div>
 
           <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-center md:gap-0.5 lg:gap-2 xl:gap-2.5">
             <div
-              className="relative w-full min-w-0 md:w-10 md:shrink-0 lg:w-[clamp(9rem,15vw,15rem)]"
+              className="relative w-full min-w-0 md:w-10 md:shrink-0 xl:min-w-10 xl:w-[clamp(10rem,20vw,22rem)] xl:shrink"
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
                   setSearchOpen(false);
                 }
               }}
             >
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground md:max-lg:left-2" />
+              <button
+                type="button"
+                onClick={() => openExpandedSearch("search")}
+                aria-label="Open smart search"
+                className="hidden h-10 w-10 items-center justify-center rounded-full border border-border bg-foreground/[0.065] text-muted-foreground transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.96] md:max-xl:inline-flex"
+              >
+                <Search className="h-4 w-4" />
+              </button>
               <input
+                type="search"
                 value={query}
                 onChange={(event) => {
                   setQuery(event.target.value);
@@ -631,39 +662,65 @@ export function LibraryCollectionView({
                   if (normalizedQuery) setSearchOpen(true);
                 }}
                 onKeyDown={(event) => {
-                  if (
-                    event.key !== "Enter" ||
-                    event.nativeEvent.isComposing ||
-                    !matches[0]
-                  ) {
-                    return;
-                  }
+                  if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
                   event.preventDefault();
-                  selectSearchResult(matches[0]);
+                  if (matches[0]) selectSearchResult(matches[0]);
+                  else openExpandedSearch("search");
                 }}
-                placeholder="Find a title"
-                aria-label="Find a title in your slate"
-                className="h-10 w-full rounded-2xl border border-border bg-foreground/[0.065] pl-10 pr-10 text-sm text-foreground outline-none transition-[border-color,background-color] duration-150 placeholder:text-muted-foreground focus:border-primary/55 focus:bg-foreground/[0.09] sm:rounded-full md:max-lg:pl-7 md:max-lg:pr-1"
+                placeholder="Search titles, people, or ask slate"
+                aria-label="Search your slate, discover titles, or ask slate"
+                className={cn(
+                  "h-10 w-full appearance-none rounded-2xl border border-border bg-foreground/[0.065] pl-4 text-sm text-foreground outline-none transition-[border-color,background-color] duration-150 placeholder:text-muted-foreground focus:border-primary/55 focus:bg-foreground/[0.09] sm:rounded-full [&::-webkit-search-cancel-button]:hidden",
+                  aiEnabled
+                    ? query
+                      ? "pr-28 min-[1400px]:pr-40"
+                      : "pr-20 min-[1400px]:pr-32"
+                    : "pr-20",
+                  "md:max-xl:hidden",
+                )}
               />
-              {query ? (
+              <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1 md:max-xl:hidden">
+                {query ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery("");
+                      setSearchOpen(false);
+                      setSearchTarget(null);
+                    }}
+                    className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground transition-[color,background-color,transform] duration-150 hover:bg-foreground/10 hover:text-foreground active:scale-[0.96]"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
+                {aiEnabled ? (
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => openExpandedSearch("ask")}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-foreground/[0.075] text-muted-foreground transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.97] min-[1400px]:w-auto min-[1400px]:gap-1.5 min-[1400px]:px-2.5 min-[1400px]:text-[11px] min-[1400px]:font-medium"
+                    aria-label="Ask slate"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span className="hidden min-[1400px]:inline">Ask slate</span>
+                  </button>
+                ) : null}
                 <button
                   type="button"
-                  onClick={() => {
-                    setQuery("");
-                    setSearchOpen(false);
-                    setSearchTarget(null);
-                  }}
-                  className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-[color,background-color,transform] duration-150 hover:bg-foreground/10 hover:text-foreground active:scale-[0.96]"
-                  aria-label="Clear search"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => openExpandedSearch("search")}
+                  className="grid h-8 w-8 place-items-center rounded-full bg-foreground/10 text-foreground transition-[background-color,color,transform] duration-150 hover:bg-primary hover:text-primary-foreground active:scale-[0.96]"
+                  aria-label="Search titles and people"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <Search className="h-4 w-4" />
                 </button>
-              ) : null}
+              </div>
 
               {normalizedQuery && searchOpen ? (
                 <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-10 overflow-hidden rounded-2xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
-                  {matches.length ? (
-                    matches.map((title) => (
+                  {matches.length
+                    ? matches.map((title) => (
                       <button
                         key={title.id}
                         type="button"
@@ -677,17 +734,37 @@ export function LibraryCollectionView({
                         </span>
                       </button>
                     ))
-                  ) : (
+                    : null}
+                  <div
+                    className={cn(
+                      matches.length && "mt-1 border-t border-border/70 pt-1",
+                    )}
+                  >
                     <button
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
-                      onClick={openCommandPalette}
-                      className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                      onClick={() => openExpandedSearch("search")}
+                      className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-muted-foreground transition-[color,background-color,transform] duration-150 hover:bg-accent hover:text-foreground active:scale-[0.99]"
                     >
-                      <span>Search and add a new title</span>
-                      <Plus className="h-3.5 w-3.5" />
+                      <span className="truncate">
+                        Search all for &ldquo;{query.trim()}&rdquo;
+                      </span>
+                      <Search className="h-3.5 w-3.5 shrink-0" />
                     </button>
-                  )}
+                    {aiEnabled ? (
+                      <button
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => openExpandedSearch("ask")}
+                        className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-muted-foreground transition-[color,background-color,transform] duration-150 hover:bg-accent hover:text-primary active:scale-[0.99]"
+                      >
+                        <span className="truncate">
+                          Ask slate about &ldquo;{query.trim()}&rdquo;
+                        </span>
+                        <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -706,7 +783,7 @@ export function LibraryCollectionView({
                 popoverClassName="z-[90] border-border bg-popover text-popover-foreground"
                 groupControls
                 reserveSortControl
-                className="mb-0 w-max flex-nowrap gap-2 md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-border [&_.filter-chip]:bg-foreground/[0.065] [&_.filter-chip]:text-muted-foreground [&_.filter-chip:hover]:text-foreground [&_.filter-chip[data-active=true]]:border-primary/50 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segment:first-child]:px-3.5 [&_.filter-segmented]:h-10 [&_.filter-segmented]:border-border [&_.filter-segmented]:bg-foreground/[0.055] [&_[data-filter-clear]]:px-3 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden md:max-lg:[&_.filter-chip]:px-1.5 md:max-lg:[&_.filter-chip]:text-[10px] md:max-lg:[&_.filter-chip_.lucide-chevron-down]:hidden md:max-lg:[&_.filter-control-group]:gap-0.5 md:max-lg:[&_.filter-segment]:px-1 md:max-lg:[&_.filter-segment]:text-[10px] md:max-lg:[&_[data-filter-sentiment]]:w-10 md:max-lg:[&_[data-filter-sentiment]]:justify-center md:max-lg:[&_[data-filter-sentiment]]:px-0 md:max-lg:[&_[data-filter-sentiment-label]]:hidden md:max-lg:[&_[data-filter-sort]]:w-10 md:max-lg:[&_[data-filter-sort]]:justify-center md:max-lg:[&_[data-filter-sort]]:px-0 md:max-lg:[&_[data-filter-sort-label]]:hidden lg:[&_[data-filter-clear-label]]:inline lg:[&_.filter-segment]:px-2.5"
+                className="mb-0 w-max flex-nowrap gap-2 md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-border [&_.filter-chip]:bg-foreground/[0.065] [&_.filter-chip]:text-muted-foreground [&_.filter-chip:hover]:text-foreground [&_.filter-chip[data-active=true]]:border-primary/50 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segment:first-child]:px-3.5 [&_.filter-segmented]:h-10 [&_.filter-segmented]:border-border [&_.filter-segmented]:bg-foreground/[0.055] [&_[data-filter-clear]]:px-3 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden md:max-[1399px]:[&_.filter-chip]:px-1.5 md:max-[1399px]:[&_.filter-chip]:text-[10px] md:max-[1399px]:[&_.filter-chip_.lucide-chevron-down]:hidden md:max-[1399px]:[&_.filter-control-group]:gap-0.5 md:max-[1399px]:[&_.filter-segment]:px-1 md:max-[1399px]:[&_.filter-segment]:text-[10px] md:max-[1399px]:[&_[data-filter-sentiment]]:w-10 md:max-[1399px]:[&_[data-filter-sentiment]]:justify-center md:max-[1399px]:[&_[data-filter-sentiment]]:px-0 md:max-[1399px]:[&_[data-filter-sentiment-label]]:hidden md:max-[1399px]:[&_[data-filter-sort]]:w-10 md:max-[1399px]:[&_[data-filter-sort]]:justify-center md:max-[1399px]:[&_[data-filter-sort]]:px-0 md:max-[1399px]:[&_[data-filter-sort-label]]:hidden min-[1400px]:[&_[data-filter-clear-label]]:inline min-[1400px]:[&_.filter-segment]:px-2.5"
               />
             </div>
           </div>
