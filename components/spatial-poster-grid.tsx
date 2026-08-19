@@ -68,6 +68,11 @@ export type TitleDetailActionsRenderer = (
 interface SpatialPosterGridProps {
   titles: TitleRow[];
   /**
+   * Changes when filters change, but stays stable for background collection
+   * updates. This keeps a single added title from fading the whole canvas.
+   */
+  resultsTransitionKey?: string;
+  /**
    * Kept for public-profile callers. Generic collection surfaces should pass
    * a detailSource instead so their ownership/authentication stays outside
    * the spatial renderer.
@@ -1751,6 +1756,7 @@ export function PublicTitleDetailOverlay({
 
 export function SpatialPosterGrid({
   titles,
+  resultsTransitionKey,
   username,
   detailSource,
   renderActions,
@@ -1779,6 +1785,13 @@ export function SpatialPosterGrid({
   const renderedCollectionKey = React.useMemo(
     () => renderedTitles.map((title) => title.id).join("|"),
     [renderedTitles],
+  );
+  const incomingResultsTransitionKey =
+    resultsTransitionKey ?? incomingCollectionKey;
+  const [renderedResultsTransitionKey, setRenderedResultsTransitionKey] =
+    React.useState(incomingResultsTransitionKey);
+  const pendingResultsTransitionKeyRef = React.useRef(
+    incomingResultsTransitionKey,
   );
   const [viewportSize, setViewportSize] = React.useState({
     width: 1280,
@@ -1823,32 +1836,43 @@ export function SpatialPosterGrid({
 
   React.useEffect(() => {
     pendingTitlesRef.current = titles;
-  }, [titles]);
+    pendingResultsTransitionKeyRef.current = incomingResultsTransitionKey;
+  }, [incomingResultsTransitionKey, titles]);
 
   React.useEffect(() => {
     if (reducedMotion) {
       setRenderedTitles(pendingTitlesRef.current);
+      setRenderedResultsTransitionKey(incomingResultsTransitionKey);
       setResultsTransitionPhase("idle");
       return;
     }
 
-    if (incomingCollectionKey === renderedCollectionKey) {
-      if (resultsTransitionPhase === "fading-out") {
-        setResultsTransitionPhase("fading-in");
-      } else if (
-        resultsTransitionPhase === "idle" &&
-        renderedTitles !== titles
-      ) {
-        setRenderedTitles(titles);
+    // Collection mutations keep the filter key stable. Reconcile those into
+    // the one mounted poster world without dimming every existing title.
+    if (incomingResultsTransitionKey === renderedResultsTransitionKey) {
+      if (renderedTitles !== titles) setRenderedTitles(titles);
+      if (resultsTransitionPhase !== "idle") {
+        setResultsTransitionPhase("idle");
       }
+      return;
+    }
+
+    // A filter can change without changing membership. Update metadata and
+    // record the new filter state without playing an empty transition.
+    if (incomingCollectionKey === renderedCollectionKey) {
+      if (renderedTitles !== titles) setRenderedTitles(titles);
+      setRenderedResultsTransitionKey(incomingResultsTransitionKey);
+      setResultsTransitionPhase("idle");
       return;
     }
 
     setResultsTransitionPhase("fading-out");
   }, [
     incomingCollectionKey,
+    incomingResultsTransitionKey,
     reducedMotion,
     renderedCollectionKey,
+    renderedResultsTransitionKey,
     renderedTitles,
     resultsTransitionPhase,
     titles,
@@ -1857,6 +1881,9 @@ export function SpatialPosterGrid({
   const handleResultsTransitionComplete = React.useCallback(() => {
     if (resultsTransitionPhase === "fading-out") {
       setRenderedTitles(pendingTitlesRef.current);
+      setRenderedResultsTransitionKey(
+        pendingResultsTransitionKeyRef.current,
+      );
       setResultsTransitionPhase("fading-in");
       return;
     }

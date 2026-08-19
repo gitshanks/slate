@@ -31,6 +31,7 @@ import { formatTmdbScore, cn } from "@/lib/utils";
 import type { TitleStatus } from "@/lib/supabase";
 import { AiChatPanel } from "@/components/ai-chat-panel";
 import { useSpeechRecognition } from "@/lib/use-speech-recognition";
+import { toast } from "sonner";
 
 interface SearchResult {
   id: number;
@@ -91,6 +92,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   // to fire the next chat turn.
   const [submitTick, setSubmitTick] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const standardSearchRequestRef = React.useRef(0);
   const router = useRouter();
 
   // Voice search (standard mode). Dictation fills the box and stops; the user
@@ -158,6 +160,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   // Standard-mode debounced search. Skipped entirely in AI mode — the chat
   // panel owns its own request flow there.
   React.useEffect(() => {
+    const request = ++standardSearchRequestRef.current;
     if (aiMode) {
       setLoading(false);
       return;
@@ -179,6 +182,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
           signal: ctrl.signal,
         });
         const data = await res.json();
+        if (request !== standardSearchRequestRef.current) return;
         setLibrary(data.library ?? []);
         setResults(data.results ?? []);
         setApproximate(Boolean(data.approximate));
@@ -186,7 +190,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       } catch {
         // Aborts are expected on every keystroke.
       } finally {
-        setLoading(false);
+        if (request === standardSearchRequestRef.current) setLoading(false);
       }
     }, 300);
     return () => {
@@ -255,16 +259,13 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       try {
         await addTitle({ tmdbId: item.id, mediaType: item.media_type, status });
         setJustAdded((s) => new Set(s).add(key));
-        // addTitle calls revalidateTag('titles', {}) on the server, but
-        // that only invalidates the cache — it doesn't push fresh data
-        // to the page the user is currently looking at. router.refresh()
-        // re-fetches the current route's RSC payload, which now reads
-        // the freshly-revalidated cache and shows the new tile without
-        // requiring a hard reload. Critical on PWA where pull-to-refresh
-        // is missing or unreliable.
-        router.refresh();
-      } catch {
-        // Swallow — badge just won't flip.
+        // The Server Action revalidates the Library page and returns its
+        // updated RSC payload in this same roundtrip. A second router.refresh
+        // here used to repaint the entire app once more after every save.
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Title could not be added.",
+        );
       } finally {
         setAdding((s) => {
           const next = new Set(s);
@@ -273,7 +274,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
         });
       }
     },
-    [adding, justAdded, router]
+    [adding, justAdded]
   );
 
   // Enter in AI mode submits the input as a chat turn instead of letting
@@ -545,7 +546,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
 
             {library.length > 0 && (
               <CommandGroup heading="Your library">
-                {library.map((hit, i) => {
+                {library.map((hit) => {
                   const year = hit.release_date ? hit.release_date.slice(0, 4) : "";
                   const poster = posterUrl(hit.poster_path, "w92");
                   const hasRating =
@@ -561,11 +562,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                         e.preventDefault();
                         handleLibrarySelect(hit);
                       }}
-                      // cmdk-safe staggered fade: the class lives on the item
-                      // itself so keyboard nav still works; keyed rows mean only
-                      // newly-appearing results animate.
-                      className="gap-3 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both"
-                      style={{ animationDuration: "220ms", animationDelay: `${Math.min(i * 30, 180)}ms` }}
+                      className="gap-3"
                     >
                       <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-muted">
                         {poster ? (
@@ -614,7 +611,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
 
             {results.length > 0 && (
               <CommandGroup heading={heading}>
-                {results.map((r, i) => {
+                {results.map((r) => {
                   const name = r.title || r.name || "Untitled";
                   const date = r.release_date || r.first_air_date || "";
                   const year = date ? date.slice(0, 4) : "";
@@ -632,9 +629,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                         e.preventDefault();
                         handleSelect(r);
                       }}
-                      // cmdk-safe staggered fade (see "Your library" group above).
-                      className="gap-3 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both"
-                      style={{ animationDuration: "220ms", animationDelay: `${Math.min(i * 30, 180)}ms` }}
+                      className="gap-3"
                     >
                       <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-muted">
                         {poster ? (

@@ -201,11 +201,14 @@ function OwnerMenu({
 
 function SmoothShelfResults({
   titles,
+  transitionKey,
   selectedTitleId,
   onTitleSelect,
   reorderContext,
 }: {
   titles: TitleRow[];
+  /** Changes only when the user changes the visible filter/query. */
+  transitionKey: string;
   selectedTitleId: string | null;
   onTitleSelect: (title: TitleRow) => void;
   reorderContext?: MediaGridReorderContext;
@@ -219,36 +222,53 @@ function SmoothShelfResults({
     .join("|");
   const [renderedSignature, setRenderedSignature] =
     React.useState(incomingSignature);
+  const [renderedTransitionKey, setRenderedTransitionKey] =
+    React.useState(transitionKey);
   const [phase, setPhase] =
     React.useState<ResultsTransitionPhase>("idle");
   const pendingTitles = React.useRef(titles);
-  const incomingKey = titles.map((title) => title.id).join("|");
-  const renderedKey = renderedTitles.map((title) => title.id).join("|");
+  const pendingTransitionKey = React.useRef(transitionKey);
 
   React.useEffect(() => {
     pendingTitles.current = titles;
-  }, [titles]);
+    pendingTransitionKey.current = transitionKey;
+  }, [titles, transitionKey]);
 
   React.useEffect(() => {
     if (reducedMotion) {
       setRenderedTitles(pendingTitles.current);
       setRenderedSignature(incomingSignature);
+      setRenderedTransitionKey(transitionKey);
       setPhase("idle");
       return;
     }
-    if (incomingSignature === renderedSignature) return;
-    if (incomingKey === renderedKey) {
+
+    // A save, status update, or background refresh is a data reconciliation,
+    // not a new result set. Keep the existing surface fully opaque and let
+    // React reconcile the changed cards in place.
+    if (transitionKey === renderedTransitionKey) {
+      if (incomingSignature === renderedSignature) return;
       setRenderedTitles(pendingTitles.current);
       setRenderedSignature(incomingSignature);
+      setPhase("idle");
       return;
     }
+
+    // Different controls can occasionally resolve to the same titles. There
+    // is nothing visual to transition in that case.
+    if (incomingSignature === renderedSignature) {
+      setRenderedTransitionKey(transitionKey);
+      setPhase("idle");
+      return;
+    }
+
     setPhase("fading-out");
   }, [
-    incomingKey,
     incomingSignature,
     reducedMotion,
-    renderedKey,
     renderedSignature,
+    renderedTransitionKey,
+    transitionKey,
   ]);
 
   const handleComplete = React.useCallback(() => {
@@ -263,6 +283,7 @@ function SmoothShelfResults({
           )
           .join("|"),
       );
+      setRenderedTransitionKey(pendingTransitionKey.current);
       setPhase("fading-in");
     } else if (phase === "fading-in") {
       setPhase("idle");
@@ -352,6 +373,22 @@ export function LibraryCollectionView({
           : undefined,
     }),
     [activeStatus, mode, searchParams],
+  );
+  const filterTransitionKey = React.useMemo(
+    () =>
+      [
+        activeStatus ?? "all",
+        filterParams.type ?? "",
+        filterParams.genre ?? "",
+        filterParams.year ?? "",
+        filterParams.sort ?? "",
+        filterParams.sentiment ?? "",
+      ].join("\u001f"),
+    [activeStatus, filterParams],
+  );
+  const shelfTransitionKey = React.useMemo(
+    () => `${filterTransitionKey}\u001f${normalizedQuery}`,
+    [filterTransitionKey, normalizedQuery],
   );
   const filteredTitles = React.useMemo(() => {
     const scopedTitles = activeStatus
@@ -715,6 +752,7 @@ export function LibraryCollectionView({
           {titles.length ? (
             <SmoothShelfResults
               titles={visibleShelfTitles}
+              transitionKey={shelfTransitionKey}
               selectedTitleId={shelfTitle?.id ?? null}
               onTitleSelect={openShelfTitle}
               reorderContext={reorderContext}
@@ -753,6 +791,7 @@ export function LibraryCollectionView({
         >
           <SpatialPosterGrid
             titles={filteredTitles}
+            resultsTransitionKey={filterTransitionKey}
             detailSource={titleDetailSource}
             renderActions={renderActions}
             onExit={() => selectMode("shelf")}

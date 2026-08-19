@@ -173,17 +173,11 @@ function mergeVisibleOrder(
 }
 
 export function MediaGrid(props: MediaGridProps) {
-  const titleIds = props.titles.map((title) => title.id);
-
   if (!props.reorderContext) {
-    return <OrderedMediaGrid key={titleIds.join("|")} {...props} />;
+    return <OrderedMediaGrid {...props} />;
   }
 
-  // Sortable grids own an optimistic order, so keep their state through the
-  // Server Component refresh that follows a saved drag. Membership changes
-  // still remount the grid when a filter is applied or a title is added.
-  const collectionKey = [...titleIds].sort().join("|");
-  return <MediaGridState key={collectionKey} {...props} />;
+  return <MediaGridState {...props} />;
 }
 
 /**
@@ -204,6 +198,7 @@ function OrderedMediaGrid(props: MediaGridProps) {
       {props.titles.map((title, index) => (
         <motion.article
           key={title.id}
+          layout="position"
           variants={animateEntrance ? staggerChild : undefined}
           initial={animateEntrance ? undefined : false}
           id={`shelf-title-${title.id}`}
@@ -265,6 +260,31 @@ function MediaGridState({
   const suppressClicksUntilRef = useRef(0);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
+
+  useEffect(() => {
+    const incomingById = new Map(titles.map((title) => [title.id, title]));
+    const current = orderedRef.current;
+    const sameMembership =
+      current.length === titles.length &&
+      current.every((title) => incomingById.has(title.id));
+
+    // Preserve an optimistic drag order across its Server Component refresh.
+    // When membership changes (filter, add, remove), use the server's new
+    // canonical order while keeping every unchanged poster component mounted.
+    const next = sameMembership
+      ? current.map((title) => incomingById.get(title.id) ?? title)
+      : titles;
+
+    if (
+      next.length === current.length &&
+      next.every((title, index) => title === current[index])
+    ) {
+      return;
+    }
+
+    orderedRef.current = next;
+    setOrderedTitles(next);
+  }, [titles]);
 
   const getPersistedOrder = useCallback(
     (visibleTitleIds: string[]) => {

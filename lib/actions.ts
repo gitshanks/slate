@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type TitleRow, type TitleStatus } from "@/lib/supabase";
 import { getLibraryClient } from "@/lib/library-db";
-import { APP_ROOT } from "@/lib/public-mode";
 import { getMovie, getTv, normalizeForStorage } from "@/lib/tmdb";
 import { getOmdbMetadata, isOmdbConfigured } from "@/lib/omdb";
 import { slugify } from "@/lib/utils";
@@ -395,6 +394,7 @@ export async function deleteList(listId: string) {
 }
 
 function revalidateLibrary() {
-  revalidatePath("/", "layout");
-  if (APP_ROOT !== "/") revalidatePath(APP_ROOT, "layout");
+  // Hosted /app rewrites to this route. Invalidate only the Library page,
+  // not the root layout and every nested route in the application.
+  revalidatePath("/");
 }
