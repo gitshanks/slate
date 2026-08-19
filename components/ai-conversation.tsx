@@ -25,6 +25,7 @@ export interface ChatResultItem {
   release_date?: string;
   first_air_date?: string;
   vote_average?: number;
+  overview?: string;
 }
 
 export interface UserTurn {
@@ -149,7 +150,7 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
   const submit = React.useCallback(
     async (message: string) => {
       const trimmed = message.trim();
-      if (!trimmed || streaming) return;
+      if (!trimmed || streaming || abortRef.current) return;
 
       const next: ChatTurn[] = [
         ...turns,
@@ -171,6 +172,12 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
       abortRef.current = ctrl;
 
       try {
+        const activeAssistant = [...turns]
+          .reverse()
+          .find(
+            (turn): turn is AssistantTurn =>
+              turn.role === "assistant" && Boolean(turn.results?.length),
+          );
         const res = await fetch("/api/ai-chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -178,7 +185,30 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
           body: JSON.stringify({
             messages: next
               .filter((t) => t.role === "user" || (t.role === "assistant" && t.content))
-              .map((t) => ({ role: t.role, content: t.content })),
+              .map((t) => ({
+                role: t.role,
+                content: t.content.slice(0, 2_000),
+              }))
+              .slice(-12),
+            context: activeAssistant?.results?.length
+              ? {
+                  results: activeAssistant.results.slice(0, 16).map((item) => ({
+                    id: item.id,
+                    media_type: item.media_type,
+                    title: item.title || item.name || "Untitled",
+                    year: (
+                      item.release_date ||
+                      item.first_air_date ||
+                      ""
+                    ).slice(0, 4),
+                    vote_average:
+                      typeof item.vote_average === "number"
+                        ? item.vote_average
+                        : null,
+                    overview: (item.overview || "").slice(0, 320),
+                  })),
+                }
+              : null,
           }),
         });
         if (!res.ok || !res.body) {
@@ -210,8 +240,11 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
         const errMessage = err instanceof Error ? err.message : "chat error";
         setTurns((prev) => mutateLastAssistant(prev, (a) => ({ ...a, error: errMessage, done: true })));
       } finally {
-        setTurns((prev) => mutateLastAssistant(prev, (a) => ({ ...a, done: true, searching: false })));
-        setStreaming(false);
+        if (abortRef.current === ctrl) {
+          abortRef.current = null;
+          setTurns((prev) => mutateLastAssistant(prev, (a) => ({ ...a, done: true, searching: false })));
+          setStreaming(false);
+        }
       }
     },
     [turns, streaming, applyEvent],
@@ -219,6 +252,7 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
 
   const reset = React.useCallback(() => {
     abortRef.current?.abort();
+    abortRef.current = null;
     setTurns([]);
     setStreaming(false);
   }, []);

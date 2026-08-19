@@ -42,8 +42,8 @@ export interface FilterBarProps {
   popoverClassName?: string;
   /** Keeps primary and secondary controls together when the bar wraps. */
   groupControls?: boolean;
-  /** Keeps the sort slot's width when a view intentionally hides ordering. */
-  reserveSortControl?: boolean;
+  /** Positions the view-specific sort after the persistent content filters. */
+  sortPlacement?: "default" | "end";
   className?: string;
 }
 
@@ -82,7 +82,7 @@ export function FilterBar({
   idPrefix = "library",
   popoverClassName,
   groupControls = false,
-  reserveSortControl = false,
+  sortPlacement = "default",
   className,
 }: FilterBarProps) {
   const searchParams = useSearchParams();
@@ -160,6 +160,54 @@ export function FilterBar({
       ? options
       : options.filter((option) => option.value !== "year");
   }, [recentSortLabel, showYearSort]);
+
+  const sortControl = showSort ? (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          data-filter-sort
+          aria-label={`Sort: ${sortOptions.find((o) => o.value === currentSort)?.label ?? "Sort"}`}
+          data-active={Boolean(currentSort)}
+          className={cn(
+            "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
+            currentSort
+              ? "border-primary/50 text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <ArrowUpDown className="h-3 w-3 shrink-0" />
+          <span data-filter-sort-label>
+            {sortOptions.find((o) => o.value === currentSort)?.label ?? "Sort"}
+          </span>
+          <ChevronDown className="h-3 w-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className={cn("w-48 p-2", popoverClassName)} align="start">
+        <div className="flex flex-col">
+          {sortOptions.map((o) => {
+            const active = o.value === currentSort;
+            return (
+              <PopoverClose asChild key={o.value || "default"}>
+                <button
+                  type="button"
+                  onClick={() => setParam("sort", o.value)}
+                  className={cn(
+                    "filter-menu-option rounded-md px-2 py-1.5 text-left text-xs",
+                    active
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                  )}
+                >
+                  {o.label}
+                </button>
+              </PopoverClose>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  ) : null;
 
   return (
     <div className={cn("mb-8 flex flex-wrap items-center gap-2", className)}>
@@ -345,69 +393,7 @@ export function FilterBar({
         </PopoverContent>
       </Popover>
 
-      {showSort ? (
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              data-filter-sort
-              aria-label={`Sort: ${sortOptions.find((o) => o.value === currentSort)?.label ?? "Sort"}`}
-              data-active={Boolean(currentSort)}
-              className={cn(
-                "filter-chip inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium",
-                currentSort
-                  ? "border-primary/50 text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <ArrowUpDown className="h-3 w-3 shrink-0" />
-              <span data-filter-sort-label>
-                {sortOptions.find((o) => o.value === currentSort)?.label ?? "Sort"}
-              </span>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className={cn("w-48 p-2", popoverClassName)} align="start">
-            <div className="flex flex-col">
-              {sortOptions.map((o) => {
-                const active = o.value === currentSort;
-                return (
-                  <PopoverClose asChild key={o.value || "default"}>
-                    <button
-                      type="button"
-                      onClick={() => setParam("sort", o.value)}
-                      className={cn(
-                        "filter-menu-option rounded-md px-2 py-1.5 text-left text-xs",
-                        active
-                          ? "bg-accent text-foreground"
-                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-                      )}
-                    >
-                      {o.label}
-                    </button>
-                  </PopoverClose>
-                );
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
-      ) : reserveSortControl ? (
-        <button
-          type="button"
-          aria-hidden
-          tabIndex={-1}
-          disabled
-          data-filter-sort
-          className="filter-chip invisible inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium"
-        >
-          <ArrowUpDown className="h-3 w-3 shrink-0" />
-          <span data-filter-sort-label>
-            {sortOptions.find((option) => option.value === selectedSort)?.label ??
-              "Your order"}
-          </span>
-          <ChevronDown className="h-3 w-3" />
-        </button>
-      ) : null}
+      {sortPlacement === "default" ? sortControl : null}
 
       {showSentiment && sentimentDisplay === "segmented" && (
         <SegmentedFilter
@@ -473,6 +459,8 @@ export function FilterBar({
         </Popover>
       )}
 
+      {sortPlacement === "end" ? sortControl : null}
+
       {hasAny && (
         <button
           type="button"
@@ -486,19 +474,6 @@ export function FilterBar({
         </button>
       )}
 
-      {reserveSortControl && !showSort && selectedSort && !hasAny ? (
-        <button
-          type="button"
-          aria-hidden
-          tabIndex={-1}
-          disabled
-          data-filter-clear
-          className="filter-chip invisible inline-flex h-9 items-center gap-1 rounded-full px-2 text-[11px]"
-        >
-          <X className="h-3 w-3" />
-          <span data-filter-clear-label>Clear</span>
-        </button>
-      ) : null}
       </div>
     </div>
   );

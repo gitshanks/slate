@@ -575,10 +575,7 @@ export function LibraryCollectionView({
     >
       <header
         id="library-collection-controls"
-        className={cn(
-          "pointer-events-none sticky inset-x-0 top-0 z-50 shrink-0 px-2.5 pb-7 text-foreground min-[380px]:px-3 md:px-2 md:pb-6 lg:px-5 xl:px-6",
-          mode === "shelf" && "md:px-5 lg:px-8 xl:px-10",
-        )}
+        className="pointer-events-none sticky inset-x-0 top-0 z-50 shrink-0 px-2.5 pb-7 text-foreground min-[380px]:px-3 md:px-5 md:pb-6 lg:px-8 xl:px-10"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         aria-label="Your slate controls"
       >
@@ -601,7 +598,7 @@ export function LibraryCollectionView({
           />
         </div>
 
-        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-0.5 lg:gap-x-2.5 xl:gap-x-5">
+        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-1.5 lg:gap-x-2.5 xl:gap-x-5">
           <Link
             href={APP_ROOT}
             aria-label="slate home"
@@ -625,18 +622,9 @@ export function LibraryCollectionView({
             />
           </Link>
 
-          <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">
-            <ViewSwitcher mode={mode} disabled={isSwitching} onSelect={selectMode} />
-            <ThemeToggle className="h-10 w-10 shrink-0 border border-border bg-foreground/[0.055] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground md:hidden lg:inline-flex" />
-            <OwnerMenu
-              avatarUrl={avatarUrl}
-              displayName={displayName}
-            />
-          </div>
-
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-center md:gap-0.5 lg:gap-2 xl:gap-2.5">
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-self-center md:justify-center md:gap-1.5 lg:gap-2 xl:gap-2.5 min-[1600px]:max-w-[80rem]">
             <div
-              className="relative w-full min-w-0 md:w-10 md:shrink-0 xl:min-w-10 xl:w-[clamp(10rem,20vw,22rem)] xl:shrink"
+              className="relative w-full min-w-0 md:max-[1100px]:w-10 md:max-[1100px]:shrink-0 min-[1100px]:w-[clamp(8rem,12vw,10rem)] min-[1100px]:shrink min-[1400px]:min-w-10 min-[1400px]:w-[clamp(10rem,18vw,20rem)]"
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
                   setSearchOpen(false);
@@ -647,7 +635,7 @@ export function LibraryCollectionView({
                 type="button"
                 onClick={() => openExpandedSearch("search")}
                 aria-label="Open smart search"
-                className="hidden h-10 w-10 items-center justify-center rounded-full border border-border bg-foreground/[0.065] text-muted-foreground transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.96] md:max-xl:inline-flex"
+                className="hidden h-10 w-10 items-center justify-center rounded-full border border-border bg-foreground/[0.065] text-muted-foreground transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.96] md:max-[1100px]:inline-flex"
               >
                 <Search className="h-4 w-4" />
               </button>
@@ -676,10 +664,10 @@ export function LibraryCollectionView({
                       ? "pr-28 min-[1400px]:pr-40"
                       : "pr-20 min-[1400px]:pr-32"
                     : "pr-20",
-                  "md:max-xl:hidden",
+                  "md:max-[1100px]:hidden",
                 )}
               />
-              <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1 md:max-xl:hidden">
+              <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1 md:max-[1100px]:hidden">
                 {query ? (
                   <button
                     type="button"
@@ -769,7 +757,7 @@ export function LibraryCollectionView({
               ) : null}
             </div>
 
-            <div className="scrollbar-hide w-full overflow-x-auto overscroll-x-contain pb-1 touch-pan-x md:w-max md:flex-none md:overflow-visible md:pb-0">
+            <div className="scrollbar-hide w-full min-w-0 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x md:flex-1 md:pb-0">
               <FilterBar
                 genres={genres}
                 showSort={mode === "shelf"}
@@ -782,10 +770,19 @@ export function LibraryCollectionView({
                 idPrefix="owned-library"
                 popoverClassName="z-[90] border-border bg-popover text-popover-foreground"
                 groupControls
-                reserveSortControl
-                className="mb-0 w-max flex-nowrap gap-2 md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-border [&_.filter-chip]:bg-foreground/[0.065] [&_.filter-chip]:text-muted-foreground [&_.filter-chip:hover]:text-foreground [&_.filter-chip[data-active=true]]:border-primary/50 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segment:first-child]:px-3.5 [&_.filter-segmented]:h-10 [&_.filter-segmented]:border-border [&_.filter-segmented]:bg-foreground/[0.055] [&_[data-filter-clear]]:px-3 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden md:max-[1399px]:[&_.filter-chip]:px-1.5 md:max-[1399px]:[&_.filter-chip]:text-[10px] md:max-[1399px]:[&_.filter-chip_.lucide-chevron-down]:hidden md:max-[1399px]:[&_.filter-control-group]:gap-0.5 md:max-[1399px]:[&_.filter-segment]:px-1 md:max-[1399px]:[&_.filter-segment]:text-[10px] md:max-[1399px]:[&_[data-filter-sentiment]]:w-10 md:max-[1399px]:[&_[data-filter-sentiment]]:justify-center md:max-[1399px]:[&_[data-filter-sentiment]]:px-0 md:max-[1399px]:[&_[data-filter-sentiment-label]]:hidden md:max-[1399px]:[&_[data-filter-sort]]:w-10 md:max-[1399px]:[&_[data-filter-sort]]:justify-center md:max-[1399px]:[&_[data-filter-sort]]:px-0 md:max-[1399px]:[&_[data-filter-sort-label]]:hidden min-[1400px]:[&_[data-filter-clear-label]]:inline min-[1400px]:[&_.filter-segment]:px-2.5"
+                sortPlacement="end"
+                className="mb-0 w-max flex-nowrap gap-2 md:gap-1.5 [&_.filter-chip]:h-10 [&_.filter-chip]:border-border [&_.filter-chip]:bg-foreground/[0.065] [&_.filter-chip]:text-muted-foreground [&_.filter-chip:hover]:text-foreground [&_.filter-chip[data-active=true]]:border-primary/50 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segment:first-child]:px-3.5 [&_.filter-segmented]:h-10 [&_.filter-segmented]:border-border [&_.filter-segmented]:bg-foreground/[0.055] [&_[data-filter-clear]]:px-3 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-1.5 md:[&_.filter-segment]:px-1.5 md:[&_.filter-segment]:text-[11px] md:[&_.filter-segment:first-child]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden md:max-lg:[&_.filter-chip]:px-1.5 md:max-lg:[&_.filter-chip]:text-[11px] md:max-lg:[&_.filter-chip_.lucide-chevron-down]:hidden md:max-lg:[&_.filter-control-group]:gap-0.5 md:max-lg:[&_.filter-segment]:px-1 md:max-lg:[&_.filter-segment:first-child]:px-1 md:max-lg:[&_[data-filter-sentiment]]:w-10 md:max-lg:[&_[data-filter-sentiment]]:justify-center md:max-lg:[&_[data-filter-sentiment]]:px-0 md:max-lg:[&_[data-filter-sentiment-label]]:hidden md:max-lg:[&_[data-filter-sort]]:w-10 md:max-lg:[&_[data-filter-sort]]:justify-center md:max-lg:[&_[data-filter-sort]]:px-0 md:max-lg:[&_[data-filter-sort-label]]:hidden lg:max-[1400px]:[&_.filter-chip]:px-2 lg:max-[1400px]:[&_.filter-chip]:text-[11px] lg:max-[1400px]:[&_.filter-chip_.lucide-chevron-down]:hidden lg:max-[1400px]:[&_.filter-control-group]:gap-1 lg:max-[1400px]:[&_.filter-segment]:px-1.5 lg:max-[1400px]:[&_.filter-segment:first-child]:px-1.5 lg:max-[1400px]:[&_[data-filter-clear]]:w-10 lg:max-[1400px]:[&_[data-filter-clear]]:px-0 min-[1400px]:[&_.filter-chip]:px-2.5 min-[1400px]:[&_.filter-chip]:text-xs min-[1400px]:[&_.filter-segment]:px-2 min-[1400px]:[&_.filter-segment:first-child]:px-3 min-[1400px]:[&_[data-filter-clear]]:w-auto min-[1400px]:[&_[data-filter-clear-label]]:inline"
               />
             </div>
+          </div>
+
+          <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">
+            <ViewSwitcher mode={mode} disabled={isSwitching} onSelect={selectMode} />
+            <ThemeToggle className="h-10 w-10 shrink-0 border border-border bg-foreground/[0.055] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground md:hidden lg:inline-flex" />
+            <OwnerMenu
+              avatarUrl={avatarUrl}
+              displayName={displayName}
+            />
           </div>
         </div>
       </header>

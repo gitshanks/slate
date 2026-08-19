@@ -47,7 +47,9 @@ export interface TmdbSearchResult {
   release_date?: string;   // movie
   first_air_date?: string; // tv
   vote_average?: number;
+  vote_count?: number;
   popularity?: number;
+  genre_ids?: number[];
   // person results (media_type === "person")
   profile_path?: string | null;
   known_for_department?: string;

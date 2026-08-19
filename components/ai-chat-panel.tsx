@@ -125,9 +125,8 @@ export function AiChatPanel({
             <span>Ask</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            Describe what you&rsquo;re in the mood for. Press{" "}
-            <kbd className="font-mono">↵</kbd> to send. You can keep asking
-            follow-ups here or on the results page.
+            Talk movies, ask about a person, or tell me what you feel like
+            watching. Press <kbd className="font-mono">↵</kbd> to send.
           </p>
           {suggestions.length > 0 ? (
             <div className="flex max-w-md flex-wrap justify-center gap-1.5">

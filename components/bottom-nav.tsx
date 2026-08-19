@@ -69,109 +69,105 @@ export function BottomNav() {
   );
   const activeHref =
     findCurrentTab(pathname) ?? (menuOnlySurface ? null : rememberedTab);
-  const librarySurface = pathname === APP_ROOT;
-
   // This is an ordinary, non-shrinking row in the mobile app shell. The middle
   // content region scrolls independently, so the bar never uses fixed/sticky
   // positioning and cannot be stranded by iOS after search closes.
   return (
     <nav
-      className={cn(
-        "relative isolate z-40 w-full shrink-0 border-t md:hidden",
-        librarySurface &&
-          "border-transparent bg-transparent text-foreground",
-        !librarySurface && "glass border-border/60",
-      )}
+      className="relative isolate z-40 w-full shrink-0 bg-transparent text-foreground md:hidden"
       aria-label="Primary"
       style={{
-        // Lift the inner row above the iOS home indicator AND add a notch
-        // of breathing on top of it. Floor at 1.5rem so Android / desktop
-        // browsers (no safe-area) still get the same generous gap from
-        // the bar's bottom edge to the labels.
-        paddingBottom: "max(calc(env(safe-area-inset-bottom) + 0.5rem), 1.5rem)",
+        // Own the bottom inset exactly once. The dock remains a normal-flow
+        // sibling of the scroller, so content can never slide underneath it.
+        paddingBottom:
+          "max(calc(env(safe-area-inset-bottom) + 0.5rem), 1rem)",
       }}
     >
-      {librarySurface ? (
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -top-10 bottom-0 -z-10 overflow-hidden"
+      >
         <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 -top-8 bottom-0 -z-10 overflow-hidden"
-        >
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(to top, hsl(var(--background) / 0.98) 0%, hsl(var(--background) / 0.9) 54%, hsl(var(--background) / 0.54) 76%, hsl(var(--background) / 0) 100%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 backdrop-blur-2xl"
-            style={{
-              WebkitMaskImage:
-                "linear-gradient(to top, black 0%, black 48%, rgba(0,0,0,0.72) 68%, transparent 100%)",
-              maskImage:
-                "linear-gradient(to top, black 0%, black 48%, rgba(0,0,0,0.72) 68%, transparent 100%)",
-            }}
-          />
-        </div>
-      ) : null}
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to top, hsl(var(--background) / 1) 0%, hsl(var(--background) / 0.94) 48%, hsl(var(--background) / 0.62) 72%, hsl(var(--background) / 0) 100%)",
+          }}
+        />
+      </div>
 
-      <ul className="relative flex items-stretch px-1 pt-3">
-        {TABS.map((t) => {
-          const active = t.href === activeHref;
-          const Icon = t.icon;
-          return (
-            <li key={t.href} className="relative flex-1">
-              <Link
-                href={t.href}
-                prefetch
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 rounded-md px-1 py-1 text-[11px] font-medium tracking-tight transition-colors",
-                  active
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {/* Sliding top indicator — one bar shared across tabs, Motion
-                      glides it to the active tab. */}
-                {active && (
-                  <motion.span
-                    layoutId="bottomnav-active"
-                    transition={{ duration: DUR.base, ease: EASE }}
-                    className="absolute -top-3 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary"
-                  />
-                )}
-                <Icon
+      <div
+        className="mx-auto grid h-[68px] w-full max-w-[430px] grid-cols-[minmax(0,1fr)_60px] gap-2.5 pt-2"
+        style={{
+          paddingInlineStart:
+            "max(0.75rem, calc(env(safe-area-inset-left) + 0.5rem))",
+          paddingInlineEnd:
+            "max(0.75rem, calc(env(safe-area-inset-right) + 0.5rem))",
+        }}
+      >
+        <ul
+          className="relative grid min-w-0 grid-cols-3 rounded-[22px] border border-border/70 bg-background/[0.9] p-1 ring-1 ring-foreground/[0.025]"
+          style={{
+            boxShadow:
+              "0 18px 42px -28px rgb(0 0 0 / 0.9), inset 0 1px 0 hsl(var(--foreground) / 0.07)",
+          }}
+        >
+          {TABS.map((t) => {
+            const active = t.href === activeHref;
+            const Icon = t.icon;
+            return (
+              <li key={t.href} className="relative min-w-0">
+                <Link
+                  href={t.href}
+                  prefetch
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "h-[22px] w-[22px] transition-transform",
-                    active && "scale-[1.05]",
+                    "relative isolate flex h-full touch-manipulation flex-col items-center justify-center gap-1 overflow-hidden rounded-[17px] px-1 text-[11px] font-medium tracking-tight outline-none transition-[color,transform] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97]",
+                    active
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
-                  aria-hidden
-                />
-                <span>{t.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-        <li className="relative flex-1">
-          <button
-            type="button"
-            onClick={openCommandPalette}
-            className="flex w-full flex-col items-center gap-1.5 rounded-md px-1 py-1 text-[11px] font-medium tracking-tight text-primary transition-[color,transform] active:scale-[0.97]"
-            aria-label="Find and add a title"
-          >
-            <span
-              className="grid h-[22px] w-[22px] place-items-center rounded-full bg-primary text-primary-foreground"
-              style={{
-                boxShadow: "0 0 18px -7px hsl(var(--primary) / 0.9)",
-              }}
-            >
-              <Plus className="h-3.5 w-3.5" aria-hidden />
-            </span>
-            <span>Add</span>
-          </button>
-        </li>
-      </ul>
+                >
+                  {active ? (
+                    <motion.span
+                      layoutId="bottomnav-active"
+                      initial={false}
+                      transition={{ duration: DUR.base, ease: EASE }}
+                      className="absolute inset-0 -z-10 rounded-[17px] border border-primary/15 bg-primary/[0.12]"
+                    />
+                  ) : null}
+                  <Icon
+                    className={cn(
+                      "h-5 w-5 shrink-0 transition-transform",
+                      active && "scale-[1.04]",
+                    )}
+                    aria-hidden
+                  />
+                  <span className="max-w-full truncate">{t.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        <button
+          type="button"
+          onClick={() => openCommandPalette()}
+          className="relative grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-primary/55 bg-primary text-primary-foreground outline-none transition-[filter,transform] hover:brightness-[1.04] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.95]"
+          aria-label="Find and add a title"
+          aria-haspopup="dialog"
+          style={{
+            boxShadow:
+              "0 16px 34px -18px hsl(var(--primary) / 0.82), inset 0 1px 0 rgb(255 255 255 / 0.3)",
+          }}
+        >
+          <span
+            aria-hidden
+            className="absolute inset-x-2 top-1 h-4 rounded-full bg-white/10 blur-sm"
+          />
+          <Plus className="relative h-6 w-6" strokeWidth={2.1} aria-hidden />
+        </button>
+      </div>
     </nav>
   );
 }
