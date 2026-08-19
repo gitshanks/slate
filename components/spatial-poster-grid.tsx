@@ -1436,6 +1436,7 @@ export function CollectionTitleDetailOverlay({
     }
 
     const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
     const narrow = viewportWidth < 640;
     const slabWidth = Math.min(viewportWidth * 0.84, 432);
     const scrollContainer = resolveScrollFrame();
@@ -1474,6 +1475,23 @@ export function CollectionTitleDetailOverlay({
     const rect = source.getBoundingClientRect();
     const edge = 24;
     const gap = 20;
+    // A first-row card cannot scroll any higher to vertically frame itself.
+    // Keep its inspector inside the usable canvas instead of allowing the
+    // upper half of the slab to escape above the viewport.
+    const verticalInset = 12;
+    const usableHeight = Math.max(
+      0,
+      bounds.bottom - bounds.top - verticalInset * 2,
+    );
+    const maxSlabHeight = Math.min(viewportHeight * 0.69, 43 * 16);
+    const halfSlabHeight = Math.min(maxSlabHeight / 2, usableHeight / 2);
+    const minimumCenter = bounds.top + verticalInset + halfSlabHeight;
+    const maximumCenter = bounds.bottom - verticalInset - halfSlabHeight;
+    const preferredCenter = rect.top + rect.height / 2;
+    const verticalCenter =
+      minimumCenter <= maximumCenter
+        ? Math.min(maximumCenter, Math.max(minimumCenter, preferredCenter))
+        : bounds.top + (bounds.bottom - bounds.top) / 2;
 
     const sideRoom = {
       left: rect.left - gap - edge,
@@ -1481,7 +1499,8 @@ export function CollectionTitleDetailOverlay({
     };
 
     // Desktop always anchors beside the selected poster. The scroll listener
-    // keeps both vertical centers locked together throughout the framing move.
+    // aligns their vertical centers whenever the page can frame the source;
+    // first-row inspectors stay safely within the usable canvas instead.
     const placement = sideRoom.right >= sideRoom.left ? "right" : "left";
     const width = Math.min(slabWidth, sideRoom[placement]);
     setPosition({
@@ -1489,7 +1508,7 @@ export function CollectionTitleDetailOverlay({
         placement === "right"
           ? rect.right + gap
           : rect.left - gap - width,
-      top: rect.top + rect.height / 2,
+      top: verticalCenter,
       width,
       placement,
     });
@@ -1732,12 +1751,15 @@ export function PublicTitleDetailOverlay({
   username,
   onClose,
   anchorTitleId,
+  centerAfterId,
 }: {
   title: TitleRow;
   username: string;
   onClose: () => void;
   /** The Shelf source card this slab should sit alongside. */
   anchorTitleId?: string;
+  /** Keeps a first-row inspector clear of fixed collection controls. */
+  centerAfterId?: string;
 }) {
   const detailSource = React.useMemo(
     () => publicTitleDetailSource(username),
@@ -1750,6 +1772,7 @@ export function PublicTitleDetailOverlay({
       detailSource={detailSource}
       onClose={onClose}
       anchorTitleId={anchorTitleId}
+      centerAfterId={centerAfterId}
     />
   );
 }

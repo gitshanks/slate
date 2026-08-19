@@ -100,7 +100,7 @@ function ViewSwitcher({
         className={cn(
           "pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-0.125rem)] rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.18)] transition-[transform,background-color] duration-[240ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
           mode === "shelf"
-            ? "translate-x-0 bg-foreground"
+            ? "translate-x-0 bg-primary"
             : "translate-x-full bg-primary",
         )}
       />
@@ -113,7 +113,7 @@ function ViewSwitcher({
         className={cn(
           "relative z-10 inline-flex w-10 items-center justify-center rounded-full outline-none transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none",
           mode === "shelf"
-            ? "text-background"
+            ? "text-primary-foreground"
             : "text-muted-foreground hover:text-foreground",
         )}
       >
@@ -543,7 +543,10 @@ export function LibraryCollectionView({
     >
       <header
         id="library-collection-controls"
-        className="pointer-events-none sticky inset-x-0 top-0 z-50 shrink-0 px-2.5 pb-7 text-foreground min-[380px]:px-3 md:px-2 md:pb-6 lg:px-5 xl:px-6"
+        className={cn(
+          "pointer-events-none sticky inset-x-0 top-0 z-50 shrink-0 px-2.5 pb-7 text-foreground min-[380px]:px-3 md:px-2 md:pb-6 lg:px-5 xl:px-6",
+          mode === "shelf" && "md:px-5 lg:px-8 xl:px-10",
+        )}
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         aria-label="Your slate controls"
       >
