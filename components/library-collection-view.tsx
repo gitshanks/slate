@@ -621,7 +621,7 @@ export function LibraryCollectionView({
 
           <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">
             <ViewSwitcher mode={mode} disabled={isSwitching} onSelect={selectMode} />
-            <ThemeToggle className="h-10 w-10 shrink-0 border border-border bg-foreground/[0.055] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground md:hidden" />
+            <ThemeToggle className="h-10 w-10 shrink-0 border border-border bg-foreground/[0.055] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground md:hidden lg:inline-flex" />
             <OwnerMenu
               avatarUrl={avatarUrl}
               displayName={displayName}
