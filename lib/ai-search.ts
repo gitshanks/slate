@@ -11,8 +11,8 @@ import {
 // ─── Provider resolution ────────────────────────────────────────────
 //
 /**
- * Whether AI search is wired up. The palette uses this to hide the toggle
- * entirely when no provider is configured — no broken UX, no client error.
+ * Whether Ask is wired up. The search surface hides that contextual action
+ * when no provider is configured, so ordinary catalogue search still works.
  */
 export const aiSearchEnabled = AI_PROVIDER !== null;
 

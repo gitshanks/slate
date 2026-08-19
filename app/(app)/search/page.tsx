@@ -4,7 +4,10 @@ import { searchEverything } from "@/lib/search";
 import { SearchResults } from "@/components/search-results";
 import { EmptyState } from "@/components/empty-state";
 import type { PersonTile } from "@/components/people-grid";
-import type { TmdbPersonResult } from "@/lib/tmdb";
+import {
+  isNoisyPersonTvGenre,
+  type TmdbPersonResult,
+} from "@/lib/tmdb";
 
 export const metadata: Metadata = {
   title: "slate · Search",
@@ -18,6 +21,7 @@ function pick(value: string | string[] | undefined): string {
 /** TMDB person result → the tile shape PeopleGrid renders. */
 function toPersonTile(p: TmdbPersonResult): PersonTile {
   const knownFor = (p.known_for ?? [])
+    .filter((credit) => !isNoisyPersonTvGenre(credit))
     .map((k) => k.title || k.name)
     .filter(Boolean)
     .slice(0, 2)

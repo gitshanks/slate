@@ -1,15 +1,16 @@
 import "server-only";
 
 import type { PersonProfileDetail } from "@/lib/person-detail-types";
-import { getPersonCredits, getPersonDetail } from "@/lib/tmdb";
+import { getPersonDetail, getPersonRelevantCredits } from "@/lib/tmdb";
 
 export async function buildPersonProfileDetail(
   id: number,
 ): Promise<PersonProfileDetail> {
-  const [person, credits] = await Promise.all([
-    getPersonDetail(id),
-    getPersonCredits(id),
-  ]);
+  const person = await getPersonDetail(id);
+  const credits = await getPersonRelevantCredits(
+    id,
+    person.known_for_department,
+  );
 
   return {
     id: person.id,

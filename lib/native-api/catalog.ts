@@ -10,6 +10,7 @@ import {
   getMovie,
   getTitleMeta,
   getTv,
+  isNoisyPersonTvGenre,
   normalizeForStorage,
   searchAll,
   type TmdbMovieDetail,
@@ -41,9 +42,10 @@ function personResultDTO(item: TmdbSearchResult) {
     name: item.name || "Unknown",
     profilePath: item.profile_path ?? null,
     knownForDepartment: item.known_for_department ?? null,
-    knownFor: (item.known_for ?? []).slice(0, 3).map((known) =>
-      known.title || known.name || "Untitled"
-    ),
+    knownFor: (item.known_for ?? [])
+      .filter((known) => !isNoisyPersonTvGenre(known))
+      .slice(0, 3)
+      .map((known) => known.title || known.name || "Untitled"),
   };
 }
 

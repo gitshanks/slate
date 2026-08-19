@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getPersonDetail, getPersonCredits } from "@/lib/tmdb";
+import { getPersonDetail, getPersonRelevantCredits } from "@/lib/tmdb";
 import { profileUrl } from "@/lib/tmdb-image";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { BackButton } from "@/components/back-button";
@@ -13,12 +13,14 @@ export default async function PersonPage(props: PageProps<"/person/[id]">) {
   const personId = Number(id);
   if (!Number.isFinite(personId)) notFound();
 
-  const [person, credits] = await Promise.all([
-    getPersonDetail(personId).catch(() => null),
-    getPersonCredits(personId).catch(() => []),
-  ]);
+  const person = await getPersonDetail(personId).catch(() => null);
 
   if (!person) notFound();
+
+  const credits = await getPersonRelevantCredits(
+    personId,
+    person.known_for_department,
+  ).catch(() => []);
 
   const photo = profileUrl(person.profile_path, "w342");
   const birthYear = person.birthday ? person.birthday.slice(0, 4) : null;
@@ -48,7 +50,7 @@ export default async function PersonPage(props: PageProps<"/person/[id]">) {
             {/* Profile photo */}
             <div className="flex justify-center md:justify-start">
               <div className="relative w-48 shrink-0 overflow-hidden rounded-2xl border border-border bg-card shadow-lg md:w-full">
-                <div className="aspect-[2/3] w-full">
+                <div className="relative aspect-[2/3] w-full">
                   {photo ? (
                     <Image
                       src={photo}

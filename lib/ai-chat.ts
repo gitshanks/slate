@@ -7,7 +7,7 @@ import {
 } from "@/lib/ai-search";
 import {
   discover,
-  getPersonCredits,
+  getPersonRelevantCredits,
   getRecommendationsFor,
   getRecommendedFromWatched,
   searchMulti,
@@ -533,12 +533,22 @@ export async function runDiscoverForIntent(
  * identical regardless of which path got us here.
  */
 async function tryPersonFilmography(
-  searchResults: { id: number; popularity?: number; media_type?: string }[],
+  searchResults: {
+    id: number;
+    popularity?: number;
+    media_type?: string;
+    known_for_department?: string;
+  }[],
   wantedMediaType: "movie" | "tv" | "both",
 ): Promise<TmdbMediaResult[] | null> {
   const personHits = searchResults
     .filter(
-      (x): x is { id: number; popularity?: number; media_type: "person" } =>
+      (x): x is {
+        id: number;
+        popularity?: number;
+        media_type: "person";
+        known_for_department?: string;
+      } =>
         x.media_type === "person",
     )
     .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
@@ -552,7 +562,10 @@ async function tryPersonFilmography(
   }
 
   try {
-    const credits = await getPersonCredits(personHits[0].id);
+    const credits = await getPersonRelevantCredits(
+      personHits[0].id,
+      personHits[0].known_for_department,
+    );
     return credits
       .filter(
         (c) =>

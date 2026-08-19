@@ -3,10 +3,23 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Loader2, Film, Tv, Sparkles, Search, Wand2, ArrowRight, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  Film,
+  Tv,
+  Sparkles,
+  Search,
+  Wand2,
+  ArrowRight,
+  Trash2,
+  Check,
+  Plus,
+} from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { formatTmdbScore, cn } from "@/lib/utils";
 import { RailScroller } from "@/components/rail-scroller";
+import { addTitle } from "@/lib/actions";
+import { toast } from "sonner";
 import {
   useAiConversation,
   type ChatResultItem,
@@ -38,12 +51,39 @@ export function AiChatPanel({
   const { turns, submit, reset } = useAiConversation();
   const router = useRouter();
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [adding, setAdding] = React.useState<Set<string>>(new Set());
+  const [added, setAdded] = React.useState<Set<string>>(new Set());
+
+  const addToUpNext = React.useCallback(async (item: ChatResultItem) => {
+    const key = `${item.media_type}-${item.id}`;
+    if (adding.has(key) || added.has(key)) return;
+    setAdding((current) => new Set(current).add(key));
+    try {
+      await addTitle({
+        tmdbId: item.id,
+        mediaType: item.media_type,
+        status: "want",
+      });
+      setAdded((current) => new Set(current).add(key));
+      toast.success(
+        `${item.title || item.name || "Title"} added to Up Next.`,
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Title could not be added.",
+      );
+    } finally {
+      setAdding((current) => {
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
+    }
+  }, [added, adding]);
 
   // Parent bumps `submitTick` whenever it wants us to submit the current
-  // query — Enter on the input, or clicking the AI Mode toggle while
-  // there's text. We initialise the ref to 0 (not the current submitTick)
-  // so that a *non-zero* submitTick at mount time triggers the auto-submit;
-  // that's the path used when the user clicks AI Mode with text in the box.
+  // query. We initialise the ref to 0 so an Ask opened with text can submit
+  // immediately on mount.
   const lastTickRef = React.useRef(0);
   React.useEffect(() => {
     if (submitTick === lastTickRef.current) return;
@@ -64,7 +104,7 @@ export function AiChatPanel({
   const isEmpty = turns.length === 0;
 
   return (
-    <div className="flex max-h-[70vh] min-h-[280px] flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       {!isEmpty && (
         <div className="flex justify-end border-b border-border/60 px-3 py-1.5">
           <button
@@ -82,11 +122,12 @@ export function AiChatPanel({
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
           <div className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
             <Sparkles className="h-3 w-3" />
-            <span>AI search</span>
+            <span>Ask</span>
           </div>
           <p className="text-sm text-muted-foreground">
             Describe what you&rsquo;re in the mood for. Press{" "}
-            <kbd className="font-mono">↵</kbd> to send. Follow-ups continue the thread — here or on the results page.
+            <kbd className="font-mono">↵</kbd> to send. You can keep asking
+            follow-ups here or on the results page.
           </p>
           {suggestions.length > 0 ? (
             <div className="flex max-w-md flex-wrap justify-center gap-1.5">
@@ -138,6 +179,13 @@ export function AiChatPanel({
                         }
                       : undefined
                   }
+                  onResultAdd={addToUpNext}
+                  isResultAdding={(item) =>
+                    adding.has(`${item.media_type}-${item.id}`)
+                  }
+                  isResultAdded={(item) =>
+                    added.has(`${item.media_type}-${item.id}`)
+                  }
                 />
               ),
             )}
@@ -161,12 +209,18 @@ export function UserBubble({ text }: { text: string }) {
 export function AssistantBubble({
   turn,
   onResultClick,
+  onResultAdd,
+  isResultAdding,
+  isResultAdded,
   onBrowse,
   hideResults = false,
   footerAction,
 }: {
   turn: AssistantTurn;
   onResultClick?: (item: ChatResultItem) => void;
+  onResultAdd?: (item: ChatResultItem) => void;
+  isResultAdding?: (item: ChatResultItem) => boolean;
+  isResultAdded?: (item: ChatResultItem) => boolean;
   /** Present only when this turn has browsable results — opens the full page. */
   onBrowse?: () => void;
   /** Page view shows the latest results as a grid below, so the per-turn rail + browse link are suppressed. */
@@ -234,7 +288,13 @@ export function AssistantBubble({
       )}
 
       {!hideResults && onResultClick && turn.results && turn.results.length > 0 && (
-        <ResultRail items={turn.results} onClick={onResultClick} />
+        <ResultRail
+          items={turn.results}
+          onClick={onResultClick}
+          onAdd={onResultAdd}
+          isAdding={isResultAdding}
+          isAdded={isResultAdded}
+        />
       )}
 
       {!hideResults && onBrowse && (
@@ -293,9 +353,15 @@ const RAIL_TYPES = [
 function ResultRail({
   items,
   onClick,
+  onAdd,
+  isAdding,
+  isAdded,
 }: {
   items: ChatResultItem[];
   onClick: (item: ChatResultItem) => void;
+  onAdd?: (item: ChatResultItem) => void;
+  isAdding?: (item: ChatResultItem) => boolean;
+  isAdded?: (item: ChatResultItem) => boolean;
 }) {
   const [type, setType] = React.useState<"" | "movie" | "tv">("");
   // Only offer the filter when a single answer actually mixes films and
@@ -338,40 +404,68 @@ function ResultRail({
           const year = date ? date.slice(0, 4) : "";
           const poster = posterUrl(item.poster_path, "w185");
           const score = formatTmdbScore(item.vote_average);
+          const pending = isAdding?.(item) ?? false;
+          const saved = isAdded?.(item) ?? false;
           return (
-            <button
+            <div
               key={`${item.media_type}-${item.id}`}
-              type="button"
-              onClick={() => onClick(item)}
               className="group flex w-[110px] shrink-0 snap-start flex-col items-start gap-1 text-left"
             >
-              <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-muted ring-1 ring-border transition-shadow group-hover:ring-primary/50">
-                {poster ? (
-                  <Image
-                    src={poster}
-                    alt={name}
-                    fill
-                    sizes="110px"
-                    className="object-cover transition-transform group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                    {item.media_type === "movie" ? (
-                      <Film className="h-5 w-5" />
-                    ) : (
-                      <Tv className="h-5 w-5" />
-                    )}
-                  </div>
-                )}
-              </div>
-              <span className="line-clamp-2 text-xs font-medium leading-tight text-foreground">
-                {name}
-              </span>
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                {year}
-                {score && <> · {score}</>}
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => onClick(item)}
+                className="w-full text-left"
+              >
+                <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-muted ring-1 ring-border transition-shadow group-hover:ring-primary/50">
+                  {poster ? (
+                    <Image
+                      src={poster}
+                      alt={name}
+                      fill
+                      sizes="110px"
+                      className="object-cover transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                      {item.media_type === "movie" ? (
+                        <Film className="h-5 w-5" />
+                      ) : (
+                        <Tv className="h-5 w-5" />
+                      )}
+                    </div>
+                  )}
+                </div>
+                <span className="mt-1 line-clamp-2 text-xs font-medium leading-tight text-foreground">
+                  {name}
+                </span>
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  {year}
+                  {score && <> · {score}</>}
+                </span>
+              </button>
+              {onAdd ? (
+                <button
+                  type="button"
+                  disabled={pending || saved}
+                  onClick={() => onAdd(item)}
+                  className={cn(
+                    "mt-1 inline-flex h-7 w-full items-center justify-center gap-1 rounded-lg border px-2 text-[10px] font-medium transition-[border-color,background-color,color,transform] active:scale-[0.97]",
+                    saved
+                      ? "border-primary/25 bg-primary/12 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/45 hover:text-primary",
+                  )}
+                >
+                  {pending ? (
+                    <Loader2 className="loading-spinner h-3 w-3" />
+                  ) : saved ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Plus className="h-3 w-3" />
+                  )}
+                  {pending ? "Adding" : "Up Next"}
+                </button>
+              ) : null}
+            </div>
           );
         })}
       </RailScroller>

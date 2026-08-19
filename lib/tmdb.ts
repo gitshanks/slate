@@ -51,7 +51,13 @@ export interface TmdbSearchResult {
   // person results (media_type === "person")
   profile_path?: string | null;
   known_for_department?: string;
-  known_for?: { id: number; title?: string; name?: string; media_type?: string }[];
+  known_for?: {
+    id: number;
+    title?: string;
+    name?: string;
+    media_type?: string;
+    genre_ids?: number[];
+  }[];
 }
 
 export interface TmdbMovieDetail {
@@ -332,6 +338,7 @@ export interface TmdbCombinedCredit {
   vote_count?: number;
   popularity: number;
   character?: string;
+  genre_ids?: number[];
   department?: string;
   job?: string;
 }
@@ -710,7 +717,10 @@ export async function getPersonDetail(id: number): Promise<TmdbPersonDetail> {
  */
 export async function getPersonCredits(id: number): Promise<TmdbCombinedCredit[]> {
   const res = await getPersonCombinedCredits(id);
-  return rankPersonCredits([...(res.cast ?? []), ...(res.crew ?? [])]);
+  return rankPersonCredits([
+    ...(res.cast ?? []).filter((credit) => !isNoisyActorCredit(credit)),
+    ...(res.crew ?? []),
+  ]);
 }
 
 interface TmdbPersonCombinedCredits {
@@ -753,12 +763,53 @@ function personCreditScore(credit: TmdbCombinedCredit): number {
   const popularity = Math.log1p(Math.max(0, credit.popularity ?? 0));
   const rating = Math.max(0, credit.vote_average ?? 0) * 0.15;
   const movieBias = credit.media_type === "movie" ? 0.35 : 0;
-  return votes + popularity + rating + movieBias;
+  // A named sketch role can be real acting even when TMDB classifies the
+  // series as News/Talk (notably SNL). Preserve it, but keep it below the
+  // scripted work people normally mean when they search an actor.
+  const noisyActingPenalty =
+    credit.character != null && isNoisyPersonTvGenre(credit) ? 9 : 0;
+  return votes + popularity + rating + movieBias - noisyActingPenalty;
 }
 
 function isSelfAppearance(credit: TmdbCombinedCredit): boolean {
-  return /\b(self|himself|herself|themself|archive footage|host|presenter|guest)\b/i.test(
-    credit.character ?? "",
+  const role = credit.character?.trim() ?? "";
+  return (
+    /^(self|himself|herself|themself|themselves)\b/i.test(role) ||
+    /\barchive footage\b/i.test(role)
+  );
+}
+
+const NOISY_ACTOR_TV_GENRES = new Set([
+  10763, // News
+  10764, // Reality
+  10767, // Talk
+]);
+
+export function isNoisyPersonTvGenre(credit: {
+  media_type?: string;
+  genre_ids?: number[];
+}): boolean {
+  return (
+    credit.media_type === "tv" &&
+    (credit.genre_ids ?? []).some((genreId) =>
+      NOISY_ACTOR_TV_GENRES.has(genreId),
+    )
+  );
+}
+
+function isNoisyActorCredit(credit: TmdbCombinedCredit): boolean {
+  if (isSelfAppearance(credit)) return true;
+  if (!isNoisyPersonTvGenre(credit)) return false;
+
+  // Talk, reality and news credits usually describe the person appearing as
+  // themselves. Drop blank/hosting-style roles, but keep named scripted or
+  // sketch characters and let the ranking penalty place them appropriately.
+  const role = credit.character?.trim() ?? "";
+  return (
+    !role ||
+    /\b(host|presenter|guest|interviewee|contestant|panelist|judge)\b/i.test(
+      role,
+    )
   );
 }
 
@@ -773,7 +824,7 @@ export async function getPersonRelevantCredits(
 ): Promise<TmdbCombinedCredit[]> {
   const res = await getPersonCombinedCredits(id);
   const department = knownForDepartment?.trim().toLocaleLowerCase();
-  const cast = (res.cast ?? []).filter((credit) => !isSelfAppearance(credit));
+  const cast = (res.cast ?? []).filter((credit) => !isNoisyActorCredit(credit));
   const departmentCrew = department
     ? (res.crew ?? []).filter(
         (credit) => credit.department?.trim().toLocaleLowerCase() === department,

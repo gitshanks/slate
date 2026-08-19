@@ -15,12 +15,13 @@ import {
   Loader2,
   Film,
   Tv,
-  Clock,
-  Eye,
   Check,
   Library,
   Sparkles,
+  ArrowLeft,
   ArrowUp,
+  ChevronDown,
+  Plus,
   Mic,
   Search,
 } from "lucide-react";
@@ -32,6 +33,12 @@ import type { TitleStatus } from "@/lib/supabase";
 import { AiChatPanel } from "@/components/ai-chat-panel";
 import { useSpeechRecognition } from "@/lib/use-speech-recognition";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SearchResult {
   id: number;
@@ -94,6 +101,16 @@ interface CommandPaletteContextValue {
 
 const Ctx = React.createContext<CommandPaletteContextValue | null>(null);
 
+const ADD_STATUSES: { value: TitleStatus; label: string }[] = [
+  { value: "want", label: "Up Next" },
+  { value: "watching", label: "Watching" },
+  { value: "watched", label: "Watched" },
+];
+
+function statusLabel(status: TitleStatus) {
+  return ADD_STATUSES.find((option) => option.value === status)?.label ?? "Saved";
+}
+
 export function useCommandPalette() {
   const v = React.useContext(Ctx);
   if (!v) throw new Error("useCommandPalette must be used inside CommandPaletteProvider");
@@ -110,6 +127,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [aiMode, setAiMode] = React.useState(false);
+  const [askReturnQuery, setAskReturnQuery] = React.useState("");
   const [results, setResults] = React.useState<SearchResult[]>([]);
   const [library, setLibrary] = React.useState<LibraryHit[]>([]);
   const [personMatch, setPersonMatch] = React.useState<PersonMatch | null>(null);
@@ -120,7 +138,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
   const [adding, setAdding] = React.useState<Set<string>>(new Set());
   const [justAdded, setJustAdded] = React.useState<Set<string>>(new Set());
-  // Bumped each time the user hits Enter in AI mode — picked up by AiChatPanel
+  // Bumped each time the user submits an Ask — picked up by AiChatPanel
   // to fire the next chat turn.
   const [submitTick, setSubmitTick] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -135,6 +153,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     librarySelectionRef.current = null;
     skipAutoFocusRef.current = false;
     setAiMode(false);
+    setAskReturnQuery("");
     setOpen(true);
   }, []);
 
@@ -145,6 +164,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       options.mode === "ask" && options.submit && initialQuery,
     );
     setQuery(initialQuery);
+    setAskReturnQuery(options.mode === "ask" ? initialQuery : "");
     setAiMode(options.mode === "ask");
     setOpen(true);
     if (options.mode === "ask" && options.submit && initialQuery) {
@@ -170,8 +190,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     router.push(`/search?q=${encodeURIComponent(q)}`);
   }, [query, router]);
 
-  // Mobile keyboard reliability: when the dialog opens (or AI mode toggles
-  // on), iOS sometimes doesn't surface the soft keyboard because cmdk's
+  // Mobile keyboard reliability: when the dialog opens (or Ask opens), iOS
+  // sometimes doesn't surface the soft keyboard because cmdk's
   // auto-focus runs after the user gesture. Explicitly focus the input on
   // open so the keyboard pops up reliably on phones.
   React.useEffect(() => {
@@ -187,12 +207,13 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     return () => window.clearTimeout(id);
   }, [open, aiMode]);
 
-  // Cmd+K / Ctrl+K toggles open. Cmd+Shift+K opens straight into AI mode.
+  // Cmd+K / Ctrl+K toggles open. Cmd+Shift+K opens straight into Ask.
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         if (e.shiftKey && aiEnabled) {
+          setAskReturnQuery(query.trim());
           setAiMode(true);
           setOpen(true);
         } else {
@@ -202,7 +223,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [aiEnabled]);
+  }, [aiEnabled, query]);
 
   // Reset transient *search* state when the palette closes — fresh open feels
   // fresh. The AI conversation deliberately persists (it lives in the shared
@@ -219,12 +240,12 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       setApproximate(false);
       setApproxQuery(null);
       setJustAdded(new Set());
+      setAskReturnQuery("");
       librarySelectionRef.current = null;
     }
   }, [open]);
 
-  // Standard-mode debounced search. Skipped entirely in AI mode — the chat
-  // panel owns its own request flow there.
+  // Debounced catalogue search. Skipped while Ask owns the surface.
   React.useEffect(() => {
     const request = ++standardSearchRequestRef.current;
     if (aiMode) {
@@ -276,8 +297,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     };
   }, [query, aiMode]);
 
-  // Live suggestion chips for the AI empty state. Only fetched while AI mode
-  // is active and there's no chat history (the panel renders chips itself).
+  // Live suggestion chips for an empty Ask. The panel renders them itself.
   React.useEffect(() => {
     if (!aiEnabled || !aiMode) {
       setSuggestions([]);
@@ -372,6 +392,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
           }));
         }
         setJustAdded((s) => new Set(s).add(key));
+        const name = item.title || item.name || "Title";
+        toast.success(`${name} added to ${statusLabel(status)}.`);
         // The Server Action revalidates the Library page and returns its
         // updated RSC payload in this same roundtrip. A second router.refresh
         // here used to repaint the entire app once more after every save.
@@ -390,14 +412,21 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     [adding, justAdded]
   );
 
-  // Enter in AI mode submits the input as a chat turn instead of letting
-  // cmdk navigate (which is moot anyway — there's no list to select from).
+  const startAsk = React.useCallback(() => {
+    if (!aiEnabled || !query.trim()) return;
+    setAskReturnQuery(query.trim());
+    setAiMode(true);
+    setSubmitTick((tick) => tick + 1);
+    inputRef.current?.blur();
+  }, [aiEnabled, query]);
+
+  // Enter in Ask submits the input as a chat turn instead of letting cmdk
+  // navigate (there is no command list in that state).
   // Blurring after submit dismisses the iOS soft keyboard so the user can
   // see the streaming response without manually tapping outside the input.
   // Desktop browsers don't show a soft keyboard so the blur is harmless
   // there — users can re-click to type a follow-up.
-  // Enter in AI mode submits the input as a chat turn instead of letting cmdk
-  // navigate. In standard mode cmdk handles Enter itself — it fires the
+  // In catalogue results, cmdk handles Enter itself — it fires the
   // highlighted row's onSelect, and the auto-highlighted row is "Search all
   // results", so a bare type-then-Enter opens the results page.
   const handleInputKeyDown = React.useCallback(
@@ -412,10 +441,9 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     [aiMode, query]
   );
 
-  // Mobile screens are narrow; long placeholders get clipped under the
-  // AI Mode pill + Send arrow buttons. Use a tight placeholder under the
-  // sm breakpoint and the descriptive one above it. We pick which on the
-  // client based on a media query to avoid hydration mismatch.
+  // Mobile screens are narrow; keep the prompt compact there while the
+  // desktop field can explain the full titles + people + natural-language
+  // search surface.
   const [isMobile, setIsMobile] = React.useState(false);
   React.useEffect(() => {
     const mq = window.matchMedia("(max-width: 639px)");
@@ -429,11 +457,11 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     ? "Listening…"
     : aiMode
       ? isMobile
-        ? "Ask…"
-        : "Ask — \"feel-good 90s rom-coms\", \"Nolan thrillers\"…"
+        ? "Ask anything…"
+        : "Ask about a title, person, or what to watch…"
       : isMobile
-        ? "Search titles or people…"
-        : "Search titles, people, or ask…";
+        ? "Find titles or people…"
+        : "Find titles, people, or describe what you want…";
   const heading = approximate
     ? `Approximate results${approxQuery ? ` for "${approxQuery}"` : ""}`
     : "Movies & shows";
@@ -453,88 +481,105 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     const savedTitle = saved[key];
     const isSaved = Boolean(savedTitle) || justAdded.has(key);
     const isAdding = adding.has(key);
+    const currentStatus = savedTitle?.status ?? (justAdded.has(key) ? "want" : null);
     const selectResult = () => {
       if (savedTitle) handleSavedTitleSelect(savedTitle);
       else handleSelect(result);
     };
 
     return (
-      <CommandItem
-        key={key}
-        value={key}
-        onSelect={selectResult}
-        onMouseDown={(event) => {
-          event.preventDefault();
-          selectResult();
-        }}
-        className="gap-3"
-      >
-        <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-muted">
-          {poster ? (
-            <Image
-              src={poster}
-              alt={name}
-              fill
-              className="object-cover"
-              sizes="44px"
-            />
-          ) : null}
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-medium text-foreground">
-            {name}
-          </span>
-          <span className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] uppercase text-muted-foreground">
-            {result.media_type === "movie" ? (
-              <Film className="h-3 w-3" />
-            ) : (
-              <Tv className="h-3 w-3" />
-            )}
-            {result.media_type}
-            {year ? <span>· {year}</span> : null}
-            {vote ? <span className="ml-1">{vote}</span> : null}
-          </span>
-        </div>
-        {isSaved ? (
-          <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-primary">
-            <Check className="h-3 w-3" />
-            Saved
-          </span>
-        ) : isAdding ? (
-          <span className="ml-auto inline-flex shrink-0 items-center">
-            <Loader2 className="loading-spinner h-3.5 w-3.5 text-muted-foreground" />
-          </span>
-        ) : (
-          <div
-            className="ml-auto inline-flex shrink-0 items-center gap-0.5"
-            onMouseDown={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-          >
-            {([
-              { status: "want" as const, icon: Clock, label: "Up Next" },
-              { status: "watching" as const, icon: Eye, label: "Watching" },
-              { status: "watched" as const, icon: Check, label: "Watched" },
-            ]).map(({ status, icon: Icon, label }) => (
-              <button
-                key={status}
-                type="button"
-                aria-label={`Add as ${label}`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  handleQuickAdd(result, status);
-                }}
-                className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-card px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-              >
-                <Icon className="h-3 w-3" />
-                <span className="hidden sm:inline">{label}</span>
-              </button>
-            ))}
+      <div key={key} className="relative">
+        <CommandItem
+          value={key}
+          onSelect={selectResult}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            selectResult();
+          }}
+          className="gap-3 pr-[7.75rem]"
+        >
+          <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-muted">
+            {poster ? (
+              <Image
+                src={poster}
+                alt={name}
+                fill
+                className="object-cover"
+                sizes="44px"
+              />
+            ) : null}
           </div>
-        )}
-      </CommandItem>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-sm font-medium text-foreground">
+              {name}
+            </span>
+            <span className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] uppercase text-muted-foreground">
+              {result.media_type === "movie" ? (
+                <Film className="h-3 w-3" />
+              ) : (
+                <Tv className="h-3 w-3" />
+              )}
+              {result.media_type}
+              {year ? <span>· {year}</span> : null}
+              {vote ? <span className="ml-1">{vote}</span> : null}
+            </span>
+          </div>
+        </CommandItem>
+
+        <div className="absolute right-2 top-1/2 z-10 -translate-y-1/2">
+          {isSaved ? (
+            <span className="inline-flex h-8 items-center gap-1 rounded-full bg-primary/15 px-2.5 text-[11px] font-medium text-primary">
+              <Check className="h-3 w-3" />
+              {statusLabel(currentStatus ?? "want")}
+            </span>
+          ) : (
+            <div className="inline-flex h-8 overflow-hidden rounded-full border border-primary/35 bg-primary/12 text-primary shadow-sm">
+              <button
+                type="button"
+                disabled={isAdding}
+                aria-label={`Add ${name} to Up Next`}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => handleQuickAdd(result, "want")}
+                className="inline-flex min-w-[5.35rem] items-center justify-center gap-1.5 px-2.5 text-[11px] font-medium transition-[background-color,transform] hover:bg-primary/12 active:scale-[0.97] disabled:cursor-wait"
+              >
+                {isAdding ? (
+                  <Loader2 className="loading-spinner h-3.5 w-3.5" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
+                <span>{isAdding ? "Adding" : "Up Next"}</span>
+              </button>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    disabled={isAdding}
+                    aria-label={`Choose where to add ${name}`}
+                    className="inline-flex w-8 items-center justify-center border-l border-primary/20 transition-[background-color,transform] hover:bg-primary/12 active:scale-[0.96] disabled:cursor-wait"
+                  >
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={6}
+                  className="z-[100] min-w-[9rem] rounded-xl border-border bg-popover p-1.5"
+                >
+                  {ADD_STATUSES.map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onSelect={() => handleQuickAdd(result, option.value)}
+                      className="h-9 rounded-lg px-3 text-xs"
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+        </div>
+      </div>
     );
   };
 
@@ -545,8 +590,10 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
         open={open}
         onOpenChange={setOpen}
         shouldFilter={false}
-        // Roomier in AI mode so the conversation has space to breathe.
-        contentClassName={aiMode ? "sm:max-w-2xl" : undefined}
+        preventOutsideDismiss
+        // One stable canvas: mobile gets a dedicated full-height surface,
+        // desktop keeps the same geometry across results and Ask.
+        contentClassName="h-[100dvh] rounded-none sm:h-[min(720px,calc(100dvh-2rem))] sm:max-w-2xl sm:rounded-2xl"
       >
         <div className="relative">
           <CommandInput
@@ -566,23 +613,12 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}
-            // Reserve space for the trailing buttons so they never overlap
-            // typed text. Mobile only ever shows one icon pill (~28px) at
-            // right-12 → left edge ~76px → pr-20 (80px) clears it with
-            // 4px buffer. Desktop in AI mode shows the labelled AI pill
-            // at right-24 (~96px wide → left edge ~192px) plus the Send
-            // arrow → pr-52 (208px). Desktop in search mode shows just
-            // the labelled pill at right-12 (left ~144px) → pr-40 (160px).
             className={cn(
               aiMode
-                ? "pr-20 sm:pr-52"
-                : aiEnabled
-                  ? voiceSupported
-                    ? "pr-28 sm:pr-44"
-                    : "pr-20 sm:pr-40"
-                  : voiceSupported
-                    ? "pr-20"
-                    : "pr-10",
+                ? "pr-20"
+                : voiceSupported
+                  ? "pr-20"
+                  : "pr-10",
             )}
           />
           {!aiMode && voiceSupported && (
@@ -594,10 +630,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
               onClick={toggleVoice}
               className={cn(
                 "absolute top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",
-                // Sits left of the AI Mode pill (right-12) when AI is enabled,
-                // otherwise takes the pill's spot — both clear the dialog's
-                // close-X at right-4.
-                aiEnabled ? "right-20 sm:right-[8.5rem]" : "right-12",
+                "right-12",
                 listening
                   ? "text-primary bg-primary/10 hover:bg-primary/15"
                   : "text-muted-foreground/70 hover:text-foreground hover:bg-accent"
@@ -606,60 +639,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
               <Mic className={cn("h-3.5 w-3.5", listening && "loading-breathe")} />
             </button>
           )}
-          {aiEnabled && (
-            <button
-              type="button"
-              aria-label={aiMode ? "Return to title search" : "Ask"}
-              aria-pressed={aiMode}
-              title={aiMode ? "Ask on · ⌘⇧K" : "Ask · ⌘⇧K"}
-              onClick={() => {
-                if (aiMode) {
-                  // Already on — toggle off.
-                  setAiMode(false);
-                  return;
-                }
-                // Turning on. If there's text in the input already, submit it
-                // as the first chat turn in the same gesture so the user
-                // doesn't have to also press Enter. Empty input → just enter
-                // AI mode and wait.
-                setAiMode(true);
-                if (query.trim()) {
-                  setSubmitTick((t) => t + 1);
-                  // Submitted via toggle — also dismiss the iOS keyboard.
-                  inputRef.current?.blur();
-                } else {
-                  // Empty input → keep focus so the user can type their
-                  // first chat message immediately.
-                  inputRef.current?.focus();
-                }
-              }}
-              // Sits clear of the dialog's close-X (right-4 top-4). On mobile
-              // the pill collapses to an icon-only square so it doesn't crowd
-              // the typed text + Send arrow. Desktop keeps the labelled pill.
-              className={cn(
-                "absolute top-1/2 -translate-y-1/2 inline-flex h-7 items-center justify-center rounded-md transition-colors",
-                // Mobile: icon-only square. Desktop: full pill with label.
-                "w-7 sm:w-auto sm:gap-1.5 sm:px-2 sm:text-[11px] sm:font-medium",
-                // Position: on mobile the Send arrow is hidden (the iOS
-                // keyboard's "go" key handles submit), so the AI Mode pill
-                // can sit at right-12 in both modes. On desktop in AI mode
-                // we shift left to leave room for the Send arrow.
-                aiMode ? "right-12 sm:right-24" : "right-12",
-                aiMode
-                  ? "text-primary bg-primary/10 hover:bg-primary/15"
-                  : "text-muted-foreground/70 hover:text-foreground hover:bg-accent"
-              )}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Ask</span>
-            </button>
-          )}
           {aiMode && (
-            // Desktop-only Send button. On mobile the iOS soft keyboard's
-            // "go" key (we set inputMode="search") already submits, so the
-            // arrow would just crowd the input. We hide it under the sm:
-            // breakpoint and shift the AI Mode pill back to its natural
-            // right-12 position there.
             <button
               type="button"
               aria-label="Send"
@@ -686,22 +666,38 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
         </div>
 
         {aiMode ? (
-          <AiChatPanel
-            query={query}
-            setQuery={setQuery}
-            suggestions={suggestions}
-            onClose={() => setOpen(false)}
-            submitTick={submitTick}
-          />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex items-center border-b border-border/60 px-3 py-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery(askReturnQuery);
+                  setAiMode(false);
+                }}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-[background-color,color,transform] hover:bg-accent hover:text-foreground active:scale-[0.97]"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Back to results
+              </button>
+            </div>
+            <AiChatPanel
+              query={query}
+              setQuery={setQuery}
+              suggestions={suggestions}
+              onClose={() => setOpen(false)}
+              submitTick={submitTick}
+            />
+          </div>
         ) : (
           <CommandList
             className={cn(
-              "max-h-[60vh]",
+              "max-h-none flex-1",
               query.trim().length >= 2 && "min-h-[220px]",
             )}
           >
-            {/* Auto-highlighted first row: Enter (with no other row chosen)
-                opens the full, browsable results page. */}
+            {/* Exact search stays the default Enter action. Ask lives in the
+                same surface as a contextual command, not a separate mode the
+                user has to turn on before typing. */}
             {query.trim().length >= 2 && (
               <CommandGroup>
                 <CommandItem
@@ -724,6 +720,27 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                     ↵
                   </kbd>
                 </CommandItem>
+                {aiEnabled ? (
+                  <CommandItem
+                    value="ask"
+                    onSelect={startAsk}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      startAsk();
+                    }}
+                    className="gap-3"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/12 text-primary">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                      Ask about{" "}
+                      <span className="font-medium">
+                        &ldquo;{query.trim()}&rdquo;
+                      </span>
+                    </span>
+                  </CommandItem>
+                ) : null}
               </CommandGroup>
             )}
             {loading && (
@@ -739,30 +756,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
               <CommandEmpty>No results.</CommandEmpty>
             )}
             {!loading && !query && (
-              <div className="px-4 py-10 text-center text-xs text-muted-foreground">
-                Search your slate, discover titles, or ask AI.
-                <br />
-                Press <kbd className="font-mono">↵</kbd> to see all results.
-                {aiEnabled && (
-                  <>
-                    <br />
-                    <span className="mt-1 hidden sm:inline-block opacity-70">
-                      <kbd className="font-mono">⌘⇧K</kbd> for AI search
-                    </span>
-                    {/* Mobile: kbd shortcut isn't reachable, so surface a tap target. */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAiMode(true);
-                        inputRef.current?.focus();
-                      }}
-                      className="mt-2 inline-flex sm:hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-[11px] text-muted-foreground"
-                    >
-                      <Sparkles className="h-3 w-3" />
-                      Ask
-                    </button>
-                  </>
-                )}
+              <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-xs leading-relaxed text-muted-foreground">
+                Find a title, search by cast, or describe what you want to watch.
               </div>
             )}
 

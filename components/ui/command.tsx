@@ -24,12 +24,30 @@ interface CommandDialogProps extends DialogProps {
   shouldFilter?: boolean
   /** Override the dialog max-width / sizing — e.g. wider when in chat mode. */
   contentClassName?: string
+  /** Keep the command surface open when the backdrop is pressed. */
+  preventOutsideDismiss?: boolean
 }
 
-const CommandDialog = ({ children, shouldFilter, contentClassName, ...props }: CommandDialogProps) => {
+const CommandDialog = ({
+  children,
+  shouldFilter,
+  contentClassName,
+  preventOutsideDismiss = false,
+  ...props
+}: CommandDialogProps) => {
   return (
     <Dialog {...props}>
       <DialogContent
+        onPointerDownOutside={
+          preventOutsideDismiss
+            ? (event) => event.preventDefault()
+            : undefined
+        }
+        onInteractOutside={
+          preventOutsideDismiss
+            ? (event) => event.preventDefault()
+            : undefined
+        }
         className={cn(
           "overflow-hidden p-0 shadow-lg rounded-t-none rounded-b-2xl sm:top-4 sm:translate-y-0 sm:max-w-xl sm:rounded-2xl",
           contentClassName
