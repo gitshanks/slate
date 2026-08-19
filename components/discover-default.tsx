@@ -16,7 +16,12 @@ export async function DiscoverDefault() {
   );
 
   return (
-    <div className={cn("pb-8", LIBRARY_CONTENT_GUTTER_CLASS_NAME)}>
+    <div
+      className={cn(
+        "pb-28 md:pb-8",
+        LIBRARY_CONTENT_GUTTER_CLASS_NAME,
+      )}
+    >
       <header>
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
           Discover

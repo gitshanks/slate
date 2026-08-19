@@ -93,28 +93,15 @@ export function BottomNav() {
             "max(0.75rem, calc(env(safe-area-inset-right) + 0.5rem))",
         }}
       >
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-2 z-0 rounded-full"
-          style={{
-            insetInlineStart:
-              "max(0.75rem, calc(env(safe-area-inset-left) + 0.5rem))",
-            insetInlineEnd:
-              "max(0.75rem, calc(env(safe-area-inset-right) + 0.5rem))",
-            // A single shared compositor layer gives both pieces the same
-            // poster diffusion while the transparent gap stays unpainted.
-            WebkitBackdropFilter: "blur(10px) saturate(1.08)",
-            backdropFilter: "blur(10px) saturate(1.08)",
-          }}
-        />
-
         <ul
-          className="pointer-events-auto relative z-10 grid min-w-0 grid-cols-3 rounded-full border border-foreground/[0.12] bg-background/[0.58] p-1 ring-1 ring-foreground/[0.05]"
+          className="pointer-events-auto relative z-10 grid min-w-0 grid-cols-3 overflow-hidden rounded-full border border-foreground/[0.12] bg-background/[0.58] p-1 ring-1 ring-foreground/[0.05]"
           style={{
             background:
               "linear-gradient(180deg, hsl(var(--foreground) / 0.12) 0%, hsl(var(--foreground) / 0.035) 42%, transparent 72%), hsl(var(--background) / 0.58)",
             boxShadow:
               "0 18px 42px -28px rgb(0 0 0 / 0.9), inset 0 1px 0 hsl(var(--foreground) / 0.14), inset 0 -1px 0 hsl(var(--background) / 0.55)",
+            WebkitBackdropFilter: "blur(8px) saturate(1.08)",
+            backdropFilter: "blur(8px) saturate(1.08)",
           }}
         >
           {TABS.map((t) => {
@@ -173,6 +160,8 @@ export function BottomNav() {
               "linear-gradient(180deg, hsl(var(--foreground) / 0.16) 0%, hsl(var(--foreground) / 0.035) 43%, transparent 72%), radial-gradient(circle at 50% 112%, hsl(var(--primary) / 0.38), transparent 68%), hsl(var(--background) / 0.54)",
             boxShadow:
               "0 16px 34px -22px hsl(var(--primary) / 0.75), inset 0 1px 0 hsl(var(--foreground) / 0.18), inset 0 -1px 0 hsl(var(--background) / 0.56)",
+            WebkitBackdropFilter: "blur(8px) saturate(1.08)",
+            backdropFilter: "blur(8px) saturate(1.08)",
           }}
         >
           <span
