@@ -667,8 +667,8 @@ export function LibraryCollectionView({
                   if (matches[0]) selectSearchResult(matches[0]);
                   else openExpandedSearch("search");
                 }}
-                placeholder="Search titles, people, or ask slate"
-                aria-label="Search your slate, discover titles, or ask slate"
+                placeholder="Search titles, people, or ask"
+                aria-label="Search your slate, discover titles, or ask"
                 className={cn(
                   "h-10 w-full appearance-none rounded-2xl border border-border bg-foreground/[0.065] pl-4 text-sm text-foreground outline-none transition-[border-color,background-color] duration-150 placeholder:text-muted-foreground focus:border-primary/55 focus:bg-foreground/[0.09] sm:rounded-full [&::-webkit-search-cancel-button]:hidden",
                   aiEnabled
@@ -700,10 +700,10 @@ export function LibraryCollectionView({
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => openExpandedSearch("ask")}
                     className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-foreground/[0.075] text-muted-foreground transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.97] min-[1400px]:w-auto min-[1400px]:gap-1.5 min-[1400px]:px-2.5 min-[1400px]:text-[11px] min-[1400px]:font-medium"
-                    aria-label="Ask slate"
+                    aria-label="Ask"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    <span className="hidden min-[1400px]:inline">Ask slate</span>
+                    <span className="hidden min-[1400px]:inline">Ask</span>
                   </button>
                 ) : null}
                 <button
@@ -759,7 +759,7 @@ export function LibraryCollectionView({
                         className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-muted-foreground transition-[color,background-color,transform] duration-150 hover:bg-accent hover:text-primary active:scale-[0.99]"
                       >
                         <span className="truncate">
-                          Ask slate about &ldquo;{query.trim()}&rdquo;
+                          Ask about &ldquo;{query.trim()}&rdquo;
                         </span>
                         <Sparkles className="h-3.5 w-3.5 shrink-0" />
                       </button>

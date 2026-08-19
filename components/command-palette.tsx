@@ -429,11 +429,11 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     ? "Listening…"
     : aiMode
       ? isMobile
-        ? "Ask slate…"
-        : "Ask slate — \"feel-good 90s rom-coms\", \"Nolan thrillers\"…"
+        ? "Ask…"
+        : "Ask — \"feel-good 90s rom-coms\", \"Nolan thrillers\"…"
       : isMobile
         ? "Search titles or people…"
-        : "Search titles, people, or ask slate…";
+        : "Search titles, people, or ask…";
   const heading = approximate
     ? `Approximate results${approxQuery ? ` for "${approxQuery}"` : ""}`
     : "Movies & shows";
@@ -609,9 +609,9 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
           {aiEnabled && (
             <button
               type="button"
-              aria-label={aiMode ? "Return to title search" : "Ask slate"}
+              aria-label={aiMode ? "Return to title search" : "Ask"}
               aria-pressed={aiMode}
-              title={aiMode ? "Ask slate on · ⌘⇧K" : "Ask slate · ⌘⇧K"}
+              title={aiMode ? "Ask on · ⌘⇧K" : "Ask · ⌘⇧K"}
               onClick={() => {
                 if (aiMode) {
                   // Already on — toggle off.
@@ -651,7 +651,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
               )}
             >
               <Sparkles className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Ask slate</span>
+              <span className="hidden sm:inline">Ask</span>
             </button>
           )}
           {aiMode && (
@@ -759,7 +759,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
                       className="mt-2 inline-flex sm:hidden items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-[11px] text-muted-foreground"
                     >
                       <Sparkles className="h-3 w-3" />
-                      Ask slate
+                      Ask
                     </button>
                   </>
                 )}
