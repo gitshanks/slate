@@ -84,19 +84,6 @@ export function BottomNav() {
       }}
     >
       <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-10 bottom-0 -z-10 overflow-hidden"
-      >
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to top, hsl(var(--background) / 1) 0%, hsl(var(--background) / 0.94) 48%, hsl(var(--background) / 0.62) 72%, hsl(var(--background) / 0) 100%)",
-          }}
-        />
-      </div>
-
-      <div
         className="mx-auto grid h-[76px] w-full max-w-[430px] grid-cols-[minmax(0,1fr)_60px] gap-2.5 py-2"
         style={{
           paddingInlineStart:
