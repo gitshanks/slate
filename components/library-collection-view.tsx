@@ -76,7 +76,6 @@ const STATUS_OPTIONS = [
 interface LibraryCollectionViewProps {
   titles: TitleRow[];
   displayName: string;
-  username: string | null;
   avatarUrl: string | null;
   lists: { id: string; name: string }[];
 }
@@ -330,7 +329,6 @@ function SmoothShelfResults({
 export function LibraryCollectionView({
   titles,
   displayName,
-  username,
   avatarUrl,
   lists,
 }: LibraryCollectionViewProps) {
@@ -572,7 +570,7 @@ export function LibraryCollectionView({
           <Link
             href={APP_ROOT}
             aria-label="slate home"
-            className="col-start-1 row-start-1 inline-flex items-center pl-0.5 outline-none transition-opacity hover:opacity-82 focus-visible:ring-1 focus-visible:ring-primary/60 md:hidden"
+            className="col-start-1 row-start-1 inline-flex items-center pl-0.5 outline-none transition-opacity hover:opacity-82 focus-visible:ring-1 focus-visible:ring-primary/60"
           >
             <Image
               src="/brand/logo-light.svg"
@@ -590,33 +588,6 @@ export function LibraryCollectionView({
               loading="eager"
               className="dark:hidden"
             />
-          </Link>
-
-          <Link
-            href="/profile"
-            className="col-start-1 row-start-1 hidden min-w-0 items-center gap-1.5 rounded-full pl-0.5 outline-none transition-opacity hover:opacity-82 focus-visible:ring-1 focus-visible:ring-primary/60 md:flex lg:gap-2.5 xl:justify-self-start"
-          >
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="h-8 w-8 shrink-0 rounded-full border border-border object-cover lg:h-9 lg:w-9"
-              />
-            ) : (
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-border bg-foreground/[0.07] text-[11px] font-semibold text-foreground/72 lg:h-9 lg:w-9 lg:text-xs">
-                {displayName.slice(0, 1).toLocaleUpperCase()}
-              </span>
-            )}
-            <span className="min-w-0 leading-none md:max-lg:hidden">
-              <span className="block truncate text-[13px] font-semibold tracking-[-0.02em] text-foreground lg:text-sm">
-                {username ? <>{displayName}&rsquo;s slate</> : "Your slate"}
-              </span>
-              <span className="mt-1 block truncate font-mono text-[9px] tracking-[0.08em] text-muted-foreground">
-                {username ? `@${username}` : "Your library"}
-              </span>
-            </span>
           </Link>
 
           <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">

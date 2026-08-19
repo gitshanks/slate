@@ -63,7 +63,6 @@ export default async function LibraryPage() {
     <LibraryCollectionView
       titles={titles}
       displayName={profile?.display_name || "You"}
-      username={profile?.username ?? null}
       avatarUrl={profile ? profileAvatarUrl(profile) : null}
       lists={lists}
     />
