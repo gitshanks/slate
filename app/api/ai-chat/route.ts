@@ -184,6 +184,41 @@ export async function POST(request: Request) {
               typeof value.overview === "string"
                 ? value.overview.trim().slice(0, 320)
                 : "",
+            result_origin:
+              value.result_origin === "saved_library" ||
+              value.result_origin === "history_discovery" ||
+              value.result_origin === "catalogue_discovery"
+                ? value.result_origin
+                : undefined,
+            library_status:
+              value.library_status === "want" ||
+              value.library_status === "watching" ||
+              value.library_status === "watched" ||
+              value.library_status === "dropped"
+                ? value.library_status
+                : undefined,
+            runtime:
+              typeof value.runtime === "number" &&
+              Number.isFinite(value.runtime)
+                ? Math.max(0, Math.min(600, Math.round(value.runtime)))
+                : null,
+            genres: Array.isArray(value.genres)
+              ? value.genres
+                  .filter((genre): genre is string => typeof genre === "string")
+                  .map((genre) => genre.trim().slice(0, 40))
+                  .filter(Boolean)
+                  .slice(0, 4)
+              : [],
+            current_season:
+              typeof value.current_season === "number" &&
+              Number.isFinite(value.current_season)
+                ? Math.max(0, Math.min(100, Math.round(value.current_season)))
+                : null,
+            current_episode:
+              typeof value.current_episode === "number" &&
+              Number.isFinite(value.current_episode)
+                ? Math.max(0, Math.min(10_000, Math.round(value.current_episode)))
+                : null,
           };
         })
         .filter(

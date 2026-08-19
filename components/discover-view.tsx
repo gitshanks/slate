@@ -11,6 +11,11 @@ import { RailScroller } from "@/components/rail-scroller";
 import { TmdbTile } from "@/components/tmdb-tile";
 import type { TmdbMediaResult } from "@/lib/tmdb";
 
+type ConversationMediaResult = TmdbMediaResult & {
+  library_id?: string;
+  library_status?: "want" | "watching" | "watched" | "dropped";
+};
+
 /**
  * The /discover view. When a live AI conversation exists in the shared store
  * (arrived via "Browse all"), it renders the thread + the latest answer's
@@ -68,12 +73,15 @@ export function DiscoverView({
   );
 }
 
-function lastResults(turns: ChatTurn[]): TmdbMediaResult[] {
+function lastResults(turns: ChatTurn[]): ConversationMediaResult[] {
   for (let i = turns.length - 1; i >= 0; i--) {
     const t = turns[i];
     if (t.role === "assistant" && t.results && t.results.length > 0) {
       // ChatResultItem lacks backdrop_path; TmdbTile doesn't use it, so null is fine.
-      return t.results.map((r) => ({ ...r, backdrop_path: null })) as TmdbMediaResult[];
+      return t.results.map((r) => ({
+        ...r,
+        backdrop_path: null,
+      })) as ConversationMediaResult[];
     }
   }
   return [];
@@ -207,6 +215,9 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
 
   const title = turns.find((t) => t.role === "user")?.content ?? "AI search";
   const media = lastResults(turns);
+  const savedMediaIds = media
+    .filter((item) => Boolean(item.library_id))
+    .map((item) => item.id);
 
   const send = () => {
     const v = input.trim();
@@ -239,7 +250,12 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
           <div className="-mr-4 shrink-0 pb-3">
             <RailScroller>
               {media.map((m) => (
-                <TmdbTile key={`${m.media_type}-${m.id}`} item={m} variant="rail" />
+                <TmdbTile
+                  key={`${m.media_type}-${m.id}`}
+                  item={m}
+                  variant="rail"
+                  saved={Boolean(m.library_id)}
+                />
               ))}
             </RailScroller>
           </div>
@@ -264,7 +280,12 @@ function ConversationView({ turns }: { turns: ChatTurn[] }) {
         </div>
         <div className="min-w-0 lg:flex-1">
           {media.length > 0 ? (
-            <SearchResults library={[]} media={media} people={[]} savedTmdbIds={[]} />
+            <SearchResults
+              library={[]}
+              media={media}
+              people={[]}
+              savedTmdbIds={savedMediaIds}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">No results for this turn.</p>
           )}

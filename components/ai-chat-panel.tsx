@@ -162,10 +162,17 @@ export function AiChatPanel({
                   turn={turn}
                   onResultClick={(item) => {
                     onClose();
-                    router.push(`/discover/${item.media_type}/${item.id}`);
+                    router.push(
+                      item.library_id
+                        ? `/title/${item.library_id}`
+                        : `/discover/${item.media_type}/${item.id}`,
+                    );
                   }}
                   onBrowse={
-                    turn.intent && turn.results && turn.results.length > 0
+                    turn.intent &&
+                    turn.intent.result_origin !== "saved_library" &&
+                    turn.results &&
+                    turn.results.length > 0
                       ? () => {
                           onClose();
                           const prev = turns[i - 1];
@@ -178,7 +185,11 @@ export function AiChatPanel({
                         }
                       : undefined
                   }
-                  onResultAdd={addToUpNext}
+                  onResultAdd={
+                    turn.intent?.result_origin === "saved_library"
+                      ? undefined
+                      : addToUpNext
+                  }
                   isResultAdding={(item) =>
                     adding.has(`${item.media_type}-${item.id}`)
                   }
@@ -331,6 +342,9 @@ function browseUrl(intent: SearchIntent, title: string): string {
 }
 
 function summarizeIntent(intent: SearchIntent): string {
+  if (intent.result_origin === "saved_library" && intent.interpretation) {
+    return intent.interpretation;
+  }
   const parts: string[] = [];
   if (intent.media_type !== "both") parts.push(intent.media_type === "movie" ? "movies" : "TV");
   if (intent.genres.length > 0) parts.push(intent.genres.slice(0, 3).join(", "));
@@ -340,7 +354,9 @@ function summarizeIntent(intent: SearchIntent): string {
   if (intent.sort_by === "rating") parts.push("highly rated");
   if (intent.sort_by === "recent") parts.push("recent");
   if (intent.query_text) parts.push(`"${intent.query_text}"`);
-  return parts.length > 0 ? parts.join(" · ") : "broad search";
+  return parts.length > 0
+    ? parts.join(" · ")
+    : intent.interpretation || "broad search";
 }
 
 const RAIL_TYPES = [
@@ -463,6 +479,14 @@ function ResultRail({
                   )}
                   {pending ? "Adding" : "Up Next"}
                 </button>
+              ) : item.library_status ? (
+                <span className="mt-1 text-[10px] font-medium text-primary">
+                  {item.library_status === "want"
+                    ? "Up Next"
+                    : item.library_status === "watching"
+                      ? "Watching"
+                      : "Watched"}
+                </span>
               ) : null}
             </div>
           );

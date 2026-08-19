@@ -38,8 +38,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 : null
             }
           />
-          <AppScrollArea>{children}</AppScrollArea>
-          <BottomNav />
+          <div className="relative grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] [grid-template-areas:'app-stack'] md:contents">
+            <AppScrollArea>{children}</AppScrollArea>
+            <BottomNav />
+          </div>
         </div>
       </CommandPaletteProvider>
     </AiConversationProvider>

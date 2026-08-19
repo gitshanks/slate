@@ -14,6 +14,10 @@ export interface SearchIntent {
   sort_by: "popularity" | "rating" | "recent" | null;
   min_rating: number | null;
   interpretation: string;
+  result_origin?:
+    | "saved_library"
+    | "history_discovery"
+    | "catalogue_discovery";
 }
 
 export interface ChatResultItem {
@@ -26,6 +30,12 @@ export interface ChatResultItem {
   first_air_date?: string;
   vote_average?: number;
   overview?: string;
+  library_id?: string;
+  library_status?: "want" | "watching" | "watched" | "dropped";
+  runtime?: number | null;
+  genre_names?: string[];
+  current_season?: number | null;
+  current_episode?: number | null;
 }
 
 export interface UserTurn {
@@ -223,6 +233,12 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
                         ? item.vote_average
                         : null,
                     overview: (item.overview || "").slice(0, 320),
+                    result_origin: activeAssistant.intent?.result_origin,
+                    library_status: item.library_status,
+                    runtime: item.runtime,
+                    genres: item.genre_names,
+                    current_season: item.current_season,
+                    current_episode: item.current_episode,
                   })),
                 }
               : null,

@@ -14,6 +14,12 @@ import {
   type TmdbMediaResult,
 } from "@/lib/tmdb";
 import {
+  getLibraryPicks,
+  libraryResultSummary,
+  type LibraryPickStatus,
+} from "@/lib/ai-library";
+import type { TitleStatus } from "@/lib/types";
+import {
   AI_PROVIDER,
   ANTHROPIC_MODEL,
   getAnthropic,
@@ -40,6 +46,12 @@ export interface ChatContextResult {
   year: string;
   vote_average: number | null;
   overview: string;
+  result_origin?: "saved_library" | "history_discovery" | "catalogue_discovery";
+  library_status?: TitleStatus;
+  runtime?: number | null;
+  genres?: string[];
+  current_season?: number | null;
+  current_episode?: number | null;
 }
 
 export interface ChatContext {
@@ -47,13 +59,22 @@ export interface ChatContext {
   results: ChatContextResult[];
 }
 
+export type AiChatResult = TmdbMediaResult & {
+  library_id?: string;
+  library_status?: TitleStatus;
+  runtime?: number | null;
+  genre_names?: string[];
+  current_season?: number | null;
+  current_episode?: number | null;
+};
+
 export type ChatEvent =
   | { type: "text"; delta: string }
   | { type: "search_start" }
   | {
       type: "search_result";
       intent: SearchIntent;
-      results: TmdbMediaResult[];
+      results: AiChatResult[];
     }
   | { type: "done" }
   | { type: "error"; message: string };
@@ -145,11 +166,11 @@ const SIMILAR_TOOL_NAME = "find_similar";
 const SIMILAR_TOOL_DESCRIPTION =
   "Find titles similar to a SPECIFIC named show or movie. Use this whenever the user says 'like X', 'similar to X', 'something like X', 'more X', etc. Returns curated recommendations from the catalogue, NOT generic genre matches.";
 
-const LIBRARY_TOOL_NAME = "recommend_from_library";
-const LIBRARY_TOOL_DESCRIPTION =
-  "Recommend titles personalised to the user's existing watchlist. Use this WHENEVER the user mentions 'my library', 'based on what I've watched', 'something I'd like', 'recommend me a show', 'what should I watch', or any personalised request. The tool reads the user's actual watched titles in slate and surfaces TMDB-curated recommendations linked to those, ranked by co-occurrence so titles surfaced by multiple of their favourites float to the top.";
+const HISTORY_TOOL_NAME = "recommend_for_you";
+const HISTORY_TOOL_DESCRIPTION =
+  "Discover NEW titles that are not already saved, personalised from the user's watched history. Use only for requests such as 'based on what I've watched', 'something new I'd like', or 'recommend something outside my library'. Never use this to choose a title already in the user's library.";
 
-// Schema for `recommend_from_library` — no required args, just an optional
+// Schema for `recommend_for_you` — no required args, just an optional
 // media type filter. The whole point of this tool is that it works WITHOUT
 // the model having to guess what the user has watched.
 const LIBRARY_TOOL_PARAMETERS = {
@@ -165,6 +186,38 @@ const LIBRARY_TOOL_PARAMETERS = {
   required: [],
 };
 
+const PICK_LIBRARY_TOOL_NAME = "pick_from_library";
+const PICK_LIBRARY_TOOL_DESCRIPTION =
+  "Choose from titles the signed-in user has ALREADY saved in slate. Use for 'from my library', 'from my watchlist', 'from Up Next', 'something I saved', 'what should I watch today?', 'pick for tonight', 'continue a show', or a rewatch request. Defaults to Up Next and Watching; only include Watched when the user explicitly asks to rewatch.";
+
+const PICK_LIBRARY_TOOL_PARAMETERS = {
+  type: "object" as const,
+  properties: {
+    media_type: {
+      type: "string",
+      enum: ["movie", "tv", "both"],
+      description: "Restrict saved candidates to movies or TV. Default 'both'.",
+    },
+    statuses: {
+      type: "array",
+      items: { type: "string", enum: ["up_next", "watching", "watched"] },
+      description:
+        "Which saved sections to choose from. Default ['up_next','watching']. Use ['watching'] for continue requests and ['watched'] only for explicit rewatches.",
+    },
+    genres: {
+      type: "array",
+      items: { type: "string" },
+      description: "Optional genre names that must match the saved title.",
+    },
+    max_runtime_minutes: {
+      type: "integer",
+      description:
+        "Optional maximum runtime in minutes, such as 120 for 'under two hours'. Omit when unspecified.",
+    },
+  },
+  required: [],
+};
+
 const CHAT_SYSTEM = `You are slate, a thoughtful film and TV companion inside a personal watchlist app. Talk like a perceptive friend with real taste, not a search form or a customer-support bot.
 
 Decide what the turn needs:
@@ -174,13 +227,15 @@ Decide what the turn needs:
 - If one missing preference would materially change the answer, ask one short clarification instead of guessing.
 
 Choose tools carefully:
-- "based on my library", "what should I watch", "recommend me something", or "something I'd like" → use \`recommend_from_library\`.
+- "from/in/on my library", "from my slate/watchlist", "from Up Next", "something I saved", "what should I watch today?", "pick for tonight", or "continue something" → use \`pick_from_library\`. These results are already saved.
+- "based on what I've watched/loved", "something new I'd like", or "recommend something outside my library" → use \`recommend_for_you\`. These results are new and unsaved.
 - "like X", "similar to X", or "more like X" where X is explicitly a movie or show → use \`find_similar\`.
 - A bare actor, director, writer, or creator name always uses \`search_titles\`, with that exact name in \`query_text\`. Never treat a person's name as a seed title.
 - Genre, era, mood, keyword, cast, creator, or general discovery requests use \`search_titles\`.
 
 Recommendation grounding:
 - When recommending titles or describing what is in slate, only name titles present in the current tool result or ACTIVE SLATE RESULTS.
+- For \`pick_from_library\`, use status, runtime, genres, rating, overview, and saved TV progress to make a decisive choice. Never tell the user to add those titles; they are already saved. If no saved candidates match, say so plainly and offer to discover something new instead of substituting catalogue results.
 - Use the supplied year, rating, and overview for specific reasoning. Do not invent why a result fits.
 - Never rationalise an obviously wrong entity or unrelated result. Correct the lookup or ask a concise clarification.
 - General conversation and factual film discussion may use your broader knowledge. Be candid when a fact may be uncertain or current.
@@ -261,7 +316,7 @@ function isAbortError(error: unknown): boolean {
 
 interface ToolResult {
   intent: SearchIntent;
-  results: TmdbMediaResult[];
+  results: AiChatResult[];
   /** Compact string the model gets back as the tool result. */
   summary: string;
 }
@@ -272,12 +327,14 @@ async function executeTool(
   rawArgs: Record<string, unknown>,
 ): Promise<ToolResult> {
   if (name === SIMILAR_TOOL_NAME) return executeFindSimilar(rawArgs);
-  if (name === LIBRARY_TOOL_NAME) return executeRecommendFromLibrary(rawArgs);
-  return executeSearchTitles(rawArgs);
+  if (name === PICK_LIBRARY_TOOL_NAME) return executePickFromLibrary(rawArgs);
+  if (name === HISTORY_TOOL_NAME) return executeRecommendForYou(rawArgs);
+  if (name === SEARCH_TOOL_NAME) return executeSearchTitles(rawArgs);
+  throw new Error(`Unknown AI tool: ${name}`);
 }
 
 /**
- * `recommend_from_library` — reads the user's watched titles from supabase
+ * `recommend_for_you` — reads the user's watched titles from supabase
  * and asks TMDB for curated recommendations linked to each. This is the
  * personalised path; without it the model used to fall back to generic
  * popular TV (Law & Order, The Rookie…) for "what should I watch".
@@ -285,7 +342,7 @@ async function executeTool(
  * Falls back to discover('popular') if the user has no watched titles, so
  * the rail is never empty.
  */
-async function executeRecommendFromLibrary(
+async function executeRecommendForYou(
   rawArgs: Record<string, unknown>,
 ): Promise<ToolResult> {
   const mt = rawArgs.media_type;
@@ -300,7 +357,8 @@ async function executeRecommendFromLibrary(
     query_text: null,
     sort_by: null,
     min_rating: null,
-    interpretation: "based on your library",
+    interpretation: "new picks based on what you watched",
+    result_origin: "history_discovery",
   };
 
   let recs = await getRecommendedFromWatched();
@@ -333,6 +391,84 @@ async function executeRecommendFromLibrary(
   };
 }
 
+/** Choose among titles already saved by the current library owner. */
+async function executePickFromLibrary(
+  rawArgs: Record<string, unknown>,
+): Promise<ToolResult> {
+  const mt = rawArgs.media_type;
+  const mediaType: "movie" | "tv" | "both" =
+    mt === "movie" || mt === "tv" ? mt : "both";
+
+  const rawStatuses = Array.isArray(rawArgs.statuses)
+    ? rawArgs.statuses
+    : typeof rawArgs.status === "string"
+      ? [rawArgs.status]
+      : [];
+  const statuses = Array.from(
+    new Set(
+      rawStatuses.filter(
+        (status): status is LibraryPickStatus =>
+          status === "up_next" || status === "watching" || status === "watched",
+      ),
+    ),
+  );
+  if (statuses.length === 0) statuses.push("up_next", "watching");
+
+  const genres = Array.isArray(rawArgs.genres)
+    ? rawArgs.genres
+        .filter((genre): genre is string => typeof genre === "string")
+        .map((genre) => genre.trim())
+        .filter(Boolean)
+        .slice(0, 3)
+    : [];
+  const maxRuntimeMinutes =
+    typeof rawArgs.max_runtime_minutes === "number" &&
+    Number.isFinite(rawArgs.max_runtime_minutes)
+      ? Math.max(20, Math.min(360, Math.round(rawArgs.max_runtime_minutes)))
+      : null;
+
+  const picked = await getLibraryPicks({
+    mediaType,
+    statuses,
+    genres,
+    maxRuntimeMinutes,
+  });
+  const statusLabel = statuses
+    .map((status) =>
+      status === "up_next"
+        ? "Up Next"
+        : status === "watching"
+          ? "Watching"
+          : "Watched",
+    )
+    .join(" and ");
+  const constraints = [
+    mediaType === "movie" ? "movies" : mediaType === "tv" ? "series" : null,
+    genres.length > 0 ? genres.join(", ") : null,
+    maxRuntimeMinutes !== null ? `under ${maxRuntimeMinutes} minutes` : null,
+  ].filter(Boolean);
+
+  const intent: SearchIntent = {
+    media_type: mediaType,
+    genres,
+    year_min: null,
+    year_max: null,
+    query_text: null,
+    sort_by: null,
+    min_rating: null,
+    interpretation: `from your ${statusLabel}${
+      constraints.length > 0 ? ` · ${constraints.join(" · ")}` : ""
+    }`,
+    result_origin: "saved_library",
+  };
+
+  return {
+    intent,
+    results: picked.results,
+    summary: libraryResultSummary(picked),
+  };
+}
+
 /**
  * `find_similar` — for "shows like X" queries. Resolves the user's named
  * title to a TMDB ID via search, then asks TMDB for its curated
@@ -355,6 +491,7 @@ async function executeFindSimilar(
     sort_by: null,
     min_rating: null,
     interpretation: title ? `similar to ${title}` : "",
+    result_origin: "catalogue_discovery",
   };
 
   if (!title) return { intent, results: [], summary: "(no title provided)" };
@@ -916,6 +1053,7 @@ function normalizeIntent(raw: Record<string, unknown>): SearchIntent {
     sort_by: sortBy,
     min_rating: minRating,
     interpretation: "",
+    result_origin: "catalogue_discovery",
   };
 }
 
@@ -929,6 +1067,12 @@ function activeResultsInstruction(context?: ChatContext | null): string | null {
       year: result.year,
       rating: result.vote_average,
       overview: result.overview,
+      origin: result.result_origin,
+      library_status: result.library_status,
+      runtime_minutes: result.runtime,
+      genres: result.genres,
+      current_season: result.current_season,
+      current_episode: result.current_episode,
     })),
   )}\n</slate-active-results>`;
 }
@@ -986,7 +1130,7 @@ function shouldRequireRetrieval(messages: ChatMessage[]): boolean {
   // Clear requests for options should always be grounded, including refined
   // follow-ups. This replaces the previous "first turn only" heuristic.
   if (
-    /\b(recommend|recommendation|suggest|find|what should i watch|watch next|something to watch|similar to|more like|different options|other options|anything else|something else|not those|filmography|movies with|films with|shows with|starring|based on my|my library|my slate|my watchlist|in the mood|looking for)\b/.test(
+    /\b(recommend|recommendation|suggest|find|what should i watch|watch next|something to watch|similar to|more like|different options|other options|anything else|something else|not those|filmography|movies with|films with|shows with|starring|based on my|my library|my slate|my watchlist|up next|rewatch|continue watching|in the mood|looking for)\b/.test(
       normalized,
     )
   ) {
@@ -995,6 +1139,14 @@ function shouldRequireRetrieval(messages: ChatMessage[]): boolean {
 
   if (
     /\b(show me|give me|i want|i need)\b.*\b(movie|movies|film|films|show|shows|series|title|titles|watch|recommendation|recommendations)\b/.test(
+      normalized,
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    /\b(pick|choose|continue)\b.*\b(movie|film|show|series|title|library|slate|watchlist|up next|watching)\b/.test(
       normalized,
     )
   ) {
@@ -1110,9 +1262,17 @@ async function* streamOpenAIChat(
                 {
                   type: "function",
                   function: {
-                    name: LIBRARY_TOOL_NAME,
-                    description: LIBRARY_TOOL_DESCRIPTION,
+                    name: HISTORY_TOOL_NAME,
+                    description: HISTORY_TOOL_DESCRIPTION,
                     parameters: LIBRARY_TOOL_PARAMETERS,
+                  },
+                },
+                {
+                  type: "function",
+                  function: {
+                    name: PICK_LIBRARY_TOOL_NAME,
+                    description: PICK_LIBRARY_TOOL_DESCRIPTION,
+                    parameters: PICK_LIBRARY_TOOL_PARAMETERS,
                   },
                 },
               ],
@@ -1188,7 +1348,7 @@ async function* streamOpenAIChat(
       // it out, execute the tool ourselves, and synthesize the assistant
       // turn so the next hop responds with proper grounding.
       const malformed = raw.match(
-        /'(search_titles|find_similar|recommend_from_library)\s+(\{[^']*?\})'/,
+        /'(search_titles|find_similar|recommend_for_you|pick_from_library)\s+(\{[^']*?\})'/,
       );
       if (
         backend.provider === "openai" &&
@@ -1333,7 +1493,8 @@ async function* streamOpenAIChat(
       if (
         call.name !== SEARCH_TOOL_NAME &&
         call.name !== SIMILAR_TOOL_NAME &&
-        call.name !== LIBRARY_TOOL_NAME
+        call.name !== HISTORY_TOOL_NAME &&
+        call.name !== PICK_LIBRARY_TOOL_NAME
       ) {
         wireMessages.push({
           role: "tool",
@@ -1399,9 +1560,14 @@ async function* streamAnthropicChat(
                 input_schema: SIMILAR_TOOL_PARAMETERS,
               },
               {
-                name: LIBRARY_TOOL_NAME,
-                description: LIBRARY_TOOL_DESCRIPTION,
+                name: HISTORY_TOOL_NAME,
+                description: HISTORY_TOOL_DESCRIPTION,
                 input_schema: LIBRARY_TOOL_PARAMETERS,
+              },
+              {
+                name: PICK_LIBRARY_TOOL_NAME,
+                description: PICK_LIBRARY_TOOL_DESCRIPTION,
+                input_schema: PICK_LIBRARY_TOOL_PARAMETERS,
               },
             ],
           }
@@ -1441,7 +1607,8 @@ async function* streamAnthropicChat(
       if (
         tu.name !== SEARCH_TOOL_NAME &&
         tu.name !== SIMILAR_TOOL_NAME &&
-        tu.name !== LIBRARY_TOOL_NAME
+        tu.name !== HISTORY_TOOL_NAME &&
+        tu.name !== PICK_LIBRARY_TOOL_NAME
       ) {
         toolResults.push({
           type: "tool_result",

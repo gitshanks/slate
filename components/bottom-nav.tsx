@@ -74,7 +74,7 @@ export function BottomNav() {
   // positioning and cannot be stranded by iOS after search closes.
   return (
     <nav
-      className="relative isolate z-40 w-full shrink-0 bg-transparent text-foreground md:hidden"
+      className="pointer-events-none relative isolate z-40 w-full shrink-0 self-end bg-transparent text-foreground [grid-area:app-stack] md:hidden"
       aria-label="Primary"
       style={{
         // Cosmetic breathing room lives in the dock row below. This owns only
@@ -93,12 +93,17 @@ export function BottomNav() {
         }}
       >
         <ul
-          className="relative grid min-w-0 grid-cols-3 rounded-full border border-foreground/[0.1] bg-background/[0.78] p-1 ring-1 ring-foreground/[0.04]"
+          className="pointer-events-auto relative grid min-w-0 grid-cols-3 rounded-full border border-foreground/[0.12] bg-background/[0.58] p-1 ring-1 ring-foreground/[0.05]"
           style={{
             background:
-              "linear-gradient(180deg, hsl(var(--foreground) / 0.09) 0%, hsl(var(--foreground) / 0.025) 42%, transparent 72%), hsl(var(--background) / 0.78)",
+              "linear-gradient(180deg, hsl(var(--foreground) / 0.12) 0%, hsl(var(--foreground) / 0.035) 42%, transparent 72%), hsl(var(--background) / 0.58)",
             boxShadow:
               "0 18px 42px -28px rgb(0 0 0 / 0.9), inset 0 1px 0 hsl(var(--foreground) / 0.14), inset 0 -1px 0 hsl(var(--background) / 0.55)",
+            // One restrained live blur is enough to diffuse posters without
+            // recreating the multi-layer Safari compositing jank this shell
+            // was designed to avoid.
+            WebkitBackdropFilter: "blur(10px) saturate(1.08)",
+            backdropFilter: "blur(10px) saturate(1.08)",
           }}
         >
           {TABS.map((t) => {
@@ -144,12 +149,12 @@ export function BottomNav() {
         <button
           type="button"
           onClick={() => openCommandPalette()}
-          className="relative grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-primary/55 bg-primary text-primary-foreground outline-none transition-[filter,transform] hover:brightness-[1.04] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.95]"
+          className="pointer-events-auto relative grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-primary/55 bg-primary/80 text-primary-foreground outline-none transition-[filter,transform] hover:brightness-[1.04] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.95]"
           aria-label="Find and add a title"
           aria-haspopup="dialog"
           style={{
             background:
-              "linear-gradient(180deg, hsl(var(--foreground) / 0.18) 0%, transparent 42%), hsl(var(--primary) / 0.88)",
+              "linear-gradient(180deg, hsl(var(--foreground) / 0.2) 0%, transparent 42%), hsl(var(--primary) / 0.78)",
             boxShadow:
               "0 16px 34px -18px hsl(var(--primary) / 0.82), inset 0 1px 0 hsl(var(--foreground) / 0.28), inset 0 -1px 0 hsl(var(--background) / 0.2)",
           }}

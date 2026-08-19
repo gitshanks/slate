@@ -77,6 +77,11 @@ export interface SearchIntent {
   min_rating: number | null;
   /** One-sentence rephrasing of what the AI thinks the user wants. */
   interpretation: string;
+  /** Whether results are saved titles or new catalogue discoveries. */
+  result_origin?:
+    | "saved_library"
+    | "history_discovery"
+    | "catalogue_discovery";
 }
 
 const INTENT_SCHEMA = {

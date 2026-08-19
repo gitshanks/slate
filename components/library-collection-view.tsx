@@ -795,7 +795,7 @@ export function LibraryCollectionView({
             duration: reducedMotion ? 0 : 0.2,
             ease: [0.16, 1, 0.3, 1],
           }}
-          className="w-full flex-1 px-3 pb-12 sm:px-6 md:px-5 lg:px-8 xl:px-10"
+          className="w-full flex-1 px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 md:px-5 md:pb-12 lg:px-8 xl:px-10"
         >
           {titles.length ? (
             <SmoothShelfResults

@@ -636,35 +636,63 @@ export async function getRecommendedFromWatched(): Promise<TmdbSearchResult[]> {
     const [{ data: watched }, { data: saved }] = await Promise.all([
       db
         .from("titles")
-        .select("tmdb_id, media_type, rating, tmdb_rating")
+        .select("tmdb_id, media_type, rating, favorite, tmdb_rating, watched_at")
         .eq("status", "watched"),
-      db.from("titles").select("tmdb_id"),
+      db.from("titles").select("tmdb_id, media_type"),
     ]);
 
     const seeds = (watched ?? []) as Pick<
       TitleRow,
-      "tmdb_id" | "media_type" | "rating" | "tmdb_rating"
+      | "tmdb_id"
+      | "media_type"
+      | "rating"
+      | "favorite"
+      | "tmdb_rating"
+      | "watched_at"
     >[];
     if (seeds.length === 0) return [];
 
-    const savedIds = new Set<number>(
-      ((saved ?? []) as { tmdb_id: number }[]).map((r) => r.tmdb_id)
+    const savedKeys = new Set<string>(
+      ((saved ?? []) as Pick<TitleRow, "tmdb_id" | "media_type">[]).map(
+        (row) => `${row.media_type}:${row.tmdb_id}`,
+      ),
+    );
+
+    // Prefer explicit positive taste signals. Disliked titles must never seed
+    // recommendations; unrated watched titles are only a fallback when the
+    // user has not reacted positively to anything yet.
+    const positiveSeeds = seeds.filter(
+      (seed) => seed.favorite || (seed.rating != null && seed.rating >= 2),
+    );
+    const usableSeeds = (
+      positiveSeeds.length > 0
+        ? positiveSeeds
+        : seeds.filter((seed) => seed.rating == null || seed.rating >= 2)
     );
 
     // Rank seeds: user sentiment first (higher = loved), then TMDB score.
-    const topSeeds = seeds
+    const topSeeds = usableSeeds
       .slice()
       .sort((a, b) => {
+        if (Number(b.favorite) !== Number(a.favorite)) {
+          return Number(b.favorite) - Number(a.favorite);
+        }
         const ra = a.rating != null ? Number(a.rating) : -999;
         const rb = b.rating != null ? Number(b.rating) : -999;
         if (rb !== ra) return rb - ra;
         const ta = a.tmdb_rating != null ? Number(a.tmdb_rating) : 0;
         const tb = b.tmdb_rating != null ? Number(b.tmdb_rating) : 0;
-        return tb - ta;
+        if (tb !== ta) return tb - ta;
+        const watchedB = Date.parse(b.watched_at ?? "");
+        const watchedA = Date.parse(a.watched_at ?? "");
+        return (Number.isFinite(watchedB) ? watchedB : 0) -
+          (Number.isFinite(watchedA) ? watchedA : 0);
       })
       .slice(0, 8);
 
-    const seedIds = new Set<number>(topSeeds.map((s) => s.tmdb_id));
+    const seedKeys = new Set<string>(
+      topSeeds.map((seed) => `${seed.media_type}:${seed.tmdb_id}`),
+    );
 
     const fetched = await Promise.all(
       topSeeds.map((s) =>
@@ -684,14 +712,15 @@ export async function getRecommendedFromWatched(): Promise<TmdbSearchResult[]> {
 
     // Merge by tmdb id, tallying co-occurrence so items recommended by
     // multiple seeds float to the top.
-    const pool = new Map<number, { item: TmdbSearchResult; hits: number }>();
+    const pool = new Map<string, { item: TmdbSearchResult; hits: number }>();
     for (const list of fetched) {
       for (const item of list) {
         if (item.media_type !== "movie" && item.media_type !== "tv") continue;
-        if (savedIds.has(item.id) || seedIds.has(item.id)) continue;
-        const prev = pool.get(item.id);
+        const key = `${item.media_type}:${item.id}`;
+        if (savedKeys.has(key) || seedKeys.has(key)) continue;
+        const prev = pool.get(key);
         if (prev) prev.hits += 1;
-        else pool.set(item.id, { item, hits: 1 });
+        else pool.set(key, { item, hits: 1 });
       }
     }
 
