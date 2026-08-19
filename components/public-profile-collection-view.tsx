@@ -332,7 +332,7 @@ export function PublicProfileCollectionView({
             </button>
           </div>
 
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-center md:gap-0.5">
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-center md:gap-0.5 lg:gap-2 xl:gap-2.5">
             <div
               className="relative w-full min-w-0 md:w-[clamp(4rem,9vw,6.5rem)] md:shrink-0 lg:w-[clamp(9rem,15vw,15rem)]"
               onBlur={(event) => {
