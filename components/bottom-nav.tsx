@@ -3,12 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "motion/react";
 import { Compass, LayoutGrid, Layers, Plus } from "lucide-react";
 import { useCommandPalette } from "@/components/command-palette";
 import { cn } from "@/lib/utils";
 import { APP_ROOT } from "@/lib/public-mode";
-import { EASE, DUR, PRIMARY_TAB_TRANSITION } from "@/lib/motion";
+import { PRIMARY_TAB_TRANSITION } from "@/lib/motion";
 
 // Status now lives in the Library's pinned collection filter. The bottom bar
 // is reserved for primary destinations, so every major app capability stays
@@ -44,6 +43,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const { open: openCommandPalette } = useCommandPalette();
   const [rememberedTab, setRememberedTab] = React.useState<string | null>(null);
+  const [optimisticTab, setOptimisticTab] = React.useState<string | null>(null);
 
   // Hydrate from sessionStorage on mount so a hard reload on a detail
   // route still highlights the last tab from the previous session.
@@ -68,7 +68,30 @@ export function BottomNav() {
   );
   const activeHref =
     findCurrentTab(pathname) ?? (menuOnlySurface ? null : rememberedTab);
+  const visualActiveHref = optimisticTab ?? activeHref;
+  const visualActiveIndex = TABS.findIndex(
+    (tab) => tab.href === visualActiveHref,
+  );
   const isExactPrimaryTab = TABS.some((tab) => pathname === tab.href);
+
+  // Move the dock indicator as soon as client navigation begins instead of
+  // waiting for the destination route to finish rendering. Keep a short
+  // recovery window for interrupted/failed navigations, while preserving the
+  // latest target when several tabs are selected in quick succession.
+  React.useEffect(() => {
+    if (!optimisticTab) return;
+    if (findCurrentTab(pathname) === optimisticTab) {
+      setOptimisticTab(null);
+      return;
+    }
+
+    const recoveryTimer = window.setTimeout(() => {
+      setOptimisticTab(null);
+    }, 3000);
+
+    return () => window.clearTimeout(recoveryTimer);
+  }, [optimisticTab, pathname]);
+
   // Mobile keeps the dock in the app's grid stack so it cannot be stranded by
   // iOS after search closes. Desktop can safely pin the same compact surface to
   // the viewport because document chrome does not follow the mobile keyboard.
@@ -104,38 +127,45 @@ export function BottomNav() {
             backdropFilter: "blur(8px) saturate(1.08)",
           }}
         >
+          <li
+            aria-hidden
+            className="pointer-events-none absolute inset-1 z-0 overflow-hidden rounded-full"
+          >
+            <span
+              className="absolute inset-y-0 left-0 w-1/3 rounded-full border border-primary/20 bg-primary/[0.14] transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform [backface-visibility:hidden] motion-reduce:transition-opacity motion-reduce:duration-150"
+              style={{
+                opacity: visualActiveIndex === -1 ? 0 : 1,
+                transform: `translate3d(${Math.max(visualActiveIndex, 0) * 100}%, 0, 0)`,
+              }}
+            />
+          </li>
+
           {TABS.map((t) => {
-            const active = t.href === activeHref;
+            const active = t.href === visualActiveHref;
+            const current = t.href === activeHref;
             const Icon = t.icon;
             return (
-              <li key={t.href} className="relative min-w-0">
+              <li key={t.href} className="relative z-10 min-w-0">
                 <Link
                   href={t.href}
                   prefetch
+                  onNavigate={() => setOptimisticTab(t.href)}
                   transitionTypes={
                     isExactPrimaryTab && pathname !== t.href
                       ? [PRIMARY_TAB_TRANSITION]
                       : undefined
                   }
-                  aria-current={active ? "page" : undefined}
+                  aria-current={current ? "page" : undefined}
                   className={cn(
-                    "relative isolate grid h-full touch-manipulation grid-rows-[20px_11px] content-center justify-items-center gap-[5px] overflow-hidden rounded-full px-1 text-[11px] font-medium tracking-tight outline-none transition-[color,transform] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97]",
+                    "relative isolate grid h-full touch-manipulation grid-rows-[20px_11px] content-center justify-items-center gap-[5px] overflow-hidden rounded-full px-1 text-[11px] font-medium tracking-tight outline-none transition-[color,transform] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97] motion-reduce:transition-colors motion-reduce:active:scale-100",
                     active
                       ? "text-primary"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {active ? (
-                    <motion.span
-                      layoutId="bottomnav-active"
-                      initial={false}
-                      transition={{ duration: DUR.base, ease: EASE }}
-                      className="absolute inset-0 -z-10 rounded-full border border-primary/20 bg-primary/[0.14]"
-                    />
-                  ) : null}
                   <Icon
                     className={cn(
-                      "h-5 w-5 shrink-0 transition-transform",
+                      "h-5 w-5 shrink-0 transition-transform duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none motion-reduce:scale-100",
                       active && "scale-[1.04]",
                     )}
                     aria-hidden
@@ -152,7 +182,7 @@ export function BottomNav() {
         <button
           type="button"
           onClick={() => openCommandPalette()}
-          className="pointer-events-auto relative z-10 grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-foreground/[0.14] bg-background/[0.54] text-primary outline-none transition-[filter,transform] hover:brightness-[1.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.95]"
+          className="pointer-events-auto relative z-10 grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-foreground/[0.14] bg-background/[0.54] text-primary outline-none transition-[filter,transform] hover:brightness-[1.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.95] motion-reduce:active:scale-100"
           aria-label="Find and add a title"
           aria-haspopup="dialog"
           style={{

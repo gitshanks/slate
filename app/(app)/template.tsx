@@ -2,8 +2,7 @@
 
 import { motion } from "motion/react";
 import { usePathname } from "next/navigation";
-import { ViewTransition } from "@/components/view-transition";
-import { pageEnter, PRIMARY_TAB_TRANSITION } from "@/lib/motion";
+import { pageEnter } from "@/lib/motion";
 import { APP_ROOT } from "@/lib/public-mode";
 
 const PRIMARY_TABS = new Set([APP_ROOT, "/discover", "/lists"]);
@@ -27,20 +26,12 @@ export default function Template({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Primary tabs use the stable root viewport snapshot for their native
+  // handoff. Keeping this surface unnamed avoids morphing between Library's
+  // full-height scroller and the shorter document-flow Discover/Lists pages.
   return (
-    <ViewTransition
-      name="app-primary-tab-page"
-      default="none"
-      enter="none"
-      exit="none"
-      share={{
-        [PRIMARY_TAB_TRANSITION]: "app-tab-switch",
-        default: "none",
-      }}
-    >
-      <div className="h-full min-h-0 bg-background md:min-h-[calc(100svh-7rem)] lg:min-h-[calc(100svh-8rem)]">
-        {children}
-      </div>
-    </ViewTransition>
+    <div className="h-full min-h-0 bg-background md:min-h-[calc(100svh-7rem)] lg:min-h-[calc(100svh-8rem)]">
+      {children}
+    </div>
   );
 }

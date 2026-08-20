@@ -159,6 +159,10 @@ export function LibraryCollectionView({
   const [shelfTitle, setShelfTitle] = React.useState<TitleRow | null>(null);
   const searchRequestRef = React.useRef(0);
   const switchTimerRef = React.useRef<number | null>(null);
+  const toolbarSearchRef = React.useRef<HTMLDivElement>(null);
+  const toolbarFilterRef = React.useRef<HTMLDivElement>(null);
+  const toolbarLeftRef = React.useRef<number | null>(null);
+  const toolbarAnimationsRef = React.useRef<Animation[]>([]);
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const status = searchParams.get("status") ?? "";
   const activeStatus =
@@ -356,6 +360,63 @@ export function LibraryCollectionView({
     return () => window.cancelAnimationFrame(frame);
   }, [isSwitching, mode]);
 
+  // The visible search + filter cluster stays optically centered when
+  // conditional controls (Reaction, Order, Clear) appear or disappear. FLIP
+  // that recentering on the two small toolbar surfaces so the change glides
+  // instead of jumping, without promoting the poster grid or animating layout.
+  React.useLayoutEffect(() => {
+    const searchElement = toolbarSearchRef.current;
+    const filterElement = toolbarFilterRef.current;
+    if (!searchElement || !filterElement) return;
+
+    const nextLeft = searchElement.getBoundingClientRect().left;
+    const previousLeft = toolbarLeftRef.current;
+    toolbarLeftRef.current = nextLeft;
+
+    toolbarAnimationsRef.current.forEach((animation) => animation.cancel());
+    toolbarAnimationsRef.current = [];
+
+    if (
+      reducedMotion ||
+      previousLeft === null ||
+      Math.abs(previousLeft - nextLeft) < 0.5 ||
+      typeof searchElement.animate !== "function" ||
+      typeof filterElement.animate !== "function"
+    ) {
+      return;
+    }
+
+    const deltaX = previousLeft - nextLeft;
+    const keyframes: Keyframe[] = [
+      { transform: `translate3d(${deltaX}px, 0, 0)` },
+      { transform: "translate3d(0, 0, 0)" },
+    ];
+    const options: KeyframeAnimationOptions = {
+      duration: 200,
+      easing: "cubic-bezier(0.32, 0.72, 0, 1)",
+    };
+
+    toolbarAnimationsRef.current = [searchElement, filterElement].map(
+      (element) => element.animate(keyframes, options),
+    );
+  }, [
+    activeStatus,
+    filterParams.genre,
+    filterParams.sentiment,
+    filterParams.sort,
+    filterParams.type,
+    filterParams.year,
+    mode,
+    reducedMotion,
+  ]);
+
+  React.useEffect(
+    () => () => {
+      toolbarAnimationsRef.current.forEach((animation) => animation.cancel());
+    },
+    [],
+  );
+
   React.useEffect(() => {
     if (shelfTitle && !titles.some((title) => title.id === shelfTitle.id)) {
       closeShelfTitle();
@@ -376,6 +437,7 @@ export function LibraryCollectionView({
         center={
           <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-self-center md:justify-center md:gap-1.5 lg:gap-2 xl:max-w-[80rem]">
             <div
+              ref={toolbarSearchRef}
               className="relative w-full min-w-0 md:w-[clamp(11rem,20vw,13rem)] md:shrink-0 lg:w-[clamp(13rem,18vw,15rem)] xl:w-[clamp(14rem,calc(100vw-78rem),24rem)]"
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
@@ -502,7 +564,10 @@ export function LibraryCollectionView({
               ) : null}
             </div>
 
-            <div className="scrollbar-hide w-full min-w-0 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x md:flex-1 md:pb-0">
+            <div
+              ref={toolbarFilterRef}
+              className="scrollbar-hide w-full min-w-0 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x md:w-auto md:flex-[0_1_auto] md:pb-0"
+            >
               <FilterBar
                 genres={genres}
                 showSort={mode === "shelf"}

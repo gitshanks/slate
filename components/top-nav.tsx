@@ -32,10 +32,65 @@ export function TopNav({
   const { open, openWith, aiEnabled } = useCommandPalette();
   const isExactPrimaryTab = PRIMARY_TAB_HREFS.has(pathname);
   const isProfileRoute = pathname.startsWith("/profile");
+  const usesPrimaryToolbar = pathname === "/discover" || pathname === "/lists";
 
   // The unified Library owns the same collection chrome as shared profiles.
   // Other app routes retain this global navigation bar.
   if (pathname === APP_ROOT) return null;
+
+  const toolbarSearch = (
+    <div className="relative w-full min-w-0 md:w-[clamp(16rem,34vw,28rem)]">
+      <button
+        type="button"
+        onClick={() => open()}
+        className={cn(
+          "flex h-10 w-full min-w-0 items-center gap-2.5 rounded-full border border-border bg-foreground/[0.065] pl-4 text-sm text-muted-foreground outline-none transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-foreground/[0.09] hover:text-foreground active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-primary/30",
+          aiEnabled ? "pr-12" : "pr-4",
+        )}
+        aria-label="Search titles and people"
+      >
+        <Search className="h-4 w-4 shrink-0" />
+        <span className="truncate">Search titles, people, or ask</span>
+      </button>
+      {aiEnabled ? (
+        <button
+          type="button"
+          onClick={() => openWith({ mode: "ask" })}
+          className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-foreground/[0.075] text-muted-foreground outline-none transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/30"
+          aria-label="Ask"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+    </div>
+  );
+
+  if (usesPrimaryToolbar) {
+    return (
+      <OwnedAppToolbar
+        id="app-top-nav"
+        ariaLabel={`${pathname === "/discover" ? "Discover" : "Lists"} controls`}
+        center={
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 justify-center md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:justify-self-center">
+            {toolbarSearch}
+          </div>
+        }
+        actions={
+          <>
+            <span
+              aria-hidden
+              className="hidden h-10 w-[5.25rem] shrink-0 md:block"
+            />
+            <ThemeToggle className="h-10 w-10 shrink-0 border border-border bg-foreground/[0.055] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground md:hidden lg:inline-flex" />
+            <OwnerMenu
+              avatarUrl={profile?.avatarUrl ?? null}
+              displayName={profile?.displayName ?? "You"}
+            />
+          </>
+        }
+      />
+    );
+  }
 
   const legacyNav = (
     <ViewTransition
@@ -137,30 +192,7 @@ export function TopNav({
           ariaLabel="Settings controls"
           center={
             <div className="col-start-2 row-start-1 flex min-w-0 justify-center">
-              <div className="relative w-[clamp(16rem,34vw,28rem)] min-w-0">
-                <button
-                  type="button"
-                  onClick={() => open()}
-                  className={cn(
-                    "flex h-10 w-full min-w-0 items-center gap-2.5 rounded-full border border-border bg-foreground/[0.065] pl-4 text-sm text-muted-foreground outline-none transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-foreground/[0.09] hover:text-foreground active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-primary/30",
-                    aiEnabled ? "pr-12" : "pr-4",
-                  )}
-                  aria-label="Search titles and people"
-                >
-                  <Search className="h-4 w-4 shrink-0" />
-                  <span className="truncate">Search titles, people, or ask</span>
-                </button>
-                {aiEnabled ? (
-                  <button
-                    type="button"
-                    onClick={() => openWith({ mode: "ask" })}
-                    className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-foreground/[0.075] text-muted-foreground outline-none transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/30"
-                    aria-label="Ask"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </button>
-                ) : null}
-              </div>
+              {toolbarSearch}
             </div>
           }
           actions={
