@@ -2,20 +2,14 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Box,
-  Ellipsis,
   Film,
   LayoutGrid,
   Plus,
   Search,
   Sparkles,
-  Settings,
-  Share2,
-  Upload,
   X,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -23,14 +17,11 @@ import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { LibraryTitleActions } from "@/components/library-title-actions";
 import { MediaGrid, type MediaGridReorderContext } from "@/components/media-grid";
-import { ThemeToggle } from "@/components/theme-toggle";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  OwnedAppToolbar,
+  OwnerMenu,
+} from "@/components/owned-app-toolbar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useCommandPalette } from "@/components/command-palette";
 import {
   CollectionTitleDetailOverlay,
@@ -44,7 +35,6 @@ import {
 } from "@/lib/library-title-detail-cache";
 import { cn } from "@/lib/utils";
 import type { TitleRow } from "@/lib/types";
-import { APP_ROOT } from "@/lib/public-mode";
 
 const loadSpatialPosterGrid = () => import("@/components/spatial-poster-grid");
 
@@ -135,66 +125,6 @@ function ViewSwitcher({
         <Box className="h-3.5 w-3.5" />
       </button>
     </div>
-  );
-}
-
-function OwnerMenu({
-  avatarUrl,
-  displayName,
-}: {
-  avatarUrl: string | null;
-  displayName: string;
-}) {
-  return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label="Open profile menu"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-foreground/[0.055] text-muted-foreground transition-[border-color,background-color,color,transform] duration-150 hover:border-foreground/20 hover:bg-foreground/[0.09] hover:text-foreground active:scale-[0.97]"
-        >
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarUrl}
-              alt=""
-              referrerPolicy="no-referrer"
-              className="h-full w-full object-cover md:hidden"
-            />
-          ) : (
-            <span className="grid h-full w-full place-items-center text-xs font-semibold text-foreground/75 md:hidden">
-              {displayName.slice(0, 1).toLocaleUpperCase()}
-            </span>
-          )}
-          <Ellipsis className="hidden h-4 w-4 md:block" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        sideOffset={8}
-        className="z-[90] w-48 border-border bg-popover/96 p-1.5 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.55)] backdrop-blur-2xl"
-      >
-        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-accent">
-          <Link href="/import">
-            <Upload className="h-3.5 w-3.5 text-muted-foreground" />
-            Import
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-accent">
-          <Link href="/share">
-            <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
-            Share your profile
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-accent">
-          <Link href="/profile">
-            <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-            Settings
-          </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
 
@@ -440,72 +370,19 @@ export function LibraryCollectionView({
         mode === "space" && "h-full",
       )}
     >
-      <header
+      <OwnedAppToolbar
         id="library-collection-controls"
-        className="pointer-events-none sticky inset-x-0 top-0 z-50 shrink-0 px-2.5 pb-7 text-foreground min-[380px]:px-3 md:px-5 md:pb-6 lg:px-8 xl:px-10"
-        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
-        aria-label="Your slate controls"
-      >
-        <div aria-hidden className="absolute inset-0 -z-10 overflow-hidden">
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(to bottom, hsl(var(--background) / 0.98) 0%, hsl(var(--background) / 0.9) 54%, hsl(var(--background) / 0.54) 76%, hsl(var(--background) / 0) 100%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 backdrop-blur-2xl"
-            style={{
-              WebkitMaskImage:
-                "linear-gradient(to bottom, black 0%, black 48%, rgba(0,0,0,0.72) 68%, transparent 100%)",
-              maskImage:
-                "linear-gradient(to bottom, black 0%, black 48%, rgba(0,0,0,0.72) 68%, transparent 100%)",
-            }}
-          />
-        </div>
-
-        <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-1.5 lg:gap-x-2.5 xl:gap-x-5">
-          <Link
-            href={APP_ROOT}
-            aria-label="slate home"
-            className="col-start-1 row-start-1 inline-flex items-center pl-0.5 outline-none transition-opacity hover:opacity-82 focus-visible:ring-1 focus-visible:ring-primary/60"
-          >
-            <Image
-              src="/brand/logo-light.svg"
-              alt="slate"
-              width={62}
-              height={17}
-              loading="eager"
-              className="hidden dark:block"
-            />
-            <Image
-              src="/brand/logo-dark.svg"
-              alt="slate"
-              width={62}
-              height={17}
-              loading="eager"
-              className="dark:hidden"
-            />
-          </Link>
-
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-self-center md:justify-center md:gap-1.5 lg:gap-2 xl:gap-2.5 min-[1600px]:max-w-[80rem]">
+        ariaLabel="Your slate controls"
+        center={
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-self-center md:justify-center md:gap-1.5 lg:gap-2 xl:w-fit xl:max-w-full xl:gap-2.5">
             <div
-              className="relative w-full min-w-0 md:max-[1100px]:w-10 md:max-[1100px]:shrink-0 min-[1100px]:w-[clamp(8rem,12vw,10rem)] min-[1100px]:shrink min-[1400px]:min-w-10 min-[1400px]:w-[clamp(10rem,18vw,20rem)]"
+              className="relative w-full min-w-0 md:w-[clamp(11rem,20vw,13rem)] md:shrink-0 lg:w-[clamp(13rem,18vw,15rem)] min-[1400px]:min-w-10 min-[1400px]:w-[clamp(15rem,16vw,20rem)]"
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
                   setSearchOpen(false);
                 }
               }}
             >
-              <button
-                type="button"
-                onClick={() => openExpandedSearch("search")}
-                aria-label="Open smart search"
-                className="hidden h-10 w-10 items-center justify-center rounded-full border border-border bg-foreground/[0.065] text-muted-foreground transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.96] md:max-[1100px]:inline-flex"
-              >
-                <Search className="h-4 w-4" />
-              </button>
               <input
                 type="search"
                 value={query}
@@ -528,13 +405,12 @@ export function LibraryCollectionView({
                   "h-10 w-full appearance-none rounded-2xl border border-border bg-foreground/[0.065] pl-4 text-sm text-foreground outline-none transition-[border-color,background-color] duration-150 placeholder:text-muted-foreground focus:border-primary/55 focus:bg-foreground/[0.09] sm:rounded-full [&::-webkit-search-cancel-button]:hidden",
                   aiEnabled
                     ? query
-                      ? "pr-28 min-[1400px]:pr-40"
-                      : "pr-20 min-[1400px]:pr-32"
+                      ? "pr-28 md:pr-20"
+                      : "pr-20"
                     : "pr-20",
-                  "md:max-[1100px]:hidden",
                 )}
               />
-              <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1 md:max-[1100px]:hidden">
+              <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
                 {query ? (
                   <button
                     type="button"
@@ -554,11 +430,13 @@ export function LibraryCollectionView({
                     type="button"
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => openExpandedSearch("ask")}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-foreground/[0.075] text-muted-foreground transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.97] min-[1400px]:w-auto min-[1400px]:gap-1.5 min-[1400px]:px-2.5 min-[1400px]:text-[11px] min-[1400px]:font-medium"
+                    className={cn(
+                      "inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-foreground/[0.075] text-muted-foreground transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.97]",
+                      query && "md:hidden",
+                    )}
                     aria-label="Ask"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    <span className="hidden min-[1400px]:inline">Ask</span>
                   </button>
                 ) : null}
                 <button
@@ -573,7 +451,7 @@ export function LibraryCollectionView({
               </div>
 
               {normalizedQuery && searchOpen ? (
-                <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-10 overflow-hidden rounded-2xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+                <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-10 overflow-hidden rounded-2xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.5)] backdrop-blur-2xl md:right-auto md:w-[min(20rem,calc(100vw-2rem))]">
                   {matches.length
                     ? matches.map((title) => (
                       <button
@@ -624,7 +502,7 @@ export function LibraryCollectionView({
               ) : null}
             </div>
 
-            <div className="scrollbar-hide w-full min-w-0 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x md:flex-1 md:pb-0">
+            <div className="scrollbar-hide w-full min-w-0 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x md:flex-1 md:pb-0 xl:w-[41.5rem] xl:flex-none">
               <FilterBar
                 genres={genres}
                 showSort={mode === "shelf"}
@@ -638,21 +516,22 @@ export function LibraryCollectionView({
                 popoverClassName="z-[90] border-border bg-popover text-popover-foreground"
                 groupControls
                 sortPlacement="end"
-                className="mb-0 w-max flex-nowrap gap-2 md:gap-1.5 [&_.filter-chip]:h-10 [&_.filter-chip]:border-border [&_.filter-chip]:bg-foreground/[0.065] [&_.filter-chip]:px-3.5 [&_.filter-chip]:text-muted-foreground [&_.filter-chip:hover]:text-foreground [&_.filter-chip[data-active=true]]:border-primary/50 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-3 [&_.filter-segment:first-child]:px-4 [&_.filter-segmented]:h-10 [&_.filter-segmented]:border-border [&_.filter-segmented]:bg-foreground/[0.055] [&_[data-filter-clear]]:px-3.5 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-1.5 md:[&_.filter-segment]:px-1.5 md:[&_.filter-segment]:text-[11px] md:[&_.filter-segment:first-child]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden md:max-lg:[&_.filter-chip]:px-1.5 md:max-lg:[&_.filter-chip]:text-[11px] md:max-lg:[&_.filter-chip_.lucide-chevron-down]:hidden md:max-lg:[&_.filter-control-group]:gap-0.5 md:max-lg:[&_.filter-segment]:px-1 md:max-lg:[&_.filter-segment:first-child]:px-1 md:max-lg:[&_[data-filter-sentiment]]:w-10 md:max-lg:[&_[data-filter-sentiment]]:justify-center md:max-lg:[&_[data-filter-sentiment]]:px-0 md:max-lg:[&_[data-filter-sentiment-label]]:hidden md:max-lg:[&_[data-filter-sort]]:w-10 md:max-lg:[&_[data-filter-sort]]:justify-center md:max-lg:[&_[data-filter-sort]]:px-0 md:max-lg:[&_[data-filter-sort-label]]:hidden lg:max-[1400px]:[&_.filter-chip]:px-2 lg:max-[1400px]:[&_.filter-chip]:text-[11px] lg:max-[1400px]:[&_.filter-chip_.lucide-chevron-down]:hidden lg:max-[1400px]:[&_.filter-control-group]:gap-1 lg:max-[1400px]:[&_.filter-segment]:px-1.5 lg:max-[1400px]:[&_.filter-segment:first-child]:px-1.5 lg:max-[1400px]:[&_[data-filter-clear]]:w-10 lg:max-[1400px]:[&_[data-filter-clear]]:px-0 min-[1400px]:[&_.filter-chip]:px-3 min-[1400px]:[&_.filter-chip]:text-xs min-[1400px]:[&_.filter-segment]:px-2.5 min-[1400px]:[&_.filter-segment:first-child]:px-3.5 min-[1400px]:[&_[data-filter-clear]]:w-auto min-[1400px]:[&_[data-filter-clear-label]]:inline min-[1600px]:[&_.filter-chip]:gap-1.5 min-[1600px]:[&_.filter-chip]:px-3.5 min-[1600px]:[&_.filter-segment]:px-3 min-[1600px]:[&_.filter-segment:first-child]:px-4 min-[1600px]:[&_[data-filter-clear]]:px-3.5"
+                className="mb-0 w-max flex-nowrap gap-2 [&_.filter-chip]:h-10 [&_.filter-chip]:gap-1.5 [&_.filter-chip]:border-border [&_.filter-chip]:bg-foreground/[0.065] [&_.filter-chip]:px-3.5 [&_.filter-chip]:text-xs [&_.filter-chip]:text-muted-foreground [&_.filter-chip:hover]:text-foreground [&_.filter-chip[data-active=true]]:border-primary/50 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-control-group]:gap-1.5 [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-3 [&_.filter-segment]:text-xs [&_.filter-segment:first-child]:px-4 [&_.filter-segmented]:h-10 [&_.filter-segmented]:border-border [&_.filter-segmented]:bg-foreground/[0.055] [&_[data-filter-clear]]:w-auto [&_[data-filter-clear]]:justify-start [&_[data-filter-clear]]:px-3.5 [&_[data-filter-clear-label]]:inline"
               />
             </div>
           </div>
-
-          <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">
+        }
+        actions={
+          <>
             <ViewSwitcher mode={mode} disabled={isSwitching} onSelect={selectMode} />
             <ThemeToggle className="h-10 w-10 shrink-0 border border-border bg-foreground/[0.055] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground md:hidden lg:inline-flex" />
             <OwnerMenu
               avatarUrl={avatarUrl}
               displayName={displayName}
             />
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {mode === "shelf" ? (
         <motion.main
