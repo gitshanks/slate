@@ -374,9 +374,9 @@ export function LibraryCollectionView({
         id="library-collection-controls"
         ariaLabel="Your slate controls"
         center={
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-self-center md:justify-center md:gap-1.5 lg:gap-2 xl:w-fit xl:max-w-full xl:gap-2.5">
+          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-self-center md:justify-center md:gap-1.5 lg:gap-2 xl:max-w-[80rem]">
             <div
-              className="relative w-full min-w-0 md:w-[clamp(11rem,20vw,13rem)] md:shrink-0 lg:w-[clamp(13rem,18vw,15rem)] min-[1400px]:min-w-10 min-[1400px]:w-[clamp(15rem,16vw,20rem)]"
+              className="relative w-full min-w-0 md:w-[clamp(11rem,20vw,13rem)] md:shrink-0 lg:w-[clamp(13rem,18vw,15rem)] xl:w-[clamp(16rem,calc(100vw-78rem),24rem)]"
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
                   setSearchOpen(false);
@@ -502,7 +502,7 @@ export function LibraryCollectionView({
               ) : null}
             </div>
 
-            <div className="scrollbar-hide w-full min-w-0 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x md:flex-1 md:pb-0 xl:w-[41.5rem] xl:flex-none">
+            <div className="scrollbar-hide w-full min-w-0 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x md:flex-1 md:pb-0">
               <FilterBar
                 genres={genres}
                 showSort={mode === "shelf"}

@@ -60,7 +60,7 @@ export function OwnedAppToolbar({
         />
       </div>
 
-      <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-1.5 lg:gap-x-2.5 xl:gap-x-5">
+      <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-1.5 lg:gap-x-2.5 xl:gap-x-3">
         <Link
           href={APP_ROOT}
           prefetch
