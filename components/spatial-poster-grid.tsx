@@ -1584,7 +1584,7 @@ export function CollectionTitleDetailOverlay({
     // Space is centered in the collection canvas between the controls and app
     // navigation. Shelf uses that same explicit frame instead of inheriting a
     // different fixed-position containing block.
-    if (narrow || frame.hasAppDock) {
+    if (narrow) {
       setPosition({
         placement: "center",
         top: frame.center,
@@ -2098,7 +2098,7 @@ export function SpatialPosterGrid({
       const point = selectedPoint ?? points[index];
       if (!point) return;
       const viewport = viewportWidth.get();
-      const compact = viewport < 768 || slabFrame.hasAppDock;
+      const compact = viewport < 768;
       const scale = compact ? 0.67 : 0.83;
       const slabWidth = Math.min(viewport * 0.84, 432);
       const slabLeft = compact ? -slabWidth / 2 : -slabWidth * 0.2;
@@ -2131,7 +2131,6 @@ export function SpatialPosterGrid({
       periodY,
       points,
       slabFrame.cameraOffsetY,
-      slabFrame.hasAppDock,
       viewportWidth,
     ],
   );

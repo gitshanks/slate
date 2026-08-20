@@ -22,10 +22,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // /discover page share one live AI thread across client-side navigation.
     <AiConversationProvider>
       <CommandPaletteProvider aiEnabled={aiSearchEnabled}>
-        {/* On mobile, the navigation rows stay in normal flow and only the
-            middle region scrolls. This avoids iOS's intermittent fixed-layer
-            drift after search/keyboard dismissal. Desktop retains the normal
-            document-scrolling layout and fixed top navigation. */}
+        {/* Mobile navigation stays in the app stack so only the middle region
+            scrolls, avoiding iOS drift after keyboard dismissal. Desktop uses
+            the same dock as a compact fixed surface over document scrolling. */}
         <div className="flex h-svh min-h-0 w-full flex-col overflow-hidden md:block md:h-auto md:overflow-visible">
           {SLATE_PUBLIC && <DemoBanner />}
           <TopNav
@@ -39,8 +38,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             }
           />
           <div className="relative grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] [grid-template-areas:'app-stack'] md:contents">
-            <AppScrollArea>{children}</AppScrollArea>
             <BottomNav />
+            <AppScrollArea>{children}</AppScrollArea>
           </div>
         </div>
       </CommandPaletteProvider>

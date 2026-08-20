@@ -376,7 +376,7 @@ export function LibraryCollectionView({
         center={
           <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-self-center md:justify-center md:gap-1.5 lg:gap-2 xl:max-w-[80rem]">
             <div
-              className="relative w-full min-w-0 md:w-[clamp(11rem,20vw,13rem)] md:shrink-0 lg:w-[clamp(13rem,18vw,15rem)] xl:w-[clamp(16rem,calc(100vw-78rem),24rem)]"
+              className="relative w-full min-w-0 md:w-[clamp(11rem,20vw,13rem)] md:shrink-0 lg:w-[clamp(13rem,18vw,15rem)] xl:w-[clamp(14rem,calc(100vw-78rem),24rem)]"
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
                   setSearchOpen(false);
@@ -516,7 +516,7 @@ export function LibraryCollectionView({
                 popoverClassName="z-[90] border-border bg-popover text-popover-foreground"
                 groupControls
                 sortPlacement="end"
-                className="mb-0 w-max flex-nowrap gap-2 [&_.filter-chip]:h-10 [&_.filter-chip]:gap-1.5 [&_.filter-chip]:border-border [&_.filter-chip]:bg-foreground/[0.065] [&_.filter-chip]:px-3.5 [&_.filter-chip]:text-xs [&_.filter-chip]:text-muted-foreground [&_.filter-chip:hover]:text-foreground [&_.filter-chip[data-active=true]]:border-primary/50 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-control-group]:gap-1.5 [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-3 [&_.filter-segment]:text-xs [&_.filter-segment:first-child]:px-4 [&_.filter-segmented]:h-10 [&_.filter-segmented]:border-border [&_.filter-segmented]:bg-foreground/[0.055] [&_[data-filter-clear]]:w-auto [&_[data-filter-clear]]:justify-start [&_[data-filter-clear]]:px-3.5 [&_[data-filter-clear-label]]:inline"
+                className="mb-0 w-max flex-nowrap gap-2 [&_.filter-chip]:h-10 [&_.filter-chip]:gap-1.5 [&_.filter-chip]:border-border [&_.filter-chip]:bg-foreground/[0.065] [&_.filter-chip]:px-3.5 [&_.filter-chip]:text-xs [&_.filter-chip]:text-muted-foreground [&_.filter-chip:hover]:text-foreground [&_.filter-chip[data-active=true]]:border-primary/50 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-control-group]:gap-1.5 [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-3 [&_.filter-segment]:text-xs [&_.filter-segment:first-child]:px-4 [&_.filter-segmented]:h-10 [&_.filter-segmented]:border-border [&_.filter-segmented]:bg-foreground/[0.055] [&_[data-filter-clear]]:w-auto [&_[data-filter-clear]]:justify-start [&_[data-filter-clear]]:px-3.5 md:max-2xl:[&_[data-filter-clear]]:w-10 md:max-2xl:[&_[data-filter-clear]]:justify-center md:max-2xl:[&_[data-filter-clear]]:px-0 md:max-2xl:[&_[data-filter-clear-label]]:hidden"
               />
             </div>
           </div>
@@ -541,7 +541,7 @@ export function LibraryCollectionView({
             duration: reducedMotion ? 0 : 0.2,
             ease: [0.16, 1, 0.3, 1],
           }}
-          className="w-full flex-1 px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 md:px-5 md:pb-12 lg:px-8 xl:px-10"
+          className="w-full flex-1 px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 md:px-5 lg:px-8 xl:px-10"
         >
           {titles.length ? (
             visibleShelfTitles.length ? (

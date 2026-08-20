@@ -61,10 +61,10 @@ export function AppScrollArea({ children }: { children: React.ReactNode }) {
       id="app-scroll-area"
       ref={scrollArea}
       className={cn(
-        "min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain [grid-area:app-stack]",
+        "min-h-0 w-full flex-1 scroll-pb-[calc(7rem+env(safe-area-inset-bottom))] overflow-x-hidden overflow-y-auto overscroll-y-contain [grid-area:app-stack]",
         immersiveLibrary
           ? "h-full bg-background p-0 [scrollbar-gutter:stable] md:h-dvh md:overscroll-y-contain"
-          : "px-4 pt-5 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-6 md:overflow-visible md:overscroll-auto md:pb-6 lg:px-10 lg:pt-8 lg:pb-8",
+          : "px-4 pt-5 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-6 md:overflow-visible md:overscroll-auto lg:px-10 lg:pt-8",
       )}
     >
       <span

@@ -69,7 +69,7 @@ export function UpdateBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-0 z-50 flex justify-center px-4 bottom-[calc(env(safe-area-inset-bottom)+7rem)] md:bottom-6"
+      className="fixed inset-x-0 z-50 flex justify-center px-4 bottom-[calc(env(safe-area-inset-bottom)+7rem)]"
     >
       <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-border bg-popover/95 py-1.5 pl-4 pr-1.5 shadow-lg shadow-black/10 ring-1 ring-foreground/5 backdrop-blur">
         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />

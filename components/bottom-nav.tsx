@@ -31,10 +31,9 @@ function findCurrentTab(pathname: string): string | null {
 }
 
 /**
- * Mobile-only bottom tab bar. Native-app convention: route nav lives at
- * the thumb-reachable bottom of the screen, the top header keeps just the
- * logo + actions. Hidden on md+ where the desktop top-nav already shows
- * the full pill row.
+ * Floating primary dock shared by mobile and desktop. Route navigation lives
+ * in one predictable place while the top chrome stays focused on page context
+ * and global actions.
  *
  * Persists the last visited primary tab in sessionStorage so detail
  * routes (e.g. /title/:id, /person/:id) that aren't a tab themselves
@@ -70,13 +69,13 @@ export function BottomNav() {
   const activeHref =
     findCurrentTab(pathname) ?? (menuOnlySurface ? null : rememberedTab);
   const isExactPrimaryTab = TABS.some((tab) => pathname === tab.href);
-  // This is an ordinary, non-shrinking row in the mobile app shell. The middle
-  // content region scrolls independently, so the bar never uses fixed/sticky
-  // positioning and cannot be stranded by iOS after search closes.
+  // Mobile keeps the dock in the app's grid stack so it cannot be stranded by
+  // iOS after search closes. Desktop can safely pin the same compact surface to
+  // the viewport because document chrome does not follow the mobile keyboard.
   return (
     <nav
       id="app-bottom-nav"
-      className="pointer-events-none relative isolate z-40 w-full shrink-0 self-end bg-transparent text-foreground [grid-area:app-stack] md:hidden"
+      className="pointer-events-none relative isolate z-40 w-full shrink-0 self-end bg-transparent text-foreground [grid-area:app-stack] md:fixed md:inset-x-0 md:bottom-4 md:self-auto"
       aria-label="Primary"
       style={{
         // Cosmetic breathing room lives in the dock row below. This owns only

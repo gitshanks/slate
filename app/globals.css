@@ -715,3 +715,9 @@ body:has([data-public-profile-index]) {
   background-color: #080a09;
   color-scheme: dark;
 }
+
+/* App toasts share the bottom edge with the persistent navigation dock. */
+body:has(#app-bottom-nav)
+  [data-sonner-toaster][data-y-position="bottom"] {
+  bottom: calc(7rem + env(safe-area-inset-bottom, 0px)) !important;
+}

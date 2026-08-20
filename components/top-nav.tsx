@@ -3,10 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "motion/react";
-import { Box, LayoutGrid, Search, Sparkles, UserRound } from "lucide-react";
+import { Box, LayoutGrid, Search, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EASE, DUR, PRIMARY_TAB_TRANSITION } from "@/lib/motion";
+import { PRIMARY_TAB_TRANSITION } from "@/lib/motion";
 import { APP_ROOT } from "@/lib/public-mode";
 import { useCommandPalette } from "@/components/command-palette";
 import {
@@ -17,21 +16,12 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { PwaInstallButton } from "@/components/pwa-install-button";
 import { ViewTransition } from "@/components/view-transition";
 
-const LINKS = [
-  { href: APP_ROOT, label: "Library" },
-  { href: "/discover", label: "Discover" },
-  { href: "/lists", label: "Lists" },
-  { href: "/import", label: "Import" },
-];
-
 const PRIMARY_TAB_HREFS = new Set([APP_ROOT, "/discover", "/lists"]);
 
 /**
- * Top navigation. On desktop (md+) it's a single bar with the logo, the
- * route pills, and the trailing search/theme/PWA cluster. On mobile the
- * route pills move to a bottom tab bar (see <BottomNav>) and this
- * header keeps just the logo + the actions cluster, so the whole thing
- * reads as a native-app shell rather than a stacked toolbar.
+ * Context and utility navigation. Primary destinations live in the shared
+ * bottom dock on every screen size, so this header keeps only the logo and
+ * global actions instead of duplicating route controls.
  */
 export function TopNav({
   profile,
@@ -62,128 +52,75 @@ export function TopNav({
       share="none"
     >
       <div className={cn("shrink-0", isProfileRoute && "md:hidden")}>
-      {/* Mobile keeps the header in the app shell's normal flow so iOS cannot
+        {/* Mobile keeps the header in the app shell's normal flow so iOS cannot
           drift it after the keyboard closes. Desktop still uses the existing
           fixed header, with the spacer below preserving document flow. */}
-      <header
-        id={isProfileRoute ? "app-mobile-top-nav" : "app-top-nav"}
-        className="relative z-40 w-full shrink-0 glass border-b border-border/60 md:fixed md:inset-x-0 md:top-0"
-      >
-        <div className="flex h-14 w-full items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
-          <div className="flex items-center gap-3">
-            <Link
-              href={APP_ROOT}
-              prefetch
-              transitionTypes={
-                isExactPrimaryTab ? [PRIMARY_TAB_TRANSITION] : undefined
-              }
-              className="group flex items-center pt-1 pb-2"
-              aria-label="slate home"
-            >
-              <Image
-                src="/brand/logo-light.svg"
-                alt="slate"
-                width={62}
-                height={17}
-                priority
-                className="hidden dark:block"
-              />
-              <Image
-                src="/brand/logo-dark.svg"
-                alt="slate"
-                width={62}
-                height={17}
-                priority
-                className="dark:hidden"
-              />
-            </Link>
-
-            <nav className="hidden items-center gap-0.5 md:flex">
-              {LINKS.map((l) => {
-                const active =
-                  l.href === APP_ROOT
-                    ? pathname === APP_ROOT
-                    : pathname.startsWith(l.href);
-                return (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    prefetch
-                    transitionTypes={
-                      isExactPrimaryTab &&
-                      PRIMARY_TAB_HREFS.has(l.href) &&
-                      pathname !== l.href
-                        ? [PRIMARY_TAB_TRANSITION]
-                        : undefined
-                    }
-                    className={cn(
-                      "relative rounded-full px-3.5 py-1.5 text-sm transition-colors",
-                      active
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
-                    )}
-                  >
-                    {/* Shared element: one fill exists at a time and Motion
-                      slides it (FLIP) from the old pill to the new one. */}
-                    {active && (
-                      <motion.span
-                        layoutId="nav-active"
-                        transition={{ duration: DUR.base, ease: EASE }}
-                        className="absolute inset-0 -z-10 rounded-full bg-accent"
-                      />
-                    )}
-                    {l.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <PwaInstallButton />
-            <ThemeToggle />
-            {profile && (
+        <header
+          id={isProfileRoute ? "app-mobile-top-nav" : "app-top-nav"}
+          className="relative z-40 w-full shrink-0 glass border-b border-border/60 md:fixed md:inset-x-0 md:top-0"
+        >
+          <div className="flex h-14 w-full items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
+            <div className="flex items-center">
               <Link
-                href="/profile"
-                aria-label={`${profile.displayName} profile`}
-                className="ml-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                href={APP_ROOT}
+                prefetch
+                transitionTypes={
+                  isExactPrimaryTab ? [PRIMARY_TAB_TRANSITION] : undefined
+                }
+                className="group flex items-center pt-1 pb-2"
+                aria-label="slate home"
               >
-                {profile.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={profile.avatarUrl}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <UserRound className="h-4 w-4" />
-                )}
+                <Image
+                  src="/brand/logo-light.svg"
+                  alt="slate"
+                  width={62}
+                  height={17}
+                  priority
+                  className="hidden dark:block"
+                />
+                <Image
+                  src="/brand/logo-dark.svg"
+                  alt="slate"
+                  width={62}
+                  height={17}
+                  priority
+                  className="dark:hidden"
+                />
               </Link>
-            )}
-            <button
-              type="button"
-              onClick={open}
-              className="ml-1 hidden items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
-            >
-              <Search className="h-3.5 w-3.5" />
-              <span>Search & add…</span>
-              <kbd className="ml-2 rounded border border-border px-1.5 py-0.5 font-mono text-[11px]">
-                ⌘K
-              </kbd>
-            </button>
-            <button
-              type="button"
-              onClick={open}
-              aria-label="Search"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground hover:bg-accent sm:hidden"
-            >
-              <Search className="h-5 w-5" />
-            </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <PwaInstallButton />
+              <ThemeToggle />
+              {profile ? (
+                <OwnerMenu
+                  avatarUrl={profile.avatarUrl}
+                  displayName={profile.displayName}
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={open}
+                className="ml-1 hidden items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span>Search & add…</span>
+                <kbd className="ml-2 rounded border border-border px-1.5 py-0.5 font-mono text-[11px]">
+                  ⌘K
+                </kbd>
+              </button>
+              <button
+                type="button"
+                onClick={open}
+                aria-label="Search"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:hidden"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-        </div>
-      </header>
-      <div className="hidden h-16 md:block" aria-hidden />
+        </header>
+        <div className="hidden h-16 md:block" aria-hidden />
       </div>
     </ViewTransition>
   );
