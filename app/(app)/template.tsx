@@ -38,7 +38,9 @@ export default function Template({ children }: { children: React.ReactNode }) {
         default: "none",
       }}
     >
-      <div className="h-full min-h-0">{children}</div>
+      <div className="h-full min-h-0 bg-background md:min-h-[calc(100svh-7rem)] lg:min-h-[calc(100svh-8rem)]">
+        {children}
+      </div>
     </ViewTransition>
   );
 }
