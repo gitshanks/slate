@@ -67,6 +67,16 @@ export function AppScrollArea({ children }: { children: React.ReactNode }) {
           : "px-4 pt-5 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-6 md:overflow-visible md:overscroll-auto md:pb-6 lg:px-10 lg:pt-8 lg:pb-8",
       )}
     >
+      <span
+        data-title-overlay-safe-area
+        aria-hidden
+        className="pointer-events-none fixed inset-0 opacity-0"
+        style={{
+          paddingRight: "env(safe-area-inset-right, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          paddingLeft: "env(safe-area-inset-left, 0px)",
+        }}
+      />
       <div
         key={pathname}
         className={cn(

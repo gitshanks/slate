@@ -84,6 +84,8 @@ interface SpatialPosterGridProps {
   searchTarget: { titleId: string; request: number } | null;
   initialCamera?: SpatialCameraState;
   onCameraChange?: (camera: SpatialCameraState) => void;
+  /** Keeps the Space inspector below persistent collection controls. */
+  centerAfterId?: string;
 }
 
 export interface SpatialCameraState {
@@ -1024,6 +1026,7 @@ function TitleDetailSlab({
   className,
   contentClassName,
   entryOffsetX = 28,
+  maxContentHeight,
 }: {
   title: TitleRow;
   detail: PublicSpatialTitleDetail | null;
@@ -1034,6 +1037,7 @@ function TitleDetailSlab({
   className?: string;
   contentClassName?: string;
   entryOffsetX?: number;
+  maxContentHeight?: number;
 }) {
   const resolvedTitle = detail?.resolvedTitle
     ? { ...title, ...detail.resolvedTitle }
@@ -1152,7 +1156,7 @@ function TitleDetailSlab({
             selectedPerson ? "Close person details" : "Close title details"
           }
           onClick={onClose}
-          className="absolute right-3 top-3 z-30 grid h-9 w-9 place-items-center rounded-full border border-border bg-background/70 text-foreground/75 shadow-[0_12px_32px_-14px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[border-color,background-color,color,transform] duration-150 hover:border-foreground/25 hover:bg-background/90 hover:text-foreground active:scale-[0.96] sm:hidden"
+          className="absolute right-3 top-3 z-30 grid h-11 w-11 place-items-center rounded-full border border-border bg-background/70 text-foreground/75 shadow-[0_12px_32px_-14px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[border-color,background-color,color,transform] duration-150 hover:border-foreground/25 hover:bg-background/90 hover:text-foreground active:scale-[0.96] md:hidden"
         >
           <X className="h-4 w-4" aria-hidden />
         </button>
@@ -1168,13 +1172,19 @@ function TitleDetailSlab({
         }
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
         className={cn(
-          "scrollbar-hide relative z-10 max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain p-5 sm:p-6",
+          "scrollbar-hide relative z-10 overflow-y-auto overscroll-contain p-5 sm:p-6",
           selectedPerson && "pointer-events-none",
           contentClassName,
         )}
-        style={{ touchAction: "pan-x pan-y", transformOrigin: "left center" }}
+        style={{
+          touchAction: "pan-x pan-y",
+          transformOrigin: "left center",
+          maxHeight: maxContentHeight
+            ? `${maxContentHeight}px`
+            : "min(69dvh, 43rem)",
+        }}
       >
-        <div className="min-w-0 pr-11 sm:pr-0">
+        <div className="min-w-0 pr-14 md:pr-0">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/75">
             {resolvedTitle.media_type === "movie" ? "Film" : "Series"}
           </p>
@@ -1331,8 +1341,13 @@ function TitleDetailSlab({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0.65 }}
             transition={{ duration: 0.21, ease: [0.22, 1, 0.36, 1] }}
-            className="scrollbar-hide absolute inset-0 z-20 max-h-[min(69dvh,43rem)] overflow-y-auto overscroll-contain bg-card"
-            style={{ touchAction: "pan-x pan-y" }}
+            className="scrollbar-hide absolute inset-0 z-20 overflow-y-auto overscroll-contain bg-card"
+            style={{
+              touchAction: "pan-x pan-y",
+              maxHeight: maxContentHeight
+                ? `${maxContentHeight}px`
+                : "min(69dvh, 43rem)",
+            }}
           >
             <PersonDetailPanel
               person={selectedPerson.person}
@@ -1365,6 +1380,98 @@ function resolveScrollableElement(id?: string) {
   return overflowY === "auto" || overflowY === "scroll" ? element : null;
 }
 
+const TITLE_SLAB_FRAME_INSET = 12;
+const TITLE_SLAB_MAX_HEIGHT = 43 * 16;
+
+function resolveVisibleAppDockTop() {
+  const dock = document.getElementById("app-bottom-nav");
+  if (!dock) return null;
+  const rect = dock.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0 ? rect.top : null;
+}
+
+function resolveTitleOverlaySafeAreaInsets() {
+  const marker = document.querySelector<HTMLElement>(
+    "[data-title-overlay-safe-area]",
+  );
+  if (!marker) return { left: 0, right: 0, bottom: 0 };
+  const style = window.getComputedStyle(marker);
+  const number = (value: string) => {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  return {
+    left: number(style.paddingLeft),
+    right: number(style.paddingRight),
+    bottom: number(style.paddingBottom),
+  };
+}
+
+function useInertTitleOverlayBackground(active: boolean) {
+  React.useEffect(() => {
+    if (!active) return;
+    const elements = [
+      document.getElementById("app-bottom-nav"),
+      document.getElementById("public-collection-controls"),
+    ].filter((element): element is HTMLElement => element !== null);
+    const previous = elements.map((element) => element.inert);
+    elements.forEach((element) => {
+      element.inert = true;
+    });
+    return () => {
+      elements.forEach((element, index) => {
+        element.inert = previous[index];
+      });
+    };
+  }, [active]);
+}
+
+function resolveTitleSlabFrame({
+  top,
+  bottom,
+  narrow,
+}: {
+  top: number;
+  bottom: number;
+  narrow: boolean;
+}) {
+  const visualViewport = window.visualViewport;
+  const viewportTop = visualViewport?.offsetTop ?? 0;
+  const viewportHeight = visualViewport?.height ?? window.innerHeight;
+  const viewportBottom = viewportTop + viewportHeight;
+  const dockTop = resolveVisibleAppDockTop();
+  const hasAppDock = dockTop !== null;
+  const safeArea = resolveTitleOverlaySafeAreaInsets();
+  const safeBottomTop =
+    safeArea.bottom > 0 ? viewportBottom - safeArea.bottom : null;
+  const frameInset = narrow || hasAppDock ? TITLE_SLAB_FRAME_INSET : 0;
+  const boundedTop = Math.max(top, viewportTop);
+  const boundedBottom = Math.min(bottom, viewportBottom);
+  const usableTop = boundedTop + frameInset;
+  const bottomBoundary = dockTop ?? safeBottomTop;
+  const usableBottom =
+    bottomBoundary === null
+      ? boundedBottom - frameInset
+      : Math.min(boundedBottom, bottomBoundary) - TITLE_SLAB_FRAME_INSET;
+  const availableVisualHeight = Math.max(0, usableBottom - usableTop);
+  const maxContentHeight = Math.max(
+    1,
+    Math.min(
+      viewportHeight * 0.69,
+      TITLE_SLAB_MAX_HEIGHT,
+      availableVisualHeight,
+    ),
+  );
+
+  return {
+    top: usableTop,
+    bottom: usableBottom,
+    center: usableTop + availableVisualHeight / 2,
+    maxContentHeight,
+    hasAppDock,
+  };
+}
+
 export function CollectionTitleDetailOverlay({
   title,
   detailSource,
@@ -1389,6 +1496,7 @@ export function CollectionTitleDetailOverlay({
   centerAfterId?: string;
 }) {
   const reducedMotion = useReducedMotion() ?? false;
+  useInertTitleOverlayBackground(true);
   const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(
     () => detailSource.getCached(title),
   );
@@ -1397,19 +1505,20 @@ export function CollectionTitleDetailOverlay({
   );
   const [error, setError] = React.useState<string | null>(null);
   const [revealReady, setRevealReady] = React.useState(false);
-  const [interactionBounds, setInteractionBounds] = React.useState<{
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
   const [position, setPosition] = React.useState<
-    | { placement: "center"; top: number }
+    | {
+        placement: "center";
+        top: number;
+        maxContentHeight: number;
+        hasAppDock: boolean;
+      }
     | {
         left: number;
         top: number;
         width: number;
         placement: "left" | "right";
+        maxContentHeight: number;
+        hasAppDock: boolean;
       }
     | null
   >(null);
@@ -1436,35 +1545,51 @@ export function CollectionTitleDetailOverlay({
     }
 
     const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const narrow = viewportWidth < 640;
+    const narrow = viewportWidth < 768;
     const slabWidth = Math.min(viewportWidth * 0.84, 432);
     const scrollContainer = resolveScrollFrame();
     const containerRect = scrollContainer?.getBoundingClientRect();
+    const visualViewport = window.visualViewport;
+    const safeArea = resolveTitleOverlaySafeAreaInsets();
+    const viewportLeft = visualViewport?.offsetLeft ?? 0;
+    const viewportRight =
+      viewportLeft + (visualViewport?.width ?? window.innerWidth);
     const topAnchor = centerAfterId
       ? document.getElementById(centerAfterId)
       : null;
     const topAnchorRect = topAnchor?.getBoundingClientRect();
-    const bounds = {
-      left: containerRect?.left ?? 0,
+    const rawBounds = {
+      left: Math.max(
+        containerRect?.left ?? 0,
+        viewportLeft + safeArea.left,
+      ),
       top: Math.max(containerRect?.top ?? 0, topAnchorRect?.bottom ?? 0),
-      right: containerRect?.right ?? window.innerWidth,
+      right: Math.min(
+        containerRect?.right ?? window.innerWidth,
+        viewportRight - safeArea.right,
+      ),
       bottom: containerRect?.bottom ?? window.innerHeight,
     };
-    setInteractionBounds({
-      left: bounds.left,
-      top: bounds.top,
-      width: Math.max(0, bounds.right - bounds.left),
-      height: Math.max(0, bounds.bottom - bounds.top),
+    const frame = resolveTitleSlabFrame({
+      top: rawBounds.top,
+      bottom: rawBounds.bottom,
+      narrow,
     });
+    const bounds = {
+      ...rawBounds,
+      top: frame.top,
+      bottom: frame.bottom,
+    };
 
     // Space is centered in the collection canvas between the controls and app
     // navigation. Shelf uses that same explicit frame instead of inheriting a
     // different fixed-position containing block.
-    if (narrow) {
+    if (narrow || frame.hasAppDock) {
       setPosition({
         placement: "center",
-        top: bounds.top + (bounds.bottom - bounds.top) / 2,
+        top: frame.center,
+        maxContentHeight: frame.maxContentHeight,
+        hasAppDock: frame.hasAppDock,
       });
       return;
     }
@@ -1483,7 +1608,7 @@ export function CollectionTitleDetailOverlay({
       0,
       bounds.bottom - bounds.top - verticalInset * 2,
     );
-    const maxSlabHeight = Math.min(viewportHeight * 0.69, 43 * 16);
+    const maxSlabHeight = frame.maxContentHeight;
     const halfSlabHeight = Math.min(maxSlabHeight / 2, usableHeight / 2);
     const minimumCenter = bounds.top + verticalInset + halfSlabHeight;
     const maximumCenter = bounds.bottom - verticalInset - halfSlabHeight;
@@ -1494,8 +1619,8 @@ export function CollectionTitleDetailOverlay({
         : bounds.top + (bounds.bottom - bounds.top) / 2;
 
     const sideRoom = {
-      left: rect.left - gap - edge,
-      right: viewportWidth - rect.right - gap - edge,
+      left: rect.left - bounds.left - gap - edge,
+      right: bounds.right - rect.right - gap - edge,
     };
 
     // Desktop always anchors beside the selected poster. The scroll listener
@@ -1511,6 +1636,8 @@ export function CollectionTitleDetailOverlay({
       top: verticalCenter,
       width,
       placement,
+      maxContentHeight: frame.maxContentHeight,
+      hasAppDock: frame.hasAppDock,
     });
   }, [
     anchorElementId,
@@ -1523,11 +1650,16 @@ export function CollectionTitleDetailOverlay({
   React.useLayoutEffect(() => {
     updatePosition();
     const scrollTarget = resolveScrollFrame() ?? window;
+    const visualViewport = window.visualViewport;
     window.addEventListener("resize", updatePosition);
     scrollTarget?.addEventListener("scroll", updatePosition, { passive: true });
+    visualViewport?.addEventListener("resize", updatePosition);
+    visualViewport?.addEventListener("scroll", updatePosition);
     return () => {
       window.removeEventListener("resize", updatePosition);
       scrollTarget?.removeEventListener("scroll", updatePosition);
+      visualViewport?.removeEventListener("resize", updatePosition);
+      visualViewport?.removeEventListener("scroll", updatePosition);
     };
   }, [resolveScrollFrame, updatePosition]);
 
@@ -1561,12 +1693,17 @@ export function CollectionTitleDetailOverlay({
       const topAnchorRect = centerAfterId
         ? document.getElementById(centerAfterId)?.getBoundingClientRect()
         : null;
-      const frameTop = Math.max(
+      const rawFrameTop = Math.max(
         containerRect?.top ?? 0,
         topAnchorRect?.bottom ?? 0,
       );
-      const frameBottom = containerRect?.bottom ?? window.innerHeight;
-      const targetCenter = frameTop + (frameBottom - frameTop) / 2;
+      const rawFrameBottom = containerRect?.bottom ?? window.innerHeight;
+      const frame = resolveTitleSlabFrame({
+        top: rawFrameTop,
+        bottom: rawFrameBottom,
+        narrow: window.innerWidth < 768,
+      });
+      const targetCenter = frame.center;
       const sourceRect = source.getBoundingClientRect();
       const delta = sourceRect.top + sourceRect.height / 2 - targetCenter;
       const current = scrollContainer?.scrollTop ?? window.scrollY;
@@ -1695,10 +1832,7 @@ export function CollectionTitleDetailOverlay({
   const overlay = (
     <>
       {position ? (
-        <TitleDetailDismissLayer
-          onDismiss={onClose}
-          style={interactionBounds ?? undefined}
-        />
+        <TitleDetailDismissLayer onDismiss={onClose} />
       ) : null}
       {position && (reducedMotion || revealReady) ? (
         <div
@@ -1707,7 +1841,7 @@ export function CollectionTitleDetailOverlay({
           aria-label={`${title.title} details`}
           data-spatial-slab
           className={cn(
-            "fixed z-[60] origin-center scale-[0.86] sm:scale-100",
+            "fixed z-[60] origin-center",
             position.placement === "center"
               ? "left-1/2 w-[min(84vw,27rem)] -translate-x-1/2 -translate-y-1/2"
               : "-translate-y-1/2",
@@ -1732,6 +1866,7 @@ export function CollectionTitleDetailOverlay({
             onClose={onClose}
             className="w-full"
             entryOffsetX={28}
+            maxContentHeight={position.maxContentHeight}
           />
         </div>
       ) : null}
@@ -1787,6 +1922,7 @@ export function SpatialPosterGrid({
   searchTarget,
   initialCamera,
   onCameraChange,
+  centerAfterId,
 }: SpatialPosterGridProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const resolvedTitleDetailSource = React.useMemo(
@@ -1819,6 +1955,12 @@ export function SpatialPosterGrid({
   const [viewportSize, setViewportSize] = React.useState({
     width: 1280,
     height: 800,
+  });
+  const [slabFrame, setSlabFrame] = React.useState({
+    center: 400,
+    maxContentHeight: Math.min(800 * 0.69, TITLE_SLAB_MAX_HEIGHT),
+    hasAppDock: false,
+    cameraOffsetY: 0,
   });
   const layout = React.useMemo(
     () =>
@@ -1919,6 +2061,7 @@ export function SpatialPosterGrid({
     ? titles.findIndex((title) => title.id === selectedId)
     : -1;
   const selectedTitle = selectedIndex >= 0 ? titles[selectedIndex] : null;
+  useInertTitleOverlayBackground(selectedTitle !== null);
 
   const stopCamera = React.useCallback(() => {
     animationRef.current.forEach((control) => control.stop());
@@ -1955,23 +2098,23 @@ export function SpatialPosterGrid({
       const point = selectedPoint ?? points[index];
       if (!point) return;
       const viewport = viewportWidth.get();
-      const narrow = viewport <= 639;
-      const scale = narrow ? 0.67 : 0.83;
-      const slabWidth = Math.min(viewport * 0.84, 432) * (narrow ? 0.86 : 1);
-      const slabLeft = narrow ? -slabWidth / 2 : -slabWidth * 0.2;
-      const slabRight = narrow ? slabWidth / 2 : slabWidth * 0.8;
+      const compact = viewport < 768 || slabFrame.hasAppDock;
+      const scale = compact ? 0.67 : 0.83;
+      const slabWidth = Math.min(viewport * 0.84, 432);
+      const slabLeft = compact ? -slabWidth / 2 : -slabWidth * 0.2;
+      const slabRight = compact ? slabWidth / 2 : slabWidth * 0.8;
       const currentScale = cameraScale.get();
       const currentScreenX =
         point.x * currentScale +
         wrapCamera(cameraX.get(), periodX * currentScale);
       const placeOnLeft = currentScreenX < (slabLeft + slabRight) / 2;
-      const posterRadius = narrow ? 46 : 70;
-      const overlayGap = narrow ? 14 : 24;
+      const posterRadius = compact ? 46 : 70;
+      const overlayGap = compact ? 14 : 24;
       const targetScreenX = placeOnLeft
         ? slabLeft - posterRadius - overlayGap
         : slabRight + posterRadius + overlayGap;
       const targetX = targetScreenX - point.x * scale;
-      const targetY = -point.y * scale;
+      const targetY = slabFrame.cameraOffsetY - point.y * scale;
       moveCamera(
         nearestRepeatedTarget(targetX, cameraX.get(), periodX * scale),
         nearestRepeatedTarget(targetY, cameraY.get(), periodY * scale),
@@ -1987,6 +2130,8 @@ export function SpatialPosterGrid({
       periodX,
       periodY,
       points,
+      slabFrame.cameraOffsetY,
+      slabFrame.hasAppDock,
       viewportWidth,
     ],
   );
@@ -2119,22 +2264,61 @@ export function SpatialPosterGrid({
 
     const measure = () => {
       const bounds = viewport.getBoundingClientRect();
+      const topBoundaryRect = centerAfterId
+        ? document.getElementById(centerAfterId)?.getBoundingClientRect()
+        : null;
+      const frameTop = Math.max(
+        bounds.top,
+        topBoundaryRect?.bottom ?? bounds.top,
+      );
       viewportWidth.set(bounds.width);
       viewportHeight.set(bounds.height);
       const width = Math.round(bounds.width);
       const height = Math.round(bounds.height);
+      const nextSlabFrame = resolveTitleSlabFrame({
+        top: frameTop,
+        bottom: bounds.bottom,
+        narrow: bounds.width < 768,
+      });
       setViewportSize((current) =>
         current.width === width && current.height === height
           ? current
           : { width, height },
       );
+      setSlabFrame((current) => {
+        const center = Math.round(nextSlabFrame.center);
+        const maxContentHeight = Math.round(nextSlabFrame.maxContentHeight);
+        const cameraOffsetY = Math.round(
+          nextSlabFrame.center - (bounds.top + bounds.height / 2),
+        );
+        return current.center === center &&
+          current.maxContentHeight === maxContentHeight &&
+          current.hasAppDock === nextSlabFrame.hasAppDock &&
+          current.cameraOffsetY === cameraOffsetY
+          ? current
+          : {
+              center,
+              maxContentHeight,
+              hasAppDock: nextSlabFrame.hasAppDock,
+              cameraOffsetY,
+            };
+      });
     };
     measure();
 
     const observer = new ResizeObserver(measure);
     observer.observe(viewport);
-    return () => observer.disconnect();
-  }, [viewportHeight, viewportWidth]);
+    const visualViewport = window.visualViewport;
+    window.addEventListener("resize", measure);
+    visualViewport?.addEventListener("resize", measure);
+    visualViewport?.addEventListener("scroll", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+      visualViewport?.removeEventListener("resize", measure);
+      visualViewport?.removeEventListener("scroll", measure);
+    };
+  }, [centerAfterId, viewportHeight, viewportWidth]);
 
   const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -2321,27 +2505,35 @@ export function SpatialPosterGrid({
         />
       </section>
 
-      {selectedTitle ? (
-        <>
-          <TitleDetailDismissLayer onDismiss={closeDetail} />
-          {slabOpen ? (
-            <div
-              data-spatial-slab
-              className="fixed left-1/2 top-1/2 z-[60] origin-center -translate-x-1/2 -translate-y-1/2 scale-[0.86] sm:-translate-x-[20%] sm:scale-100"
-            >
-              <TitleDetailSlab
-                key={selectedTitle.id}
-                title={selectedTitle}
-                detail={detail}
-                loading={detailLoading}
-                error={detailError}
-                renderActions={renderActions}
-                onClose={closeDetail}
-              />
-            </div>
-          ) : null}
-        </>
-      ) : null}
+      {selectedTitle && typeof document !== "undefined"
+        ? createPortal(
+            <>
+              <TitleDetailDismissLayer onDismiss={closeDetail} />
+              {slabOpen ? (
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={`${selectedTitle.title} details`}
+                  data-spatial-slab
+                  className="fixed left-1/2 z-[60] origin-center -translate-x-1/2 -translate-y-1/2 md:-translate-x-[20%]"
+                  style={{ top: slabFrame.center }}
+                >
+                  <TitleDetailSlab
+                    key={selectedTitle.id}
+                    title={selectedTitle}
+                    detail={detail}
+                    loading={detailLoading}
+                    error={detailError}
+                    renderActions={renderActions}
+                    onClose={closeDetail}
+                    maxContentHeight={slabFrame.maxContentHeight}
+                  />
+                </div>
+              ) : null}
+            </>,
+            document.body,
+          )
+        : null}
     </>
   );
 }

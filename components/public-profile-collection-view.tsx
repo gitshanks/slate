@@ -234,6 +234,16 @@ export function PublicProfileCollectionView({
 
   return (
     <div className="dark min-h-dvh bg-[#080a09] text-white">
+      <span
+        data-title-overlay-safe-area
+        aria-hidden
+        className="pointer-events-none fixed inset-0 opacity-0"
+        style={{
+          paddingRight: "env(safe-area-inset-right, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          paddingLeft: "env(safe-area-inset-left, 0px)",
+        }}
+      />
       <header
         id="public-collection-controls"
         className="pointer-events-none fixed inset-x-0 top-0 z-[70] px-2.5 pb-8 text-white min-[380px]:px-3 md:px-2 md:pb-7 lg:px-5 xl:px-6"
@@ -491,6 +501,7 @@ export function PublicProfileCollectionView({
           <SpatialPosterGrid
             titles={filteredTitles}
             username={username}
+            centerAfterId="public-collection-controls"
             onExit={() => selectMode("shelf")}
             searchTarget={searchTarget}
             initialCamera={spatialCamera}

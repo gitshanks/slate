@@ -75,6 +75,7 @@ export function BottomNav() {
   // positioning and cannot be stranded by iOS after search closes.
   return (
     <nav
+      id="app-bottom-nav"
       className="pointer-events-none relative isolate z-40 w-full shrink-0 self-end bg-transparent text-foreground [grid-area:app-stack] md:hidden"
       aria-label="Primary"
       style={{
