@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, LayoutGrid, Search, Sparkles } from "lucide-react";
+import { Box, LayoutGrid, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRIMARY_TAB_TRANSITION } from "@/lib/motion";
 import { APP_ROOT } from "@/lib/public-mode";
@@ -14,6 +14,7 @@ import {
 } from "@/components/owned-app-toolbar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PwaInstallButton } from "@/components/pwa-install-button";
+import { SmartSearchBar } from "@/components/smart-search-bar";
 import { ViewTransition } from "@/components/view-transition";
 
 const PRIMARY_TAB_HREFS = new Set([APP_ROOT, "/discover", "/lists"]);
@@ -29,7 +30,7 @@ export function TopNav({
   profile?: { displayName: string; avatarUrl: string | null } | null;
 }) {
   const pathname = usePathname();
-  const { open, openWith, aiEnabled } = useCommandPalette();
+  const { open } = useCommandPalette();
   const isExactPrimaryTab = PRIMARY_TAB_HREFS.has(pathname);
   const isProfileRoute = pathname.startsWith("/profile");
   const usesPrimaryToolbar = pathname === "/discover" || pathname === "/lists";
@@ -39,30 +40,7 @@ export function TopNav({
   if (pathname === APP_ROOT) return null;
 
   const toolbarSearch = (
-    <div className="relative w-full min-w-0 md:w-[clamp(16rem,34vw,28rem)]">
-      <button
-        type="button"
-        onClick={() => open()}
-        className={cn(
-          "flex h-10 w-full min-w-0 items-center gap-2.5 rounded-full border border-border bg-foreground/[0.065] pl-4 text-sm text-muted-foreground outline-none transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-foreground/[0.09] hover:text-foreground active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-primary/30",
-          aiEnabled ? "pr-12" : "pr-4",
-        )}
-        aria-label="Search titles and people"
-      >
-        <Search className="h-4 w-4 shrink-0" />
-        <span className="truncate">Search titles, people, or ask</span>
-      </button>
-      {aiEnabled ? (
-        <button
-          type="button"
-          onClick={() => openWith({ mode: "ask" })}
-          className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-foreground/[0.075] text-muted-foreground outline-none transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/30"
-          aria-label="Ask"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-        </button>
-      ) : null}
-    </div>
+    <SmartSearchBar surfaceId={`top-nav-smart-search-${pathname}`} />
   );
 
   if (usesPrimaryToolbar) {

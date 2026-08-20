@@ -8,9 +8,6 @@ import {
   Film,
   LayoutGrid,
   Plus,
-  Search,
-  Sparkles,
-  X,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { EmptyState } from "@/components/empty-state";
@@ -22,7 +19,12 @@ import {
   OwnerMenu,
 } from "@/components/owned-app-toolbar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useCommandPalette } from "@/components/command-palette";
+import {
+  useCommandPalette,
+  useSmartSearchSession,
+  type LibrarySelection,
+} from "@/components/command-palette";
+import { SmartSearchBar } from "@/components/smart-search-bar";
 import {
   CollectionTitleDetailOverlay,
   type SpatialCameraState,
@@ -135,14 +137,9 @@ export function LibraryCollectionView({
   lists,
 }: LibraryCollectionViewProps) {
   const searchParams = useSearchParams();
-  const {
-    open: openCommandPalette,
-    openWith: openSmartSearch,
-    aiEnabled,
-  } = useCommandPalette();
+  const { activate: activateSmartSearch } = useCommandPalette();
+  const { query, setQuery } = useSmartSearchSession();
   const reducedMotion = useReducedMotion() ?? false;
-  const [query, setQuery] = React.useState("");
-  const [searchOpen, setSearchOpen] = React.useState(false);
   const [searchTarget, setSearchTarget] = React.useState<{
     titleId: string;
     request: number;
@@ -211,16 +208,6 @@ export function LibraryCollectionView({
         : filteredTitles,
     [filteredTitles, normalizedQuery],
   );
-  const matches = React.useMemo(() => {
-    if (!normalizedQuery) return [];
-    return filteredTitles
-      .filter((title) =>
-        `${title.title} ${title.original_title ?? ""}`
-          .toLocaleLowerCase()
-          .includes(normalizedQuery),
-      )
-      .slice(0, 6);
-  }, [filteredTitles, normalizedQuery]);
   const genres = React.useMemo(() => extractGenres(titles), [titles]);
   const titleDetailSource = React.useMemo<TitleDetailSource>(
     () => ({
@@ -282,45 +269,35 @@ export function LibraryCollectionView({
 
   const selectSearchResult = React.useCallback(
     (title: TitleRow) => {
-      setSearchOpen(false);
       if (mode === "space") focusTitle(title.id);
       else openShelfTitle(title);
     },
     [focusTitle, mode, openShelfTitle],
   );
 
-  const openExpandedSearch = React.useCallback(
-    (nextMode: "search" | "ask") => {
-      openSmartSearch({
-        initialQuery: query,
-        mode: nextMode,
-        submit: nextMode === "ask" && Boolean(normalizedQuery),
-        onLibrarySelect: (selection) => {
-          const selected = titles.find(
-            (title) =>
-              title.id === selection.id ||
-              (title.tmdb_id === selection.tmdbId &&
-                title.media_type === selection.mediaType),
-          );
-          if (selected) {
-            // A cast/crew query usually does not contain the selected title's
-            // name. Clear the inline filter before opening so the poster is
-            // present for Shelf anchoring (and visible in Space).
-            setQuery("");
-            selectSearchResult(selected);
-          }
-        },
-      });
-      setSearchOpen(false);
+  const handleLibrarySearchSelect = React.useCallback(
+    (selection: LibrarySelection) => {
+      const selected = titles.find(
+        (title) =>
+          title.id === selection.id ||
+          (title.tmdb_id === selection.tmdbId &&
+            title.media_type === selection.mediaType),
+      );
+      if (!selected) return;
+
+      // A cast/crew query usually does not contain the selected title's name.
+      // Clear the local Shelf filter before opening so its poster is present
+      // for anchoring (and visible when travelling through Space).
+      setQuery("");
+      selectSearchResult(selected);
     },
-    [normalizedQuery, openSmartSearch, query, selectSearchResult, titles],
+    [selectSearchResult, setQuery, titles],
   );
 
   const selectMode = React.useCallback(
     (nextMode: ViewMode) => {
       if (nextMode === mode || isSwitching) return;
       setIsSwitching(true);
-      setSearchOpen(false);
       closeShelfTitle();
       const params = new URLSearchParams(window.location.search);
       if (nextMode === "space") params.set("view", "space");
@@ -438,130 +415,13 @@ export function LibraryCollectionView({
           <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:flex-nowrap md:justify-self-center md:justify-center md:gap-1.5 lg:gap-2 xl:max-w-[80rem]">
             <div
               ref={toolbarSearchRef}
-              className="relative w-full min-w-0 md:w-[clamp(11rem,20vw,13rem)] md:shrink-0 lg:w-[clamp(13rem,18vw,15rem)] xl:w-[clamp(14rem,calc(100vw-78rem),24rem)]"
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) {
-                  setSearchOpen(false);
-                }
-              }}
+              className="relative w-full min-w-0 shrink-0 md:w-auto"
             >
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setSearchOpen(true);
-                }}
-                onFocus={() => {
-                  if (normalizedQuery) setSearchOpen(true);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
-                  event.preventDefault();
-                  if (matches[0]) selectSearchResult(matches[0]);
-                  else openExpandedSearch("search");
-                }}
-                placeholder="Search titles, people, or ask"
-                aria-label="Search your slate, discover titles, or ask"
-                className={cn(
-                  "h-10 w-full appearance-none rounded-2xl border border-border bg-foreground/[0.065] pl-4 text-sm text-foreground outline-none transition-[border-color,background-color] duration-150 placeholder:text-muted-foreground focus:border-primary/55 focus:bg-foreground/[0.09] sm:rounded-full [&::-webkit-search-cancel-button]:hidden",
-                  aiEnabled
-                    ? query
-                      ? "pr-28 md:pr-20"
-                      : "pr-20"
-                    : "pr-20",
-                )}
+              <SmartSearchBar
+                surfaceId="library-smart-search"
+                onLibrarySelect={handleLibrarySearchSelect}
+                ariaLabel="Search your slate, discover titles, or ask Slate"
               />
-              <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
-                {query ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuery("");
-                      setSearchOpen(false);
-                      setSearchTarget(null);
-                    }}
-                    className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground transition-[color,background-color,transform] duration-150 hover:bg-foreground/10 hover:text-foreground active:scale-[0.96]"
-                    aria-label="Clear search"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                ) : null}
-                {aiEnabled ? (
-                  <button
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => openExpandedSearch("ask")}
-                    className={cn(
-                      "inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-foreground/[0.075] text-muted-foreground transition-[border-color,background-color,color,transform] duration-150 hover:border-primary/45 hover:bg-primary/10 hover:text-primary active:scale-[0.97]",
-                      query && "md:hidden",
-                    )}
-                    aria-label="Ask"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => openExpandedSearch("search")}
-                  className="grid h-8 w-8 place-items-center rounded-full bg-foreground/10 text-foreground transition-[background-color,color,transform] duration-150 hover:bg-primary hover:text-primary-foreground active:scale-[0.96]"
-                  aria-label="Search titles and people"
-                >
-                  <Search className="h-4 w-4" />
-                </button>
-              </div>
-
-              {normalizedQuery && searchOpen ? (
-                <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-10 overflow-hidden rounded-2xl border border-border bg-popover/95 p-1.5 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.5)] backdrop-blur-2xl md:right-auto md:w-[min(20rem,calc(100vw-2rem))]">
-                  {matches.length
-                    ? matches.map((title) => (
-                      <button
-                        key={title.id}
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => selectSearchResult(title)}
-                        className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-foreground/80 transition-[color,background-color,transform] duration-150 hover:bg-accent hover:text-foreground active:scale-[0.99]"
-                      >
-                        <span className="truncate">{title.title}</span>
-                        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground">
-                          {title.status === "want" ? "Up Next" : title.status}
-                        </span>
-                      </button>
-                    ))
-                    : null}
-                  <div
-                    className={cn(
-                      matches.length && "mt-1 border-t border-border/70 pt-1",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => openExpandedSearch("search")}
-                      className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-muted-foreground transition-[color,background-color,transform] duration-150 hover:bg-accent hover:text-foreground active:scale-[0.99]"
-                    >
-                      <span className="truncate">
-                        Search all for &ldquo;{query.trim()}&rdquo;
-                      </span>
-                      <Search className="h-3.5 w-3.5 shrink-0" />
-                    </button>
-                    {aiEnabled ? (
-                      <button
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => openExpandedSearch("ask")}
-                        className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-xs text-muted-foreground transition-[color,background-color,transform] duration-150 hover:bg-accent hover:text-primary active:scale-[0.99]"
-                      >
-                        <span className="truncate">
-                          Ask about &ldquo;{query.trim()}&rdquo;
-                        </span>
-                        <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
             </div>
 
             <div
@@ -637,7 +497,7 @@ export function LibraryCollectionView({
                 action={
                   <button
                     type="button"
-                    onClick={openCommandPalette}
+                    onClick={() => activateSmartSearch()}
                     className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground transition-transform active:scale-[0.97]"
                   >
                     <Plus className="h-3.5 w-3.5" />

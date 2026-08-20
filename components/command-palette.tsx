@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
+  Command,
   CommandDialog,
   CommandInput,
   CommandList,
@@ -80,26 +81,76 @@ interface SavedTitleHit {
   status: "want" | "watching" | "watched" | "dropped";
 }
 
-interface LibrarySelection {
+export interface LibrarySelection {
   id: string;
   tmdbId: number;
   mediaType: "movie" | "tv";
 }
 
-interface SmartSearchOpenOptions {
+export interface SmartSearchOpenOptions {
   initialQuery?: string;
   mode?: "search" | "ask";
   submit?: boolean;
   onLibrarySelect?: (selection: LibrarySelection) => void;
 }
 
+export interface SmartSearchSurfaceHandle {
+  id: string;
+  getAnchor: () => HTMLElement | null;
+  focus: () => void;
+  supportsInline: () => boolean;
+  onLibrarySelect?: (selection: LibrarySelection) => void;
+}
+
 interface CommandPaletteContextValue {
   open: () => void;
   openWith: (options: SmartSearchOpenOptions) => void;
+  activate: (options?: SmartSearchOpenOptions) => void;
+  registerSurface: (surface: SmartSearchSurfaceHandle) => () => void;
+  activateSurface: (
+    id: string,
+    options?: SmartSearchOpenOptions,
+  ) => boolean;
+  dismissInline: () => void;
   aiEnabled: boolean;
 }
 
+interface SmartSearchSessionValue {
+  query: string;
+  setQuery: React.Dispatch<React.SetStateAction<string>>;
+  inlineOpen: boolean;
+  activeSurfaceId: string | null;
+  resultsListId: string | null;
+  activateSurface: (
+    id: string,
+    options?: SmartSearchOpenOptions,
+  ) => boolean;
+  dismissInline: () => void;
+  submitSearch: () => void;
+  startAsk: () => void;
+  focusFirstResult: () => void;
+}
+
+interface InlineResultsGeometry {
+  left: number;
+  top: number;
+  width: number;
+  maxHeight: number;
+}
+
 const Ctx = React.createContext<CommandPaletteContextValue | null>(null);
+const SessionCtx = React.createContext<SmartSearchSessionValue | null>(null);
+
+function blurActiveSmartSearch() {
+  if (typeof document === "undefined") return;
+  const active = document.activeElement;
+  if (
+    active instanceof HTMLElement &&
+    active.closest("[data-smart-search-surface]")
+  ) {
+    active.blur();
+  }
+}
 
 const ADD_STATUSES: { value: TitleStatus; label: string }[] = [
   { value: "want", label: "Up Next" },
@@ -117,6 +168,16 @@ export function useCommandPalette() {
   return v;
 }
 
+export function useSmartSearchSession() {
+  const value = React.useContext(SessionCtx);
+  if (!value) {
+    throw new Error(
+      "useSmartSearchSession must be used inside CommandPaletteProvider",
+    );
+  }
+  return value;
+}
+
 interface ProviderProps {
   children: React.ReactNode;
   /** Set server-side from `aiSearchEnabled`. When false the AI toggle is hidden. */
@@ -125,6 +186,12 @@ interface ProviderProps {
 
 export function CommandPaletteProvider({ children, aiEnabled = false }: ProviderProps) {
   const [open, setOpen] = React.useState(false);
+  const [activeSurfaceId, setActiveSurfaceId] = React.useState<string | null>(
+    null,
+  );
+  const [inlineListId, setInlineListId] = React.useState<string | null>(null);
+  const [inlineGeometry, setInlineGeometry] =
+    React.useState<InlineResultsGeometry | null>(null);
   const [query, setQuery] = React.useState("");
   const [aiMode, setAiMode] = React.useState(false);
   const [askReturnQuery, setAskReturnQuery] = React.useState("");
@@ -142,6 +209,10 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   // to fire the next chat turn.
   const [submitTick, setSubmitTick] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const inlineResultsRef = React.useRef<HTMLDivElement>(null);
+  const surfacesRef = React.useRef<Map<string, SmartSearchSurfaceHandle>>(
+    new Map(),
+  );
   const standardSearchRequestRef = React.useRef(0);
   const skipAutoFocusRef = React.useRef(false);
   const librarySelectionRef = React.useRef<
@@ -152,25 +223,142 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   const openPalette = React.useCallback(() => {
     librarySelectionRef.current = null;
     skipAutoFocusRef.current = false;
+    blurActiveSmartSearch();
+    setActiveSurfaceId(null);
     setAiMode(false);
     setAskReturnQuery("");
+    setSubmitTick(0);
     setOpen(true);
   }, []);
 
   const openWith = React.useCallback((options: SmartSearchOpenOptions) => {
     const initialQuery = options.initialQuery?.trim() ?? "";
-    librarySelectionRef.current = options.onLibrarySelect ?? null;
-    skipAutoFocusRef.current = Boolean(
+    const shouldSubmit = Boolean(
       options.mode === "ask" && options.submit && initialQuery,
     );
+    librarySelectionRef.current = options.onLibrarySelect ?? null;
+    skipAutoFocusRef.current = shouldSubmit;
+    blurActiveSmartSearch();
+    setActiveSurfaceId(null);
     setQuery(initialQuery);
     setAskReturnQuery(options.mode === "ask" ? initialQuery : "");
     setAiMode(options.mode === "ask");
     setOpen(true);
-    if (options.mode === "ask" && options.submit && initialQuery) {
+    if (shouldSubmit) {
       setSubmitTick((tick) => tick + 1);
+    } else {
+      // AiChatPanel remounts whenever Ask opens. Resetting the edge token keeps
+      // an older submission from being mistaken for a fresh request.
+      setSubmitTick(0);
     }
   }, []);
+
+  const closeInline = React.useCallback((blurInput: boolean) => {
+    if (blurInput) blurActiveSmartSearch();
+    setActiveSurfaceId(null);
+  }, []);
+
+  const dismissInline = React.useCallback(() => {
+    closeInline(true);
+  }, [closeInline]);
+
+  const isVisibleSurface = React.useCallback(
+    (surface: SmartSearchSurfaceHandle) => {
+      const anchor = surface.getAnchor();
+      return Boolean(anchor?.isConnected && anchor.getClientRects().length);
+    },
+    [],
+  );
+
+  const canUseInlineSurface = React.useCallback(
+    (surface: SmartSearchSurfaceHandle) => {
+      if (
+        typeof window === "undefined" ||
+        !window.matchMedia("(min-width: 768px)").matches ||
+        !surface.supportsInline()
+      ) {
+        return false;
+      }
+
+      return isVisibleSurface(surface);
+    },
+    [isVisibleSurface],
+  );
+
+  const activateSurface = React.useCallback(
+    (id: string, options: SmartSearchOpenOptions = {}) => {
+      const surface = surfacesRef.current.get(id);
+      if (!surface) {
+        openWith(options);
+        return false;
+      }
+      if (!canUseInlineSurface(surface)) {
+        openWith({
+          ...options,
+          onLibrarySelect:
+            options.onLibrarySelect ?? surface.onLibrarySelect,
+        });
+        return false;
+      }
+
+      librarySelectionRef.current =
+        options.onLibrarySelect ?? surface.onLibrarySelect ?? null;
+      skipAutoFocusRef.current = false;
+      if (options.initialQuery !== undefined) {
+        setQuery(options.initialQuery.trim());
+      }
+      setAskReturnQuery("");
+      setAiMode(false);
+      setOpen(false);
+      setActiveSurfaceId(id);
+
+      // The input is already mounted. Keeping this call in the originating
+      // click stack preserves the trusted user gesture iOS needs to show its
+      // software keyboard.
+      surface.focus();
+      return true;
+    },
+    [canUseInlineSurface, openWith],
+  );
+
+  const registerSurface = React.useCallback(
+    (surface: SmartSearchSurfaceHandle) => {
+      surfacesRef.current.set(surface.id, surface);
+
+      return () => {
+        if (surfacesRef.current.get(surface.id) !== surface) return;
+        surfacesRef.current.delete(surface.id);
+        setActiveSurfaceId((current) =>
+          current === surface.id ? null : current,
+        );
+      };
+    },
+    [],
+  );
+
+  const activate = React.useCallback(
+    (options: SmartSearchOpenOptions = {}) => {
+      if (options.mode === "ask") {
+        openWith(options);
+        return;
+      }
+
+      const surfaces = Array.from(surfacesRef.current.values()).reverse();
+      const inlineSurface = surfaces.find(canUseInlineSurface);
+      if (inlineSurface) {
+        activateSurface(inlineSurface.id, options);
+        return;
+      }
+
+      const visibleSurface = surfaces.find(isVisibleSurface);
+      openWith({
+        ...options,
+        onLibrarySelect:
+          options.onLibrarySelect ?? visibleSurface?.onLibrarySelect,
+      });
+    },
+    [activateSurface, canUseInlineSurface, isVisibleSurface, openWith],
+  );
 
   // Voice search (standard mode). Dictation fills the box and stops; the user
   // reviews and presses Enter. Hidden entirely when unsupported.
@@ -187,8 +375,9 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     const q = query.trim();
     if (!q) return;
     setOpen(false);
+    dismissInline();
     router.push(`/search?q=${encodeURIComponent(q)}`);
-  }, [query, router]);
+  }, [dismissInline, query, router]);
 
   // Mobile keyboard reliability: when the dialog opens (or Ask opens), iOS
   // sometimes doesn't surface the soft keyboard because cmdk's
@@ -213,23 +402,25 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         if (e.shiftKey && aiEnabled) {
-          setAskReturnQuery(query.trim());
-          setAiMode(true);
-          setOpen(true);
+          openWith({ initialQuery: query, mode: "ask" });
+        } else if (open) {
+          setOpen(false);
+        } else if (activeSurfaceId) {
+          dismissInline();
         } else {
-          setOpen((o) => !o);
+          activate();
         }
       }
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [aiEnabled, query]);
+  }, [activate, activeSurfaceId, aiEnabled, dismissInline, open, openWith, query]);
 
   // Reset transient *search* state when the palette closes — fresh open feels
   // fresh. The AI conversation deliberately persists (it lives in the shared
   // provider) so it survives close and the modal → /discover page hop.
   React.useEffect(() => {
-    if (!open) {
+    if (!open && !activeSurfaceId) {
       skipAutoFocusRef.current = false;
       setQuery("");
       setResults([]);
@@ -241,9 +432,205 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       setApproxQuery(null);
       setJustAdded(new Set());
       setAskReturnQuery("");
+      setSubmitTick(0);
       librarySelectionRef.current = null;
     }
-  }, [open]);
+  }, [activeSurfaceId, open]);
+
+  // Keep the desktop result surface visually attached to the active search
+  // field without coupling the provider to any one toolbar implementation.
+  // ResizeObserver catches the compact-to-expanded width change; capture-phase
+  // scroll tracking also covers nested app scrollers.
+  React.useEffect(() => {
+    if (!activeSurfaceId) {
+      setInlineGeometry(null);
+      return;
+    }
+
+    const surface = surfacesRef.current.get(activeSurfaceId);
+    if (!surface || !canUseInlineSurface(surface)) {
+      dismissInline();
+      return;
+    }
+
+    const anchor = surface.getAnchor();
+    if (!anchor) {
+      dismissInline();
+      return;
+    }
+
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const currentAnchor = surface.getAnchor();
+      if (!currentAnchor?.isConnected || !currentAnchor.getClientRects().length) {
+        dismissInline();
+        return;
+      }
+
+      const rect = currentAnchor.getBoundingClientRect();
+      const visualViewport = window.visualViewport;
+      const viewportLeft = visualViewport?.offsetLeft ?? 0;
+      const viewportTop = visualViewport?.offsetTop ?? 0;
+      const viewportWidth =
+        visualViewport?.width ?? document.documentElement.clientWidth;
+      const viewportHeight = visualViewport?.height ?? window.innerHeight;
+      const viewportRight = viewportLeft + viewportWidth;
+      const viewportBottom = viewportTop + viewportHeight;
+      const gutter = 16;
+      const width = Math.min(
+        672,
+        Math.max(rect.width, Math.min(560, viewportWidth - gutter * 2)),
+      );
+      const centeredLeft = rect.left + rect.width / 2 - width / 2;
+      const left = Math.min(
+        Math.max(viewportLeft + gutter, centeredLeft),
+        Math.max(viewportLeft + gutter, viewportRight - gutter - width),
+      );
+      const top = Math.round(rect.bottom + 8);
+      const dock = document.getElementById("app-bottom-nav");
+      const dockTop =
+        dock && dock.getClientRects().length
+          ? dock.getBoundingClientRect().top
+          : Number.POSITIVE_INFINITY;
+      const usableBottom = Math.min(viewportBottom, dockTop) - 12;
+      const maxHeight = Math.max(
+        160,
+        Math.min(620, usableBottom - top),
+      );
+      const next = {
+        left: Math.round(left),
+        top,
+        width: Math.round(width),
+        maxHeight: Math.round(maxHeight),
+      };
+
+      setInlineGeometry((current) =>
+        current &&
+        current.left === next.left &&
+        current.top === next.top &&
+        current.width === next.width &&
+        current.maxHeight === next.maxHeight
+          ? current
+          : next,
+      );
+    };
+    const scheduleUpdate = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    const resizeObserver = new ResizeObserver(scheduleUpdate);
+    resizeObserver.observe(anchor);
+    window.addEventListener("resize", scheduleUpdate);
+    window.addEventListener("scroll", scheduleUpdate, true);
+    window.visualViewport?.addEventListener("resize", scheduleUpdate);
+    window.visualViewport?.addEventListener("scroll", scheduleUpdate);
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", scheduleUpdate);
+      window.removeEventListener("scroll", scheduleUpdate, true);
+      window.visualViewport?.removeEventListener("resize", scheduleUpdate);
+      window.visualViewport?.removeEventListener("scroll", scheduleUpdate);
+    };
+  }, [
+    activeSurfaceId,
+    canUseInlineSurface,
+    dismissInline,
+  ]);
+
+  React.useEffect(() => {
+    if (!activeSurfaceId) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (!event.isPrimary || event.button !== 0) return;
+      const surface = surfacesRef.current.get(activeSurfaceId);
+      const anchor = surface?.getAnchor();
+      if (
+        anchor?.contains(target) ||
+        inlineResultsRef.current?.contains(target) ||
+        target.closest('[role="menu"]')
+      ) {
+        return;
+      }
+      // Match title-inspector dismissal: the first outside press closes this
+      // transient surface and cannot also activate a poster, filter, or link
+      // underneath it.
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Pointer Events intentionally still dispatches a click after a
+      // cancelled pointerdown. Consume that matching synthetic click once so
+      // the press cannot both close search and activate the element beneath.
+      const pointerId = event.pointerId;
+      const pointerX = event.clientX;
+      const pointerY = event.clientY;
+      let cleanupTimer = 0;
+      let pointerUpTimer = 0;
+      const cleanup = () => {
+        document.removeEventListener("click", suppressClick, true);
+        document.removeEventListener("pointerup", handlePointerUp, true);
+        document.removeEventListener("pointercancel", handlePointerCancel, true);
+        window.clearTimeout(cleanupTimer);
+        window.clearTimeout(pointerUpTimer);
+      };
+      const suppressClick = (clickEvent: MouseEvent) => {
+        const sameTarget =
+          clickEvent.target === target ||
+          (clickEvent.target instanceof Node && target.contains(clickEvent.target));
+        const samePoint =
+          Math.abs(clickEvent.clientX - pointerX) <= 4 &&
+          Math.abs(clickEvent.clientY - pointerY) <= 4;
+        if (!sameTarget && !samePoint) return;
+        clickEvent.preventDefault();
+        clickEvent.stopImmediatePropagation();
+        cleanup();
+      };
+      const handlePointerUp = (pointerEvent: PointerEvent) => {
+        if (pointerEvent.pointerId !== pointerId) return;
+        // `click` follows `pointerup` synchronously. A zero-delay cleanup
+        // keeps the capture listener through that click, but removes it when
+        // the gesture ends without one.
+        pointerUpTimer = window.setTimeout(cleanup, 0);
+      };
+      const handlePointerCancel = (pointerEvent: PointerEvent) => {
+        if (pointerEvent.pointerId === pointerId) cleanup();
+      };
+      document.addEventListener("click", suppressClick, true);
+      document.addEventListener("pointerup", handlePointerUp, true);
+      document.addEventListener("pointercancel", handlePointerCancel, true);
+      cleanupTimer = window.setTimeout(cleanup, 700);
+      dismissInline();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      if (
+        document.activeElement instanceof Element &&
+        inlineResultsRef.current?.contains(document.activeElement)
+      ) {
+        surfacesRef.current.get(activeSurfaceId)?.focus();
+        // Keep focus on the search field while closing the result layer. The
+        // public dismiss action deliberately blurs for outside press/Cmd+K,
+        // but keyboard Escape should return focus to its owning combobox.
+        closeInline(false);
+        return;
+      }
+      dismissInline();
+    };
+
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [activeSurfaceId, closeInline, dismissInline]);
 
   // Debounced catalogue search. Skipped while Ask owns the surface.
   React.useEffect(() => {
@@ -330,14 +717,16 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   const handleSelect = React.useCallback(
     (item: SearchResult) => {
       setOpen(false);
+      dismissInline();
       router.push(`/discover/${item.media_type}/${item.id}`);
     },
-    [router]
+    [dismissInline, router]
   );
 
   const handleLibrarySelect = React.useCallback(
     (hit: LibraryHit) => {
       setOpen(false);
+      dismissInline();
       const customSelection = librarySelectionRef.current;
       if (customSelection) {
         customSelection({
@@ -349,12 +738,13 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       }
       router.push(`/title/${hit.id}`);
     },
-    [router]
+    [dismissInline, router]
   );
 
   const handleSavedTitleSelect = React.useCallback(
     (hit: SavedTitleHit) => {
       setOpen(false);
+      dismissInline();
       const customSelection = librarySelectionRef.current;
       if (customSelection) {
         customSelection({
@@ -366,7 +756,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       }
       router.push(`/title/${hit.id}`);
     },
-    [router],
+    [dismissInline, router],
   );
 
   const handleQuickAdd = React.useCallback(
@@ -413,12 +803,16 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   );
 
   const startAsk = React.useCallback(() => {
-    if (!aiEnabled || !query.trim()) return;
-    setAskReturnQuery(query.trim());
+    if (!aiEnabled) return;
+    const prompt = query.trim();
+    setAskReturnQuery(prompt);
+    dismissInline();
     setAiMode(true);
-    setSubmitTick((tick) => tick + 1);
+    setOpen(true);
+    if (prompt) setSubmitTick((tick) => tick + 1);
+    else setSubmitTick(0);
     inputRef.current?.blur();
-  }, [aiEnabled, query]);
+  }, [aiEnabled, dismissInline, query]);
 
   // Enter in Ask submits the input as a chat turn instead of letting cmdk
   // navigate (there is no command list in that state).
@@ -466,9 +860,71 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     ? `Approximate results${approxQuery ? ` for "${approxQuery}"` : ""}`
     : "Movies & shows";
 
+  const focusFirstResult = React.useCallback(() => {
+    const focus = () => {
+      const list = inlineResultsRef.current?.querySelector<HTMLElement>(
+        "[cmdk-list]",
+      );
+      if (!list) return false;
+      list.focus({ preventScroll: true });
+      inlineResultsRef.current
+        ?.querySelector<HTMLElement>('[cmdk-item][aria-selected="true"]')
+        ?.scrollIntoView({ block: "nearest" });
+      return true;
+    };
+
+    if (!focus()) window.requestAnimationFrame(focus);
+  }, []);
+
+  const captureInlineList = React.useCallback((node: HTMLDivElement | null) => {
+    setInlineListId(node?.id ?? null);
+  }, []);
+
   const contextValue = React.useMemo<CommandPaletteContextValue>(
-    () => ({ open: openPalette, openWith, aiEnabled }),
-    [aiEnabled, openPalette, openWith],
+    () => ({
+      open: openPalette,
+      openWith,
+      activate,
+      registerSurface,
+      activateSurface,
+      dismissInline,
+      aiEnabled,
+    }),
+    [
+      activate,
+      activateSurface,
+      aiEnabled,
+      dismissInline,
+      openPalette,
+      openWith,
+      registerSurface,
+    ],
+  );
+
+  const sessionValue = React.useMemo<SmartSearchSessionValue>(
+    () => ({
+      query,
+      setQuery,
+      inlineOpen: Boolean(activeSurfaceId) && !open,
+      activeSurfaceId,
+      resultsListId: inlineListId,
+      activateSurface,
+      dismissInline,
+      submitSearch: handleSearchAll,
+      startAsk,
+      focusFirstResult,
+    }),
+    [
+      activeSurfaceId,
+      activateSurface,
+      dismissInline,
+      focusFirstResult,
+      handleSearchAll,
+      inlineListId,
+      open,
+      query,
+      startAsk,
+    ],
   );
 
   const renderCatalogResult = (result: SearchResult) => {
@@ -583,10 +1039,214 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     );
   };
 
+  const renderStandardResults = (inline = false) => (
+    <CommandList
+      ref={inline ? captureInlineList : undefined}
+      aria-label={inline ? "Suggestions" : undefined}
+      style={
+        inline && inlineGeometry
+          ? { maxHeight: inlineGeometry.maxHeight }
+          : undefined
+      }
+      className={cn(
+        "max-h-none flex-1",
+        query.trim().length >= 2 && "min-h-[220px]",
+        inline && "min-h-0 overscroll-contain",
+      )}
+    >
+      {/* Exact search stays the default Enter action. Ask lives in the same
+          surface as a contextual command, not a separate mode the user has to
+          turn on before typing. */}
+      {query.trim().length >= 2 && (
+        <CommandGroup>
+          <CommandItem
+            value="search-all"
+            onSelect={handleSearchAll}
+            onMouseDown={(event) => {
+              event.preventDefault();
+              handleSearchAll();
+            }}
+            className="gap-3"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+              <Search className="h-4 w-4" />
+            </div>
+            <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+              Search all results for{" "}
+              <span className="font-medium">
+                &ldquo;{query.trim()}&rdquo;
+              </span>
+            </span>
+            <kbd className="ml-auto shrink-0 rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+              ↵
+            </kbd>
+          </CommandItem>
+          {aiEnabled ? (
+            <CommandItem
+              value="ask"
+              onSelect={startAsk}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                startAsk();
+              }}
+              className="gap-3"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/12 text-primary">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                Ask about{" "}
+                <span className="font-medium">
+                  &ldquo;{query.trim()}&rdquo;
+                </span>
+              </span>
+            </CommandItem>
+          ) : null}
+        </CommandGroup>
+      )}
+      {loading && (
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
+          <Loader2 className="loading-spinner h-4 w-4" />
+        </div>
+      )}
+      {!loading &&
+        query &&
+        results.length === 0 &&
+        library.length === 0 &&
+        (!personMatch || personMatch.results.length === 0) && (
+          <CommandEmpty>No results.</CommandEmpty>
+        )}
+      {!loading && !query && (
+        <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-xs leading-relaxed text-muted-foreground">
+          Find a title, search by cast, or describe what you want to watch.
+        </div>
+      )}
+
+      {library.length > 0 && (
+        <CommandGroup heading="Your slate">
+          {library.map((hit) => {
+            const year = hit.release_date ? hit.release_date.slice(0, 4) : "";
+            const poster = posterUrl(hit.poster_path, "w92");
+            const hasRating =
+              (hit.imdb_rating != null && Number(hit.imdb_rating) > 0) ||
+              (hit.rt_score != null && Number(hit.rt_score) > 0) ||
+              (hit.metacritic_score != null &&
+                Number(hit.metacritic_score) > 0);
+            return (
+              <CommandItem
+                key={`lib-${hit.id}`}
+                value={`lib-${hit.id}`}
+                onSelect={() => handleLibrarySelect(hit)}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  handleLibrarySelect(hit);
+                }}
+                className="gap-3"
+              >
+                <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-muted">
+                  {poster ? (
+                    <Image
+                      src={poster}
+                      alt={hit.title}
+                      fill
+                      className="object-cover"
+                      sizes="44px"
+                    />
+                  ) : null}
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-sm font-medium text-foreground">
+                    {hit.title}
+                  </span>
+                  <span className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] uppercase text-muted-foreground">
+                    {hit.media_type === "movie" ? (
+                      <Film className="h-3 w-3" />
+                    ) : (
+                      <Tv className="h-3 w-3" />
+                    )}
+                    {hit.media_type}
+                    {year && <span>· {year}</span>}
+                    {hasRating && (
+                      <span className="ml-1">
+                        <RatingPair
+                          imdb={hit.imdb_rating}
+                          rt={hit.rt_score}
+                          metacritic={hit.metacritic_score}
+                          variant="compact"
+                        />
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <Library className="h-3 w-3" />
+                  {hit.status === "want" ? "Up Next" : hit.status}
+                </span>
+              </CommandItem>
+            );
+          })}
+        </CommandGroup>
+      )}
+
+      {personMatch && personMatch.results.length > 0 ? (
+        <CommandGroup heading={`With ${personMatch.name}`}>
+          <div className="mx-2 mb-1 flex items-center gap-2 rounded-lg border border-border/70 bg-card/55 px-2.5 py-2">
+            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted">
+              {personMatch.profile_path ? (
+                <Image
+                  src={posterUrl(personMatch.profile_path, "w92")!}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="32px"
+                />
+              ) : null}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium text-foreground">
+                {personMatch.name}
+              </p>
+              <p className="truncate text-[10px] text-muted-foreground">
+                {personMatch.known_for_department || "Filmography"}
+              </p>
+            </div>
+          </div>
+          {personMatch.results.map(renderCatalogResult)}
+        </CommandGroup>
+      ) : null}
+
+      {results.length > 0 && (
+        <CommandGroup heading={heading}>
+          {results.map(renderCatalogResult)}
+        </CommandGroup>
+      )}
+    </CommandList>
+  );
+
   return (
     <Ctx.Provider value={contextValue}>
-      {children}
-      <CommandDialog
+      <SessionCtx.Provider value={sessionValue}>
+        {children}
+        {activeSurfaceId && inlineGeometry && !open ? (
+          <div
+            ref={inlineResultsRef}
+            className="fixed z-[85] overflow-hidden rounded-2xl border border-border bg-popover/96 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.58)] ring-1 ring-foreground/[0.04] backdrop-blur-2xl"
+            style={{
+              left: inlineGeometry.left,
+              top: inlineGeometry.top,
+              width: inlineGeometry.width,
+              maxHeight: inlineGeometry.maxHeight,
+            }}
+          >
+            <Command
+              shouldFilter={false}
+              className="h-auto max-h-full rounded-2xl bg-transparent [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+            >
+              {renderStandardResults(true)}
+            </Command>
+          </div>
+        ) : null}
+        <CommandDialog
         open={open}
         onOpenChange={setOpen}
         shouldFilter={false}
@@ -689,178 +1349,10 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
             />
           </div>
         ) : (
-          <CommandList
-            className={cn(
-              "max-h-none flex-1",
-              query.trim().length >= 2 && "min-h-[220px]",
-            )}
-          >
-            {/* Exact search stays the default Enter action. Ask lives in the
-                same surface as a contextual command, not a separate mode the
-                user has to turn on before typing. */}
-            {query.trim().length >= 2 && (
-              <CommandGroup>
-                <CommandItem
-                  value="search-all"
-                  onSelect={handleSearchAll}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleSearchAll();
-                  }}
-                  className="gap-3"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                    <Search className="h-4 w-4" />
-                  </div>
-                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                    Search all results for{" "}
-                    <span className="font-medium">&ldquo;{query.trim()}&rdquo;</span>
-                  </span>
-                  <kbd className="ml-auto shrink-0 rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
-                    ↵
-                  </kbd>
-                </CommandItem>
-                {aiEnabled ? (
-                  <CommandItem
-                    value="ask"
-                    onSelect={startAsk}
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                      startAsk();
-                    }}
-                    className="gap-3"
-                  >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/12 text-primary">
-                      <Sparkles className="h-4 w-4" />
-                    </div>
-                    <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                      Ask about{" "}
-                      <span className="font-medium">
-                        &ldquo;{query.trim()}&rdquo;
-                      </span>
-                    </span>
-                  </CommandItem>
-                ) : null}
-              </CommandGroup>
-            )}
-            {loading && (
-              <div className="flex items-center justify-center py-20 text-muted-foreground">
-                <Loader2 className="loading-spinner h-4 w-4" />
-              </div>
-            )}
-            {!loading &&
-              query &&
-              results.length === 0 &&
-              library.length === 0 &&
-              (!personMatch || personMatch.results.length === 0) && (
-              <CommandEmpty>No results.</CommandEmpty>
-            )}
-            {!loading && !query && (
-              <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-xs leading-relaxed text-muted-foreground">
-                Find a title, search by cast, or describe what you want to watch.
-              </div>
-            )}
-
-            {library.length > 0 && (
-              <CommandGroup heading="Your slate">
-                {library.map((hit) => {
-                  const year = hit.release_date ? hit.release_date.slice(0, 4) : "";
-                  const poster = posterUrl(hit.poster_path, "w92");
-                  const hasRating =
-                    (hit.imdb_rating != null && Number(hit.imdb_rating) > 0) ||
-                    (hit.rt_score != null && Number(hit.rt_score) > 0) ||
-                    (hit.metacritic_score != null && Number(hit.metacritic_score) > 0);
-                  return (
-                    <CommandItem
-                      key={`lib-${hit.id}`}
-                      value={`lib-${hit.id}`}
-                      onSelect={() => handleLibrarySelect(hit)}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        handleLibrarySelect(hit);
-                      }}
-                      className="gap-3"
-                    >
-                      <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-muted">
-                        {poster ? (
-                          <Image
-                            src={poster}
-                            alt={hit.title}
-                            fill
-                            className="object-cover"
-                            sizes="44px"
-                          />
-                        ) : null}
-                      </div>
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <span className="truncate text-sm font-medium text-foreground">
-                          {hit.title}
-                        </span>
-                        <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono uppercase">
-                          {hit.media_type === "movie" ? (
-                            <Film className="h-3 w-3" />
-                          ) : (
-                            <Tv className="h-3 w-3" />
-                          )}
-                          {hit.media_type}
-                          {year && <span>· {year}</span>}
-                          {hasRating && (
-                            <span className="ml-1">
-                              <RatingPair
-                                imdb={hit.imdb_rating}
-                                rt={hit.rt_score}
-                                metacritic={hit.metacritic_score}
-                                variant="compact"
-                              />
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
-                        <Library className="h-3 w-3" />
-                        {hit.status === "want" ? "Up Next" : hit.status}
-                      </span>
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            )}
-
-            {personMatch && personMatch.results.length > 0 ? (
-              <CommandGroup heading={`With ${personMatch.name}`}>
-                <div className="mx-2 mb-1 flex items-center gap-2 rounded-lg border border-border/70 bg-card/55 px-2.5 py-2">
-                  <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted">
-                    {personMatch.profile_path ? (
-                      <Image
-                        src={posterUrl(personMatch.profile_path, "w92")!}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        sizes="32px"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-foreground">
-                      {personMatch.name}
-                    </p>
-                    <p className="truncate text-[10px] text-muted-foreground">
-                      {personMatch.known_for_department || "Filmography"}
-                    </p>
-                  </div>
-                </div>
-                {personMatch.results.map(renderCatalogResult)}
-              </CommandGroup>
-            ) : null}
-
-            {results.length > 0 && (
-              <CommandGroup heading={heading}>
-                {results.map(renderCatalogResult)}
-              </CommandGroup>
-            )}
-          </CommandList>
+          renderStandardResults()
         )}
-      </CommandDialog>
+        </CommandDialog>
+      </SessionCtx.Provider>
     </Ctx.Provider>
   );
 }

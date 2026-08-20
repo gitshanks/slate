@@ -48,7 +48,7 @@ export function AiChatPanel({
 }: AiChatPanelProps) {
   // Conversation state is shared with the /discover page via the provider in
   // the (app) layout, so the thread survives the modal → page hop.
-  const { turns, submit, reset } = useAiConversation();
+  const { turns, streaming, submit, reset } = useAiConversation();
   const router = useRouter();
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [adding, setAdding] = React.useState<Set<string>>(new Set());
@@ -87,12 +87,21 @@ export function AiChatPanel({
   const lastTickRef = React.useRef(0);
   React.useEffect(() => {
     if (submitTick === lastTickRef.current) return;
+    if (submitTick < lastTickRef.current) {
+      // Zero is a reset baseline, not another send request.
+      lastTickRef.current = submitTick;
+      return;
+    }
+    // Keep one pending prompt intact while the previous response streams. The
+    // effect runs again when streaming ends, so a fast follow-up is queued
+    // instead of being silently discarded and cleared from the shared input.
+    if (streaming) return;
     lastTickRef.current = submitTick;
     if (query.trim()) {
       submit(query);
       setQuery("");
     }
-  }, [submitTick, query, submit, setQuery]);
+  }, [query, setQuery, streaming, submit, submitTick]);
 
   // Auto-scroll on new content.
   React.useEffect(() => {

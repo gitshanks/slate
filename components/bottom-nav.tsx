@@ -41,7 +41,7 @@ function findCurrentTab(pathname: string): string | null {
  */
 export function BottomNav() {
   const pathname = usePathname();
-  const { open: openCommandPalette } = useCommandPalette();
+  const { activate: activateSmartSearch } = useCommandPalette();
   const [rememberedTab, setRememberedTab] = React.useState<string | null>(null);
   const [optimisticTab, setOptimisticTab] = React.useState<string | null>(null);
 
@@ -181,10 +181,9 @@ export function BottomNav() {
 
         <button
           type="button"
-          onClick={() => openCommandPalette()}
+          onClick={() => activateSmartSearch()}
           className="pointer-events-auto relative z-10 grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-foreground/[0.14] bg-background/[0.54] text-primary outline-none transition-[filter,transform] hover:brightness-[1.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.95] motion-reduce:active:scale-100"
           aria-label="Find and add a title"
-          aria-haspopup="dialog"
           style={{
             background:
               "linear-gradient(180deg, hsl(var(--foreground) / 0.16) 0%, hsl(var(--foreground) / 0.035) 43%, transparent 72%), radial-gradient(circle at 50% 112%, hsl(var(--primary) / 0.38), transparent 68%), hsl(var(--background) / 0.54)",
