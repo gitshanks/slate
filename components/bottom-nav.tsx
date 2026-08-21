@@ -4,7 +4,10 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Compass, LayoutGrid, Layers, Plus } from "lucide-react";
-import { useCommandPalette } from "@/components/command-palette";
+import {
+  useCommandPalette,
+  useSmartSearchSession,
+} from "@/components/command-palette";
 import { cn } from "@/lib/utils";
 import { APP_ROOT } from "@/lib/public-mode";
 import { PRIMARY_TAB_TRANSITION } from "@/lib/motion";
@@ -42,6 +45,7 @@ function findCurrentTab(pathname: string): string | null {
 export function BottomNav() {
   const pathname = usePathname();
   const { activate: activateSmartSearch } = useCommandPalette();
+  const { inlineOpen, resultsListId } = useSmartSearchSession();
   const [rememberedTab, setRememberedTab] = React.useState<string | null>(null);
   const [optimisticTab, setOptimisticTab] = React.useState<string | null>(null);
 
@@ -181,9 +185,17 @@ export function BottomNav() {
 
         <button
           type="button"
-          onClick={() => activateSmartSearch()}
-          className="pointer-events-auto relative z-10 grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-foreground/[0.14] bg-background/[0.54] text-primary outline-none transition-[filter,transform] hover:brightness-[1.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.95] motion-reduce:active:scale-100"
+          onClick={(event) =>
+            activateSmartSearch({ transitionSource: event.currentTarget })
+          }
+          className={cn(
+            "pointer-events-auto relative z-10 grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-foreground/[0.14] bg-background/[0.54] text-primary outline-none transition-[filter,opacity,transform] duration-150 hover:brightness-[1.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.95] motion-reduce:active:scale-100",
+            inlineOpen &&
+              "max-md:pointer-events-none max-md:invisible max-md:opacity-0",
+          )}
           aria-label="Find and add a title"
+          aria-expanded={inlineOpen}
+          aria-controls={inlineOpen ? resultsListId ?? undefined : undefined}
           style={{
             background:
               "linear-gradient(180deg, hsl(var(--foreground) / 0.16) 0%, hsl(var(--foreground) / 0.035) 43%, transparent 72%), radial-gradient(circle at 50% 112%, hsl(var(--primary) / 0.38), transparent 68%), hsl(var(--background) / 0.54)",

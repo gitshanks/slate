@@ -92,6 +92,8 @@ export interface SmartSearchOpenOptions {
   mode?: "search" | "ask";
   submit?: boolean;
   onLibrarySelect?: (selection: LibrarySelection) => void;
+  /** Optional mounted trigger used for the mobile Add → Search handoff. */
+  transitionSource?: HTMLElement;
 }
 
 export interface SmartSearchSurfaceHandle {
@@ -120,6 +122,7 @@ interface SmartSearchSessionValue {
   setQuery: React.Dispatch<React.SetStateAction<string>>;
   inlineOpen: boolean;
   activeSurfaceId: string | null;
+  morphingSurfaceId: string | null;
   resultsListId: string | null;
   activateSurface: (
     id: string,
@@ -190,6 +193,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     null,
   );
   const [inlineListId, setInlineListId] = React.useState<string | null>(null);
+  const [mobileAddEntrySurfaceId, setMobileAddEntrySurfaceId] =
+    React.useState<string | null>(null);
   const [inlineGeometry, setInlineGeometry] =
     React.useState<InlineResultsGeometry | null>(null);
   const [query, setQuery] = React.useState("");
@@ -214,6 +219,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     new Map(),
   );
   const standardSearchRequestRef = React.useRef(0);
+  const mobileMorphCleanupRef = React.useRef<(() => void) | null>(null);
+  const mobileEntryTimerRef = React.useRef(0);
   const skipAutoFocusRef = React.useRef(false);
   const librarySelectionRef = React.useRef<
     ((selection: LibrarySelection) => void) | null
@@ -274,7 +281,6 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     (surface: SmartSearchSurfaceHandle) => {
       if (
         typeof window === "undefined" ||
-        !window.matchMedia("(min-width: 768px)").matches ||
         !surface.supportsInline()
       ) {
         return false;
@@ -283,6 +289,158 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       return isVisibleSurface(surface);
     },
     [isVisibleSurface],
+  );
+
+  const runMobileAddMorph = React.useCallback(
+    (source: HTMLElement, surface: SmartSearchSurfaceHandle) => {
+      if (
+        typeof window === "undefined" ||
+        window.matchMedia("(min-width: 768px)").matches ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ) {
+        return;
+      }
+
+      const target = surface.getAnchor();
+      if (!source.isConnected || !target?.isConnected) return;
+
+      const sourceRect = source.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      if (
+        sourceRect.width <= 0 ||
+        sourceRect.height <= 0 ||
+        targetRect.width <= 0 ||
+        targetRect.height <= 0
+      ) {
+        return;
+      }
+
+      mobileMorphCleanupRef.current?.();
+
+      // Clone the actual glossy Add orb, then FLIP the presentation-only copy
+      // into the already-mounted field. The real input receives focus in the
+      // same click stack below, preserving the iOS software keyboard gesture.
+      const sourceIcon = source.querySelector<SVGElement>("svg");
+      const targetIcon = target.querySelector<SVGElement>("svg");
+      const sourceIconRect = sourceIcon?.getBoundingClientRect();
+      const targetIconRect = targetIcon?.getBoundingClientRect();
+      const proxy = source.cloneNode(true) as HTMLElement;
+      proxy.removeAttribute("id");
+      proxy.setAttribute("aria-hidden", "true");
+      proxy.setAttribute("data-smart-search-morph-proxy", "");
+      proxy.tabIndex = -1;
+      // Stretch only the material surface. Scaling the original children with
+      // the wide target would squash the plus into a thin line at frame zero.
+      proxy.replaceChildren();
+      Object.assign(proxy.style, {
+        position: "fixed",
+        left: `${targetRect.left}px`,
+        top: `${targetRect.top}px`,
+        width: `${targetRect.width}px`,
+        height: `${targetRect.height}px`,
+        margin: "0",
+        pointerEvents: "none",
+        transformOrigin: "top left",
+        transition: "none",
+        willChange: "transform, opacity",
+        WebkitBackdropFilter: "none",
+        backdropFilter: "none",
+        filter: "none",
+        zIndex: "100",
+      });
+      document.body.appendChild(proxy);
+
+      const iconProxy = sourceIcon?.cloneNode(true) as SVGElement | undefined;
+      if (iconProxy && sourceIconRect) {
+        iconProxy.setAttribute("aria-hidden", "true");
+        iconProxy.setAttribute("data-smart-search-morph-icon", "");
+        Object.assign(iconProxy.style, {
+          position: "fixed",
+          left: `${sourceIconRect.left}px`,
+          top: `${sourceIconRect.top}px`,
+          width: `${sourceIconRect.width}px`,
+          height: `${sourceIconRect.height}px`,
+          margin: "0",
+          color: window.getComputedStyle(source).color,
+          pointerEvents: "none",
+          transformOrigin: "center",
+          transition: "none",
+          willChange: "transform, opacity",
+          zIndex: "101",
+        });
+        document.body.appendChild(iconProxy);
+      }
+
+      const deltaX = sourceRect.left - targetRect.left;
+      const deltaY = sourceRect.top - targetRect.top;
+      const scaleX = sourceRect.width / targetRect.width;
+      const scaleY = sourceRect.height / targetRect.height;
+      const inverse = `translate3d(${deltaX}px, ${deltaY}px, 0) scale(${scaleX}, ${scaleY})`;
+      const settled = "translate3d(0, 0, 0) scale(1, 1)";
+      const animation = proxy.animate(
+        [
+          { transform: inverse, opacity: 1, offset: 0 },
+          { transform: inverse, opacity: 1, offset: 0.04 },
+          { transform: settled, opacity: 1, offset: 0.8 },
+          { transform: settled, opacity: 0, offset: 1 },
+        ],
+        {
+          duration: 240,
+          easing: "cubic-bezier(0.32, 0.72, 0, 1)",
+          fill: "both",
+        },
+      );
+
+      const iconDeltaX =
+        sourceIconRect && targetIconRect
+          ? targetIconRect.left + targetIconRect.width / 2 -
+            (sourceIconRect.left + sourceIconRect.width / 2)
+          : 0;
+      const iconDeltaY =
+        sourceIconRect && targetIconRect
+          ? targetIconRect.top + targetIconRect.height / 2 -
+            (sourceIconRect.top + sourceIconRect.height / 2)
+          : 0;
+      const iconAnimation = iconProxy?.animate(
+        [
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", offset: 0 },
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", offset: 0.22 },
+          {
+            opacity: 0,
+            transform: `translate3d(${iconDeltaX}px, ${iconDeltaY}px, 0) scale(0.82)`,
+            offset: 0.72,
+          },
+          {
+            opacity: 0,
+            transform: `translate3d(${iconDeltaX}px, ${iconDeltaY}px, 0) scale(0.82)`,
+            offset: 1,
+          },
+        ],
+        {
+          duration: 240,
+          easing: "cubic-bezier(0.23, 1, 0.32, 1)",
+          fill: "both",
+        },
+      );
+
+      let cleaned = false;
+      const cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        animation.cancel();
+        iconAnimation?.cancel();
+        proxy.remove();
+        iconProxy?.remove();
+        window.removeEventListener("orientationchange", cleanup);
+        if (mobileMorphCleanupRef.current === cleanup) {
+          mobileMorphCleanupRef.current = null;
+        }
+      };
+      mobileMorphCleanupRef.current = cleanup;
+      window.addEventListener("orientationchange", cleanup, { once: true });
+      animation.finished.then(cleanup, cleanup);
+    },
+    [],
   );
 
   const activateSurface = React.useCallback(
@@ -312,14 +470,43 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       setOpen(false);
       setActiveSurfaceId(id);
 
+      if (options.transitionSource) {
+        runMobileAddMorph(options.transitionSource, surface);
+        if (
+          typeof window !== "undefined" &&
+          window.matchMedia("(max-width: 767px)").matches
+        ) {
+          window.clearTimeout(mobileEntryTimerRef.current);
+          setMobileAddEntrySurfaceId(id);
+          mobileEntryTimerRef.current = window.setTimeout(
+            () => setMobileAddEntrySurfaceId(null),
+            300,
+          );
+        }
+      }
+
       // The input is already mounted. Keeping this call in the originating
       // click stack preserves the trusted user gesture iOS needs to show its
       // software keyboard.
       surface.focus();
       return true;
     },
-    [canUseInlineSurface, openWith],
+    [canUseInlineSurface, openWith, runMobileAddMorph],
   );
+
+  React.useEffect(
+    () => () => {
+      window.clearTimeout(mobileEntryTimerRef.current);
+      mobileMorphCleanupRef.current?.();
+    },
+    [],
+  );
+
+  React.useEffect(() => {
+    if (activeSurfaceId) return;
+    setMobileAddEntrySurfaceId(null);
+    mobileMorphCleanupRef.current?.();
+  }, [activeSurfaceId]);
 
   const registerSurface = React.useCallback(
     (surface: SmartSearchSurfaceHandle) => {
@@ -477,7 +664,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       const viewportHeight = visualViewport?.height ?? window.innerHeight;
       const viewportRight = viewportLeft + viewportWidth;
       const viewportBottom = viewportTop + viewportHeight;
-      const gutter = 16;
+      const gutter = viewportWidth < 768 ? 12 : 16;
       const width = Math.min(
         672,
         Math.max(rect.width, Math.min(560, viewportWidth - gutter * 2)),
@@ -494,10 +681,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
           ? dock.getBoundingClientRect().top
           : Number.POSITIVE_INFINITY;
       const usableBottom = Math.min(viewportBottom, dockTop) - 12;
-      const maxHeight = Math.max(
-        160,
-        Math.min(620, usableBottom - top),
-      );
+      const maxHeight = Math.max(0, Math.min(620, usableBottom - top));
       const next = {
         left: Math.round(left),
         top,
@@ -907,6 +1091,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       setQuery,
       inlineOpen: Boolean(activeSurfaceId) && !open,
       activeSurfaceId,
+      morphingSurfaceId: mobileAddEntrySurfaceId,
       resultsListId: inlineListId,
       activateSurface,
       dismissInline,
@@ -921,6 +1106,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       focusFirstResult,
       handleSearchAll,
       inlineListId,
+      mobileAddEntrySurfaceId,
       open,
       query,
       startAsk,
@@ -1230,7 +1416,13 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
         {activeSurfaceId && inlineGeometry && !open ? (
           <div
             ref={inlineResultsRef}
-            className="fixed z-[85] overflow-hidden rounded-2xl border border-border bg-popover/96 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.58)] ring-1 ring-foreground/[0.04] backdrop-blur-2xl"
+            role="region"
+            aria-label="Find and add a title"
+            className={cn(
+              "smart-search-inline-results fixed z-[85] overflow-hidden rounded-2xl border border-border bg-popover/96 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.58)] ring-1 ring-foreground/[0.04] backdrop-blur-2xl",
+              mobileAddEntrySurfaceId === activeSurfaceId &&
+                "smart-search-mobile-results-enter",
+            )}
             style={{
               left: inlineGeometry.left,
               top: inlineGeometry.top,

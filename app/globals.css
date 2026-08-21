@@ -712,6 +712,11 @@ html:active-view-transition-type(app-primary-tab)::view-transition-new(root) {
     animation: none !important;
   }
 
+  .smart-search-mobile-target-enter,
+  .smart-search-mobile-results-enter {
+    animation: none !important;
+  }
+
   /* tailwindcss-animate enter/exit utilities (the dialog + command-palette
      rows) aren't gated on reduced motion by default — content still appears,
      just without the slide/zoom. Motion (JS) handles its own via the root
@@ -729,6 +734,49 @@ body:has([data-public-profile-index]) [data-public-profile-header] {
 body:has([data-public-profile-index]) {
   background-color: #080a09;
   color-scheme: dark;
+}
+
+/* A presentation-only FLIP clone bridges the mobile Add orb and the real,
+   already-focused toolbar field. Hold the target out just long enough for the
+   clone to land, then crossfade it in without ever replacing the input. */
+@media (max-width: 767px) {
+  .smart-search-mobile-target-enter {
+    animation: smart-search-mobile-target-reveal 240ms
+      cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  .smart-search-inline-results {
+    background-color: hsl(var(--popover) / 0.985);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .smart-search-mobile-results-enter {
+    transform-origin: top center;
+    animation: smart-search-mobile-results-reveal 110ms 170ms
+      cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+}
+
+@keyframes smart-search-mobile-target-reveal {
+  0%,
+  70% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes smart-search-mobile-results-reveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 
 /* App toasts share the bottom edge with the persistent navigation dock. */

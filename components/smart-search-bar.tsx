@@ -59,6 +59,7 @@ export function SmartSearchBar({
     setQuery,
     inlineOpen,
     activeSurfaceId,
+    morphingSurfaceId,
     resultsListId,
     dismissInline,
     submitSearch,
@@ -68,6 +69,7 @@ export function SmartSearchBar({
   const onLibrarySelectRef = React.useRef(onLibrarySelect);
 
   const isActive = activeSurfaceId === surfaceId;
+  const isMobileMorphing = morphingSurfaceId === surfaceId;
   const isInlineExpanded = supportsInline && isActive && inlineOpen;
   const hasQuery = Boolean(query.trim());
   const isExpanded = isActive || hasQuery || isInlineExpanded;
@@ -153,6 +155,7 @@ export function SmartSearchBar({
       data-inline-open={isInlineExpanded ? "true" : "false"}
       className={cn(
         "relative h-10 w-full min-w-0 shrink-0 rounded-full transition-[width,max-width,flex-basis] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:duration-0",
+        isMobileMorphing && "smart-search-mobile-target-enter",
         responsive
           ? isExpanded
             ? expandedClassName
