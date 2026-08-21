@@ -37,7 +37,7 @@ export async function DiscoverDefault() {
       </header>
 
       <TmdbRail
-        title="You might like"
+        title="Based on your library"
         items={recommended}
         savedTmdbIds={savedTmdbIds}
         className="mt-8"
