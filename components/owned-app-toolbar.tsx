@@ -4,7 +4,8 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Ellipsis, Settings, Share2, Upload } from "lucide-react";
+import { Ellipsis, LogOut, Upload, UserRound } from "lucide-react";
+import { signOutAction } from "@/app/actions/auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { APP_ROOT } from "@/lib/public-mode";
+import { APP_ROOT, SLATE_HOSTED } from "@/lib/public-mode";
 import { cn } from "@/lib/utils";
 
 export function OwnedAppToolbar({
@@ -103,7 +104,7 @@ export function OwnerMenu({
   displayName: string;
 }) {
   const pathname = usePathname();
-  const settingsActive = pathname.startsWith("/profile");
+  const profileActive = pathname.startsWith("/profile");
 
   return (
     <DropdownMenu modal={false}>
@@ -140,25 +141,38 @@ export function OwnerMenu({
             Import
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-accent">
-          <Link href="/share">
-            <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
-            Share your profile
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          asChild
-          className={cn(
-            "gap-2 rounded-lg focus:bg-accent",
-            settingsActive && "bg-accent text-foreground",
-          )}
-        >
-          <Link href="/profile" aria-current={settingsActive ? "page" : undefined}>
-            <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-            Settings
-          </Link>
-        </DropdownMenuItem>
+        {SLATE_HOSTED ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              asChild
+              className={cn(
+                "gap-2 rounded-lg focus:bg-accent",
+                profileActive && "bg-accent text-foreground",
+              )}
+            >
+              <Link
+                href="/profile"
+                aria-current={profileActive ? "page" : undefined}
+              >
+                <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
+                Profile
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <form action={signOutAction}>
+              <DropdownMenuItem
+                asChild
+                className="gap-2 rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive"
+              >
+                <button type="submit" className="w-full">
+                  <LogOut className="h-3.5 w-3.5 text-current opacity-75" />
+                  Sign out
+                </button>
+              </DropdownMenuItem>
+            </form>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
