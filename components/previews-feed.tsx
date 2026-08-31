@@ -919,7 +919,7 @@ function PreviewSlide({
         onPlay={onEnablePlayback}
       />
 
-      <div className="preview-feed-info relative z-30 mx-auto h-fit min-h-0 w-full max-w-[64rem] min-w-0 self-end overflow-hidden bg-[linear-gradient(180deg,transparent,rgba(4,5,8,0.34)_16%,rgba(4,5,8,0.64))] px-4 pt-7 pb-2 text-white sm:px-6 md:px-8 md:pt-8">
+      <div className="preview-feed-info relative z-30 mx-auto h-fit min-h-0 w-full max-w-[64rem] min-w-0 self-end overflow-hidden px-4 pt-7 pb-2 text-white sm:px-6 md:px-8 md:pt-8">
         <div className="preview-feed-kicker flex items-start gap-3">
           <span
             className={cn(
