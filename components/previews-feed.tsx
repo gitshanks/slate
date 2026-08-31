@@ -724,25 +724,11 @@ function PreviewPlayer({
   onPlay: () => void;
 }) {
   const name = titleFor(item);
-  const backdrop =
-    backdropUrl(item.backdrop_path, "w300") ?? posterUrl(item.poster_path);
 
   return (
     <div
       className="relative z-10 isolate flex h-full min-h-[12.5rem] w-full items-center justify-center overflow-hidden bg-transparent [container-type:size]"
     >
-      {backdrop ? (
-        <Image
-          src={backdrop}
-          alt=""
-          fill
-          sizes="(max-width: 767px) 100vw, 48rem"
-          className="scale-110 object-cover opacity-35 saturate-125"
-          priority={priority}
-        />
-      ) : null}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(4,5,8,0.04),rgba(4,5,8,0.54)_78%)]" />
-
       <div
         data-preview-player-index={index}
         className={cn(
