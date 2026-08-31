@@ -3,8 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, LayoutGrid, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Search } from "lucide-react";
 import { PRIMARY_TAB_TRANSITION } from "@/lib/motion";
 import { APP_ROOT } from "@/lib/public-mode";
 import { useCommandPalette } from "@/components/command-palette";
@@ -27,6 +26,7 @@ const PRIMARY_TAB_HREFS = new Set([
 const PRIMARY_TOOLBAR_LABELS = new Map([
   ["/discover", "Discover"],
   ["/lists", "Lists"],
+  ["/profile", "Profile"],
 ]);
 
 /**
@@ -42,7 +42,6 @@ export function TopNav({
   const pathname = usePathname();
   const { open } = useCommandPalette();
   const isExactPrimaryTab = PRIMARY_TAB_HREFS.has(pathname);
-  const isProfileRoute = pathname.startsWith("/profile");
   const primaryToolbarLabel = PRIMARY_TOOLBAR_LABELS.get(pathname);
 
   // The unified Library owns the same collection chrome as shared profiles.
@@ -94,12 +93,12 @@ export function TopNav({
       }}
       share="none"
     >
-      <div className={cn("shrink-0", isProfileRoute && "md:hidden")}>
+      <div className="shrink-0">
         {/* Mobile keeps the header in the app shell's normal flow so iOS cannot
           drift it after the keyboard closes. Desktop still uses the existing
           fixed header, with the spacer below preserving document flow. */}
         <header
-          id={isProfileRoute ? "app-mobile-top-nav" : "app-top-nav"}
+          id="app-top-nav"
           className="relative z-40 w-full shrink-0 glass border-b border-border/60 md:fixed md:inset-x-0 md:top-0"
         >
           <div className="flex h-14 w-full items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
@@ -168,61 +167,5 @@ export function TopNav({
     </ViewTransition>
   );
 
-  if (!isProfileRoute) return legacyNav;
-
-  return (
-    <>
-      {legacyNav}
-      <div className="hidden md:block">
-        <OwnedAppToolbar
-          id="app-top-nav"
-          position="fixed"
-          ariaLabel="Settings controls"
-          center={
-            <div className="col-start-2 row-start-1 flex min-w-0 justify-center">
-              {toolbarSearch}
-            </div>
-          }
-          actions={
-            <>
-              <div
-                className="grid h-10 w-[5.25rem] shrink-0 grid-cols-2 rounded-full border border-border bg-foreground/[0.055] p-0.5"
-                role="group"
-                aria-label="Open Library view"
-              >
-                <Link
-                  href={APP_ROOT}
-                  prefetch
-                  aria-label="Open Shelf view"
-                  className="inline-flex items-center justify-center rounded-full text-muted-foreground outline-none transition-[background-color,color,transform] duration-150 hover:bg-foreground/[0.09] hover:text-foreground active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60"
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                </Link>
-                <Link
-                  href={`${APP_ROOT}?view=space`}
-                  prefetch
-                  aria-label="Open Space view"
-                  className="inline-flex items-center justify-center rounded-full text-muted-foreground outline-none transition-[background-color,color,transform] duration-150 hover:bg-foreground/[0.09] hover:text-foreground active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60"
-                >
-                  <Box className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-              <ThemeToggle className="h-10 w-10 shrink-0 border border-border bg-foreground/[0.055] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground md:hidden lg:inline-flex" />
-              <OwnerMenu
-                avatarUrl={profile?.avatarUrl ?? null}
-                displayName={profile?.displayName ?? "You"}
-              />
-            </>
-          }
-        />
-        <div
-          aria-hidden
-          style={{
-            height:
-              "calc(4rem + max(0.75rem, env(safe-area-inset-top)))",
-          }}
-        />
-      </div>
-    </>
-  );
+  return legacyNav;
 }
