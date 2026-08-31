@@ -777,7 +777,7 @@ html:has([data-previews-feed]) {
   }
 
   .preview-player-landscape {
-    width: min(calc(100cqw - 12rem), 64rem, 177.7778cqh);
+    width: min(calc(100cqw - 8rem), 64rem, 177.7778cqh);
   }
 }
 
@@ -837,7 +837,6 @@ body:has(#app-bottom-nav)
 @media (max-width: 767px) and (max-height: 650px) {
   .preview-feed-slide {
     padding-top: max(0.5rem, env(safe-area-inset-top));
-    padding-bottom: 0.5rem;
   }
 
   .preview-feed-info {

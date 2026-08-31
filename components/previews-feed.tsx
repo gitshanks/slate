@@ -299,6 +299,7 @@ function useBlockingOverlayOpen() {
 
 function useAvailableFeedHeight(hostRef: React.RefObject<HTMLDivElement | null>) {
   const [height, setHeight] = React.useState<number | null>(null);
+  const [usableHeight, setUsableHeight] = React.useState<number | null>(null);
 
   React.useLayoutEffect(() => {
     const host = hostRef.current;
@@ -318,10 +319,22 @@ function useAvailableFeedHeight(hostRef: React.RefObject<HTMLDivElement | null>)
         const dockIsVisible = Boolean(
           dockRect && dockRect.height > 0 && dockRect.top > rect.top,
         );
-        const usableBottom = dockIsVisible
-          ? Math.min(viewportBottom, dockRect!.top - 8)
-          : viewportBottom - 12;
-        setHeight(Math.max(0, Math.floor(usableBottom - rect.top)));
+        const dockClearance = dockIsVisible
+          ? Math.max(8, viewportBottom - dockRect!.top + 8)
+          : 12;
+        // The preview artwork is the page background, so let it continue all
+        // the way behind the floating dock. Each slide reserves its own
+        // interactive clearance; clipping the host at dock.top created the
+        // full-width black shelf visible beneath the feed.
+        host.style.setProperty(
+          "--preview-dock-clearance",
+          `${Math.ceil(dockClearance)}px`,
+        );
+        const nextHeight = Math.max(0, Math.floor(viewportBottom - rect.top));
+        setHeight(nextHeight);
+        setUsableHeight(
+          Math.max(0, nextHeight - Math.ceil(dockClearance)),
+        );
       });
     };
 
@@ -343,7 +356,7 @@ function useAvailableFeedHeight(hostRef: React.RefObject<HTMLDivElement | null>)
     };
   }, [hostRef]);
 
-  return height;
+  return { height, usableHeight };
 }
 
 function useFloatingPlayerGeometry({
@@ -895,7 +908,7 @@ function PreviewSlide({
       aria-label={`${name} trailer`}
       aria-roledescription="slide"
       inert={selected ? undefined : true}
-      className="preview-feed-slide relative isolate grid h-full min-h-full snap-start snap-always grid-rows-[minmax(12.5rem,1fr)_auto] gap-0 overflow-hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-2"
+      className="preview-feed-slide relative isolate grid h-full min-h-full snap-start snap-always grid-rows-[minmax(12.5rem,1fr)_auto] gap-0 overflow-hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[var(--preview-dock-clearance,0.5rem)]"
     >
       <PreviewPlayer
         item={item}
@@ -1032,7 +1045,8 @@ export function PreviewsFeed({
     playableArchiveRef.current = new Map();
     rememberArchiveItems(playableArchiveRef.current, initialItems);
   }
-  const frameHeight = useAvailableFeedHeight(hostRef);
+  const { height: frameHeight, usableHeight: usableFrameHeight } =
+    useAvailableFeedHeight(hostRef);
   const reducedMotion = useReducedMotion();
   const {
     dismiss: dismissDesktopScrollHint,
@@ -1435,7 +1449,7 @@ export function PreviewsFeed({
     );
   }
 
-  if (frameHeight !== null && frameHeight < 364) {
+  if (usableFrameHeight !== null && usableFrameHeight < 364) {
     return (
       <div
         className="flex min-h-0 w-full items-center justify-center bg-background px-6 text-center"
@@ -1610,17 +1624,17 @@ export function PreviewsFeed({
       <div
         ref={desktopNavigationRef}
         className={cn(
-          "preview-desktop-navigation pointer-events-none invisible absolute left-0 top-0 z-40 w-20 flex-col items-stretch gap-2 opacity-0 transition-opacity duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] [backface-visibility:hidden]",
+          "preview-desktop-navigation pointer-events-none invisible absolute left-0 top-0 z-40 w-12 flex-col items-stretch gap-2 opacity-0 transition-opacity duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] [backface-visibility:hidden]",
           desktopScrollHintVisible
             ? "opacity-100"
-            : "group-hover/previews:opacity-100 focus-within:opacity-100",
+            : "group-hover/previews:opacity-70 focus-within:opacity-100",
         )}
         role="group"
         aria-label="Preview navigation"
       >
         {desktopScrollHintVisible ? (
           <div
-            className="pointer-events-none flex min-h-8 items-center justify-center gap-1 rounded-xl border border-white/12 bg-black/55 px-2 py-1 text-center text-[9px] font-medium leading-tight text-white/75 shadow-lg"
+            className="pointer-events-none absolute left-1/2 top-[-2.5rem] flex min-h-7 w-24 -translate-x-1/2 items-center justify-center gap-1 rounded-full border border-white/[0.08] bg-black/30 px-2 py-1 text-center text-[9px] font-medium leading-tight text-white/60"
             aria-hidden
           >
             <Mouse className="h-3 w-3 shrink-0" />
@@ -1634,12 +1648,11 @@ export function PreviewsFeed({
             dismissDesktopScrollHint();
             moveTo(activeIndex - 1);
           }}
-          className="pointer-events-auto inline-flex h-10 w-full items-center justify-center gap-1 rounded-full border border-white/15 bg-black/55 px-2 text-[10px] font-medium text-white shadow-lg transition-[background-color,border-color,transform] duration-150 hover:border-white/25 hover:bg-black/70 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-30 motion-reduce:active:scale-100"
+          className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.08] bg-black/20 text-white/55 transition-[background-color,border-color,color,transform] duration-150 hover:border-white/15 hover:bg-black/35 hover:text-white/85 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-20 motion-reduce:active:scale-100"
           aria-label="Previous preview"
           title="Previous preview (K or Up Arrow)"
         >
-          <ChevronUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          Previous
+          <ChevronUp className="h-5 w-5 shrink-0" aria-hidden />
         </button>
         <button
           type="button"
@@ -1648,12 +1661,11 @@ export function PreviewsFeed({
             dismissDesktopScrollHint();
             moveTo(activeIndex + 1);
           }}
-          className="pointer-events-auto inline-flex h-10 w-full items-center justify-center gap-1 rounded-full border border-white/15 bg-black/55 px-2 text-[10px] font-medium text-white shadow-lg transition-[background-color,border-color,transform] duration-150 hover:border-white/25 hover:bg-black/70 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-30 motion-reduce:active:scale-100"
+          className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.08] bg-black/20 text-white/55 transition-[background-color,border-color,color,transform] duration-150 hover:border-white/15 hover:bg-black/35 hover:text-white/85 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-20 motion-reduce:active:scale-100"
           aria-label="Next preview"
           title="Next preview (J or Down Arrow)"
         >
-          <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          Next
+          <ChevronDown className="h-5 w-5 shrink-0" aria-hidden />
         </button>
       </div>
       {playbackItem ? (
