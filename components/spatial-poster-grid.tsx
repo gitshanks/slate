@@ -1410,10 +1410,17 @@ function resolveTitleOverlaySafeAreaInsets() {
 function useInertTitleOverlayBackground(active: boolean) {
   React.useEffect(() => {
     if (!active) return;
-    const elements = [
-      document.getElementById("app-bottom-nav"),
-      document.getElementById("public-collection-controls"),
-    ].filter((element): element is HTMLElement => element !== null);
+    const elements = Array.from(
+      new Set(
+        [
+          document.getElementById("app-top-nav"),
+          document.getElementById("app-scroll-area"),
+          document.getElementById("app-bottom-nav"),
+          document.getElementById("public-collection-controls"),
+          ...document.querySelectorAll<HTMLElement>("main"),
+        ].filter((element): element is HTMLElement => element !== null),
+      ),
+    );
     const previous = elements.map((element) => element.inert);
     elements.forEach((element) => {
       element.inert = true;
@@ -1424,6 +1431,80 @@ function useInertTitleOverlayBackground(active: boolean) {
       });
     };
   }, [active]);
+}
+
+const TITLE_DIALOG_FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
+function titleDialogFocusableElements(dialog: HTMLElement) {
+  return Array.from(
+    dialog.querySelectorAll<HTMLElement>(TITLE_DIALOG_FOCUSABLE_SELECTOR),
+  ).filter(
+    (element) =>
+      element.getClientRects().length > 0 &&
+      element.getAttribute("aria-hidden") !== "true" &&
+      !element.closest("[inert]"),
+  );
+}
+
+function trapTitleDialogFocus(
+  event: React.KeyboardEvent<HTMLDivElement>,
+) {
+  if (event.key !== "Tab") return;
+  const dialog = event.currentTarget;
+  const focusable = titleDialogFocusableElements(dialog);
+  if (focusable.length === 0) {
+    event.preventDefault();
+    dialog.focus({ preventScroll: true });
+    return;
+  }
+
+  const active = document.activeElement;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && (active === first || active === dialog)) {
+    event.preventDefault();
+    last.focus({ preventScroll: true });
+  } else if (!event.shiftKey && (active === last || active === dialog)) {
+    event.preventDefault();
+    first.focus({ preventScroll: true });
+  }
+}
+
+function useTitleDialogFocus(
+  active: boolean,
+  dialogRef: React.RefObject<HTMLDivElement | null>,
+) {
+  React.useLayoutEffect(() => {
+    if (!active) return;
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const dialog = dialogRef.current;
+    const firstFocusable = dialog
+      ? titleDialogFocusableElements(dialog)[0]
+      : null;
+    (firstFocusable ?? dialog)?.focus({ preventScroll: true });
+
+    return () => {
+      window.requestAnimationFrame(() => {
+        if (
+          previouslyFocused?.isConnected &&
+          !previouslyFocused.inert &&
+          !previouslyFocused.closest("[inert]")
+        ) {
+          previouslyFocused.focus({ preventScroll: true });
+        }
+      });
+    };
+  }, [active, dialogRef]);
 }
 
 function resolveTitleSlabFrame({
@@ -1496,7 +1577,6 @@ export function CollectionTitleDetailOverlay({
   centerAfterId?: string;
 }) {
   const reducedMotion = useReducedMotion() ?? false;
-  useInertTitleOverlayBackground(true);
   const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(
     () => detailSource.getCached(title),
   );
@@ -1522,6 +1602,12 @@ export function CollectionTitleDetailOverlay({
       }
     | null
   >(null);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const dialogVisible = Boolean(
+    position && (reducedMotion || revealReady),
+  );
+  useInertTitleOverlayBackground(dialogVisible);
+  useTitleDialogFocus(dialogVisible, dialogRef);
   const frameAnimationRef = React.useRef<
     ReturnType<typeof animateTitleFrameScroll> | null
   >(null);
@@ -1834,11 +1920,14 @@ export function CollectionTitleDetailOverlay({
       {position ? (
         <TitleDetailDismissLayer onDismiss={onClose} />
       ) : null}
-      {position && (reducedMotion || revealReady) ? (
+      {position && dialogVisible ? (
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label={`${title.title} details`}
+          tabIndex={-1}
+          onKeyDown={trapTitleDialogFocus}
           data-spatial-slab
           className={cn(
             "fixed z-[60] origin-center",
@@ -1986,6 +2075,7 @@ export function SpatialPosterGrid({
   }, [cameraScale]);
 
   const viewportRef = React.useRef<HTMLDivElement>(null);
+  const spatialDialogRef = React.useRef<HTMLDivElement>(null);
   const gestureRef = React.useRef<GestureState | null>(null);
   const draggedRef = React.useRef(false);
   const animationRef = React.useRef<AnimationPlaybackControls[]>([]);
@@ -2061,7 +2151,9 @@ export function SpatialPosterGrid({
     ? titles.findIndex((title) => title.id === selectedId)
     : -1;
   const selectedTitle = selectedIndex >= 0 ? titles[selectedIndex] : null;
-  useInertTitleOverlayBackground(selectedTitle !== null);
+  const spatialDialogVisible = selectedTitle !== null && slabOpen;
+  useInertTitleOverlayBackground(spatialDialogVisible);
+  useTitleDialogFocus(spatialDialogVisible, spatialDialogRef);
 
   const stopCamera = React.useCallback(() => {
     animationRef.current.forEach((control) => control.stop());
@@ -2510,9 +2602,12 @@ export function SpatialPosterGrid({
               <TitleDetailDismissLayer onDismiss={closeDetail} />
               {slabOpen ? (
                 <div
+                  ref={spatialDialogRef}
                   role="dialog"
                   aria-modal="true"
                   aria-label={`${selectedTitle.title} details`}
+                  tabIndex={-1}
+                  onKeyDown={trapTitleDialogFocus}
                   data-spatial-slab
                   className="fixed left-1/2 z-[60] origin-center -translate-x-1/2 -translate-y-1/2 md:-translate-x-[20%]"
                   style={{ top: slabFrame.center }}

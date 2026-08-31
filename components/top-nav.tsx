@@ -17,7 +17,17 @@ import { PwaInstallButton } from "@/components/pwa-install-button";
 import { SmartSearchBar } from "@/components/smart-search-bar";
 import { ViewTransition } from "@/components/view-transition";
 
-const PRIMARY_TAB_HREFS = new Set([APP_ROOT, "/discover", "/lists"]);
+const PRIMARY_TAB_HREFS = new Set([
+  APP_ROOT,
+  "/discover",
+  "/previews",
+  "/lists",
+]);
+
+const PRIMARY_TOOLBAR_LABELS = new Map([
+  ["/discover", "Discover"],
+  ["/lists", "Lists"],
+]);
 
 /**
  * Context and utility navigation. Primary destinations live in the shared
@@ -33,21 +43,21 @@ export function TopNav({
   const { open } = useCommandPalette();
   const isExactPrimaryTab = PRIMARY_TAB_HREFS.has(pathname);
   const isProfileRoute = pathname.startsWith("/profile");
-  const usesPrimaryToolbar = pathname === "/discover" || pathname === "/lists";
+  const primaryToolbarLabel = PRIMARY_TOOLBAR_LABELS.get(pathname);
 
   // The unified Library owns the same collection chrome as shared profiles.
   // Other app routes retain this global navigation bar.
-  if (pathname === APP_ROOT) return null;
+  if (pathname === APP_ROOT || pathname === "/previews") return null;
 
   const toolbarSearch = (
     <SmartSearchBar surfaceId={`top-nav-smart-search-${pathname}`} />
   );
 
-  if (usesPrimaryToolbar) {
+  if (primaryToolbarLabel) {
     return (
       <OwnedAppToolbar
         id="app-top-nav"
-        ariaLabel={`${pathname === "/discover" ? "Discover" : "Lists"} controls`}
+        ariaLabel={`${primaryToolbarLabel} controls`}
         center={
           <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 justify-center md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:justify-self-center">
             {toolbarSearch}

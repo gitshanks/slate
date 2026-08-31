@@ -5,13 +5,13 @@ import { usePathname } from "next/navigation";
 import { pageEnter } from "@/lib/motion";
 import { APP_ROOT } from "@/lib/public-mode";
 
-const PRIMARY_TABS = new Set([APP_ROOT, "/discover", "/lists"]);
+const PRIMARY_TABS = new Set([APP_ROOT, "/discover", "/previews", "/lists"]);
 
 export default function Template({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   // Detail and utility pages keep the established lightweight entrance. Only
-  // the three sibling tab destinations participate in the shared crossfade.
+  // the four sibling tab destinations participate in the shared crossfade.
   if (!PRIMARY_TABS.has(pathname)) {
     return (
       <motion.div

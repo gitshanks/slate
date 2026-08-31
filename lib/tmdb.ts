@@ -353,6 +353,25 @@ export interface TmdbVideo {
   name: string;
 }
 
+export type TmdbPreviewSource = "library" | "trending" | "now_playing";
+
+/** A playable, serializable item for the portrait-first Previews feed. */
+export interface TmdbPreviewItem extends TmdbMediaResult {
+  source: TmdbPreviewSource;
+  videoKey: string;
+  videoName: string;
+  videoType: string;
+  videoOfficial: boolean;
+  /** TMDB has no aspect-ratio metadata, so portrait is an explicit-name hint only. */
+  orientationHint: "portrait" | "landscape";
+}
+
+export interface TmdbPreviewBatch {
+  items: TmdbPreviewItem[];
+  /** Includes candidates without a playable trailer so they are not retried. */
+  attemptedKeys: string[];
+}
+
 /**
  * Fetch TMDB rating + reviews + trailer + recommendations + watch providers for
  * an existing title. Wrapped with React cache() so multiple async server
@@ -630,15 +649,20 @@ export async function getRecommendationsFor(
  * /recommendations for each, merges by co-occurrence so titles surfaced
  * by multiple seeds rank higher, and strips anything already saved.
  */
-export async function getRecommendedFromWatched(): Promise<TmdbSearchResult[]> {
+export async function getRecommendedFromWatched(
+  excludedKeys?: ReadonlySet<string>,
+): Promise<TmdbSearchResult[]> {
   try {
     const db = await getLibraryClient();
-    const [{ data: watched }, { data: saved }] = await Promise.all([
-      db
-        .from("titles")
-        .select("tmdb_id, media_type, rating, favorite, tmdb_rating, watched_at")
-        .eq("status", "watched"),
-      db.from("titles").select("tmdb_id, media_type"),
+    const watchedRequest = db
+      .from("titles")
+      .select("tmdb_id, media_type, rating, favorite, tmdb_rating, watched_at")
+      .eq("status", "watched");
+    const [{ data: watched }, savedResult] = await Promise.all([
+      watchedRequest,
+      excludedKeys
+        ? Promise.resolve({ data: null })
+        : db.from("titles").select("tmdb_id, media_type"),
     ]);
 
     const seeds = (watched ?? []) as Pick<
@@ -652,11 +676,17 @@ export async function getRecommendedFromWatched(): Promise<TmdbSearchResult[]> {
     >[];
     if (seeds.length === 0) return [];
 
-    const savedKeys = new Set<string>(
-      ((saved ?? []) as Pick<TitleRow, "tmdb_id" | "media_type">[]).map(
-        (row) => `${row.media_type}:${row.tmdb_id}`,
-      ),
-    );
+    // The preview loader already supplies a server-built exclusion set that
+    // includes the current library, so its extra saved-title query is skipped.
+    // Discover/AI callers omit it and retain the original self-contained path.
+    const savedKeys = excludedKeys
+      ? new Set(excludedKeys)
+      : new Set<string>(
+          ((savedResult.data ?? []) as Pick<
+            TitleRow,
+            "tmdb_id" | "media_type"
+          >[]).map((row) => `${row.media_type}:${row.tmdb_id}`),
+        );
 
     // Prefer explicit positive taste signals. Disliked titles must never seed
     // recommendations; unrated watched titles are only a fallback when the
@@ -734,6 +764,260 @@ export async function getRecommendedFromWatched(): Promise<TmdbSearchResult[]> {
   } catch {
     return [];
   }
+}
+
+// Repeat a 50/30/20 rhythm so the feed remains recognisably personal without
+// becoming repetitive. Candidate hydration is bounded separately below.
+const PREVIEW_SOURCE_PATTERN: readonly TmdbPreviewSource[] = [
+  "library",
+  "trending",
+  "library",
+  "now_playing",
+  "library",
+  "trending",
+  "library",
+  "now_playing",
+  "library",
+  "trending",
+];
+
+const PREVIEW_TARGET_SIZE = 24;
+const PREVIEW_LOOKUP_LIMIT = 24;
+const PREVIEW_WAVE_SIZE = 12;
+
+const PREVIEW_SOURCE_PRIORITY: readonly TmdbPreviewSource[] = [
+  "library",
+  "trending",
+  "now_playing",
+];
+
+const PORTRAIT_VIDEO_NAME =
+  /\b(?:vertical|portrait|shorts)\b|9\s*(?::|x|×)\s*16/i;
+
+interface TmdbPreviewCandidate {
+  item: TmdbMediaResult;
+  source: TmdbPreviewSource;
+}
+
+function mediaKey(item: Pick<TmdbMediaResult, "id" | "media_type">): string {
+  return `${item.media_type}:${item.id}`;
+}
+
+function previewMediaResults(items: TmdbSearchResult[]): TmdbMediaResult[] {
+  return items.filter(
+    (item): item is TmdbMediaResult =>
+      item.media_type === "movie" || item.media_type === "tv",
+  );
+}
+
+function previewCandidates(
+  library: TmdbSearchResult[],
+  trending: TmdbSearchResult[],
+  nowPlaying: TmdbSearchResult[],
+  excludedKeys: ReadonlySet<string>,
+  lookupLimit: number,
+): TmdbPreviewCandidate[] {
+  const rawPools: Record<TmdbPreviewSource, TmdbMediaResult[]> = {
+    library: previewMediaResults(library),
+    trending: previewMediaResults(trending),
+    now_playing: previewMediaResults(nowPlaying),
+  };
+
+  // Remember the strongest available explanation without removing a title
+  // from a pool before it is actually selected. That keeps a title which is
+  // deep in the personalised pool eligible for an early Trending slot while
+  // still explaining the stronger library connection.
+  const strongestSource = new Map<string, TmdbPreviewSource>();
+  for (const source of [...PREVIEW_SOURCE_PRIORITY].reverse()) {
+    for (const item of rawPools[source]) {
+      strongestSource.set(mediaKey(item), source);
+    }
+  }
+
+  const cursors: Record<TmdbPreviewSource, number> = {
+    library: 0,
+    trending: 0,
+    now_playing: 0,
+  };
+  const claimed = new Set<string>();
+  const take = (source: TmdbPreviewSource): TmdbPreviewCandidate | null => {
+    while (cursors[source] < rawPools[source].length) {
+      const item = rawPools[source][cursors[source]];
+      cursors[source] += 1;
+      const key = mediaKey(item);
+      if (excludedKeys.has(key) || claimed.has(key)) continue;
+      claimed.add(key);
+      return { item, source: strongestSource.get(key) ?? source };
+    }
+    return null;
+  };
+
+  const result: TmdbPreviewCandidate[] = [];
+  for (
+    let index = 0;
+    result.length < lookupLimit;
+    index += 1
+  ) {
+    const preferredSource =
+      PREVIEW_SOURCE_PATTERN[index % PREVIEW_SOURCE_PATTERN.length];
+    let candidate = take(preferredSource);
+    if (!candidate) {
+      for (const fallbackSource of PREVIEW_SOURCE_PRIORITY) {
+        if (fallbackSource === preferredSource) continue;
+        candidate = take(fallbackSource);
+        if (candidate) break;
+      }
+    }
+    if (!candidate) break;
+    result.push(candidate);
+  }
+  return result;
+}
+
+async function previewVideosFor(
+  type: "movie" | "tv",
+  tmdbId: number,
+): Promise<TmdbVideo[]> {
+  try {
+    const result = await tmdb<{ results: TmdbVideo[] }>(
+      `/${type}/${tmdbId}/videos`,
+      { language: "en-US" },
+    );
+    return result.results ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function bestPreviewVideo(videos: TmdbVideo[]): TmdbVideo | null {
+  const ranked = videos
+    .map((video, index) => ({ video, index }))
+    .filter(({ video }) => {
+      const type = video.type.toLowerCase();
+      return (
+        video.site.toLowerCase() === "youtube" &&
+        Boolean(video.key) &&
+        (type === "trailer" || type === "teaser")
+      );
+    })
+    .sort((a, b) => {
+      const portraitA = Number(PORTRAIT_VIDEO_NAME.test(a.video.name));
+      const portraitB = Number(PORTRAIT_VIDEO_NAME.test(b.video.name));
+      if (portraitB !== portraitA) return portraitB - portraitA;
+
+      const typeRank = (video: TmdbVideo): number => {
+        const type = video.type.toLowerCase();
+        if (type === "trailer" && video.official) return 4;
+        if (type === "trailer") return 3;
+        if (type === "teaser" && video.official) return 2;
+        return 1;
+      };
+      const rankDifference = typeRank(b.video) - typeRank(a.video);
+      return rankDifference || a.index - b.index;
+    });
+
+  return ranked[0]?.video ?? null;
+}
+
+async function hydratePreviewCandidate(
+  candidate: TmdbPreviewCandidate,
+): Promise<TmdbPreviewItem | null> {
+  const videos = await previewVideosFor(
+    candidate.item.media_type,
+    candidate.item.id,
+  );
+  const video = bestPreviewVideo(videos);
+  if (!video) return null;
+
+  return {
+    ...candidate.item,
+    source: candidate.source,
+    videoKey: video.key,
+    videoName: video.name,
+    videoType: video.type,
+    videoOfficial: Boolean(video.official),
+    orientationHint: PORTRAIT_VIDEO_NAME.test(video.name)
+      ? "portrait"
+      : "landscape",
+  };
+}
+
+/**
+ * Build a playable feed for `/previews` from personalised, trending, and
+ * theatrical catalogues. Saved titles are removed before video hydration so
+ * they cannot consume a slot or leave holes. Candidates are hydrated in
+ * bounded waves until the requested number of playable trailers are ready,
+ * with an absolute ceiling of 24 cached `/videos` lookups per request. Combined
+ * with the source catalogue calls, this remains below TMDB's approximate
+ * cold-request ceiling.
+ */
+export async function getPreviewFeedBatch(
+  excludedKeys: ReadonlySet<string> = new Set(),
+  options: {
+    targetSize?: number;
+    lookupLimit?: number;
+    waveSize?: number;
+  } = {},
+): Promise<TmdbPreviewBatch> {
+  const targetSize = Math.max(
+    1,
+    Math.min(PREVIEW_TARGET_SIZE, Math.floor(options.targetSize ?? PREVIEW_TARGET_SIZE)),
+  );
+  const lookupLimit = Math.max(
+    targetSize,
+    Math.min(
+      PREVIEW_LOOKUP_LIMIT,
+      Math.floor(options.lookupLimit ?? PREVIEW_LOOKUP_LIMIT),
+    ),
+  );
+  const waveSize = Math.max(
+    1,
+    Math.min(PREVIEW_WAVE_SIZE, Math.floor(options.waveSize ?? PREVIEW_WAVE_SIZE)),
+  );
+  const [library, trending, nowPlaying] = await Promise.all([
+    getRecommendedFromWatched(excludedKeys),
+    getTrending(),
+    getNowPlaying(),
+  ]);
+  const candidates = previewCandidates(
+    library,
+    trending,
+    nowPlaying,
+    excludedKeys,
+    lookupLimit,
+  );
+
+  const hydrateWave = async (
+    wave: TmdbPreviewCandidate[],
+  ): Promise<TmdbPreviewItem[]> => {
+    const items = await Promise.all(wave.map(hydratePreviewCandidate));
+    return items.filter((item): item is TmdbPreviewItem => item !== null);
+  };
+
+  const playable: TmdbPreviewItem[] = [];
+  const attemptedKeys: string[] = [];
+  const lookupCount = Math.min(candidates.length, lookupLimit);
+  for (
+    let start = 0;
+    start < lookupCount && playable.length < targetSize;
+    start += waveSize
+  ) {
+    const candidatesInWave = candidates.slice(start, start + waveSize);
+    attemptedKeys.push(...candidatesInWave.map(({ item }) => mediaKey(item)));
+    const hydrated = await hydrateWave(candidatesInWave);
+    playable.push(...hydrated);
+  }
+  return {
+    items: playable.slice(0, targetSize),
+    attemptedKeys,
+  };
+}
+
+export async function getPreviewFeed(
+  excludedKeys: ReadonlySet<string> = new Set(),
+): Promise<TmdbPreviewItem[]> {
+  const batch = await getPreviewFeedBatch(excludedKeys);
+  return batch.items;
 }
 
 // ─── Person ──────────────────────────────────────────────────────

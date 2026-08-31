@@ -181,8 +181,12 @@ function DiscoverTitleActions({
                     status: value,
                   });
                   if (!row?.id) throw new Error("Title could not be added.");
-                  onSaved({ id: row.id, status: value });
-                  toast.success(`Added to ${label}`);
+                  const savedStatus = row.status ?? value;
+                  onSaved({ id: row.id, status: savedStatus });
+                  const savedLabel =
+                    STATUS_OPTIONS.find((option) => option.value === savedStatus)
+                      ?.label ?? label;
+                  toast.success(`In ${savedLabel}`);
                 } catch (error) {
                   toast.error(
                     error instanceof Error
@@ -264,6 +268,23 @@ export function DiscoverTitleOverlayProvider({
     [savedTitles],
   );
 
+  const savedRecord = React.useCallback(
+    (item: TmdbSearchResult) =>
+      savedTitles.get(itemKey(item))?.record ?? null,
+    [savedTitles],
+  );
+
+  const markSaved = React.useCallback(
+    (item: TmdbSearchResult, record: PublicSpatialSavedTitle) => {
+      if (item.media_type !== "movie" && item.media_type !== "tv") return;
+      rememberSaved(
+        { media_type: item.media_type, tmdb_id: item.id },
+        record,
+      );
+    },
+    [rememberSaved],
+  );
+
   const context = React.useMemo<DiscoverTitleOverlayContextValue>(
     () => ({
       selectedAnchorElementId: selection?.anchorElementId ?? null,
@@ -271,8 +292,10 @@ export function DiscoverTitleOverlayProvider({
       open,
       prefetch,
       isSaved,
+      savedRecord,
+      markSaved,
     }),
-    [isSaved, open, prefetch, selection],
+    [isSaved, markSaved, open, prefetch, savedRecord, selection],
   );
 
   const renderActions = React.useCallback(

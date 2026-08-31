@@ -5,7 +5,12 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type TitleRow, type TitleStatus } from "@/lib/supabase";
 import { getLibraryClient } from "@/lib/library-db";
-import { getMovie, getTv, normalizeForStorage } from "@/lib/tmdb";
+import {
+  getMovie,
+  getPreviewFeedBatch,
+  getTv,
+  normalizeForStorage,
+} from "@/lib/tmdb";
 import { getOmdbMetadata, isOmdbConfigured } from "@/lib/omdb";
 import { slugify } from "@/lib/utils";
 
@@ -35,14 +40,14 @@ export async function addTitle(input: {
   const db = await getLibraryClient();
   const { data: existingRows, error: existingError } = await db
     .from("titles")
-    .select("id")
+    .select("id, status")
     .eq("tmdb_id", input.tmdbId)
     .eq("media_type", input.mediaType)
     .limit(1);
   if (existingError) throw new Error(existingError.message);
   if (existingRows?.[0]?.id) {
     revalidateLibrary();
-    return existingRows[0] as { id: string };
+    return existingRows[0] as { id: string; status: TitleStatus };
   }
 
   const detail =
@@ -81,7 +86,7 @@ export async function addTitle(input: {
   const { data, error } = await db
     .from("titles")
     .insert(patch)
-    .select("id")
+    .select("id, status")
     .single();
 
   if (error) {
@@ -91,16 +96,62 @@ export async function addTitle(input: {
     if (error.message.toLowerCase().includes("duplicate")) {
       const { data: racedRows } = await db
         .from("titles")
-        .select("id")
+        .select("id, status")
         .eq("tmdb_id", input.tmdbId)
         .eq("media_type", input.mediaType)
         .limit(1);
-      if (racedRows?.[0]?.id) return racedRows[0] as { id: string };
+      if (racedRows?.[0]?.id) {
+        return racedRows[0] as { id: string; status: TitleStatus };
+      }
     }
     throw new Error(error.message);
   }
   revalidateLibrary();
+  revalidateRecommendationSurfaces();
   return data;
+}
+
+const MAX_PREVIEW_EXCLUSIONS = 240;
+const PREVIEW_KEY_PATTERN = /^(?:movie|tv):[1-9]\d*$/;
+
+/**
+ * Fetch the next small preview batch on demand. The client sends a bounded
+ * recent-history window; the server merges it with the current library so a
+ * newly saved title can never leak back into the feed. TMDB responses remain
+ * covered by the existing one-hour Data Cache, while this library read stays
+ * fresh without polling.
+ */
+export async function loadMorePreviews(recentKeys: string[]) {
+  if (!Array.isArray(recentKeys)) throw new Error("Invalid preview history");
+  const safeRecentKeys = recentKeys
+    .slice(-MAX_PREVIEW_EXCLUSIONS)
+    .filter(
+      (key): key is string =>
+        typeof key === "string" && PREVIEW_KEY_PATTERN.test(key),
+    );
+
+  const db = await getLibraryClient();
+  const { data, error } = await db
+    .from("titles")
+    .select("tmdb_id, media_type")
+    .order("updated_at", { ascending: false })
+    .limit(1000);
+  if (error) throw new Error(error.message);
+
+  const excludedKeys = new Set(safeRecentKeys);
+  for (const row of data ?? []) {
+    const mediaType = row.media_type === "tv" ? "tv" : "movie";
+    const tmdbId = Number(row.tmdb_id);
+    if (Number.isFinite(tmdbId) && tmdbId > 0) {
+      excludedKeys.add(`${mediaType}:${tmdbId}`);
+    }
+  }
+
+  return getPreviewFeedBatch(excludedKeys, {
+    targetSize: 12,
+    lookupLimit: 18,
+    waveSize: 6,
+  });
 }
 
 /**
@@ -153,6 +204,7 @@ export async function setStatus(titleId: string, status: TitleStatus) {
   if (error) throw new Error(error.message);
 
   revalidateLibrary();
+  revalidateRecommendationSurfaces();
 }
 
 export async function setRating(titleId: string, rating: number | null) {
@@ -163,6 +215,7 @@ export async function setRating(titleId: string, rating: number | null) {
     .eq("id", titleId);
   if (error) throw new Error(error.message);
   revalidatePath(`/title/${titleId}`);
+  revalidateRecommendationSurfaces();
 }
 
 export async function setReview(titleId: string, review: string) {
@@ -190,6 +243,7 @@ export async function toggleFavorite(titleId: string) {
     .eq("id", titleId);
   if (error) throw new Error(error.message);
   revalidatePath(`/title/${titleId}`);
+  revalidateRecommendationSurfaces();
 }
 
 export async function removeTitle(titleId: string) {
@@ -197,6 +251,7 @@ export async function removeTitle(titleId: string) {
   const { error } = await db.from("titles").delete().eq("id", titleId);
   if (error) throw new Error(error.message);
   revalidateLibrary();
+  revalidateRecommendationSurfaces();
 }
 
 // ─── Reordering ───────────────────────────────────────────────────
@@ -397,4 +452,10 @@ function revalidateLibrary() {
   // Hosted /app rewrites to this route. Invalidate only the Library page,
   // not the root layout and every nested route in the application.
   revalidatePath("/");
+}
+
+function revalidateRecommendationSurfaces() {
+  // Invalidate only when the user changes a taste signal. There is no timer or
+  // background polling, and the next render still reuses TMDB's hourly cache.
+  revalidatePath("/discover");
 }

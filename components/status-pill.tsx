@@ -18,16 +18,19 @@ const OPTIONS: { value: TitleStatus; label: string }[] = [
   { value: "want", label: "Up Next" },
   { value: "watching", label: "Watching" },
   { value: "watched", label: "Watched" },
+  { value: "dropped", label: "Dropped" },
 ];
 
 export function StatusPill({
   titleId,
   status,
   onStatusChange,
+  onOpenChange,
 }: {
   titleId: string;
   status: TitleStatus;
   onStatusChange?: (status: TitleStatus) => void;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const [, startTransition] = useTransition();
   const [optimisticStatus, setOptimisticStatus] = useOptimistic<TitleStatus, TitleStatus>(
@@ -51,7 +54,7 @@ export function StatusPill({
   const active = OPTIONS.find((o) => o.value === optimisticStatus) ?? OPTIONS[0];
 
   return (
-    <DropdownMenu modal={false}>
+    <DropdownMenu modal={false} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"

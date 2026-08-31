@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, LayoutGrid, Layers, Plus } from "lucide-react";
+import { Clapperboard, Compass, LayoutGrid, Layers, Plus } from "lucide-react";
 import {
   useCommandPalette,
   useSmartSearchSession,
@@ -18,6 +18,7 @@ import { PRIMARY_TAB_TRANSITION } from "@/lib/motion";
 const TABS = [
   { href: APP_ROOT, label: "Library", icon: LayoutGrid },
   { href: "/discover", label: "Discover", icon: Compass },
+  { href: "/previews", label: "Previews", icon: Clapperboard },
   { href: "/lists", label: "Lists", icon: Layers },
 ] as const;
 
@@ -112,7 +113,7 @@ export function BottomNav() {
       }}
     >
       <div
-        className="relative isolate mx-auto grid h-[76px] w-full max-w-[430px] grid-cols-[minmax(0,1fr)_60px] gap-2.5 py-2"
+        className="relative isolate mx-auto grid h-[76px] w-full max-w-[430px] grid-cols-[minmax(0,1fr)_60px] gap-2.5 py-2 max-[359px]:grid-cols-[minmax(0,1fr)_56px] max-[359px]:gap-2"
         style={{
           paddingInlineStart:
             "max(0.75rem, calc(env(safe-area-inset-left) + 0.5rem))",
@@ -121,7 +122,7 @@ export function BottomNav() {
         }}
       >
         <ul
-          className="pointer-events-auto relative z-10 grid min-w-0 grid-cols-3 overflow-hidden rounded-full border border-foreground/[0.12] bg-background/[0.58] p-1 ring-1 ring-foreground/[0.05]"
+          className="pointer-events-auto relative z-10 grid min-w-0 grid-cols-4 overflow-hidden rounded-full border border-foreground/[0.12] bg-background/[0.58] p-1 ring-1 ring-foreground/[0.05]"
           style={{
             background:
               "linear-gradient(180deg, hsl(var(--foreground) / 0.12) 0%, hsl(var(--foreground) / 0.035) 42%, transparent 72%), hsl(var(--background) / 0.58)",
@@ -136,7 +137,7 @@ export function BottomNav() {
             className="pointer-events-none absolute inset-1 z-0 overflow-hidden rounded-full"
           >
             <span
-              className="absolute inset-y-0 left-0 w-1/3 rounded-full border border-primary/20 bg-primary/[0.14] transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform [backface-visibility:hidden] motion-reduce:transition-opacity motion-reduce:duration-150"
+              className="absolute inset-y-0 left-0 w-1/4 rounded-full border border-primary/20 bg-primary/[0.14] transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform [backface-visibility:hidden] motion-reduce:transition-opacity motion-reduce:duration-150"
               style={{
                 opacity: visualActiveIndex === -1 ? 0 : 1,
                 transform: `translate3d(${Math.max(visualActiveIndex, 0) * 100}%, 0, 0)`,
@@ -161,7 +162,7 @@ export function BottomNav() {
                   }
                   aria-current={current ? "page" : undefined}
                   className={cn(
-                    "relative isolate grid h-full touch-manipulation grid-rows-[20px_11px] content-center justify-items-center gap-[5px] overflow-hidden rounded-full px-1 text-[11px] font-medium tracking-tight outline-none transition-[color,transform] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97] motion-reduce:transition-colors motion-reduce:active:scale-100",
+                    "relative isolate grid h-full touch-manipulation grid-rows-[20px_11px] content-center justify-items-center gap-[5px] overflow-hidden rounded-full px-1 text-[11px] font-medium tracking-tight outline-none transition-[color,transform] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97] max-[359px]:px-0 max-[359px]:text-[10px] motion-reduce:transition-colors motion-reduce:active:scale-100",
                     active
                       ? "text-primary"
                       : "text-muted-foreground hover:text-foreground",
@@ -189,7 +190,7 @@ export function BottomNav() {
             activateSmartSearch({ transitionSource: event.currentTarget })
           }
           className={cn(
-            "pointer-events-auto relative z-10 grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-foreground/[0.14] bg-background/[0.54] text-primary outline-none transition-[filter,opacity,transform] duration-150 hover:brightness-[1.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.95] motion-reduce:active:scale-100",
+            "pointer-events-auto relative z-10 grid h-[60px] w-[60px] touch-manipulation place-items-center overflow-hidden rounded-full border border-foreground/[0.14] bg-background/[0.54] text-primary outline-none transition-[filter,opacity,transform] duration-150 hover:brightness-[1.08] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.95] max-[359px]:h-14 max-[359px]:w-14 motion-reduce:active:scale-100",
             inlineOpen &&
               "max-md:pointer-events-none max-md:invisible max-md:opacity-0",
           )}

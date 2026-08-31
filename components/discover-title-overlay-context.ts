@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import type { PublicSpatialSavedTitle } from "@/lib/public-spatial-detail-types";
 import type { TmdbSearchResult } from "@/lib/tmdb";
 
 export interface DiscoverTitleOverlayContextValue {
@@ -13,6 +14,11 @@ export interface DiscoverTitleOverlayContextValue {
   ) => void;
   prefetch: (item: TmdbSearchResult) => void;
   isSaved: (item: TmdbSearchResult, fallback: boolean) => boolean;
+  savedRecord: (item: TmdbSearchResult) => PublicSpatialSavedTitle | null;
+  markSaved: (
+    item: TmdbSearchResult,
+    record: PublicSpatialSavedTitle,
+  ) => void;
 }
 
 export const DiscoverTitleOverlayContext =
