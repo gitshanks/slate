@@ -25,6 +25,7 @@ const PRIMARY_TAB_HREFS = new Set([
 
 const PRIMARY_TOOLBAR_LABELS = new Map([
   ["/discover", "Discover"],
+  ["/import", "Import"],
   ["/lists", "Lists"],
   ["/profile", "Profile"],
 ]);
