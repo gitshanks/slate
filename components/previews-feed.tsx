@@ -21,7 +21,19 @@ import { toast } from "sonner";
 import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { useDiscoverTitleOverlay } from "@/components/discover-title-overlay-context";
 import { StatusPill } from "@/components/status-pill";
-import { addTitle, loadMorePreviews } from "@/lib/actions";
+import {
+  addTitle,
+  loadMorePreviews,
+  syncPreviewFeedback,
+} from "@/lib/actions";
+import {
+  neutralPreviewPreferences,
+  type PreviewFeedbackPayload,
+  type PreviewFeedbackStat,
+  type PreviewLoadContext,
+  type PreviewMediaType,
+  type PreviewPreferenceWeights,
+} from "@/lib/preview-feedback-types";
 import { backdropUrl, posterUrl } from "@/lib/tmdb-image";
 import type { TmdbPreviewItem, TmdbPreviewSource } from "@/lib/tmdb";
 import type { TitleStatus } from "@/lib/types";
@@ -32,6 +44,11 @@ interface PreviewsFeedProps {
   attemptedKeys: string[];
   lists: { id: string; name: string }[];
   playerOrigin?: string;
+  /** Opaque account id used only to keep browser learning account-scoped. */
+  profileKey?: string;
+  /** A server-created seed keeps the first deck and later batches coherent. */
+  sessionSeed?: string;
+  initialPreferences?: PreviewPreferenceWeights;
 }
 
 interface SavedRecord {
@@ -108,7 +125,7 @@ const SOURCE_TONES: Record<TmdbPreviewSource, string> = {
     "border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-200",
 };
 
-const PREVIEW_LOAD_AHEAD = 6;
+const PREVIEW_LOAD_AHEAD = 12;
 const PREVIEW_MAX_RENDERED = 48;
 const PREVIEW_KEEP_BEHIND = 12;
 const PREVIEW_HISTORY_LIMIT = 240;
@@ -116,6 +133,254 @@ const PREVIEW_REPLAY_GAP = 36;
 const PREVIEW_LOAD_RETRY_MS = 1_800;
 const PREVIEW_MAX_AUTOMATIC_RETRIES = 3;
 const PREVIEW_DESKTOP_HINT_KEY = "slate:previews-desktop-scroll-hint";
+const PREVIEW_LEDGER_PREFIX = "slate:previews-learning:v1";
+const PREVIEW_RECENT_COOKIE = "slate_preview_recent_v1";
+const PREVIEW_LEDGER_LIMIT = 500;
+const PREVIEW_SERVER_EXPOSURE_LIMIT = 240;
+const PREVIEW_COOKIE_EXPOSURE_LIMIT = 96;
+const PREVIEW_LEDGER_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1_000;
+const PREVIEW_HARD_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1_000;
+const PREVIEW_SOFT_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1_000;
+const PREVIEW_FAST_SKIP_MS = 2_000;
+const PREVIEW_MEANINGFUL_VIEW_MS = 5_000;
+const PREVIEW_FEEDBACK_SYNC_THRESHOLD = 16;
+
+interface PreviewExposure {
+  key: string;
+  lastSeenAt: number;
+  viewCount: number;
+  score: number;
+}
+
+interface PreviewLearningState {
+  version: 1;
+  exposures: PreviewExposure[];
+  preferences: PreviewPreferenceWeights;
+}
+
+interface PreviewFeedbackAccumulator {
+  impressions: number;
+  events: PreviewFeedbackPayload["events"];
+  source: Record<string, PreviewFeedbackStat>;
+  genres: Record<string, PreviewFeedbackStat>;
+  mediaTypes: Record<PreviewMediaType, PreviewFeedbackStat>;
+  /** Batch-local deltas; the server adds these to its persisted lifetime row. */
+  exposures: Map<string, PreviewFeedbackExposureDelta>;
+}
+
+interface PreviewFeedbackExposureDelta {
+  key: string;
+  lastSeenAt: number;
+  viewCount: number;
+  score: number;
+}
+
+function clampPreference(value: number) {
+  return Math.max(-1, Math.min(1, value));
+}
+
+function safePreference(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? clampPreference(value)
+    : 0;
+}
+
+function normalizePreferences(
+  preferences?: Partial<PreviewPreferenceWeights> | null,
+): PreviewPreferenceWeights {
+  const genres = Object.fromEntries(
+    Object.entries(preferences?.genre ?? {})
+      .filter(([genre]) => /^[1-9]\d{0,5}$/.test(genre))
+      .map(([genre, value]) => [genre, safePreference(value)] as const)
+      .filter(([, value]) => value !== 0)
+      .sort((left, right) => Math.abs(right[1]) - Math.abs(left[1]))
+      .slice(0, 32),
+  );
+  return {
+    source: {
+      library: safePreference(preferences?.source?.library),
+      trending: safePreference(preferences?.source?.trending),
+      now_playing: safePreference(preferences?.source?.now_playing),
+    },
+    genre: genres,
+    mediaType: {
+      movie: safePreference(preferences?.mediaType?.movie),
+      tv: safePreference(preferences?.mediaType?.tv),
+    },
+  };
+}
+
+function mergePreferences(
+  serverPreferences?: PreviewPreferenceWeights,
+  localPreferences?: PreviewPreferenceWeights,
+) {
+  const server = normalizePreferences(serverPreferences);
+  const local = normalizePreferences(localPreferences);
+  if (!preferencesHaveSignal(local)) return server;
+  if (!preferencesHaveSignal(server)) return local;
+  const genreKeys = new Set([
+    ...Object.keys(server.genre),
+    ...Object.keys(local.genre),
+  ]);
+  const genre: Record<string, number> = {};
+  for (const key of genreKeys) {
+    genre[key] = clampPreference(
+      (server.genre[key] ?? 0) * 0.6 + (local.genre[key] ?? 0) * 0.4,
+    );
+  }
+  return normalizePreferences({
+    source: {
+      library: clampPreference(
+        server.source.library * 0.6 + local.source.library * 0.4,
+      ),
+      trending: clampPreference(
+        server.source.trending * 0.6 + local.source.trending * 0.4,
+      ),
+      now_playing: clampPreference(
+        server.source.now_playing * 0.6 + local.source.now_playing * 0.4,
+      ),
+    },
+    genre,
+    mediaType: {
+      movie: clampPreference(
+        server.mediaType.movie * 0.6 + local.mediaType.movie * 0.4,
+      ),
+      tv: clampPreference(
+        server.mediaType.tv * 0.6 + local.mediaType.tv * 0.4,
+      ),
+    },
+  } satisfies PreviewPreferenceWeights);
+}
+
+function newFeedbackAccumulator(): PreviewFeedbackAccumulator {
+  return {
+    impressions: 0,
+    events: {
+      meaningfulViews: 0,
+      fastSkips: 0,
+      unmutes: 0,
+      details: 0,
+      saves: 0,
+      listIntents: 0,
+    },
+    source: {},
+    genres: {},
+    mediaTypes: {
+      movie: { views: 0, score: 0 },
+      tv: { views: 0, score: 0 },
+    },
+    exposures: new Map(),
+  };
+}
+
+function feedbackMetric(
+  metrics: Record<string, PreviewFeedbackStat>,
+  key: string,
+) {
+  return (metrics[key] ??= { views: 0, score: 0 });
+}
+
+function boundedFeedbackStat(
+  stat: PreviewFeedbackStat | undefined,
+): PreviewFeedbackStat {
+  const views = Math.max(0, Math.min(2_000, Math.trunc(stat?.views ?? 0)));
+  return {
+    views,
+    score: Math.max(-views, Math.min(views, stat?.score ?? 0)),
+  };
+}
+
+function preferencesHaveSignal(preferences: PreviewPreferenceWeights) {
+  return (
+    Object.values(preferences.source).some((value) => value !== 0) ||
+    Object.values(preferences.genre).some((value) => value !== 0) ||
+    Object.values(preferences.mediaType).some((value) => value !== 0)
+  );
+}
+
+function randomId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+function hashString(value: string) {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return hash >>> 0;
+}
+
+function seededUnit(seed: string) {
+  return hashString(seed) / 4_294_967_295;
+}
+
+function sanitizeExposure(value: unknown): PreviewExposure | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<PreviewExposure>;
+  if (
+    typeof candidate.key !== "string" ||
+    !/^(?:movie|tv):[1-9]\d*$/.test(candidate.key) ||
+    typeof candidate.lastSeenAt !== "number" ||
+    !Number.isFinite(candidate.lastSeenAt)
+  ) {
+    return null;
+  }
+  return {
+    key: candidate.key,
+    lastSeenAt: candidate.lastSeenAt,
+    viewCount: Math.max(1, Math.min(10_000, Number(candidate.viewCount) || 1)),
+    score: Math.max(-20, Math.min(20, Number(candidate.score) || 0)),
+  };
+}
+
+function readLearningState(storageKey: string): PreviewLearningState {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? "null") as
+      | Partial<PreviewLearningState>
+      | null;
+    const cutoff = Date.now() - PREVIEW_LEDGER_MAX_AGE_MS;
+    const exposures = Array.isArray(parsed?.exposures)
+      ? parsed.exposures
+          .map(sanitizeExposure)
+          .filter(
+            (entry): entry is PreviewExposure =>
+              Boolean(entry && entry.lastSeenAt >= cutoff),
+          )
+          .sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+          .slice(0, PREVIEW_LEDGER_LIMIT)
+      : [];
+    return {
+      version: 1,
+      exposures,
+      preferences: normalizePreferences(parsed?.preferences),
+    };
+  } catch {
+    return {
+      version: 1,
+      exposures: [],
+      preferences: neutralPreviewPreferences(),
+    };
+  }
+}
+
+function writeRecentCookie(profileKey: string, exposures: PreviewExposure[]) {
+  const hardCooldownCutoff = Date.now() - PREVIEW_HARD_COOLDOWN_MS;
+  const keys = exposures
+    .filter((entry) => entry.lastSeenAt >= hardCooldownCutoff)
+    .slice()
+    .sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+    .slice(0, PREVIEW_COOKIE_EXPOSURE_LIMIT)
+    .map((entry) => entry.key);
+  const value = encodeURIComponent(
+    JSON.stringify({ version: 1, profileKey, keys }),
+  );
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${PREVIEW_RECENT_COOKIE}=${value}; Max-Age=7776000; Path=/previews; SameSite=Lax${secure}`;
+}
 
 interface KeyHistory {
   order: string[];
@@ -220,6 +485,104 @@ function primaryGenre(item: TmdbPreviewItem) {
   const name = table.get(genreId);
   if (!name) return null;
   return name;
+}
+
+function exposurePenalty(item: TmdbPreviewItem, exposure?: PreviewExposure) {
+  if (!exposure) return item.recentlyExposed ? 4 : 0;
+  const age = Math.max(0, Date.now() - exposure.lastSeenAt);
+  if (age <= PREVIEW_HARD_COOLDOWN_MS) return 4;
+  if (age >= PREVIEW_SOFT_COOLDOWN_MS) return 0;
+  return (
+    1.4 *
+    (1 -
+      (age - PREVIEW_HARD_COOLDOWN_MS) /
+        (PREVIEW_SOFT_COOLDOWN_MS - PREVIEW_HARD_COOLDOWN_MS))
+  );
+}
+
+function preferenceScore(
+  item: TmdbPreviewItem,
+  preferences: PreviewPreferenceWeights,
+) {
+  const genreIds = item.genre_ids?.slice(0, 3) ?? [];
+  const genreScore =
+    genreIds.length > 0
+      ? genreIds.reduce(
+          (sum, genreId) => sum + (preferences.genre[String(genreId)] ?? 0),
+          0,
+        ) / genreIds.length
+      : 0;
+  return (
+    preferences.source[item.source] * 0.48 +
+    preferences.mediaType[item.media_type] * 0.22 +
+    genreScore * 0.3
+  );
+}
+
+/**
+ * A small client-side MMR pass adapts only unseen cards. The next three stay
+ * fixed, which lets learning react during the session without moving a target
+ * out from under a swipe or keyboard action.
+ */
+function rankPreviewItems(
+  candidates: TmdbPreviewItem[],
+  precedingItems: TmdbPreviewItem[],
+  preferences: PreviewPreferenceWeights,
+  exposures: Map<string, PreviewExposure>,
+  seed: string,
+) {
+  const remaining = [...candidates];
+  const selected: TmdbPreviewItem[] = [];
+
+  while (remaining.length > 0) {
+    const context = [...precedingItems.slice(-4), ...selected.slice(-4)];
+    let winningIndex = 0;
+    let winningScore = Number.NEGATIVE_INFINITY;
+
+    for (let index = 0; index < remaining.length; index += 1) {
+      const item = remaining[index];
+      const key = itemKey(item);
+      const last = context.at(-1);
+      const sameSourceCount = context.filter(
+        (candidate) => candidate.source === item.source,
+      ).length;
+      const sameMediaCount = context.filter(
+        (candidate) => candidate.media_type === item.media_type,
+      ).length;
+      const primaryGenreId = item.genre_ids?.[0];
+      const sameGenreCount = primaryGenreId
+        ? context.filter(
+            (candidate) => candidate.genre_ids?.[0] === primaryGenreId,
+          ).length
+        : 0;
+      const relevance = preferenceScore(item, preferences);
+      const exploration = seededUnit(`${seed}:${key}`) * 0.42;
+      const ratingConfidence = Math.min(
+        0.18,
+        Math.max(0, ((item.vote_average ?? 0) - 6) / 20),
+      );
+      const redundancy =
+        sameSourceCount * 0.14 +
+        sameGenreCount * 0.2 +
+        Math.max(0, sameMediaCount - 2) * 0.12 +
+        (last?.source === item.source ? 0.08 : 0);
+      const score =
+        relevance +
+        exploration +
+        ratingConfidence -
+        redundancy -
+        exposurePenalty(item, exposures.get(key));
+
+      if (score > winningScore) {
+        winningIndex = index;
+        winningScore = score;
+      }
+    }
+
+    selected.push(remaining.splice(winningIndex, 1)[0]);
+  }
+
+  return selected;
 }
 
 function useReducedMotion() {
@@ -860,6 +1223,8 @@ function PreviewSlide({
   onEnablePlayback,
   onTogglePlayback,
   onToggleSound,
+  onDetail,
+  onListIntent,
   onMenuOpenChange,
 }: {
   item: TmdbPreviewItem;
@@ -877,6 +1242,8 @@ function PreviewSlide({
   onEnablePlayback: () => void;
   onTogglePlayback: () => void;
   onToggleSound: () => void;
+  onDetail: () => void;
+  onListIntent: () => void;
   onMenuOpenChange: (open: boolean) => void;
 }) {
   const overlay = useDiscoverTitleOverlay();
@@ -948,14 +1315,20 @@ function PreviewSlide({
             ensureTitleId={ensureSaved}
             lists={lists}
             variant="icon"
-            onOpenChange={onMenuOpenChange}
+            onOpenChange={(open) => {
+              onMenuOpenChange(open);
+              if (open) onListIntent();
+            }}
           />
           <button
             id={anchorId}
             type="button"
             onPointerEnter={() => overlay?.prefetch(item)}
             onFocus={() => overlay?.prefetch(item)}
-            onClick={() => overlay?.open(item, isSaved, anchorId)}
+            onClick={() => {
+              onDetail();
+              overlay?.open(item, isSaved, anchorId);
+            }}
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card/85 text-foreground shadow-sm transition-[background-color,border-color,transform] duration-150 hover:border-primary/40 hover:bg-card active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:active:scale-100"
             aria-label={`View details for ${name}`}
             title="View details"
@@ -1001,6 +1374,9 @@ export function PreviewsFeed({
   attemptedKeys: initialAttemptedKeys,
   lists,
   playerOrigin,
+  profileKey = "local",
+  sessionSeed: initialSessionSeed,
+  initialPreferences,
 }: PreviewsFeedProps) {
   const overlay = useDiscoverTitleOverlay();
   const [items, setItems] = React.useState(initialItems);
@@ -1021,6 +1397,53 @@ export function PreviewsFeed({
   const retryTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadFailureCountRef = React.useRef(0);
   const pendingScrollTopRef = React.useRef<number | null>(null);
+  const sessionSeedRef = React.useRef(initialSessionSeed ?? "");
+  const sessionIdRef = React.useRef(initialSessionSeed ?? "");
+  const sessionStartedAtRef = React.useRef(new Date().toISOString());
+  // The server-rendered opening deck owns batch zero.
+  const batchIndexRef = React.useRef(1);
+  const exposureLedgerRef = React.useRef(new Map<string, PreviewExposure>());
+  const preferencesRef = React.useRef(
+    normalizePreferences(initialPreferences),
+  );
+  const feedbackRef = React.useRef<PreviewFeedbackAccumulator>(
+    newFeedbackAccumulator(),
+  );
+  // In-flight is separate from the one optional dedicated request. Successful
+  // load-more piggybacks may keep draining later aggregates at no added
+  // Function invocation cost.
+  const feedbackSyncStartedRef = React.useRef(false);
+  const feedbackDedicatedSyncUsedRef = React.useRef(false);
+  const pendingFeedbackPayloadRef = React.useRef<PreviewFeedbackPayload | null>(
+    null,
+  );
+  const activeVisitRef = React.useRef<{
+    item: TmdbPreviewItem;
+    startedAt: number;
+  } | null>(null);
+  const signalledKeysRef = React.useRef(new Set<string>());
+  const persistenceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const rerankTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollIdleTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const scrollInProgressRef = React.useRef(false);
+  const rerankRequestedRef = React.useRef(false);
+  const rerankFutureRef = React.useRef<() => void>(() => undefined);
+  const syncRemainingFeedbackRef = React.useRef<() => void>(() => undefined);
+  const learningReadyRef = React.useRef(false);
+  const learningStorageKey = React.useMemo(
+    () => `${PREVIEW_LEDGER_PREFIX}:${encodeURIComponent(profileKey)}`,
+    [profileKey],
+  );
+  // Tail reranks preserve membership. Key the observer by the set instead of
+  // array order so moving unseen cards never disconnects every target.
+  const observedItemMembership = React.useMemo(
+    () => items.map(itemKey).sort().join("|"),
+    [items],
+  );
   if (!attemptedHistoryRef.current) {
     attemptedHistoryRef.current = createKeyHistory([
       ...initialAttemptedKeys,
@@ -1080,6 +1503,358 @@ export function PreviewsFeed({
   const playerShouldPlay = Boolean(
     playerShellVisible && playerCanPlay && playbackEnabled,
   );
+
+  const persistLearningNow = React.useCallback(() => {
+    if (!learningReadyRef.current) return;
+    const exposures = Array.from(exposureLedgerRef.current.values())
+      .filter(
+        (entry) => entry.lastSeenAt >= Date.now() - PREVIEW_LEDGER_MAX_AGE_MS,
+      )
+      .sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+      .slice(0, PREVIEW_LEDGER_LIMIT);
+    exposureLedgerRef.current = new Map(
+      exposures.map((entry) => [entry.key, entry]),
+    );
+    const state: PreviewLearningState = {
+      version: 1,
+      exposures,
+      preferences: preferencesRef.current,
+    };
+    try {
+      window.localStorage.setItem(learningStorageKey, JSON.stringify(state));
+      writeRecentCookie(profileKey, exposures);
+    } catch {
+      // Storage can be disabled in private browsing. Session learning still
+      // works from refs and never blocks browsing.
+    }
+  }, [learningStorageKey, profileKey]);
+
+  const scheduleLearningPersistence = React.useCallback(() => {
+    if (persistenceTimerRef.current) return;
+    persistenceTimerRef.current = setTimeout(() => {
+      persistenceTimerRef.current = null;
+      persistLearningNow();
+    }, 500);
+  }, [persistLearningNow]);
+
+  const scheduleFutureRerank = React.useCallback(() => {
+    rerankRequestedRef.current = true;
+    if (scrollInProgressRef.current || rerankTimerRef.current) return;
+    rerankTimerRef.current = setTimeout(() => {
+      rerankTimerRef.current = null;
+      if (scrollInProgressRef.current || !rerankRequestedRef.current) return;
+      rerankRequestedRef.current = false;
+      rerankFutureRef.current();
+    }, 120);
+  }, []);
+
+  const recordImpression = React.useCallback(
+    (item: TmdbPreviewItem) => {
+      if (!learningReadyRef.current) return;
+      const key = itemKey(item);
+      const existing = exposureLedgerRef.current.get(key);
+      const now = Date.now();
+      const exposure: PreviewExposure = {
+        key,
+        lastSeenAt: now,
+        viewCount: Math.min(10_000, (existing?.viewCount ?? 0) + 1),
+        score: existing?.score ?? 0,
+      };
+      exposureLedgerRef.current.set(key, exposure);
+
+      const feedback = feedbackRef.current;
+      feedback.impressions = Math.min(2_000, feedback.impressions + 1);
+      feedbackMetric(feedback.source, item.source).views += 1;
+      feedback.mediaTypes[item.media_type].views += 1;
+      for (const genreId of item.genre_ids?.slice(0, 3) ?? []) {
+        feedbackMetric(feedback.genres, String(genreId)).views += 1;
+      }
+      const delta = feedback.exposures.get(key);
+      feedback.exposures.set(key, {
+        key,
+        lastSeenAt: now,
+        viewCount: Math.min(2_000, (delta?.viewCount ?? 0) + 1),
+        score: delta?.score ?? 0,
+      });
+      scheduleLearningPersistence();
+    },
+    [scheduleLearningPersistence],
+  );
+
+  const recordSignal = React.useCallback(
+    (
+      item: TmdbPreviewItem,
+      event: keyof PreviewFeedbackPayload["events"],
+      score: number,
+      once = false,
+    ) => {
+      if (!learningReadyRef.current) return;
+      const key = itemKey(item);
+      const signalKey = `${event}:${key}`;
+      if (once && signalledKeysRef.current.has(signalKey)) return;
+      if (once) signalledKeysRef.current.add(signalKey);
+
+      const feedback = feedbackRef.current;
+      // A snapshot can rotate while this title is still active. If its dwell
+      // or explicit action lands afterward, give the new aggregate a bounded
+      // denominator instead of either dropping the signal or submitting an
+      // invalid score-without-view payload.
+      if (!feedback.exposures.has(key)) {
+        feedback.impressions = Math.min(2_000, feedback.impressions + 1);
+        feedbackMetric(feedback.source, item.source).views += 1;
+        feedback.mediaTypes[item.media_type].views += 1;
+        for (const genreId of item.genre_ids?.slice(0, 3) ?? []) {
+          feedbackMetric(feedback.genres, String(genreId)).views += 1;
+        }
+        feedback.exposures.set(key, {
+          key,
+          lastSeenAt: Date.now(),
+          viewCount: 1,
+          score: 0,
+        });
+      }
+      feedback.events[event] = Math.min(2_000, feedback.events[event] + 1);
+      feedbackMetric(feedback.source, item.source).score += score;
+      feedback.mediaTypes[item.media_type].score += score;
+      for (const genreId of item.genre_ids?.slice(0, 3) ?? []) {
+        feedbackMetric(feedback.genres, String(genreId)).score += score;
+      }
+      const feedbackExposure = feedback.exposures.get(key)!;
+      feedback.exposures.set(key, {
+        ...feedbackExposure,
+        lastSeenAt: Date.now(),
+        score: Math.max(
+          -feedbackExposure.viewCount,
+          Math.min(feedbackExposure.viewCount, feedbackExposure.score + score),
+        ),
+      });
+
+      const exposure = exposureLedgerRef.current.get(key);
+      if (exposure) {
+        exposureLedgerRef.current.set(key, {
+          ...exposure,
+          score: Math.max(-20, Math.min(20, exposure.score + score)),
+        });
+      }
+
+      const preferences = preferencesRef.current;
+      preferences.source[item.source] = clampPreference(
+        preferences.source[item.source] + score * 0.08,
+      );
+      preferences.mediaType[item.media_type] = clampPreference(
+        preferences.mediaType[item.media_type] + score * 0.045,
+      );
+      for (const genreId of item.genre_ids?.slice(0, 3) ?? []) {
+        const genreKey = String(genreId);
+        preferences.genre[genreKey] = clampPreference(
+          (preferences.genre[genreKey] ?? 0) + score * 0.055,
+        );
+      }
+      scheduleLearningPersistence();
+      scheduleFutureRerank();
+    },
+    [scheduleFutureRerank, scheduleLearningPersistence],
+  );
+
+  const finishActiveVisit = React.useCallback(() => {
+    const visit = activeVisitRef.current;
+    if (!visit) return;
+    activeVisitRef.current = null;
+    const duration = Math.max(0, Date.now() - visit.startedAt);
+    if (duration < PREVIEW_FAST_SKIP_MS) {
+      recordSignal(visit.item, "fastSkips", -0.3);
+    } else if (duration >= PREVIEW_MEANINGFUL_VIEW_MS) {
+      recordSignal(visit.item, "meaningfulViews", 0.3);
+    }
+  }, [recordSignal]);
+
+  const startActiveVisit = React.useCallback(
+    (item: TmdbPreviewItem, countImpression: boolean) => {
+      activeVisitRef.current = { item, startedAt: Date.now() };
+      if (countImpression) recordImpression(item);
+    },
+    [recordImpression],
+  );
+
+  const buildFeedbackPayload = React.useCallback(() => {
+    if (pendingFeedbackPayloadRef.current) {
+      return pendingFeedbackPayloadRef.current;
+    }
+    const feedback = feedbackRef.current;
+    if (feedback.impressions === 0) return null;
+
+    const genres = Object.fromEntries(
+      Object.entries(feedback.genres)
+        .sort((a, b) => b[1].views - a[1].views)
+        .slice(0, 32)
+        .map(([key, stat]) => [key, boundedFeedbackStat(stat)]),
+    );
+    const exposures = Array.from(feedback.exposures.values())
+      .sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+      .slice(0, PREVIEW_SERVER_EXPOSURE_LIMIT)
+      .map((entry) => ({
+        key: entry.key,
+        lastSeenAt: new Date(entry.lastSeenAt).toISOString(),
+        viewCount: entry.viewCount,
+        score: Math.max(
+          -entry.viewCount,
+          Math.min(entry.viewCount, entry.score),
+        ),
+      }));
+    const payload: PreviewFeedbackPayload = {
+      batchId: randomId(),
+      sessionId: sessionIdRef.current,
+      startedAt: sessionStartedAtRef.current,
+      sentAt: new Date().toISOString(),
+      impressions: Math.min(2_000, feedback.impressions),
+      events: { ...feedback.events },
+      source: {
+        library: boundedFeedbackStat(feedback.source.library),
+        trending: boundedFeedbackStat(feedback.source.trending),
+        now_playing: boundedFeedbackStat(feedback.source.now_playing),
+      },
+      genres,
+      mediaTypes: {
+        movie: boundedFeedbackStat(feedback.mediaTypes.movie),
+        tv: boundedFeedbackStat(feedback.mediaTypes.tv),
+      },
+      exposures,
+    };
+    // Freeze exactly this aggregate for idempotent retry. New impressions and
+    // signals immediately enter a fresh accumulator while the request is in
+    // flight, so accepting the snapshot can never erase later activity.
+    pendingFeedbackPayloadRef.current = payload;
+    feedbackRef.current = newFeedbackAccumulator();
+    return payload;
+  }, []);
+
+  const acceptFeedbackSnapshot = React.useCallback(
+    (serverPreferences?: PreviewPreferenceWeights) => {
+      pendingFeedbackPayloadRef.current = null;
+      feedbackSyncStartedRef.current = false;
+      if (serverPreferences) {
+        preferencesRef.current = mergePreferences(
+          serverPreferences,
+          preferencesRef.current,
+        );
+      }
+      scheduleLearningPersistence();
+    },
+    [scheduleLearningPersistence],
+  );
+
+  const syncRemainingFeedback = React.useCallback(() => {
+    if (
+      feedbackSyncStartedRef.current ||
+      feedbackDedicatedSyncUsedRef.current
+    ) {
+      return;
+    }
+    const payload = buildFeedbackPayload();
+    if (!payload) return;
+    // This is the one dedicated feedback request permitted for a short
+    // session. Long sessions normally send the same aggregate on load-more.
+    feedbackSyncStartedRef.current = true;
+    feedbackDedicatedSyncUsedRef.current = true;
+    void syncPreviewFeedback(payload)
+      .then((result) => {
+        if (result.persisted || result.duplicate) {
+          acceptFeedbackSnapshot(result.preferences);
+        } else {
+          // Persistence is optional during a rolling migration. Keep the
+          // frozen idempotent payload available for a later load-more, but do
+          // not spend another dedicated Function request this session.
+          feedbackSyncStartedRef.current = false;
+        }
+      })
+      .catch(() => {
+        // The batch id makes retry idempotent if the server committed but the
+        // response was interrupted. Retain the frozen payload and let a later
+        // load-more or lifecycle boundary retry it.
+        feedbackSyncStartedRef.current = false;
+        feedbackDedicatedSyncUsedRef.current = false;
+      });
+  }, [acceptFeedbackSnapshot, buildFeedbackPayload]);
+
+  React.useEffect(() => {
+    syncRemainingFeedbackRef.current = syncRemainingFeedback;
+  }, [syncRemainingFeedback]);
+
+  React.useEffect(() => {
+    const fallbackSessionId = randomId();
+    if (!sessionSeedRef.current) sessionSeedRef.current = fallbackSessionId;
+    if (!sessionIdRef.current) sessionIdRef.current = fallbackSessionId;
+
+    const localState = readLearningState(learningStorageKey);
+    exposureLedgerRef.current = new Map(
+      localState.exposures.map((entry) => [entry.key, entry]),
+    );
+    preferencesRef.current = mergePreferences(
+      initialPreferences,
+      localState.preferences,
+    );
+
+    learningReadyRef.current = true;
+    persistLearningNow();
+    rerankFutureRef.current();
+  }, [initialPreferences, learningStorageKey, persistLearningNow]);
+
+  React.useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    const settleScroll = () => {
+      if (scrollIdleTimerRef.current) {
+        clearTimeout(scrollIdleTimerRef.current);
+        scrollIdleTimerRef.current = null;
+      }
+      scrollInProgressRef.current = false;
+      if (rerankRequestedRef.current) scheduleFutureRerank();
+    };
+    const onScroll = () => {
+      scrollInProgressRef.current = true;
+      if (rerankTimerRef.current) {
+        clearTimeout(rerankTimerRef.current);
+        rerankTimerRef.current = null;
+      }
+      if (scrollIdleTimerRef.current) {
+        clearTimeout(scrollIdleTimerRef.current);
+      }
+      // `scrollend` is available in current Safari/Chromium; this fallback
+      // also covers older WebKit and interrupted programmatic scrolling.
+      scrollIdleTimerRef.current = setTimeout(settleScroll, 180);
+    };
+
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    scroller.addEventListener("scrollend", settleScroll);
+    return () => {
+      scroller.removeEventListener("scroll", onScroll);
+      scroller.removeEventListener("scrollend", settleScroll);
+      if (scrollIdleTimerRef.current) {
+        clearTimeout(scrollIdleTimerRef.current);
+        scrollIdleTimerRef.current = null;
+      }
+      scrollInProgressRef.current = false;
+    };
+  }, [scheduleFutureRerank]);
+
+  React.useEffect(() => {
+    const item = itemsRef.current[activeIndex];
+    if (!item || !pageVisible) return;
+    const current = activeVisitRef.current;
+    if (current && itemKey(current.item) === itemKey(item)) return;
+    finishActiveVisit();
+    startActiveVisit(item, true);
+  }, [activeIndex, finishActiveVisit, pageVisible, startActiveVisit]);
+
+  React.useEffect(() => {
+    if (
+      feedbackRef.current.impressions >= PREVIEW_FEEDBACK_SYNC_THRESHOLD &&
+      !feedbackSyncStartedRef.current
+    ) {
+      syncRemainingFeedback();
+    }
+  }, [activeIndex, syncRemainingFeedback]);
 
   React.useEffect(() => {
     itemsRef.current = items;
@@ -1148,9 +1923,20 @@ export function PreviewsFeed({
   }, []);
 
   React.useEffect(() => {
-    const onVisibility = () => setPageVisible(document.visibilityState === "visible");
+    const onVisibility = () => {
+      const visible = document.visibilityState === "visible";
+      if (!visible) {
+        finishActiveVisit();
+        persistLearningNow();
+        syncRemainingFeedbackRef.current();
+      }
+      setPageVisible(visible);
+    };
     const onPageHide = () => {
       youtubePlayerRef.current?.pause();
+      finishActiveVisit();
+      persistLearningNow();
+      syncRemainingFeedbackRef.current();
       setPageVisible(false);
     };
     const onPageShow = () => onVisibility();
@@ -1163,7 +1949,7 @@ export function PreviewsFeed({
       window.removeEventListener("pagehide", onPageHide);
       window.removeEventListener("pageshow", onPageShow);
     };
-  }, []);
+  }, [finishActiveVisit, persistLearningNow]);
 
   React.useEffect(() => {
     const scroller = scrollerRef.current;
@@ -1197,7 +1983,7 @@ export function PreviewsFeed({
     );
     players.forEach((player) => observer.observe(player));
     return () => observer.disconnect();
-  }, [items, frameHeight]);
+  }, [frameHeight, observedItemMembership]);
 
   const commitFeedItems = React.useCallback(
     (nextItems: TmdbPreviewItem[], removeFromStart: number) => {
@@ -1225,6 +2011,40 @@ export function PreviewsFeed({
     [],
   );
 
+  const rerankFutureItems = React.useCallback(() => {
+    if (!learningReadyRef.current) return;
+    const currentItems = itemsRef.current;
+    // Index + 1 is the active card, so +4 protects the active card and the
+    // next three interaction targets from live personalization changes.
+    const movableStart = Math.min(
+      currentItems.length,
+      activeIndexRef.current + 4,
+    );
+    if (currentItems.length - movableStart < 2) return;
+    const fixed = currentItems.slice(0, movableStart);
+    const ranked = rankPreviewItems(
+      currentItems.slice(movableStart),
+      fixed.slice(-4),
+      preferencesRef.current,
+      exposureLedgerRef.current,
+      `${sessionSeedRef.current}:tail:${batchIndexRef.current}`,
+    );
+    if (
+      ranked.every(
+        (item, index) =>
+          itemKey(item) === itemKey(currentItems[movableStart + index]),
+      )
+    ) {
+      return;
+    }
+    commitFeedItems([...fixed, ...ranked], 0);
+  }, [commitFeedItems]);
+
+  React.useEffect(() => {
+    rerankFutureRef.current = rerankFutureItems;
+    if (learningReadyRef.current) rerankFutureItems();
+  }, [rerankFutureItems]);
+
   const appendPreviewItems = React.useCallback(
     (incoming: TmdbPreviewItem[]) => {
       const currentItems = itemsRef.current;
@@ -1237,7 +2057,14 @@ export function PreviewsFeed({
       });
       if (unique.length === 0) return 0;
 
-      const expanded = [...currentItems, ...unique];
+      const rankedUnique = rankPreviewItems(
+        unique,
+        currentItems.slice(-4),
+        preferencesRef.current,
+        exposureLedgerRef.current,
+        `${sessionSeedRef.current}:batch:${batchIndexRef.current}`,
+      );
+      const expanded = [...currentItems, ...rankedUnique];
       const overflow = Math.max(0, expanded.length - PREVIEW_MAX_RENDERED);
       const safelyRemovable = Math.max(
         0,
@@ -1245,7 +2072,7 @@ export function PreviewsFeed({
       );
       const removeFromStart = Math.min(overflow, safelyRemovable);
       commitFeedItems(expanded.slice(removeFromStart), removeFromStart);
-      return unique.length;
+      return rankedUnique.length;
     },
     [commitFeedItems],
   );
@@ -1254,11 +2081,17 @@ export function PreviewsFeed({
     const archive = playableArchiveRef.current;
     if (!archive) return 0;
     const savedKeys = new Set(savedRef.current.keys());
-    const available = Array.from(archive.entries()).filter(
-      ([key, item]) =>
-        !savedKeys.has(key) && !failedVideoKeysRef.current.has(item.videoKey),
-    );
-    const replayCount = Math.min(12, Math.max(0, available.length - 1));
+    const available = Array.from(archive.entries())
+      .filter(
+        ([key, item]) =>
+          !savedKeys.has(key) && !failedVideoKeysRef.current.has(item.videoKey),
+      )
+      .sort(
+        ([leftKey], [rightKey]) =>
+          (exposureLedgerRef.current.get(leftKey)?.lastSeenAt ?? 0) -
+          (exposureLedgerRef.current.get(rightKey)?.lastSeenAt ?? 0),
+      );
+    const replayCount = Math.min(24, Math.max(0, available.length - 1));
     if (replayCount === 0) return 0;
 
     // Preserve as much of a 36-title visual gap as the archive permits, then
@@ -1306,14 +2139,40 @@ export function PreviewsFeed({
       return;
     }
     loadingMoreRef.current = true;
+    let piggybackedFeedback: PreviewFeedbackPayload | undefined;
 
     try {
-      const batch = await loadMorePreviews(attemptedHistory.order);
+      const hardCooldownCutoff = Date.now() - PREVIEW_HARD_COOLDOWN_MS;
+      const exposureKeys = Array.from(exposureLedgerRef.current.values())
+        .filter((entry) => entry.lastSeenAt >= hardCooldownCutoff)
+        .sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+        .slice(0, PREVIEW_SERVER_EXPOSURE_LIMIT)
+        .map((entry) => entry.key);
+      const feedback = feedbackSyncStartedRef.current
+        ? undefined
+        : (buildFeedbackPayload() ?? undefined);
+      piggybackedFeedback = feedback;
+      if (feedback) feedbackSyncStartedRef.current = true;
+      const requestBatchIndex = batchIndexRef.current;
+      const context: PreviewLoadContext = {
+        sessionSeed: sessionSeedRef.current,
+        batchIndex: requestBatchIndex,
+        exposureKeys,
+        preferences: normalizePreferences(preferencesRef.current),
+        feedback,
+      };
+      const batch = await loadMorePreviews(attemptedHistory.order, context);
+      if (feedback && batch.feedbackAccepted) {
+        acceptFeedbackSnapshot(batch.preferences);
+      } else if (feedback) {
+        feedbackSyncStartedRef.current = false;
+      }
       rememberHistoryKeys(attemptedHistory, batch.attemptedKeys);
       if (playableArchiveRef.current) {
         rememberArchiveItems(playableArchiveRef.current, batch.items);
       }
       const appendedCount = appendPreviewItems(batch.items);
+      batchIndexRef.current = Math.min(10_000, requestBatchIndex + 1);
       loadFailureCountRef.current = 0;
 
       if (appendedCount > 0) {
@@ -1325,6 +2184,7 @@ export function PreviewsFeed({
         schedulePreviewRetry(PREVIEW_LOAD_RETRY_MS);
       }
     } catch {
+      if (piggybackedFeedback) feedbackSyncStartedRef.current = false;
       loadFailureCountRef.current += 1;
       if (loadFailureCountRef.current <= PREVIEW_MAX_AUTOMATIC_RETRIES) {
         const retryDelay = Math.min(
@@ -1336,7 +2196,13 @@ export function PreviewsFeed({
     } finally {
       loadingMoreRef.current = false;
     }
-  }, [appendPreviewItems, replayArchivedPreviews, schedulePreviewRetry]);
+  }, [
+    acceptFeedbackSnapshot,
+    appendPreviewItems,
+    buildFeedbackPayload,
+    replayArchivedPreviews,
+    schedulePreviewRetry,
+  ]);
 
   React.useEffect(() => {
     if (
@@ -1352,6 +2218,13 @@ export function PreviewsFeed({
   React.useEffect(
     () => () => {
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      if (persistenceTimerRef.current) {
+        clearTimeout(persistenceTimerRef.current);
+      }
+      if (rerankTimerRef.current) clearTimeout(rerankTimerRef.current);
+      if (scrollIdleTimerRef.current) {
+        clearTimeout(scrollIdleTimerRef.current);
+      }
     },
     [],
   );
@@ -1384,6 +2257,7 @@ export function PreviewsFeed({
           const record = { id: row.id, status: row.status ?? "want" };
           rememberSaved(key, record);
           overlay?.markSaved(item, record);
+          recordSignal(item, "saves", 1, true);
           return row.id;
         })
         .finally(() => pendingSaves.current.delete(key));
@@ -1391,7 +2265,7 @@ export function PreviewsFeed({
       pendingSaves.current.set(key, request);
       return request;
     },
-    [overlay, rememberSaved],
+    [overlay, recordSignal, rememberSaved],
   );
 
   const moveTo = React.useCallback(
@@ -1598,10 +2472,15 @@ export function PreviewsFeed({
                   setSoundEnabled(false);
                 } else {
                   youtubePlayerRef.current?.unmuteAndPlay();
+                  recordSignal(item, "unmutes", 0.55, true);
                   setSoundEnabled(true);
                   setPlaybackEnabled(true);
                 }
               }}
+              onDetail={() => recordSignal(item, "details", 0.7, true)}
+              onListIntent={() =>
+                recordSignal(item, "listIntents", 0.85, true)
+              }
               onMenuOpenChange={setMenuOpen}
             />
           );

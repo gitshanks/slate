@@ -153,7 +153,10 @@ export function BottomNav() {
               <li key={t.href} className="relative z-10 min-w-0">
                 <Link
                   href={t.href}
-                  prefetch
+                  // Previews performs account reads and bounded TMDB trailer
+                  // hydration. Do not pay that cost merely because the
+                  // always-visible dock entered the viewport.
+                  prefetch={t.href === "/previews" ? false : true}
                   onNavigate={() => setOptimisticTab(t.href)}
                   transitionTypes={
                     isExactPrimaryTab && pathname !== t.href

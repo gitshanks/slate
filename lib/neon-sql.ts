@@ -30,6 +30,7 @@ export interface BuilderState {
   filters: Filter[];
   orders: OrderSpec[];
   limit: number | null;
+  offset: number | null;
   single: boolean;
   maybeSingle: boolean;
   /** insert/update payload (object) or upsert payload (object | object[]). */
@@ -54,6 +55,7 @@ export function makeState(
     filters: [],
     orders: [],
     limit: null,
+    offset: null,
     single: false,
     maybeSingle: false,
     data: data ?? null,
@@ -73,12 +75,21 @@ const ALLOWED_TABLES = new Set([
   "profiles",
   "auth_identities",
   "device_sessions",
+  "preview_feedback",
 ]);
 const IDENT = /^[a-z_][a-z0-9_]*$/;
 
 /** jsonb columns need JSON.stringify + a ::jsonb cast on write. */
 const JSONB_COLUMNS: Record<string, Set<string>> = {
   titles: new Set(["genres", "seasons"]),
+  preview_feedback: new Set([
+    "source_weights",
+    "genre_weights",
+    "media_type_weights",
+    "recent_exposures",
+    "totals",
+    "recent_batch_ids",
+  ]),
 };
 
 /**
@@ -254,6 +265,7 @@ function buildSelect(state: BuilderState): { text: string; params: unknown[] } {
       state.orders.map((o) => `${q(o.col)} ${o.ascending ? "ASC" : "DESC"}`).join(", ");
   }
   if (state.limit != null) text += ` LIMIT ${p(state.limit)}`;
+  if (state.offset != null) text += ` OFFSET ${p(state.offset)}`;
   return { text, params };
 }
 

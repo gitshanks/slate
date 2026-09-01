@@ -98,6 +98,19 @@ once with `plot=full`, and updates matching titles across every account:
 npm run db:backfill:omdb
 ```
 
+Existing Neon databases should also apply the additive preview-learning table
+before deploying this version:
+
+```bash
+npm run db:migrate:previews
+```
+
+Supabase deployments can run
+[`supabase/migrations/20260901_preview_feedback.sql`](./supabase/migrations/20260901_preview_feedback.sql)
+in the SQL editor instead. If this migration is delayed, Previews continues to
+learn locally in the browser and enables cross-device learning once the table
+is available.
+
 Prefer Supabase, or already have another Postgres? Set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` instead of `DATABASE_URL` — the data layer uses whichever backend is configured.
 
 ### Google account mode

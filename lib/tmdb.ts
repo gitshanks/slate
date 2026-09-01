@@ -8,7 +8,21 @@ export { posterUrl, backdropUrl, TMDB_IMG } from "@/lib/tmdb-image";
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const KEY = process.env.TMDB_API_KEY;
 
-async function tmdb<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+const TMDB_CACHE_SECONDS = {
+  default: 60 * 60,
+  trending: 6 * 60 * 60,
+  nowPlaying: 12 * 60 * 60,
+  recommendations: 24 * 60 * 60,
+  // Successful and empty `/videos` payloads share one fetch-cache policy. A
+  // one-day TTL avoids pinning a newly released trailer as "missing" all week.
+  videos: 24 * 60 * 60,
+} as const;
+
+async function tmdb<T>(
+  path: string,
+  params: Record<string, string> = {},
+  options: { revalidate?: number } = {},
+): Promise<T> {
   if (!KEY) {
     throw new Error("TMDB_API_KEY is not set. Add it to .env.local.");
   }
@@ -23,7 +37,7 @@ async function tmdb<T>(path: string, params: Record<string, string> = {}): Promi
   // and re-fetches every request — keep TMDB-fetching pages off force-dynamic.
   const res = await fetch(url, {
     cache: "force-cache",
-    next: { revalidate: 60 * 60 },
+    next: { revalidate: options.revalidate ?? TMDB_CACHE_SECONDS.default },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -358,6 +372,8 @@ export type TmdbPreviewSource = "library" | "trending" | "now_playing";
 /** A playable, serializable item for the portrait-first Previews feed. */
 export interface TmdbPreviewItem extends TmdbMediaResult {
   source: TmdbPreviewSource;
+  /** True only when the server had to relax the recent-view cooldown. */
+  recentlyExposed: boolean;
   videoKey: string;
   videoName: string;
   videoType: string;
@@ -370,6 +386,40 @@ export interface TmdbPreviewBatch {
   items: TmdbPreviewItem[];
   /** Includes candidates without a playable trailer so they are not retried. */
   attemptedKeys: string[];
+}
+
+/**
+ * Small, bounded preference deltas learned during the current preview session.
+ * Callers should keep every value in [-1, 1]; the ranker clamps again at the
+ * boundary so malformed client input cannot dominate relevance.
+ */
+export interface TmdbPreviewAdaptiveWeights {
+  source?: Partial<Record<TmdbPreviewSource, number>>;
+  genre?: Record<string, number>;
+  mediaType?: Partial<Record<"movie" | "tv", number>>;
+}
+
+export interface TmdbPreviewFeedOptions {
+  targetSize?: number;
+  lookupLimit?: number;
+  waveSize?: number;
+  /** Stable per browsing session. Supplying it makes ranking reproducible. */
+  sessionSeed?: string;
+  /** Zero-based continuation batch; rotates the unseen candidate ordering. */
+  batchIndex?: number;
+  adaptiveWeights?: TmdbPreviewAdaptiveWeights;
+  /**
+   * Recently viewed titles. They stay eligible, but only after every unseen
+   * candidate is exhausted so active viewers never hit a cooldown cliff.
+   */
+  softExcludedKeys?: ReadonlySet<string>;
+}
+
+export interface TmdbRecommendationOptions {
+  /** Rotates the strongest taste seeds without increasing provider fan-out. */
+  rotationSeed?: string;
+  /** Defaults to eight normally and six for the rotating previews path. */
+  seedCount?: number;
 }
 
 /**
@@ -535,11 +585,13 @@ export async function getTrending(): Promise<TmdbSearchResult[]> {
       tmdb<{ results: TmdbSearchResult[] }>("/trending/all/week", {
         language: "en-US",
         page: "1",
-      }),
+      }, { revalidate: TMDB_CACHE_SECONDS.trending }),
       tmdb<{ results: TmdbSearchResult[] }>("/trending/all/week", {
         language: "en-US",
         page: "2",
-      }).catch(() => ({ results: [] as TmdbSearchResult[] })),
+      }, { revalidate: TMDB_CACHE_SECONDS.trending }).catch(() => ({
+        results: [] as TmdbSearchResult[],
+      })),
     ]);
     return [...p1.results, ...p2.results].filter(
       (r) => r.media_type === "movie" || r.media_type === "tv"
@@ -578,11 +630,13 @@ export async function getNowPlaying(): Promise<TmdbSearchResult[]> {
       tmdb<{ results: TmdbSearchResult[] }>("/movie/now_playing", {
         language: "en-US",
         page: "1",
-      }),
+      }, { revalidate: TMDB_CACHE_SECONDS.nowPlaying }),
       tmdb<{ results: TmdbSearchResult[] }>("/movie/now_playing", {
         language: "en-US",
         page: "2",
-      }).catch(() => ({ results: [] as TmdbSearchResult[] })),
+      }, { revalidate: TMDB_CACHE_SECONDS.nowPlaying }).catch(() => ({
+        results: [] as TmdbSearchResult[],
+      })),
     ]);
     return [...p1.results, ...p2.results].map((r) => ({
       ...r,
@@ -629,6 +683,7 @@ export async function getRecommendationsFor(
     const res = await tmdb<{ results: TmdbSearchResult[] }>(
       `/${type}/${tmdbId}/recommendations`,
       { language: "en-US", page: "1" },
+      { revalidate: TMDB_CACHE_SECONDS.recommendations },
     );
     return res.results
       .map((r) => ({
@@ -643,6 +698,66 @@ export async function getRecommendationsFor(
   }
 }
 
+function clampNumber(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+/** Stable FNV-1a hash followed by Mulberry32; identical seed, identical deck. */
+function createSeededRandom(seed: string): () => number {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  let state = hash >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function weightedIndex(weights: number[], random: () => number): number {
+  const total = weights.reduce(
+    (sum, weight) => sum + (Number.isFinite(weight) ? Math.max(0, weight) : 0),
+    0,
+  );
+  if (total <= 0) return Math.floor(random() * weights.length);
+
+  let cursor = random() * total;
+  for (let index = 0; index < weights.length; index += 1) {
+    cursor -= Math.max(0, weights[index] ?? 0);
+    if (cursor <= 0) return index;
+  }
+  return weights.length - 1;
+}
+
+function rotateRankedSeeds<T>(
+  rankedSeeds: T[],
+  count: number,
+  rotationSeed: string,
+): T[] {
+  const random = createSeededRandom(rotationSeed);
+  const remaining = rankedSeeds.map((seed, rank) => ({ seed, rank }));
+  const selected: T[] = [];
+
+  while (remaining.length > 0 && selected.length < count) {
+    // Most choices favor the user's strongest signals. A bounded exploration
+    // lane rotates through the rest of the high-confidence taste pool so the
+    // recommendation fan-out is not permanently anchored to the same titles.
+    const exploring = random() < 0.22;
+    const weights = remaining.map(({ rank }) =>
+      exploring ? 1 : Math.exp(-rank / 4.5),
+    );
+    const index = weightedIndex(weights, random);
+    selected.push(remaining[index].seed);
+    remaining.splice(index, 1);
+  }
+  return selected;
+}
+
 /**
  * Personalised "You might like" pool. Picks the user's top watched titles
  * (by sentiment rating, then TMDB score) as seeds, fans out to TMDB's
@@ -651,6 +766,7 @@ export async function getRecommendationsFor(
  */
 export async function getRecommendedFromWatched(
   excludedKeys?: ReadonlySet<string>,
+  options: TmdbRecommendationOptions = {},
 ): Promise<TmdbSearchResult[]> {
   try {
     const db = await getLibraryClient();
@@ -701,7 +817,7 @@ export async function getRecommendedFromWatched(
     );
 
     // Rank seeds: user sentiment first (higher = loved), then TMDB score.
-    const topSeeds = usableSeeds
+    const rankedSeeds = usableSeeds
       .slice()
       .sort((a, b) => {
         if (Number(b.favorite) !== Number(a.favorite)) {
@@ -715,10 +831,31 @@ export async function getRecommendedFromWatched(
         if (tb !== ta) return tb - ta;
         const watchedB = Date.parse(b.watched_at ?? "");
         const watchedA = Date.parse(a.watched_at ?? "");
-        return (Number.isFinite(watchedB) ? watchedB : 0) -
+        const watchedDifference =
+          (Number.isFinite(watchedB) ? watchedB : 0) -
           (Number.isFinite(watchedA) ? watchedA : 0);
-      })
-      .slice(0, 8);
+        if (watchedDifference !== 0) return watchedDifference;
+
+        // PostgreSQL does not guarantee row order when every preference field
+        // ties. Keep the daily rotation reproducible so the same taste seed
+        // resolves to the same cached TMDB recommendation endpoints.
+        const mediaTypeDifference = a.media_type.localeCompare(b.media_type);
+        if (mediaTypeDifference !== 0) return mediaTypeDifference;
+        return Number(a.tmdb_id) - Number(b.tmdb_id);
+      });
+
+    const seedCount = Math.floor(clampNumber(
+      options.seedCount ?? (options.rotationSeed ? 6 : 8),
+      1,
+      8,
+    ));
+    const topSeeds = options.rotationSeed
+      ? rotateRankedSeeds(
+          rankedSeeds.slice(0, 24),
+          seedCount,
+          options.rotationSeed,
+        )
+      : rankedSeeds.slice(0, seedCount);
 
     const seedKeys = new Set<string>(
       topSeeds.map((seed) => `${seed.media_type}:${seed.tmdb_id}`),
@@ -728,7 +865,8 @@ export async function getRecommendedFromWatched(
       topSeeds.map((s) =>
         tmdb<{ results: TmdbSearchResult[] }>(
           `/${s.media_type}/${s.tmdb_id}/recommendations`,
-          { language: "en-US", page: "1" }
+          { language: "en-US", page: "1" },
+          { revalidate: TMDB_CACHE_SECONDS.recommendations },
         )
           .then((r) =>
             r.results.map((x) => ({
@@ -766,24 +904,10 @@ export async function getRecommendedFromWatched(
   }
 }
 
-// Repeat a 50/30/20 rhythm so the feed remains recognisably personal without
-// becoming repetitive. Candidate hydration is bounded separately below.
-const PREVIEW_SOURCE_PATTERN: readonly TmdbPreviewSource[] = [
-  "library",
-  "trending",
-  "library",
-  "now_playing",
-  "library",
-  "trending",
-  "library",
-  "now_playing",
-  "library",
-  "trending",
-];
-
 const PREVIEW_TARGET_SIZE = 24;
 const PREVIEW_LOOKUP_LIMIT = 24;
 const PREVIEW_WAVE_SIZE = 12;
+const PREVIEW_EXPLORE_RATE = 0.22;
 
 const PREVIEW_SOURCE_PRIORITY: readonly TmdbPreviewSource[] = [
   "library",
@@ -791,12 +915,32 @@ const PREVIEW_SOURCE_PRIORITY: readonly TmdbPreviewSource[] = [
   "now_playing",
 ];
 
+const PREVIEW_SOURCE_TARGET: Record<TmdbPreviewSource, number> = {
+  library: 0.5,
+  trending: 0.3,
+  now_playing: 0.2,
+};
+
+const PREVIEW_SOURCE_RELEVANCE: Record<TmdbPreviewSource, number> = {
+  library: 1,
+  trending: 0.82,
+  now_playing: 0.76,
+};
+
 const PORTRAIT_VIDEO_NAME =
   /\b(?:vertical|portrait|shorts)\b|9\s*(?::|x|×)\s*16/i;
 
 interface TmdbPreviewCandidate {
   item: TmdbMediaResult;
   source: TmdbPreviewSource;
+  baseScore: number;
+  recentlyExposed: boolean;
+}
+
+interface TmdbPreviewPoolEntry {
+  item: TmdbMediaResult;
+  source: TmdbPreviewSource;
+  ranks: Partial<Record<TmdbPreviewSource, number>>;
 }
 
 function mediaKey(item: Pick<TmdbMediaResult, "id" | "media_type">): string {
@@ -810,12 +954,130 @@ function previewMediaResults(items: TmdbSearchResult[]): TmdbMediaResult[] {
   );
 }
 
+function previewReleaseFreshness(item: TmdbMediaResult): number {
+  const rawDate = item.release_date ?? item.first_air_date;
+  if (!rawDate) return 0.25;
+  const timestamp = Date.parse(rawDate);
+  if (!Number.isFinite(timestamp)) return 0.25;
+  const ageInYears = (Date.now() - timestamp) / (365.25 * 24 * 60 * 60 * 1000);
+  if (ageInYears <= 1) return 1;
+  if (ageInYears <= 3) return 0.82;
+  if (ageInYears <= 7) return 0.58;
+  if (ageInYears <= 15) return 0.36;
+  return 0.18;
+}
+
+function previewQuality(item: TmdbMediaResult): number {
+  const rating = clampNumber((item.vote_average ?? 0) / 10, 0, 1);
+  const confidence = clampNumber(
+    Math.log1p(Math.max(0, item.vote_count ?? 0)) / Math.log1p(5_000),
+    0,
+    1,
+  );
+  return rating * (0.45 + confidence * 0.55);
+}
+
+function normalizedAdaptiveValue(value: number | undefined): number {
+  return Number.isFinite(value) ? clampNumber(value ?? 0, -1, 1) : 0;
+}
+
+function previewAdaptiveScore(
+  candidate: TmdbPreviewCandidate,
+  adaptiveWeights: TmdbPreviewAdaptiveWeights | undefined,
+): number {
+  if (!adaptiveWeights) return 0;
+  const source = normalizedAdaptiveValue(
+    adaptiveWeights.source?.[candidate.source],
+  );
+  const mediaType = normalizedAdaptiveValue(
+    adaptiveWeights.mediaType?.[candidate.item.media_type],
+  );
+  const genres = candidate.item.genre_ids ?? [];
+  const genre = genres.length > 0
+    ? genres.reduce(
+        (sum, genreId) =>
+          sum + normalizedAdaptiveValue(adaptiveWeights.genre?.[String(genreId)]),
+        0,
+      ) / Math.sqrt(genres.length)
+    : 0;
+  return source * 0.1 + mediaType * 0.08 + clampNumber(genre, -1, 1) * 0.12;
+}
+
+function previewGenreOverlap(
+  left: TmdbPreviewCandidate,
+  right: TmdbPreviewCandidate,
+): number {
+  const leftGenres = left.item.genre_ids ?? [];
+  const rightGenres = right.item.genre_ids ?? [];
+  if (leftGenres.length === 0 || rightGenres.length === 0) return 0;
+  const rightSet = new Set(rightGenres);
+  const shared = leftGenres.filter((genreId) => rightSet.has(genreId)).length;
+  return shared / new Set([...leftGenres, ...rightGenres]).size;
+}
+
+function previewDiversityAdjustment(
+  candidate: TmdbPreviewCandidate,
+  selected: TmdbPreviewCandidate[],
+  sourceCounts: Record<TmdbPreviewSource, number>,
+  exploring: boolean,
+): number {
+  if (selected.length === 0) return 0;
+  const recent = selected.slice(-5);
+  let adjustment = 0;
+
+  // MMR-like similarity penalty: repeated genres matter most for adjacent
+  // previews and fade across the last five cards.
+  for (let offset = 1; offset <= recent.length; offset += 1) {
+    const previous = recent[recent.length - offset];
+    adjustment -= previewGenreOverlap(candidate, previous) * (0.13 / offset);
+  }
+
+  const last = recent[recent.length - 1];
+  if (last.source === candidate.source) adjustment -= 0.09;
+  if (
+    recent.length >= 2 &&
+    recent.slice(-2).every((item) => item.source === candidate.source)
+  ) {
+    adjustment -= 0.12;
+  }
+
+  const mediaStreak = [...recent]
+    .reverse()
+    .findIndex((item) => item.item.media_type !== candidate.item.media_type);
+  const matchingMedia = mediaStreak === -1 ? recent.length : mediaStreak;
+  if (matchingMedia >= 1) adjustment -= 0.025;
+  if (matchingMedia >= 3) adjustment -= 0.14;
+
+  // Keep 50/30/20 as a soft rolling target, never a visible fixed rhythm.
+  const nextLength = selected.length + 1;
+  const targetCount = PREVIEW_SOURCE_TARGET[candidate.source] * nextLength;
+  const balance = clampNumber(
+    (targetCount - sourceCounts[candidate.source]) / Math.max(1, targetCount),
+    -1,
+    1,
+  );
+  adjustment += balance * (exploring ? 0.16 : 0.1);
+
+  if (exploring) {
+    const recentGenres = new Set(recent.flatMap((item) => item.item.genre_ids ?? []));
+    const introducesGenre = (candidate.item.genre_ids ?? []).some(
+      (genreId) => !recentGenres.has(genreId),
+    );
+    if (introducesGenre) adjustment += 0.1;
+  }
+
+  return adjustment;
+}
+
 function previewCandidates(
   library: TmdbSearchResult[],
   trending: TmdbSearchResult[],
   nowPlaying: TmdbSearchResult[],
   excludedKeys: ReadonlySet<string>,
   lookupLimit: number,
+  seed: string,
+  adaptiveWeights?: TmdbPreviewAdaptiveWeights,
+  softExcludedKeys: ReadonlySet<string> = new Set(),
 ): TmdbPreviewCandidate[] {
   const rawPools: Record<TmdbPreviewSource, TmdbMediaResult[]> = {
     library: previewMediaResults(library),
@@ -823,54 +1085,97 @@ function previewCandidates(
     now_playing: previewMediaResults(nowPlaying),
   };
 
-  // Remember the strongest available explanation without removing a title
-  // from a pool before it is actually selected. That keeps a title which is
-  // deep in the personalised pool eligible for an early Trending slot while
-  // still explaining the stronger library connection.
-  const strongestSource = new Map<string, TmdbPreviewSource>();
-  for (const source of [...PREVIEW_SOURCE_PRIORITY].reverse()) {
-    for (const item of rawPools[source]) {
-      strongestSource.set(mediaKey(item), source);
-    }
+  // Merge duplicate catalogue entries while retaining every source rank. The
+  // strongest source remains the user-facing explanation, but a high position
+  // in any pool can improve the candidate's relevance.
+  const pool = new Map<string, TmdbPreviewPoolEntry>();
+  for (const source of PREVIEW_SOURCE_PRIORITY) {
+    rawPools[source].forEach((item, rank) => {
+      const key = mediaKey(item);
+      if (excludedKeys.has(key)) return;
+      const existing = pool.get(key);
+      if (existing) {
+        existing.ranks[source] = rank;
+        return;
+      }
+      pool.set(key, { item, source, ranks: { [source]: rank } });
+    });
   }
 
-  const cursors: Record<TmdbPreviewSource, number> = {
+  const maximumPopularity = Math.max(
+    1,
+    ...Array.from(pool.values(), ({ item }) =>
+      Math.log1p(Math.max(0, item.popularity ?? 0)),
+    ),
+  );
+  const remaining: TmdbPreviewCandidate[] = Array.from(pool.values()).map(
+    ({ item, source, ranks }) => {
+      let bestPoolRank = 0;
+      for (const candidateSource of PREVIEW_SOURCE_PRIORITY) {
+        const rank = ranks[candidateSource];
+        if (rank == null) continue;
+        const poolSize = Math.max(1, rawPools[candidateSource].length);
+        const normalizedRank = 1 - rank / poolSize;
+        bestPoolRank = Math.max(
+          bestPoolRank,
+          normalizedRank * PREVIEW_SOURCE_RELEVANCE[candidateSource],
+        );
+      }
+      const popularity =
+        Math.log1p(Math.max(0, item.popularity ?? 0)) / maximumPopularity;
+      const baseScore =
+        PREVIEW_SOURCE_RELEVANCE[source] * 0.36 +
+        bestPoolRank * 0.25 +
+        previewQuality(item) * 0.18 +
+        popularity * 0.12 +
+        previewReleaseFreshness(item) * 0.09;
+      return {
+        item,
+        source,
+        baseScore,
+        recentlyExposed: softExcludedKeys.has(mediaKey(item)),
+      };
+    },
+  );
+
+  const random = createSeededRandom(seed);
+  const sourceCounts: Record<TmdbPreviewSource, number> = {
     library: 0,
     trending: 0,
     now_playing: 0,
   };
-  const claimed = new Set<string>();
-  const take = (source: TmdbPreviewSource): TmdbPreviewCandidate | null => {
-    while (cursors[source] < rawPools[source].length) {
-      const item = rawPools[source][cursors[source]];
-      cursors[source] += 1;
-      const key = mediaKey(item);
-      if (excludedKeys.has(key) || claimed.has(key)) continue;
-      claimed.add(key);
-      return { item, source: strongestSource.get(key) ?? source };
-    }
-    return null;
-  };
-
   const result: TmdbPreviewCandidate[] = [];
-  for (
-    let index = 0;
-    result.length < lookupLimit;
-    index += 1
-  ) {
-    const preferredSource =
-      PREVIEW_SOURCE_PATTERN[index % PREVIEW_SOURCE_PATTERN.length];
-    let candidate = take(preferredSource);
-    if (!candidate) {
-      for (const fallbackSource of PREVIEW_SOURCE_PRIORITY) {
-        if (fallbackSource === preferredSource) continue;
-        candidate = take(fallbackSource);
-        if (candidate) break;
-      }
-    }
-    if (!candidate) break;
-    result.push(candidate);
+
+  while (remaining.length > 0 && result.length < lookupLimit) {
+    // 78% exploitation keeps the deck relevant. The 22% exploration lane
+    // flattens the distribution and emphasizes unseen genres/sources while
+    // preserving a quality floor through the same base score.
+    const exploring = random() < PREVIEW_EXPLORE_RATE;
+    const unseenRemaining = remaining.some(
+      (candidate) => !candidate.recentlyExposed,
+    );
+    const eligibleIndices = remaining.flatMap((candidate, index) =>
+      !unseenRemaining || !candidate.recentlyExposed ? [index] : [],
+    );
+    const scores = eligibleIndices.map((index) => {
+      const candidate = remaining[index];
+      return (
+      candidate.baseScore +
+      previewAdaptiveScore(candidate, adaptiveWeights) +
+        previewDiversityAdjustment(candidate, result, sourceCounts, exploring)
+      );
+    });
+    const maximumScore = Math.max(...scores);
+    const temperature = exploring ? 0.48 : 0.14;
+    const weights = scores.map((score) =>
+      Math.exp((score - maximumScore) / temperature),
+    );
+    const selectedIndex = eligibleIndices[weightedIndex(weights, random)];
+    const [selected] = remaining.splice(selectedIndex, 1);
+    result.push(selected);
+    sourceCounts[selected.source] += 1;
   }
+
   return result;
 }
 
@@ -882,6 +1187,7 @@ async function previewVideosFor(
     const result = await tmdb<{ results: TmdbVideo[] }>(
       `/${type}/${tmdbId}/videos`,
       { language: "en-US" },
+      { revalidate: TMDB_CACHE_SECONDS.videos },
     );
     return result.results ?? [];
   } catch {
@@ -932,6 +1238,7 @@ async function hydratePreviewCandidate(
   return {
     ...candidate.item,
     source: candidate.source,
+    recentlyExposed: candidate.recentlyExposed,
     videoKey: video.key,
     videoName: video.name,
     videoType: video.type,
@@ -953,11 +1260,7 @@ async function hydratePreviewCandidate(
  */
 export async function getPreviewFeedBatch(
   excludedKeys: ReadonlySet<string> = new Set(),
-  options: {
-    targetSize?: number;
-    lookupLimit?: number;
-    waveSize?: number;
-  } = {},
+  options: TmdbPreviewFeedOptions = {},
 ): Promise<TmdbPreviewBatch> {
   const targetSize = Math.max(
     1,
@@ -974,8 +1277,23 @@ export async function getPreviewFeedBatch(
     1,
     Math.min(PREVIEW_WAVE_SIZE, Math.floor(options.waveSize ?? PREVIEW_WAVE_SIZE)),
   );
+  const requestedBatchIndex = Number.isFinite(options.batchIndex)
+    ? Math.floor(options.batchIndex ?? 0)
+    : 0;
+  const batchIndex = clampNumber(requestedBatchIndex, 0, 10_000);
+  const suppliedSessionSeed = options.sessionSeed?.trim().slice(0, 128);
+  const dayBucket = Math.floor(Date.now() / (24 * 60 * 60 * 1000));
+  const sessionSeed = suppliedSessionSeed ||
+    `daily:${dayBucket}`;
+  const batchSeed = `${sessionSeed}:batch:${batchIndex}`;
   const [library, trending, nowPlaying] = await Promise.all([
-    getRecommendedFromWatched(excludedKeys),
+    getRecommendedFromWatched(excludedKeys, {
+      // All sessions share six taste endpoints for this UTC day. Taste
+      // mutations still change the ranked seed contents, while a stable
+      // rotation bounds cold provider/cache misses across endless batches.
+      rotationSeed: `preview-taste-day:${dayBucket}`,
+      seedCount: 6,
+    }),
     getTrending(),
     getNowPlaying(),
   ]);
@@ -985,6 +1303,9 @@ export async function getPreviewFeedBatch(
     nowPlaying,
     excludedKeys,
     lookupLimit,
+    `${batchSeed}:rank`,
+    options.adaptiveWeights,
+    options.softExcludedKeys,
   );
 
   const hydrateWave = async (
@@ -1015,8 +1336,9 @@ export async function getPreviewFeedBatch(
 
 export async function getPreviewFeed(
   excludedKeys: ReadonlySet<string> = new Set(),
+  options: TmdbPreviewFeedOptions = {},
 ): Promise<TmdbPreviewItem[]> {
-  const batch = await getPreviewFeedBatch(excludedKeys);
+  const batch = await getPreviewFeedBatch(excludedKeys, options);
   return batch.items;
 }
 

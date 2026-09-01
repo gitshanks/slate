@@ -21,6 +21,7 @@ function createStub(): SupabaseClient {
     in: () => builder,
     order: () => builder,
     limit: () => builder,
+    range: () => builder,
     single: () => Promise.resolve(single),
     then: (resolve: (v: typeof empty) => void) => resolve(empty),
   };

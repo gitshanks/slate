@@ -9,7 +9,12 @@ import { supabase } from "@/lib/supabase";
 
 export const SELF_HOSTED_OWNER_ID = "self-hosted";
 
-const OWNED_TABLES = new Set(["titles", "lists", "list_titles"]);
+const OWNED_TABLES = new Set([
+  "titles",
+  "lists",
+  "list_titles",
+  "preview_feedback",
+]);
 
 function withOwner<T>(data: T, ownerId: string): T {
   if (Array.isArray(data)) {

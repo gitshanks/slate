@@ -135,6 +135,7 @@ interface BuilderState {
   filters: FilterSpec[];
   order: { col: string; ascending: boolean }[];
   limitN: number | null;
+  offsetN: number;
   isSingle: boolean;
   isMaybeSingle: boolean;
   mutData: unknown;
@@ -200,6 +201,7 @@ type QueryBuilder = {
   ilike(col: string, val: string): QueryBuilder;
   order(col: string, opts?: { ascending?: boolean }): QueryBuilder;
   limit(n: number): QueryBuilder;
+  range(from: number, to: number): QueryBuilder;
   single(): QueryBuilder;
   maybeSingle(): QueryBuilder;
   then<R>(
@@ -231,6 +233,13 @@ function createBuilder(s: BuilderState): QueryBuilder {
     },
     limit(n) {
       return createBuilder({ ...s, limitN: n });
+    },
+    range(from, to) {
+      return createBuilder({
+        ...s,
+        offsetN: Math.max(0, from),
+        limitN: Math.max(0, to - from + 1),
+      });
     },
     single() {
       if (s.op !== "select") return createBuilder({ ...s, postMutSingle: true });
@@ -266,7 +275,7 @@ async function executeBuilder(b: BuilderState): Promise<{ data: unknown; error: 
 async function execSelect(
   b: BuilderState,
   state: DemoState
-): Promise<{ data: unknown; error: null }> {
+): Promise<{ data: unknown; error: unknown }> {
   let rows: Record<string, unknown>[] = [];
 
   if (b.table === "titles") {
@@ -291,11 +300,24 @@ async function execSelect(
       }
       return row;
     });
+  } else if (b.table === "preview_feedback") {
+    // Preview learning already lives in localStorage for the public demo.
+    // Report the optional server snapshot as unavailable so the caller skips
+    // its write instead of attempting an unsupported cookie-backed upsert.
+    return {
+      data: null,
+      error: { message: "Unknown table: preview_feedback" },
+    };
   }
 
   rows = applyFilters(rows, b.filters);
   rows = applyOrder(rows, b.order);
-  if (b.limitN !== null) rows = rows.slice(0, b.limitN);
+  if (b.offsetN > 0 || b.limitN !== null) {
+    rows = rows.slice(
+      b.offsetN,
+      b.limitN === null ? undefined : b.offsetN + b.limitN,
+    );
+  }
 
   // Project columns
   const projected = rows.map((r) => pickCols(r, b.cols));
@@ -605,6 +627,7 @@ function newBuilder(table: string, op: OpKind, data?: unknown, opts = {}): Retur
     filters: [],
     order: [],
     limitN: null,
+    offsetN: 0,
     isSingle: false,
     isMaybeSingle: false,
     mutData: data ?? null,

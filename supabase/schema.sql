@@ -139,6 +139,23 @@ alter table list_titles
 drop index if exists list_titles_list_idx;
 create index if not exists list_titles_list_idx on list_titles (owner_id, list_id, position);
 
+-- Preview learning is deliberately one compact row per owner. The client
+-- aggregates interactions in memory and writes at most a drained session
+-- batch, never one database row or request per swipe.
+create table if not exists preview_feedback (
+  owner_id           text primary key default 'self-hosted',
+  revision           bigint not null default 0,
+  source_weights     jsonb not null default '{}'::jsonb,
+  genre_weights      jsonb not null default '{}'::jsonb,
+  media_type_weights jsonb not null default '{}'::jsonb,
+  recent_exposures   jsonb not null default '[]'::jsonb,
+  totals             jsonb not null default '{}'::jsonb,
+  recent_batch_ids   jsonb not null default '[]'::jsonb,
+  last_session_id    text,
+  last_started_at    timestamptz,
+  updated_at         timestamptz not null default now()
+);
+
 create table if not exists profiles (
   id            text primary key,
   username      text unique not null

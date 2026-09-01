@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:migrate:accounts": "node scripts/apply-account-migration.mjs",
     "db:migrate:native": "node scripts/apply-native-migration.mjs",
+    "db:migrate:previews": "node scripts/apply-preview-feedback-migration.mjs",
     "db:backfill:omdb": "node scripts/backfill-omdb-plots.mjs"
   },
   "dependencies": {

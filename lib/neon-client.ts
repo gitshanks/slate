@@ -110,6 +110,7 @@ export interface QueryBuilder {
   ilike(col: string, val: string): QueryBuilder;
   order(col: string, opts?: { ascending?: boolean }): QueryBuilder;
   limit(n: number): QueryBuilder;
+  range(from: number, to: number): QueryBuilder;
   single(): QueryBuilder;
   maybeSingle(): QueryBuilder;
   then<R>(resolve: (v: QueryResult) => R, reject?: (e: unknown) => R): Promise<R>;
@@ -178,6 +179,13 @@ function builder(state: BuilderState): QueryBuilder {
     },
     limit(n) {
       return builder({ ...state, limit: n });
+    },
+    range(from, to) {
+      return builder({
+        ...state,
+        limit: Math.max(0, to - from + 1),
+        offset: Math.max(0, from),
+      });
     },
     single() {
       if (state.op !== "select") return builder({ ...state, returningSingle: true });

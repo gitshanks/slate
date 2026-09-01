@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type TitleRow, type TitleStatus } from "@/lib/supabase";
 import { getLibraryClient } from "@/lib/library-db";
+import { getAllLibraryTitleKeys } from "@/lib/library-title-keys";
 import {
   getMovie,
   getPreviewFeedBatch,
@@ -12,6 +13,18 @@ import {
   normalizeForStorage,
 } from "@/lib/tmdb";
 import { getOmdbMetadata, isOmdbConfigured } from "@/lib/omdb";
+import {
+  persistPreviewFeedback,
+  validatePreviewFeedbackPayload,
+  validatePreviewLoadContext,
+} from "@/lib/preview-feedback";
+import {
+  neutralPreviewPreferences,
+  type PreviewFeedbackPayload,
+  type PreviewFeedbackSyncResult,
+  type PreviewLoadContext,
+  type PreviewPreferenceWeights,
+} from "@/lib/preview-feedback-types";
 import { slugify } from "@/lib/utils";
 
 async function nextStatusPosition(
@@ -111,47 +124,90 @@ export async function addTitle(input: {
   return data;
 }
 
-const MAX_PREVIEW_EXCLUSIONS = 240;
+const MAX_PREVIEW_EXCLUSIONS = 500;
 const PREVIEW_KEY_PATTERN = /^(?:movie|tv):[1-9]\d*$/;
 
+export interface PreviewContinuationBatch {
+  items: Awaited<ReturnType<typeof getPreviewFeedBatch>>["items"];
+  attemptedKeys: string[];
+  /** True when no feedback was sent or its piggybacked aggregate was stored. */
+  feedbackAccepted: boolean;
+  /** Latest persisted EMA, useful after a successful piggyback write. */
+  preferences: PreviewPreferenceWeights;
+}
+
 /**
- * Fetch the next small preview batch on demand. The client sends a bounded
- * recent-history window; the server merges it with the current library so a
- * newly saved title can never leak back into the feed. TMDB responses remain
- * covered by the existing one-hour Data Cache, while this library read stays
- * fresh without polling.
+ * Fetch the next 24-title preview deck on demand. Session feedback may ride on
+ * this request so a long browsing session still performs one aggregate write,
+ * never a write per swipe. The client sends the initial persisted preference
+ * snapshot plus its local deltas; no feedback-table read is needed on refills.
  */
-export async function loadMorePreviews(recentKeys: string[]) {
+export async function loadMorePreviews(
+  recentKeys: string[],
+  context?: PreviewLoadContext,
+): Promise<PreviewContinuationBatch> {
   if (!Array.isArray(recentKeys)) throw new Error("Invalid preview history");
-  const safeRecentKeys = recentKeys
-    .slice(-MAX_PREVIEW_EXCLUSIONS)
-    .filter(
-      (key): key is string =>
-        typeof key === "string" && PREVIEW_KEY_PATTERN.test(key),
-    );
+  if (
+    recentKeys.length > MAX_PREVIEW_EXCLUSIONS ||
+    recentKeys.some(
+      (key) => typeof key !== "string" || !PREVIEW_KEY_PATTERN.test(key),
+    )
+  ) {
+    throw new Error("Invalid preview history");
+  }
+  const safeContext = context == null ? null : validatePreviewLoadContext(context);
 
   const db = await getLibraryClient();
-  const { data, error } = await db
-    .from("titles")
-    .select("tmdb_id, media_type")
-    .order("updated_at", { ascending: false })
-    .limit(1000);
-  if (error) throw new Error(error.message);
+  const [savedKeys, feedbackResult] = await Promise.all([
+    getAllLibraryTitleKeys(db),
+    safeContext?.feedback
+      ? persistPreviewFeedback(db, safeContext.feedback)
+          .catch(() => ({
+            persisted: false,
+            duplicate: false,
+            preferences: safeContext.preferences,
+          }))
+      : Promise.resolve<PreviewFeedbackSyncResult>({
+          persisted: true,
+          duplicate: false,
+          preferences:
+            safeContext?.preferences ?? neutralPreviewPreferences(),
+        }),
+  ]);
+  const excludedKeys = new Set([
+    ...recentKeys.slice(-MAX_PREVIEW_EXCLUSIONS),
+    ...savedKeys,
+  ]);
+  const softExcludedKeys = new Set(
+    (safeContext?.exposureKeys ?? []).filter((key) => !excludedKeys.has(key)),
+  );
 
-  const excludedKeys = new Set(safeRecentKeys);
-  for (const row of data ?? []) {
-    const mediaType = row.media_type === "tv" ? "tv" : "movie";
-    const tmdbId = Number(row.tmdb_id);
-    if (Number.isFinite(tmdbId) && tmdbId > 0) {
-      excludedKeys.add(`${mediaType}:${tmdbId}`);
-    }
-  }
-
-  return getPreviewFeedBatch(excludedKeys, {
-    targetSize: 12,
-    lookupLimit: 18,
-    waveSize: 6,
+  const batch = await getPreviewFeedBatch(excludedKeys, {
+    targetSize: 24,
+    lookupLimit: 24,
+    waveSize: 12,
+    sessionSeed: safeContext?.sessionSeed,
+    batchIndex: safeContext?.batchIndex,
+    adaptiveWeights: safeContext?.preferences,
+    softExcludedKeys,
   });
+  return {
+    ...batch,
+    feedbackAccepted: safeContext?.feedback ? feedbackResult.persisted : true,
+    preferences: feedbackResult.preferences,
+  };
+}
+
+/**
+ * Persist one drained in-memory aggregate. The client uses this only for dirty
+ * feedback left at session end; normal long sessions piggyback on load-more.
+ */
+export async function syncPreviewFeedback(
+  payload: PreviewFeedbackPayload,
+): Promise<PreviewFeedbackSyncResult> {
+  const feedback = validatePreviewFeedbackPayload(payload);
+  const db = await getLibraryClient();
+  return persistPreviewFeedback(db, feedback);
 }
 
 /**
