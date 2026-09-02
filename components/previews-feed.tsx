@@ -65,6 +65,7 @@ interface YouTubePlayerInstance {
   mute(): void;
   pauseVideo(): void;
   playVideo(): void;
+  seekTo(seconds: number, allowSeekAhead: boolean): void;
   unMute(): void;
 }
 
@@ -104,6 +105,8 @@ interface YouTubePlayerHandle {
   unmuteAndPlay(): void;
 }
 
+const YOUTUBE_PLAYER_STATE_ENDED = 0;
+
 declare global {
   interface Window {
     YT?: YouTubeApi;
@@ -118,11 +121,9 @@ const SOURCE_LABELS: Record<TmdbPreviewSource, string> = {
 };
 
 const SOURCE_TONES: Record<TmdbPreviewSource, string> = {
-  library: "border-primary/25 bg-primary/12 text-primary",
-  trending:
-    "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-200",
-  now_playing:
-    "border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-200",
+  library: "text-white/90 after:bg-primary",
+  trending: "text-white/90 after:bg-amber-300",
+  now_playing: "text-white/90 after:bg-sky-300",
 };
 
 const PREVIEW_LOAD_AHEAD = 12;
@@ -144,6 +145,9 @@ const PREVIEW_SOFT_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1_000;
 const PREVIEW_FAST_SKIP_MS = 2_000;
 const PREVIEW_MEANINGFUL_VIEW_MS = 5_000;
 const PREVIEW_FEEDBACK_SYNC_THRESHOLD = 16;
+const PREVIEW_SESSION_STORAGE_PREFIX = "slate:previews-session:v1";
+const PREVIEW_SESSION_INACTIVITY_TTL_MS = 5 * 60 * 1_000;
+const PREVIEW_ITEM_KEY_PATTERN = /^(?:movie|tv):[1-9]\d*$/;
 
 interface PreviewExposure {
   key: string;
@@ -157,6 +161,35 @@ interface PreviewLearningState {
   exposures: PreviewExposure[];
   preferences: PreviewPreferenceWeights;
 }
+
+interface PreviewFeedSessionSnapshot {
+  version: 1;
+  profileKey: string;
+  departedAt: number;
+  items: TmdbPreviewItem[];
+  attemptedKeys: string[];
+  archivedItems: TmdbPreviewItem[];
+  activeItemKey: string;
+  batchIndex: number;
+  sessionSeed: string;
+  sessionId: string;
+  sessionStartedAt: string;
+  archiveCursor: number;
+  catalogueExhausted: boolean;
+  playbackEnabled: boolean;
+  pausedItemKey: string | null;
+  soundEnabled: boolean;
+  failedVideoKeys: string[];
+  savedEntries: [string, SavedRecord][];
+}
+
+// This cache makes ordinary in-app back-and-forth navigation restore before
+// the first client paint. sessionStorage covers reloads in the same tab; it is
+// intentionally not localStorage so closing the tab/app starts a fresh deck.
+const previewFeedSessionMemory = new Map<
+  string,
+  PreviewFeedSessionSnapshot
+>();
 
 interface PreviewFeedbackAccumulator {
   impressions: number;
@@ -467,6 +500,199 @@ const TV_GENRE_NAMES = new Map<number, string>([
 
 function itemKey(item: Pick<TmdbPreviewItem, "id" | "media_type">) {
   return `${item.media_type}:${item.id}`;
+}
+
+function itemKeyAt(items: readonly TmdbPreviewItem[], index: number) {
+  const item = items[index];
+  return item ? itemKey(item) : null;
+}
+
+function previewSessionStorageKey(profileKey: string) {
+  return `${PREVIEW_SESSION_STORAGE_PREFIX}:${encodeURIComponent(profileKey)}`;
+}
+
+function isPreviewItem(value: unknown): value is TmdbPreviewItem {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<TmdbPreviewItem>;
+  return (
+    typeof item.id === "number" &&
+    Number.isInteger(item.id) &&
+    item.id > 0 &&
+    (item.media_type === "movie" || item.media_type === "tv") &&
+    (item.source === "library" ||
+      item.source === "trending" ||
+      item.source === "now_playing") &&
+    typeof item.videoKey === "string" &&
+    item.videoKey.length > 0
+  );
+}
+
+function normalizePreviewSession(
+  value: unknown,
+  profileKey: string,
+): PreviewFeedSessionSnapshot | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<PreviewFeedSessionSnapshot>;
+  const departedAt = candidate.departedAt;
+  if (
+    candidate.version !== 1 ||
+    candidate.profileKey !== profileKey ||
+    typeof departedAt !== "number" ||
+    !Number.isFinite(departedAt) ||
+    departedAt > Date.now() + 60_000 ||
+    Date.now() - departedAt > PREVIEW_SESSION_INACTIVITY_TTL_MS ||
+    !Array.isArray(candidate.items)
+  ) {
+    return null;
+  }
+
+  const seenItems = new Set<string>();
+  const items = candidate.items
+    .filter(isPreviewItem)
+    .filter((item) => {
+      const key = itemKey(item);
+      if (seenItems.has(key)) return false;
+      seenItems.add(key);
+      return true;
+    })
+    .slice(0, PREVIEW_MAX_RENDERED);
+  if (items.length === 0) return null;
+
+  const attemptedKeys = Array.isArray(candidate.attemptedKeys)
+    ? candidate.attemptedKeys
+        .filter(
+          (key): key is string =>
+            typeof key === "string" && PREVIEW_ITEM_KEY_PATTERN.test(key),
+        )
+        .slice(-PREVIEW_HISTORY_LIMIT)
+    : [];
+  const seenArchive = new Set<string>();
+  const archivedItems = Array.isArray(candidate.archivedItems)
+    ? candidate.archivedItems
+        .filter(isPreviewItem)
+        .filter((item) => {
+          const key = itemKey(item);
+          if (seenArchive.has(key)) return false;
+          seenArchive.add(key);
+          return true;
+        })
+        .slice(-PREVIEW_HISTORY_LIMIT)
+    : items;
+  const savedEntries: [string, SavedRecord][] = Array.isArray(
+    candidate.savedEntries,
+  )
+    ? candidate.savedEntries
+        .filter((entry): entry is [string, SavedRecord] => {
+          if (!Array.isArray(entry) || entry.length !== 2) return false;
+          const [key, record] = entry;
+          return (
+            typeof key === "string" &&
+            PREVIEW_ITEM_KEY_PATTERN.test(key) &&
+            Boolean(record) &&
+            typeof record === "object" &&
+            typeof record.id === "string" &&
+            (record.status === "want" ||
+              record.status === "watching" ||
+              record.status === "watched" ||
+              record.status === "dropped")
+          );
+        })
+        .slice(-PREVIEW_HISTORY_LIMIT)
+    : [];
+  const queueKeys = new Set(items.map(itemKey));
+  const requestedActiveKey =
+    typeof candidate.activeItemKey === "string"
+      ? candidate.activeItemKey
+      : "";
+  const activeItemKey = queueKeys.has(requestedActiveKey)
+    ? requestedActiveKey
+    : itemKey(items[0]);
+
+  return {
+    version: 1,
+    profileKey,
+    departedAt,
+    items,
+    attemptedKeys: [...new Set([...attemptedKeys, ...items.map(itemKey)])],
+    archivedItems: archivedItems.length > 0 ? archivedItems : items,
+    activeItemKey,
+    batchIndex:
+      typeof candidate.batchIndex === "number" &&
+      Number.isInteger(candidate.batchIndex)
+        ? Math.max(1, Math.min(10_000, candidate.batchIndex))
+        : 1,
+    sessionSeed:
+      typeof candidate.sessionSeed === "string" ? candidate.sessionSeed : "",
+    sessionId:
+      typeof candidate.sessionId === "string" ? candidate.sessionId : "",
+    sessionStartedAt:
+      typeof candidate.sessionStartedAt === "string"
+        ? candidate.sessionStartedAt
+        : new Date(departedAt).toISOString(),
+    archiveCursor:
+      typeof candidate.archiveCursor === "number" &&
+      Number.isInteger(candidate.archiveCursor)
+        ? Math.max(0, candidate.archiveCursor)
+        : 0,
+    catalogueExhausted: candidate.catalogueExhausted === true,
+    playbackEnabled: candidate.playbackEnabled === true,
+    pausedItemKey:
+      typeof candidate.pausedItemKey === "string" &&
+      queueKeys.has(candidate.pausedItemKey)
+        ? candidate.pausedItemKey
+        : null,
+    soundEnabled: candidate.soundEnabled !== false,
+    failedVideoKeys: Array.isArray(candidate.failedVideoKeys)
+      ? candidate.failedVideoKeys
+          .filter(
+            (key): key is string =>
+              typeof key === "string" && key.length > 0 && key.length <= 128,
+          )
+          .slice(-PREVIEW_HISTORY_LIMIT)
+      : [],
+    savedEntries,
+  };
+}
+
+function readInMemoryPreviewSession(profileKey: string) {
+  if (typeof window === "undefined") return null;
+  const snapshot = normalizePreviewSession(
+    previewFeedSessionMemory.get(profileKey),
+    profileKey,
+  );
+  if (!snapshot) previewFeedSessionMemory.delete(profileKey);
+  return snapshot;
+}
+
+function readStoredPreviewSession(profileKey: string) {
+  if (typeof window === "undefined") return null;
+  const storageKey = previewSessionStorageKey(profileKey);
+  try {
+    const raw = window.sessionStorage.getItem(storageKey);
+    const snapshot = raw
+      ? normalizePreviewSession(JSON.parse(raw), profileKey)
+      : null;
+    if (!snapshot && raw) window.sessionStorage.removeItem(storageKey);
+    return snapshot;
+  } catch {
+    // Some private-browsing configurations disable sessionStorage. The
+    // in-memory snapshot still preserves ordinary client-side navigation.
+    return null;
+  }
+}
+
+function writePreviewSession(snapshot: PreviewFeedSessionSnapshot) {
+  if (typeof window === "undefined") return;
+  previewFeedSessionMemory.set(snapshot.profileKey, snapshot);
+  try {
+    window.sessionStorage.setItem(
+      previewSessionStorageKey(snapshot.profileKey),
+      JSON.stringify(snapshot),
+    );
+  } catch {
+    // The bounded in-memory copy remains available if storage is unavailable
+    // or the browser has an unusually small per-tab quota.
+  }
 }
 
 function titleFor(item: TmdbPreviewItem) {
@@ -933,14 +1159,19 @@ const YouTubePreview = React.forwardRef<
         if (readyRef.current) playerRef.current?.mute();
       },
       pause() {
+        // Keep the intent ref in sync immediately so an ENDED event racing the
+        // user's pause (or pagehide) cannot start another loop iteration.
+        shouldPlayRef.current = false;
         if (readyRef.current) playerRef.current?.pauseVideo();
       },
       play() {
+        shouldPlayRef.current = true;
         if (readyRef.current) playerRef.current?.playVideo();
       },
       unmuteAndPlay() {
         // These calls intentionally happen inside the user's click stack so
         // WebKit can grant audio to this persistent media session.
+        shouldPlayRef.current = true;
         if (readyRef.current) {
           playerRef.current?.unMute();
           playerRef.current?.playVideo();
@@ -1031,6 +1262,23 @@ const YouTubePreview = React.forwardRef<
           iframe.setAttribute("tabindex", "-1");
         },
         onStateChange(event) {
+          if (event.data === YOUTUBE_PLAYER_STATE_ENDED) {
+            const endedVideoKey =
+              event.target.getVideoData().video_id ?? loadedVideoRef.current;
+            // The same iframe is reused across the feed, so an ENDED event
+            // from the outgoing trailer must never restart beneath the next
+            // slide. Menus, overlays, page visibility, and explicit Pause all
+            // flow through shouldPlayRef and stop the loop as well.
+            if (
+              shouldPlayRef.current &&
+              endedVideoKey === videoKeyRef.current &&
+              endedVideoKey === loadedVideoRef.current
+            ) {
+              event.target.seekTo(0, true);
+              event.target.playVideo();
+            }
+            return;
+          }
           // 1 = playing, 3 = buffering. At either point the frame belongs to
           // the latest key and can replace its poster without flashing back.
           if (event.data === 1 || event.data === 3 || event.data === 5) {
@@ -1173,6 +1421,7 @@ function SaveControl({
         status={record.status}
         onStatusChange={onStatusChange}
         onOpenChange={onMenuOpenChange}
+        triggerClassName="h-11 shrink-0 px-4 font-semibold"
       />
     );
   }
@@ -1273,10 +1522,10 @@ function PreviewSlide({
       />
 
       <div className="preview-feed-info relative z-30 mx-auto h-fit min-h-0 w-full max-w-[64rem] min-w-0 self-end overflow-hidden px-4 pt-7 pb-2 text-white sm:px-6 md:px-8 md:pt-8">
-        <div className="preview-feed-kicker flex items-start gap-3">
+        <div className="preview-feed-kicker flex items-start">
           <span
             className={cn(
-              "inline-flex min-h-6 items-center rounded-full border px-2.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] md:min-h-7",
+              "relative inline-flex min-h-6 items-center pb-1.5 font-mono text-[10px] font-semibold uppercase leading-none tracking-[0.14em] after:absolute after:bottom-0 after:left-0 after:h-px after:w-6 after:opacity-60 md:min-h-7",
               SOURCE_TONES[item.source],
             )}
           >
@@ -1379,29 +1628,60 @@ export function PreviewsFeed({
   initialPreferences,
 }: PreviewsFeedProps) {
   const overlay = useDiscoverTitleOverlay();
-  const [items, setItems] = React.useState(initialItems);
+  const [memorySession] = React.useState(() =>
+    readInMemoryPreviewSession(profileKey),
+  );
+  const initialFeedItems = memorySession?.items ?? initialItems;
+  const initialActiveIndex = memorySession
+    ? Math.max(
+        0,
+        initialFeedItems.findIndex(
+          (item) => itemKey(item) === memorySession.activeItemKey,
+        ),
+      )
+    : 0;
+  const [items, setItems] = React.useState(initialFeedItems);
   const hostRef = React.useRef<HTMLDivElement>(null);
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const playerShellRef = React.useRef<HTMLDivElement>(null);
   const desktopNavigationRef = React.useRef<HTMLDivElement>(null);
   const youtubePlayerRef = React.useRef<YouTubePlayerHandle>(null);
+  const audibleAutoplayFallbackAttemptedRef = React.useRef(false);
   const itemsRef = React.useRef(items);
-  const activeIndexRef = React.useRef(0);
+  const activeIndexRef = React.useRef(initialActiveIndex);
+  const lastPlaybackItemKeyRef = React.useRef(
+    itemKeyAt(initialFeedItems, initialActiveIndex),
+  );
   const attemptedHistoryRef = React.useRef<KeyHistory | null>(null);
   const playableArchiveRef = React.useRef<Map<string, TmdbPreviewItem> | null>(
     null,
   );
-  const archiveCursorRef = React.useRef(0);
-  const catalogueExhaustedRef = React.useRef(false);
+  const archiveCursorRef = React.useRef(memorySession?.archiveCursor ?? 0);
+  const catalogueExhaustedRef = React.useRef(
+    memorySession?.catalogueExhausted ?? false,
+  );
   const loadingMoreRef = React.useRef(false);
   const retryTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadFailureCountRef = React.useRef(0);
   const pendingScrollTopRef = React.useRef<number | null>(null);
-  const sessionSeedRef = React.useRef(initialSessionSeed ?? "");
-  const sessionIdRef = React.useRef(initialSessionSeed ?? "");
-  const sessionStartedAtRef = React.useRef(new Date().toISOString());
+  const restoreScrollItemKeyRef = React.useRef(
+    memorySession?.activeItemKey ?? null,
+  );
+  const restoredSessionRef = React.useRef<PreviewFeedSessionSnapshot | null>(
+    memorySession,
+  );
+  const skipInitialRerankRef = React.useRef(Boolean(memorySession));
+  const sessionSeedRef = React.useRef(
+    memorySession?.sessionSeed || initialSessionSeed || "",
+  );
+  const sessionIdRef = React.useRef(
+    memorySession?.sessionId || initialSessionSeed || "",
+  );
+  const sessionStartedAtRef = React.useRef(
+    memorySession?.sessionStartedAt || new Date().toISOString(),
+  );
   // The server-rendered opening deck owns batch zero.
-  const batchIndexRef = React.useRef(1);
+  const batchIndexRef = React.useRef(memorySession?.batchIndex ?? 1);
   const exposureLedgerRef = React.useRef(new Map<string, PreviewExposure>());
   const preferencesRef = React.useRef(
     normalizePreferences(initialPreferences),
@@ -1446,13 +1726,16 @@ export function PreviewsFeed({
   );
   if (!attemptedHistoryRef.current) {
     attemptedHistoryRef.current = createKeyHistory([
-      ...initialAttemptedKeys,
-      ...initialItems.map(itemKey),
+      ...(memorySession?.attemptedKeys ?? initialAttemptedKeys),
+      ...initialFeedItems.map(itemKey),
     ]);
   }
   if (!playableArchiveRef.current) {
     playableArchiveRef.current = new Map();
-    rememberArchiveItems(playableArchiveRef.current, initialItems);
+    rememberArchiveItems(
+      playableArchiveRef.current,
+      memorySession?.archivedItems ?? initialFeedItems,
+    );
   }
   const { height: frameHeight, usableHeight: usableFrameHeight } =
     useAvailableFeedHeight(hostRef);
@@ -1462,26 +1745,39 @@ export function PreviewsFeed({
     visible: desktopScrollHintVisible,
   } = useDesktopScrollHint();
   const blockingOverlayOpen = useBlockingOverlayOpen();
-  const [activeIndex, setActiveIndex] = React.useState(0);
+  const [activeIndex, setActiveIndex] = React.useState(initialActiveIndex);
   const [activePlayerIndex, setActivePlayerIndex] = React.useState<
     number | null
   >(null);
   const [pageVisible, setPageVisible] = React.useState(true);
-  const [playbackEnabled, setPlaybackEnabled] = React.useState(false);
-  const [soundEnabled, setSoundEnabled] = React.useState(false);
+  const initialItemPaused =
+    memorySession?.pausedItemKey ===
+    itemKeyAt(initialFeedItems, initialActiveIndex);
+  const [playbackEnabled, setPlaybackEnabled] = React.useState(
+    initialItemPaused ? false : (memorySession?.playbackEnabled ?? false),
+  );
+  const playbackEnabledRef = React.useRef(playbackEnabled);
+  const pausedItemKeyRef = React.useRef(memorySession?.pausedItemKey ?? null);
+  const automaticPlaybackAllowedRef = React.useRef(false);
+  const [soundEnabled, setSoundEnabled] = React.useState(
+    memorySession?.soundEnabled ?? true,
+  );
+  const soundEnabledRef = React.useRef(soundEnabled);
   const [playerReady, setPlayerReady] = React.useState(false);
   const [playerCanPlay, setPlayerCanPlay] = React.useState(false);
   const [visibleVideoKey, setVisibleVideoKey] = React.useState<string | null>(
     null,
   );
   const [failedVideoKeys, setFailedVideoKeys] = React.useState<Set<string>>(
-    () => new Set(),
+    () => new Set(memorySession?.failedVideoKeys ?? []),
   );
-  const failedVideoKeysRef = React.useRef(new Set<string>());
+  const failedVideoKeysRef = React.useRef(
+    new Set(memorySession?.failedVideoKeys ?? []),
+  );
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [loadRevision, setLoadRevision] = React.useState(0);
   const [saved, setSaved] = React.useState<Map<string, SavedRecord>>(
-    () => new Map(),
+    () => new Map(memorySession?.savedEntries ?? []),
   );
   const savedRef = React.useRef(saved);
   const pendingSaves = React.useRef(new Map<string, Promise<string>>());
@@ -1502,6 +1798,107 @@ export function PreviewsFeed({
   );
   const playerShouldPlay = Boolean(
     playerShellVisible && playerCanPlay && playbackEnabled,
+  );
+
+  // A normal client transition is restored from module memory during render.
+  // A same-tab reload can only read sessionStorage after hydration, so apply
+  // that snapshot in a layout effect before the restored slide is painted.
+  React.useLayoutEffect(() => {
+    if (restoredSessionRef.current) return;
+    const snapshot = readStoredPreviewSession(profileKey);
+    if (!snapshot) return;
+
+    const nextActiveIndex = Math.max(
+      0,
+      snapshot.items.findIndex(
+        (item) => itemKey(item) === snapshot.activeItemKey,
+      ),
+    );
+    restoredSessionRef.current = snapshot;
+    skipInitialRerankRef.current = true;
+    restoreScrollItemKeyRef.current = snapshot.activeItemKey;
+    sessionSeedRef.current = snapshot.sessionSeed || sessionSeedRef.current;
+    sessionIdRef.current = snapshot.sessionId || sessionIdRef.current;
+    sessionStartedAtRef.current = snapshot.sessionStartedAt;
+    batchIndexRef.current = snapshot.batchIndex;
+    archiveCursorRef.current = snapshot.archiveCursor;
+    catalogueExhaustedRef.current = snapshot.catalogueExhausted;
+    attemptedHistoryRef.current = createKeyHistory(snapshot.attemptedKeys);
+    playableArchiveRef.current = new Map();
+    rememberArchiveItems(
+      playableArchiveRef.current,
+      snapshot.archivedItems,
+    );
+
+    const nextFailedVideoKeys = new Set(snapshot.failedVideoKeys);
+    const nextSaved = new Map(snapshot.savedEntries);
+    itemsRef.current = snapshot.items;
+    activeIndexRef.current = nextActiveIndex;
+    failedVideoKeysRef.current = nextFailedVideoKeys;
+    savedRef.current = nextSaved;
+    pausedItemKeyRef.current = snapshot.pausedItemKey;
+    playbackEnabledRef.current = snapshot.pausedItemKey === snapshot.activeItemKey
+      ? false
+      : snapshot.playbackEnabled;
+    soundEnabledRef.current = snapshot.soundEnabled;
+    setItems(snapshot.items);
+    setActiveIndex(nextActiveIndex);
+    setActivePlayerIndex(null);
+    setFailedVideoKeys(nextFailedVideoKeys);
+    setSaved(nextSaved);
+    setPlaybackEnabled(
+      snapshot.pausedItemKey === snapshot.activeItemKey
+        ? false
+        : snapshot.playbackEnabled,
+    );
+    setSoundEnabled(snapshot.soundEnabled);
+  }, [profileKey]);
+
+  const persistPreviewSession = React.useCallback(() => {
+    const currentItems = itemsRef.current;
+    if (currentItems.length === 0) return;
+    const currentIndex = Math.max(
+      0,
+      Math.min(currentItems.length - 1, activeIndexRef.current),
+    );
+    const activeItem = currentItems[currentIndex] ?? currentItems[0];
+    const attemptedHistory = attemptedHistoryRef.current;
+    const archive = playableArchiveRef.current;
+    writePreviewSession({
+      version: 1,
+      profileKey,
+      // This is deliberately stamped only at a route/app departure, rather
+      // than extended by background timers while somebody is still browsing.
+      departedAt: Date.now(),
+      items: currentItems,
+      attemptedKeys:
+        attemptedHistory?.order ?? currentItems.map((item) => itemKey(item)),
+      archivedItems: archive ? Array.from(archive.values()) : currentItems,
+      activeItemKey: itemKey(activeItem),
+      batchIndex: batchIndexRef.current,
+      sessionSeed: sessionSeedRef.current,
+      sessionId: sessionIdRef.current,
+      sessionStartedAt: sessionStartedAtRef.current,
+      archiveCursor: archiveCursorRef.current,
+      catalogueExhausted: catalogueExhaustedRef.current,
+      playbackEnabled: playbackEnabledRef.current,
+      pausedItemKey: pausedItemKeyRef.current,
+      soundEnabled: soundEnabledRef.current,
+      failedVideoKeys: Array.from(failedVideoKeysRef.current),
+      savedEntries: Array.from(savedRef.current.entries()),
+    });
+  }, [profileKey]);
+
+  const persistPreviewSessionRef = React.useRef(persistPreviewSession);
+  React.useEffect(() => {
+    persistPreviewSessionRef.current = persistPreviewSession;
+  }, [persistPreviewSession]);
+
+  React.useEffect(
+    () => () => {
+      persistPreviewSessionRef.current();
+    },
+    [],
   );
 
   const persistLearningNow = React.useCallback(() => {
@@ -1862,18 +2259,63 @@ export function PreviewsFeed({
 
   React.useEffect(() => {
     activeIndexRef.current = activeIndex;
-  }, [activeIndex]);
+    const activeItem = itemsRef.current[activeIndex];
+    if (!activeItem) return;
+    const activeItemKey = itemKey(activeItem);
+    if (lastPlaybackItemKeyRef.current === activeItemKey) return;
+    lastPlaybackItemKeyRef.current = activeItemKey;
+    if (pausedItemKeyRef.current === activeItemKey) return;
+    // Pause is scoped to the trailer on screen. Moving to another trailer is
+    // an explicit request to consume that item, so clear the old pause and let
+    // the new card autoplay when device preferences permit it.
+    pausedItemKeyRef.current = null;
+    if (automaticPlaybackAllowedRef.current) {
+      playbackEnabledRef.current = true;
+      setPlaybackEnabled(true);
+    }
+  }, [activeIndex, items]);
+
+  React.useEffect(() => {
+    playbackEnabledRef.current = playbackEnabled;
+  }, [playbackEnabled]);
+
+  React.useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
 
   React.useLayoutEffect(() => {
-    const nextScrollTop = pendingScrollTopRef.current;
     const scroller = scrollerRef.current;
-    if (nextScrollTop == null || !scroller) return;
+    if (!scroller) return;
+    const restoreItemKey = restoreScrollItemKeyRef.current;
+    if (restoreItemKey) {
+      const restoreIndex = items.findIndex(
+        (item) => itemKey(item) === restoreItemKey,
+      );
+      const target =
+        restoreIndex >= 0
+          ? scroller.querySelector<HTMLElement>(
+              `[data-preview-index="${restoreIndex}"]`,
+            )
+          : null;
+      if (target && scroller.clientHeight > 0) {
+        const previousBehavior = scroller.style.scrollBehavior;
+        scroller.style.scrollBehavior = "auto";
+        scroller.scrollTop = target.offsetTop;
+        scroller.style.scrollBehavior = previousBehavior;
+        restoreScrollItemKeyRef.current = null;
+        pendingScrollTopRef.current = null;
+      }
+      return;
+    }
+
+    const nextScrollTop = pendingScrollTopRef.current;
+    if (nextScrollTop == null) return;
     pendingScrollTopRef.current = null;
     const previousBehavior = scroller.style.scrollBehavior;
     scroller.style.scrollBehavior = "auto";
     scroller.scrollTop = nextScrollTop;
     scroller.style.scrollBehavior = previousBehavior;
-  }, [items]);
+  }, [frameHeight, items]);
 
   useFloatingPlayerGeometry({
     hostRef,
@@ -1905,10 +2347,30 @@ export function PreviewsFeed({
       (navigator as Navigator & { connection?: { saveData?: boolean } })
         .connection?.saveData,
     );
-    setPlaybackEnabled(reducedMotion === false && !saveData);
+    const canAutoplay = reducedMotion === false && !saveData;
+    automaticPlaybackAllowedRef.current = canAutoplay;
+    const activeItem = itemsRef.current[activeIndexRef.current];
+    const activeItemPaused = Boolean(
+      activeItem && pausedItemKeyRef.current === itemKey(activeItem),
+    );
+    const nextPlaybackEnabled = canAutoplay && !activeItemPaused;
+    playbackEnabledRef.current = nextPlaybackEnabled;
+    setPlaybackEnabled(nextPlaybackEnabled);
   }, [reducedMotion]);
 
   const handleAutoplayBlocked = React.useCallback(() => {
+    if (!audibleAutoplayFallbackAttemptedRef.current) {
+      audibleAutoplayFallbackAttemptedRef.current = true;
+      youtubePlayerRef.current?.mute();
+      soundEnabledRef.current = false;
+      setSoundEnabled(false);
+      youtubePlayerRef.current?.play();
+      playbackEnabledRef.current = true;
+      setPlaybackEnabled(true);
+      toast.message("Your browser muted autoplay — tap sound to unmute");
+      return;
+    }
+    playbackEnabledRef.current = false;
     setPlaybackEnabled(false);
     toast.message("Tap Play to continue previews");
   }, []);
@@ -1929,6 +2391,31 @@ export function PreviewsFeed({
         finishActiveVisit();
         persistLearningNow();
         syncRemainingFeedbackRef.current();
+      } else if (
+        automaticPlaybackAllowedRef.current &&
+        itemKeyAt(itemsRef.current, activeIndexRef.current) !== null &&
+        pausedItemKeyRef.current !==
+          itemKeyAt(itemsRef.current, activeIndexRef.current) &&
+        !menuOpen &&
+        !blockingOverlayOpen &&
+        !overlay?.hasSelection
+      ) {
+        // Page lifecycle pauses are temporary. Reassert the playback intent on
+        // return even when a bfcache freeze prevented the hidden-state React
+        // commit from reaching the persistent YouTube player.
+        playbackEnabledRef.current = true;
+        setPlaybackEnabled(true);
+        window.requestAnimationFrame(() => {
+          if (
+            document.visibilityState === "visible" &&
+            automaticPlaybackAllowedRef.current &&
+            itemKeyAt(itemsRef.current, activeIndexRef.current) !== null &&
+            pausedItemKeyRef.current !==
+              itemKeyAt(itemsRef.current, activeIndexRef.current)
+          ) {
+            youtubePlayerRef.current?.play();
+          }
+        });
       }
       setPageVisible(visible);
     };
@@ -1936,6 +2423,7 @@ export function PreviewsFeed({
       youtubePlayerRef.current?.pause();
       finishActiveVisit();
       persistLearningNow();
+      persistPreviewSessionRef.current();
       syncRemainingFeedbackRef.current();
       setPageVisible(false);
     };
@@ -1949,7 +2437,34 @@ export function PreviewsFeed({
       window.removeEventListener("pagehide", onPageHide);
       window.removeEventListener("pageshow", onPageShow);
     };
-  }, [finishActiveVisit, persistLearningNow]);
+  }, [
+    blockingOverlayOpen,
+    finishActiveVisit,
+    menuOpen,
+    overlay?.hasSelection,
+    persistLearningNow,
+  ]);
+
+  React.useEffect(() => {
+    if (
+      !pageVisible ||
+      menuOpen ||
+      blockingOverlayOpen ||
+      overlay?.hasSelection ||
+      !automaticPlaybackAllowedRef.current ||
+      itemKeyAt(itemsRef.current, activeIndexRef.current) === null ||
+      pausedItemKeyRef.current ===
+        itemKeyAt(itemsRef.current, activeIndexRef.current)
+    ) {
+      return;
+    }
+    // Menus and title details temporarily suspend the shared iframe. Closing
+    // them should resume unless Pause was an explicit user choice. This effect
+    // intentionally does not depend on playbackEnabled, avoiding retry loops
+    // when a browser rejects autoplay.
+    playbackEnabledRef.current = true;
+    setPlaybackEnabled(true);
+  }, [blockingOverlayOpen, menuOpen, overlay?.hasSelection, pageVisible]);
 
   React.useEffect(() => {
     const scroller = scrollerRef.current;
@@ -2042,6 +2557,13 @@ export function PreviewsFeed({
 
   React.useEffect(() => {
     rerankFutureRef.current = rerankFutureItems;
+    if (skipInitialRerankRef.current) {
+      // The snapshot already contains the exact order the person left. New
+      // interactions may rerank its distant tail later, but returning alone
+      // must not silently replace their next trailer.
+      skipInitialRerankRef.current = false;
+      return;
+    }
     if (learningReadyRef.current) rerankFutureItems();
   }, [rerankFutureItems]);
 
@@ -2455,25 +2977,35 @@ export function PreviewsFeed({
               }}
               onEnablePlayback={() => {
                 youtubePlayerRef.current?.play();
+                pausedItemKeyRef.current = null;
+                playbackEnabledRef.current = true;
                 setPlaybackEnabled(true);
               }}
               onTogglePlayback={() => {
                 if (playbackEnabled) {
                   youtubePlayerRef.current?.pause();
+                  pausedItemKeyRef.current = key;
+                  playbackEnabledRef.current = false;
                   setPlaybackEnabled(false);
                 } else {
                   youtubePlayerRef.current?.play();
+                  pausedItemKeyRef.current = null;
+                  playbackEnabledRef.current = true;
                   setPlaybackEnabled(true);
                 }
               }}
               onToggleSound={() => {
                 if (soundEnabled) {
                   youtubePlayerRef.current?.mute();
+                  soundEnabledRef.current = false;
                   setSoundEnabled(false);
                 } else {
                   youtubePlayerRef.current?.unmuteAndPlay();
                   recordSignal(item, "unmutes", 0.55, true);
+                  soundEnabledRef.current = true;
                   setSoundEnabled(true);
+                  pausedItemKeyRef.current = null;
+                  playbackEnabledRef.current = true;
                   setPlaybackEnabled(true);
                 }
               }}

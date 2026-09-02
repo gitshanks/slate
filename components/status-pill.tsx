@@ -26,11 +26,13 @@ export function StatusPill({
   status,
   onStatusChange,
   onOpenChange,
+  triggerClassName,
 }: {
   titleId: string;
   status: TitleStatus;
   onStatusChange?: (status: TitleStatus) => void;
   onOpenChange?: (open: boolean) => void;
+  triggerClassName?: string;
 }) {
   const [, startTransition] = useTransition();
   const [optimisticStatus, setOptimisticStatus] = useOptimistic<TitleStatus, TitleStatus>(
@@ -58,7 +60,10 @@ export function StatusPill({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3.5 text-xs font-medium text-primary shadow-sm transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={cn(
+            "inline-flex h-9 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3.5 text-xs font-medium text-primary shadow-sm transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            triggerClassName,
+          )}
         >
           <span>{active.label}</span>
           <ChevronDown className="h-3 w-3 text-primary/60" />
