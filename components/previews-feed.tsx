@@ -2367,7 +2367,6 @@ export function PreviewsFeed({
       youtubePlayerRef.current?.play();
       playbackEnabledRef.current = true;
       setPlaybackEnabled(true);
-      toast.message("Your browser muted autoplay — tap sound to unmute");
       return;
     }
     playbackEnabledRef.current = false;
