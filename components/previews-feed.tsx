@@ -121,9 +121,9 @@ const SOURCE_LABELS: Record<TmdbPreviewSource, string> = {
 };
 
 const SOURCE_TONES: Record<TmdbPreviewSource, string> = {
-  library: "text-white/90 after:bg-primary",
-  trending: "text-white/90 after:bg-amber-300",
-  now_playing: "text-white/90 after:bg-sky-300",
+  library: "text-emerald-200",
+  trending: "text-amber-200",
+  now_playing: "text-sky-200",
 };
 
 const PREVIEW_LOAD_AHEAD = 12;
@@ -1525,7 +1525,7 @@ function PreviewSlide({
         <div className="preview-feed-kicker flex items-start">
           <span
             className={cn(
-              "relative inline-flex min-h-6 items-center pb-1.5 font-mono text-[10px] font-semibold uppercase leading-none tracking-[0.14em] after:absolute after:bottom-0 after:left-0 after:h-px after:w-6 after:opacity-60 md:min-h-7",
+              "inline-flex items-center font-mono text-[10px] font-semibold uppercase leading-none tracking-[0.14em]",
               SOURCE_TONES[item.source],
             )}
           >
@@ -1533,7 +1533,7 @@ function PreviewSlide({
           </span>
         </div>
 
-        <h1 className="preview-feed-title mt-2 line-clamp-2 text-[clamp(1.4rem,5vw,2.25rem)] font-semibold leading-[1.02] tracking-[-0.035em] sm:mt-3">
+        <h1 className="preview-feed-title mt-2 line-clamp-2 text-[clamp(1.4rem,5vw,2.25rem)] font-semibold leading-[1.02] tracking-[-0.035em]">
           {name}
         </h1>
 
