@@ -899,17 +899,33 @@ function useAvailableFeedHeight(hostRef: React.RefObject<HTMLDivElement | null>)
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const rect = host.getBoundingClientRect();
-        const viewport = window.visualViewport;
-        const viewportBottom = viewport
-          ? viewport.offsetTop + viewport.height
-          : window.innerHeight;
+        const parentRect = host.parentElement?.getBoundingClientRect();
+        // The app shell uses a stable small-viewport-height track on phones.
+        // Measure that track instead of visualViewport: mobile Safari moves
+        // and resizes the visual viewport while its chrome collapses, which
+        // otherwise changes every snap point underneath an active gesture.
+        // At md+ the shell becomes document-flow layout, so its parent height
+        // is no longer a reliable viewport boundary; keep the immersive feed
+        // pinned to the layout viewport there.
+        const useStableAppTrack = window.matchMedia(
+          "(max-width: 767px)",
+        ).matches;
+        const nextHeight = Math.max(
+          0,
+          Math.floor(
+            useStableAppTrack && parentRect && parentRect.height > 0
+              ? parentRect.height
+              : document.documentElement.clientHeight - rect.top,
+          ),
+        );
+        const hostBottom = rect.top + nextHeight;
         const dock = document.getElementById("app-bottom-nav");
         const dockRect = dock?.getBoundingClientRect();
         const dockIsVisible = Boolean(
           dockRect && dockRect.height > 0 && dockRect.top > rect.top,
         );
         const dockClearance = dockIsVisible
-          ? Math.max(8, viewportBottom - dockRect!.top + 8)
+          ? Math.max(8, hostBottom - dockRect!.top + 8)
           : 12;
         // The preview artwork is the page background, so let it continue all
         // the way behind the floating dock. Each slide reserves its own
@@ -919,7 +935,6 @@ function useAvailableFeedHeight(hostRef: React.RefObject<HTMLDivElement | null>)
           "--preview-dock-clearance",
           `${Math.ceil(dockClearance)}px`,
         );
-        const nextHeight = Math.max(0, Math.floor(viewportBottom - rect.top));
         setHeight(nextHeight);
         setUsableHeight(
           Math.max(0, nextHeight - Math.ceil(dockClearance)),
@@ -929,19 +944,19 @@ function useAvailableFeedHeight(hostRef: React.RefObject<HTMLDivElement | null>)
 
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(host);
+    if (host.parentElement) observer.observe(host.parentElement);
     const dock = document.getElementById("app-bottom-nav");
     if (dock) observer.observe(dock);
     window.addEventListener("resize", measure);
+    window.addEventListener("slate:demo-banner-dismiss", measure);
     window.visualViewport?.addEventListener("resize", measure);
-    window.visualViewport?.addEventListener("scroll", measure);
 
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("resize", measure);
+      window.removeEventListener("slate:demo-banner-dismiss", measure);
       window.visualViewport?.removeEventListener("resize", measure);
-      window.visualViewport?.removeEventListener("scroll", measure);
     };
   }, [hostRef]);
 
@@ -973,6 +988,9 @@ function useFloatingPlayerGeometry({
     const shell = playerShellRef.current;
     const desktopNavigation = desktopNavigationRef.current;
     if (!host || !scroller || !shell) return;
+    const interactivePlayer = window.matchMedia(
+      "(min-width: 48rem) and (hover: hover) and (pointer: fine)",
+    );
     let frame = 0;
 
     const update = () => {
@@ -1039,10 +1057,11 @@ function useFloatingPlayerGeometry({
       shell.style.height = `${targetRect.height}px`;
       shell.style.transform = `translate3d(${targetRect.left - hostRect.left}px, ${targetRect.top - hostRect.top}px, 0)`;
       shell.style.opacity = "1";
-      // Keep the official player interactive. Cross-origin iframe gestures do
-      // not bubble to the carousel, so vertical navigation remains available
-      // across the much larger ambient and information areas around it.
-      shell.style.pointerEvents = "auto";
+      // A cross-origin iframe consumes touch gestures before the snapping feed
+      // can see them. On touch-first devices Slate's controls live below the
+      // player, so let the full trailer frame remain a reliable swipe surface.
+      // Fine pointers keep direct YouTube interaction on desktop.
+      shell.style.pointerEvents = interactivePlayer.matches ? "auto" : "none";
       shell.style.visibility = "visible";
     };
     const schedule = () => {
@@ -1065,6 +1084,7 @@ function useFloatingPlayerGeometry({
     );
     if (navigationTarget) observer.observe(navigationTarget);
     scroller.addEventListener("scroll", schedule, { passive: true });
+    interactivePlayer.addEventListener("change", schedule);
     window.addEventListener("resize", schedule);
     window.visualViewport?.addEventListener("resize", schedule);
     window.visualViewport?.addEventListener("scroll", schedule);
@@ -1073,6 +1093,7 @@ function useFloatingPlayerGeometry({
       if (frame) window.cancelAnimationFrame(frame);
       observer.disconnect();
       scroller.removeEventListener("scroll", schedule);
+      interactivePlayer.removeEventListener("change", schedule);
       window.removeEventListener("resize", schedule);
       window.visualViewport?.removeEventListener("resize", schedule);
       window.visualViewport?.removeEventListener("scroll", schedule);
@@ -2808,15 +2829,18 @@ export function PreviewsFeed({
 
   if (items.length === 0) {
     return (
-      <div className="flex h-full min-h-[28rem] items-center justify-center px-5 text-center">
+      <div
+        data-previews-feed
+        className="flex h-full min-h-[28rem] items-center justify-center bg-[#050608] px-5 text-center text-white"
+      >
         <div className="max-w-sm">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-border bg-card text-muted-foreground">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-white/60">
             <Play className="h-5 w-5" aria-hidden />
           </div>
           <h1 className="mt-5 text-2xl font-semibold tracking-tight">
             No previews are playable right now
           </h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          <p className="mt-2 text-sm leading-6 text-white/55">
             We could not find an embeddable trailer in this batch. The poster rails are still ready to browse.
           </p>
           <Link
@@ -2833,10 +2857,11 @@ export function PreviewsFeed({
   if (usableFrameHeight !== null && usableFrameHeight < 364) {
     return (
       <div
-        className="flex min-h-0 w-full items-center justify-center bg-background px-6 text-center"
+        data-previews-feed
+        className="flex min-h-0 w-full items-center justify-center bg-[#050608] px-6 text-center"
         style={{ height: `${frameHeight}px` }}
       >
-        <p className="text-xs leading-5 text-muted-foreground">
+        <p className="text-xs leading-5 text-white/55">
           Rotate your device to keep previews and their controls visible.
         </p>
       </div>
@@ -2853,7 +2878,7 @@ export function PreviewsFeed({
     <div
       ref={hostRef}
       data-previews-feed
-      className="group/previews relative min-h-0 w-full overflow-hidden bg-background"
+      className="group/previews relative min-h-0 w-full overflow-hidden bg-[#050608]"
       style={frameHeight ? { height: `${frameHeight}px` } : { height: "100%" }}
     >
       {ambientBackdrop ? (

@@ -66,7 +66,7 @@ export function AppScrollArea({ children }: { children: React.ReactNode }) {
         immersiveLibrary
           ? "h-full bg-background p-0 [scrollbar-gutter:stable] md:h-dvh md:overscroll-y-contain"
           : immersivePreviews
-            ? "h-full scroll-pb-0 overflow-hidden overscroll-none bg-background p-0 md:overflow-hidden md:overscroll-none"
+            ? "h-full scroll-pb-0 overflow-hidden overscroll-none bg-[#050608] p-0 md:overflow-hidden md:overscroll-none"
           : "px-4 pt-5 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-6 md:overflow-visible md:overscroll-auto lg:px-10 lg:pt-8",
       )}
     >
@@ -83,9 +83,10 @@ export function AppScrollArea({ children }: { children: React.ReactNode }) {
       <div
         key={pathname}
         className={cn(
-          "min-h-full bg-background",
+          "min-h-full",
+          !immersivePreviews && "bg-background",
           immersiveLibrary && "h-full min-h-0",
-          immersivePreviews && "h-full min-h-0 overflow-hidden",
+          immersivePreviews && "h-full min-h-0 overflow-hidden bg-[#050608]",
           useFallbackEntrance && "app-primary-tab-fallback",
         )}
       >

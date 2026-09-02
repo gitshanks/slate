@@ -739,7 +739,12 @@ body:has([data-public-profile-index]) {
 /* Previews owns a viewport-sized, internally snapping surface. Reserving a
    desktop scrollbar lane would create a black strip beside the ambient frame. */
 html:has([data-previews-feed]) {
+  background-color: #050608;
   scrollbar-gutter: auto;
+}
+
+body:has([data-previews-feed]) {
+  background-color: #050608;
 }
 
 /* Size the official player against both axes of its stage. Width-only sizing
