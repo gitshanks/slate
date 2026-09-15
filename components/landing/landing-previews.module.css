@@ -1,7 +1,6 @@
 .preview {
   position: relative;
   min-width: 0;
-  margin-inline: clamp(32px, 4vw, 64px);
 }
 .frame,
 .placeholder {
@@ -15,16 +14,7 @@
   position: relative;
   height: clamp(420px, 78svh, 760px);
   overflow: clip;
-  border: 1px solid rgb(255 255 255 / 0.12);
-  border-radius: 20px;
   background: #050608;
-}
-.hint {
-  margin: 14px 0 0;
-  color: #99999e;
-  font-size: 12px;
-  line-height: 1.5;
-  text-align: center;
 }
 .placeholder {
   display: flex;

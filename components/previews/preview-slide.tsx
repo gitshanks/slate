@@ -58,7 +58,7 @@ function PreviewPlayer({
       <div
         data-preview-player-index={index}
         className={cn(
-          "preview-player-frame relative z-10 bg-black",
+          "preview-player-frame relative z-10 overflow-hidden rounded-2xl bg-black",
           item.orientationHint === "portrait"
             ? "preview-player-portrait"
             : "preview-player-landscape",

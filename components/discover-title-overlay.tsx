@@ -375,6 +375,9 @@ export function DiscoverTitleOverlayProvider({
           anchorElementId={selection.anchorElementId}
           scrollContainerId={isPublicPreview ? undefined : "app-scroll-area"}
           centerAfterId={isPublicPreview ? undefined : "app-top-nav"}
+          centerWithinSelector={
+            isPublicPreview ? "[data-public-previews]" : undefined
+          }
           onClose={() => setSelection(null)}
         />
       ) : null}

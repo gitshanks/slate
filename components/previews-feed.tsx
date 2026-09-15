@@ -887,33 +887,41 @@ function useFloatingPlayerGeometry({
       const navigationTarget = scroller.querySelector<HTMLElement>(
         `[data-preview-player-index="${navigationIndex}"]`,
       );
+      const hostRect = host.getBoundingClientRect();
+      // The landing section scales as it enters. Convert viewport geometry
+      // back to local coordinates so the shared iframe is scaled only once.
+      const scaleX = hostRect.width / (host.offsetWidth || 1) || 1;
+      const scaleY = hostRect.height / (host.offsetHeight || 1) || 1;
+      const hostHeight = hostRect.height / scaleY;
 
       if (desktopNavigation) {
         if (!navigationTarget) {
           desktopNavigation.style.visibility = "hidden";
         } else {
-          const hostRect = host.getBoundingClientRect();
           const targetRect = navigationTarget.getBoundingClientRect();
+          const navigationBounds = capturePlayerGestures
+            ? scroller.getBoundingClientRect()
+            : hostRect;
           const navigationWidth = desktopNavigation.offsetWidth;
           const navigationHeight = desktopNavigation.offsetHeight;
           const navigationGap = 8;
-          const rightRoom = hostRect.right - targetRect.right;
-          const leftRoom = targetRect.left - hostRect.left;
+          const rightRoom = (navigationBounds.right - targetRect.right) / scaleX;
+          const leftRoom = (targetRect.left - navigationBounds.left) / scaleX;
           let navigationLeft: number | null = null;
 
           if (rightRoom >= navigationWidth + navigationGap) {
             navigationLeft =
-              targetRect.right - hostRect.left + navigationGap;
+              (targetRect.right - hostRect.left) / scaleX + navigationGap;
           } else if (leftRoom >= navigationWidth + navigationGap) {
             navigationLeft =
-              targetRect.left - hostRect.left - navigationWidth - navigationGap;
+              (targetRect.left - hostRect.left) / scaleX - navigationWidth - navigationGap;
           }
 
-          // Embedded previews keep an explicit navigation option on phones,
-          // even when there is no ambient space beside the video.
+          // Compact desktop layouts still need an explicit navigation option
+          // when there is no ambient space beside the video.
           const compactNavigation = capturePlayerGestures && navigationLeft == null;
           if (compactNavigation) {
-            navigationLeft = hostRect.width - navigationWidth - 12;
+            navigationLeft = (navigationBounds.right - hostRect.left) / scaleX - navigationWidth - 12;
           }
 
           if (navigationLeft == null) {
@@ -925,8 +933,8 @@ function useFloatingPlayerGeometry({
             const navigationTop = compactNavigation ? 12 : Math.max(
               12,
               Math.min(
-                hostRect.height - navigationHeight - 12,
-                hostRect.height * 0.4 - navigationHeight / 2,
+                hostHeight - navigationHeight - 12,
+                hostHeight * 0.4 - navigationHeight / 2,
               ),
             );
             desktopNavigation.style.transform = `translate3d(${navigationLeft}px, ${navigationTop}px, 0)`;
@@ -941,11 +949,10 @@ function useFloatingPlayerGeometry({
         shell.style.visibility = "hidden";
         return;
       }
-      const hostRect = host.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
-      shell.style.width = `${targetRect.width}px`;
-      shell.style.height = `${targetRect.height}px`;
-      shell.style.transform = `translate3d(${targetRect.left - hostRect.left}px, ${targetRect.top - hostRect.top}px, 0)`;
+      shell.style.width = `${targetRect.width / scaleX}px`;
+      shell.style.height = `${targetRect.height / scaleY}px`;
+      shell.style.transform = `translate3d(${(targetRect.left - hostRect.left) / scaleX}px, ${(targetRect.top - hostRect.top) / scaleY}px, 0)`;
       shell.style.opacity = "1";
       // A cross-origin iframe consumes touch gestures before the snapping feed
       // can see them. On touch-first devices Slate's controls live below the
@@ -2336,12 +2343,13 @@ export function PreviewsFeed({
         }}
         className={cn(
           "relative z-10 h-full min-h-0 touch-pan-y snap-y snap-mandatory overflow-x-hidden overflow-y-auto overscroll-y-contain scrollbar-hide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+          isPublicPreview && "mx-[clamp(32px,4vw,64px)]",
         )}
       >
         <p id="preview-feed-instructions" className="sr-only">
           Swipe or scroll up and down. On a keyboard, use the Up and Down arrow
-          keys, Page Up and Page Down, or J and K. Previous and next preview
-          buttons are also available.
+          keys, Page Up and Page Down, or J and K.
+          {!isPublicPreview && " Previous and next preview buttons are also available."}
         </p>
         <p className="sr-only" aria-live="polite" aria-atomic="true">
           Now showing {titleFor(items[activeIndex])}
@@ -2450,7 +2458,7 @@ export function PreviewsFeed({
         ref={desktopNavigationRef}
         className={cn(
           "pointer-events-none invisible absolute left-0 top-0 z-40 w-12 flex-col items-stretch gap-2 transition-opacity duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] [backface-visibility:hidden]",
-          isPublicPreview ? "flex" : "preview-desktop-navigation",
+          isPublicPreview ? "hidden md:flex" : "preview-desktop-navigation",
           isPublicPreview || desktopScrollHintVisible
             ? "opacity-100"
             : "opacity-0 group-hover/previews:opacity-70 focus-within:opacity-100",
@@ -2497,7 +2505,7 @@ export function PreviewsFeed({
       {playbackItem ? (
         <div
           ref={playerShellRef}
-          className="pointer-events-none invisible absolute left-0 top-0 z-20 bg-black opacity-0 will-change-transform"
+          className="pointer-events-none invisible absolute left-0 top-0 z-20 overflow-hidden rounded-2xl bg-black opacity-0 will-change-transform"
         >
           <YouTubePreview
             ref={youtubePlayerRef}

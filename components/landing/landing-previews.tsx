@@ -124,7 +124,6 @@ export function LandingPreviews({ saveHref }: { saveHref: string }) {
           )}
         </div>
       )}
-      {batch && <p className={styles.hint}>Swipe up or down, or use the arrows.</p>}
     </div>
   );
 }

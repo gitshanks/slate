@@ -1562,6 +1562,7 @@ export function CollectionTitleDetailOverlay({
   renderActions,
   scrollContainerId,
   centerAfterId,
+  centerWithinSelector,
 }: {
   title: TitleRow;
   detailSource: TitleDetailSource;
@@ -1575,6 +1576,8 @@ export function CollectionTitleDetailOverlay({
   scrollContainerId?: string;
   /** Match Space's usable canvas below the collection controls. */
   centerAfterId?: string;
+  /** Center over an embedded preview without moving its source or the page. */
+  centerWithinSelector?: string;
 }) {
   const reducedMotion = useReducedMotion() ?? false;
   const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(
@@ -1588,6 +1591,8 @@ export function CollectionTitleDetailOverlay({
   const [position, setPosition] = React.useState<
     | {
         placement: "center";
+        left?: number;
+        width?: number;
         top: number;
         maxContentHeight: number;
         hasAppDock: boolean;
@@ -1640,6 +1645,47 @@ export function CollectionTitleDetailOverlay({
     const viewportLeft = visualViewport?.offsetLeft ?? 0;
     const viewportRight =
       viewportLeft + (visualViewport?.width ?? window.innerWidth);
+    const centerContainer = centerWithinSelector
+      ? document.querySelector(centerWithinSelector)
+      : null;
+    if (centerContainer) {
+      // Read viewport coordinates because this inspector is portalled to the
+      // body while the landing section can still be scaling into place.
+      const rect = centerContainer.getBoundingClientRect();
+      const viewportTop = visualViewport?.offsetTop ?? 0;
+      const viewportHeight = visualViewport?.height ?? window.innerHeight;
+      const inset = TITLE_SLAB_FRAME_INSET;
+      const left = viewportLeft + safeArea.left + inset;
+      const right = viewportRight - safeArea.right - inset;
+      const top = viewportTop + inset;
+      const bottom = viewportTop + viewportHeight - safeArea.bottom - inset;
+      const width = Math.max(1, Math.min(slabWidth, right - left));
+      const maxContentHeight = Math.max(
+        1,
+        Math.min(
+          viewportHeight * 0.69,
+          TITLE_SLAB_MAX_HEIGHT,
+          rect.height - inset * 2 - 2,
+          bottom - top - 2,
+        ),
+      );
+      const halfHeight = (maxContentHeight + 2) / 2;
+      setPosition({
+        placement: "center",
+        left: Math.min(
+          right - width / 2,
+          Math.max(left + width / 2, rect.left + rect.width / 2),
+        ),
+        top: Math.min(
+          bottom - halfHeight,
+          Math.max(top + halfHeight, rect.top + rect.height / 2),
+        ),
+        width,
+        maxContentHeight,
+        hasAppDock: false,
+      });
+      return;
+    }
     const topAnchor = centerAfterId
       ? document.getElementById(centerAfterId)
       : null;
@@ -1729,6 +1775,7 @@ export function CollectionTitleDetailOverlay({
     anchorElementId,
     anchorTitleId,
     centerAfterId,
+    centerWithinSelector,
     resolveAnchorElement,
     resolveScrollFrame,
   ]);
@@ -1741,13 +1788,31 @@ export function CollectionTitleDetailOverlay({
     scrollTarget?.addEventListener("scroll", updatePosition, { passive: true });
     visualViewport?.addEventListener("resize", updatePosition);
     visualViewport?.addEventListener("scroll", updatePosition);
+    let trackingFrame: number | null = null;
+    if (centerWithinSelector) {
+      const centerContainer = document.querySelector(centerWithinSelector);
+      let previousBounds = "";
+      const trackCenterContainer = () => {
+        const rect = centerContainer?.getBoundingClientRect();
+        if (rect) {
+          const bounds = `${rect.left}:${rect.top}:${rect.width}:${rect.height}`;
+          if (bounds !== previousBounds) {
+            previousBounds = bounds;
+            updatePosition();
+          }
+        }
+        trackingFrame = window.requestAnimationFrame(trackCenterContainer);
+      };
+      trackingFrame = window.requestAnimationFrame(trackCenterContainer);
+    }
     return () => {
+      if (trackingFrame !== null) window.cancelAnimationFrame(trackingFrame);
       window.removeEventListener("resize", updatePosition);
       scrollTarget?.removeEventListener("scroll", updatePosition);
       visualViewport?.removeEventListener("resize", updatePosition);
       visualViewport?.removeEventListener("scroll", updatePosition);
     };
-  }, [resolveScrollFrame, updatePosition]);
+  }, [centerWithinSelector, resolveScrollFrame, updatePosition]);
 
   React.useLayoutEffect(() => {
     let cancelled = false;
@@ -1774,6 +1839,12 @@ export function CollectionTitleDetailOverlay({
       }
 
       updatePosition();
+      if (centerWithinSelector) {
+        // The info control sits at the foot of the video. Framing that control
+        // like a poster would shift the whole page away from the video center.
+        finish();
+        return;
+      }
       const scrollContainer = resolveScrollFrame();
       const containerRect = scrollContainer?.getBoundingClientRect();
       const topAnchorRect = centerAfterId
@@ -1830,6 +1901,7 @@ export function CollectionTitleDetailOverlay({
     anchorTitleId,
     anchorElementId,
     centerAfterId,
+    centerWithinSelector,
     reducedMotion,
     resolveAnchorElement,
     resolveScrollFrame,
@@ -1937,7 +2009,7 @@ export function CollectionTitleDetailOverlay({
           )}
           style={
             position.placement === "center"
-              ? { top: position.top }
+              ? { left: position.left, top: position.top, width: position.width }
               : {
                   left: position.left,
                   top: position.top,

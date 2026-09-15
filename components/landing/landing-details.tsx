@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Bookmark, LockKeyhole, Plus, Search } from "lucide-react";
+import { Bookmark, Plus } from "lucide-react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { useRef } from "react";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { LandingPreviews } from "./landing-previews";
 import styles from "./index-landing.module.css";
@@ -38,68 +40,42 @@ const FAQS = [
 ];
 
 export function LandingDetails({ createHref }: { createHref: string }) {
+  const featuresRef = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: featuresRef,
+    offset: ["start end", "start 45%"],
+  });
+  // Measure the stable section and settle before the player becomes active.
+  // Native scroll drives the entrance directly, matching the splash pullback.
+  const transform = useTransform(
+    scrollYProgress,
+    [0, 1],
+    ["scale(0.94)", "scale(1)"],
+  );
+
   return (
     <div className={styles.details}>
       <section
         id="features"
+        ref={featuresRef}
         className={styles.features}
         aria-labelledby="features-title"
         tabIndex={-1}
       >
-        <div className={styles.sectionIntro}>
-          <h2 id="features-title">
-            Good recommendations.
-            <br />
-            All in one place.
-          </h2>
-        </div>
-
-        <div className={styles.featureLayout}>
-          <LandingPreviews saveHref={createHref} />
-          <div id="slate-features" tabIndex={-1} className={styles.featureList}>
-            <article className={styles.feature}>
-              <span className={styles.featureIcon}>
-                <Search aria-hidden="true" />
-              </span>
-              <div>
-                <h3>Save it before you forget.</h3>
-                <p>
-                  Find a film or show and add it to your watchlist. The next
-                  great recommendation has a home.
-                </p>
-              </div>
-            </article>
-            <article className={styles.feature}>
-              <span className={styles.featureIcon}>
-                <Bookmark aria-hidden="true" />
-              </span>
-              <div>
-                <h3>A place for every phase.</h3>
-                <p>
-                  Watchlist, Watching, Watched. Keep your episode, collect your
-                  favorites, and remember what you loved.
-                </p>
-              </div>
-            </article>
-            <article className={styles.feature}>
-              <span className={styles.featureIcon}>
-                <LockKeyhole aria-hidden="true" />
-              </span>
-              <div>
-                <h3>
-                  {SLATE_HOSTED
-                    ? "Your taste. Your choice."
-                    : "Make it your own."}
-                </h3>
-                <p>
-                  {SLATE_HOSTED
-                    ? "Private from the start. Share a read-only view of your shelves when you want to let someone in."
-                    : "Choose a theme and accent that feel like you. Slate is open source, with the option to host your own copy."}
-                </p>
-              </div>
-            </article>
+        <motion.div
+          className={styles.featuresSurface}
+          style={reduceMotion ? undefined : { transform }}
+        >
+          <div className={styles.sectionIntro}>
+            <h2 id="features-title">
+              A preview of
+              <br />
+              what’s next.
+            </h2>
           </div>
-        </div>
+          <LandingPreviews saveHref={createHref} />
+        </motion.div>
       </section>
 
       <section
