@@ -149,7 +149,6 @@ export function IndexLanding({
               height={20}
             />
           </Link>
-          <span>A little space for your next great watch.</span>
           <a
             href="https://github.com/gitshanks/slate"
             target="_blank"

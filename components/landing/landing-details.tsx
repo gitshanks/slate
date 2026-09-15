@@ -1,77 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import {
-  Bookmark,
-  Check,
-  Eye,
-  Heart,
-  LockKeyhole,
-  Plus,
-  Search,
-} from "lucide-react";
-import { useState } from "react";
+import { Bookmark, LockKeyhole, Plus, Search } from "lucide-react";
 import { SLATE_HOSTED } from "@/lib/public-mode";
-import { posterUrl } from "@/lib/tmdb-image";
+import { LandingPreviews } from "./landing-previews";
 import styles from "./index-landing.module.css";
-
-const SHELVES = {
-  Watchlist: [
-    {
-      title: "Past Lives",
-      detail: "2023 · Film",
-      path: "/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg",
-    },
-    {
-      title: "Dune: Part Two",
-      detail: "2024 · Film",
-      path: "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
-    },
-    {
-      title: "Perfect Days",
-      detail: "2023 · Film",
-      path: "/mjEk5Wwx6TYVqw29zSaUHclMIgp.jpg",
-    },
-  ],
-  Watching: [
-    {
-      title: "Severance",
-      detail: "S1 · E4",
-      path: "/pPHpeI2X1qEd1CS1SeyrdhZ4qnT.jpg",
-    },
-    {
-      title: "Succession",
-      detail: "S2 · E5",
-      path: "/z0XiwdrCQ9yVIr4O0pxzaAYRxdW.jpg",
-    },
-    {
-      title: "The Bear",
-      detail: "S1 · E3",
-      path: "/eKfVzzEazSIjJMrw9ADa2x8ksLz.jpg",
-    },
-  ],
-  Watched: [
-    {
-      title: "Parasite",
-      detail: "2019 · Film",
-      path: "/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
-    },
-    {
-      title: "The Holdovers",
-      detail: "2023 · Film",
-      path: "/VHSzNBTwxV8vh7wylo7O9CLdac.jpg",
-    },
-    {
-      title: "La La Land",
-      detail: "2016 · Film",
-      path: "/uDO8zWDhfWwoFdKS4fzkUJt0Rf0.jpg",
-    },
-  ],
-};
-type Shelf = keyof typeof SHELVES;
-const SHELF_NAMES = Object.keys(SHELVES) as Shelf[];
-const SHELF_ICONS = { Watchlist: Bookmark, Watching: Eye, Watched: Check };
 
 const FAQS = [
   {
@@ -127,7 +60,7 @@ export function LandingDetails({ createHref }: { createHref: string }) {
         </div>
 
         <div className={styles.featureLayout}>
-          <LibraryPreview />
+          <LandingPreviews saveHref={createHref} />
           <div className={styles.featureList}>
             <article className={styles.feature}>
               <span className={styles.featureIcon}>
@@ -174,14 +107,11 @@ export function LandingDetails({ createHref }: { createHref: string }) {
         </div>
       </section>
 
-      <section id="faq" className={styles.faq} aria-labelledby="faq-title">
-        <div className={styles.faqIntro}>
-          <h2 id="faq-title">
-            A few things
-            <br /> you might wonder.
-          </h2>
-          <p>Small details, before you settle in.</p>
-        </div>
+      <section
+        id="faq"
+        className={styles.faq}
+        aria-label="Frequently asked questions"
+      >
         <div className={styles.faqList}>
           {FAQS.map(({ question, answer }) => (
             <details key={question} className={styles.faqItem}>
@@ -215,85 +145,5 @@ export function LandingDetails({ createHref }: { createHref: string }) {
         </span>
       </section>
     </div>
-  );
-}
-
-function LibraryPreview() {
-  const [shelf, setShelf] = useState<Shelf>("Watchlist");
-  return (
-    <figure
-      className={styles.libraryPreview}
-      aria-label="Example Slate library"
-    >
-      <div className={styles.libraryWindow}>
-        <div className={styles.libraryHeader}>
-          <span>Your library</span>
-          <span className={styles.privateBadge}>
-            <LockKeyhole aria-hidden="true" />{" "}
-            {SLATE_HOSTED ? "Private" : "Personal"}
-          </span>
-        </div>
-        <div
-          className={styles.shelfPicker}
-          role="group"
-          aria-label="Preview a shelf"
-        >
-          {SHELF_NAMES.map((name) => {
-            const Icon = SHELF_ICONS[name];
-            return (
-              <button
-                key={name}
-                type="button"
-                aria-pressed={shelf === name}
-                onClick={() => setShelf(name)}
-              >
-                <Icon aria-hidden="true" />
-                {name}
-              </button>
-            );
-          })}
-        </div>
-        <div
-          className={styles.previewPosters}
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          {SHELVES[shelf].map((title) => (
-            <div className={styles.previewTitle} key={title.title}>
-              <div className={styles.previewPoster}>
-                <Image
-                  src={posterUrl(title.path, "w500")!}
-                  alt=""
-                  width={200}
-                  height={300}
-                  sizes="(max-width: 640px) 28vw, 170px"
-                />
-                {shelf === "Watched" && (
-                  <span className={styles.lovedBadge}>
-                    <Heart aria-hidden="true" />
-                    <span className={styles.srOnly}>Loved</span>
-                  </span>
-                )}
-              </div>
-              <h3>{title.title}</h3>
-              <p className={shelf === "Watching" ? styles.episode : undefined}>
-                {title.detail}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className={styles.libraryStatus}>
-          <span>
-            {shelf === "Watchlist"
-              ? "Good things ahead."
-              : shelf === "Watching"
-                ? "Right where you left off."
-                : "Worth remembering."}
-          </span>
-          <span>3 titles</span>
-        </div>
-      </div>
-      <figcaption>A peek at your slate. Pick a shelf to explore.</figcaption>
-    </figure>
   );
 }

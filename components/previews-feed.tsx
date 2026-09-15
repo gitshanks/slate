@@ -3,24 +3,14 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Script from "next/script";
 import {
   ChevronDown,
   ChevronUp,
-  ExternalLink,
-  Info,
-  LoaderCircle,
   Mouse,
-  Pause,
   Play,
-  Plus,
-  Volume2,
-  VolumeX,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { useDiscoverTitleOverlay } from "@/components/discover-title-overlay-context";
-import { StatusPill } from "@/components/status-pill";
 import {
   addTitle,
   loadMorePreviews,
@@ -35,9 +25,11 @@ import {
   type PreviewPreferenceWeights,
 } from "@/lib/preview-feedback-types";
 import { backdropUrl, posterUrl } from "@/lib/tmdb-image";
-import type { TmdbPreviewItem, TmdbPreviewSource } from "@/lib/tmdb";
-import type { TitleStatus } from "@/lib/types";
+import type { TmdbPreviewItem } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
+import { PreviewSlide, type SavedRecord } from "@/components/previews/preview-slide";
+import { YouTubePreview, type YouTubePlayerHandle } from "@/components/previews/youtube-preview";
+import { titleFor } from "@/lib/preview-display";
 
 interface PreviewsFeedProps {
   items: TmdbPreviewItem[];
@@ -50,81 +42,6 @@ interface PreviewsFeedProps {
   sessionSeed?: string;
   initialPreferences?: PreviewPreferenceWeights;
 }
-
-interface SavedRecord {
-  id: string;
-  status: TitleStatus;
-}
-
-interface YouTubePlayerInstance {
-  cueVideoById(videoId: string, startSeconds?: number): void;
-  destroy(): void;
-  getIframe(): HTMLIFrameElement;
-  getVideoData(): { video_id?: string };
-  loadVideoById(videoId: string, startSeconds?: number): void;
-  mute(): void;
-  pauseVideo(): void;
-  playVideo(): void;
-  seekTo(seconds: number, allowSeekAhead: boolean): void;
-  unMute(): void;
-}
-
-interface YouTubePlayerEvent {
-  target: YouTubePlayerInstance;
-}
-
-interface YouTubePlayerStateEvent extends YouTubePlayerEvent {
-  data: number;
-}
-
-interface YouTubePlayerOptions {
-  events: {
-    onAutoplayBlocked?: () => void;
-    onError?: () => void;
-    onReady: (event: YouTubePlayerEvent) => void;
-    onStateChange?: (event: YouTubePlayerStateEvent) => void;
-  };
-  host?: string;
-  height?: number | string;
-  playerVars: Record<string, number | string>;
-  videoId: string;
-  width?: number | string;
-}
-
-interface YouTubeApi {
-  Player: new (
-    element: HTMLElement,
-    options: YouTubePlayerOptions,
-  ) => YouTubePlayerInstance;
-}
-
-interface YouTubePlayerHandle {
-  mute(): void;
-  pause(): void;
-  play(): void;
-  unmuteAndPlay(): void;
-}
-
-const YOUTUBE_PLAYER_STATE_ENDED = 0;
-
-declare global {
-  interface Window {
-    YT?: YouTubeApi;
-    onYouTubeIframeAPIReady?: () => void;
-  }
-}
-
-const SOURCE_LABELS: Record<TmdbPreviewSource, string> = {
-  library: "Based on your library",
-  trending: "Trending this week",
-  now_playing: "Now playing",
-};
-
-const SOURCE_TONES: Record<TmdbPreviewSource, string> = {
-  library: "text-emerald-200",
-  trending: "text-amber-200",
-  now_playing: "text-sky-200",
-};
 
 const PREVIEW_LOAD_AHEAD = 12;
 const PREVIEW_MAX_RENDERED = 48;
@@ -460,44 +377,6 @@ function rememberArchiveItems(
 
 // TMDB's stable genre IDs. Kept client-local so the feed never imports the
 // server-only AI search module simply to render one concise genre label.
-const MOVIE_GENRE_NAMES = new Map<number, string>([
-  [28, "Action"],
-  [12, "Adventure"],
-  [16, "Animation"],
-  [35, "Comedy"],
-  [80, "Crime"],
-  [99, "Documentary"],
-  [18, "Drama"],
-  [10751, "Family"],
-  [14, "Fantasy"],
-  [36, "History"],
-  [27, "Horror"],
-  [10402, "Music"],
-  [9648, "Mystery"],
-  [10749, "Romance"],
-  [878, "Science Fiction"],
-  [53, "Thriller"],
-  [10752, "War"],
-  [37, "Western"],
-]);
-const TV_GENRE_NAMES = new Map<number, string>([
-  [10759, "Action & Adventure"],
-  [16, "Animation"],
-  [35, "Comedy"],
-  [80, "Crime"],
-  [99, "Documentary"],
-  [18, "Drama"],
-  [10751, "Family"],
-  [10762, "Kids"],
-  [9648, "Mystery"],
-  [10764, "Reality"],
-  [10765, "Sci-Fi & Fantasy"],
-  [10766, "Soap"],
-  [10767, "Talk"],
-  [10768, "War & Politics"],
-  [37, "Western"],
-]);
-
 function itemKey(item: Pick<TmdbPreviewItem, "id" | "media_type">) {
   return `${item.media_type}:${item.id}`;
 }
@@ -693,24 +572,6 @@ function writePreviewSession(snapshot: PreviewFeedSessionSnapshot) {
     // The bounded in-memory copy remains available if storage is unavailable
     // or the browser has an unusually small per-tab quota.
   }
-}
-
-function titleFor(item: TmdbPreviewItem) {
-  return item.title || item.name || "Untitled";
-}
-
-function yearFor(item: TmdbPreviewItem) {
-  const date = item.release_date || item.first_air_date || "";
-  return date.slice(0, 4);
-}
-
-function primaryGenre(item: TmdbPreviewItem) {
-  const genreId = item.genre_ids?.[0];
-  if (!genreId) return null;
-  const table = item.media_type === "movie" ? MOVIE_GENRE_NAMES : TV_GENRE_NAMES;
-  const name = table.get(genreId);
-  if (!name) return null;
-  return name;
 }
 
 function exposurePenalty(item: TmdbPreviewItem, exposure?: PreviewExposure) {
@@ -1108,535 +969,6 @@ function useFloatingPlayerGeometry({
     scrollerRef,
     visible,
   ]);
-}
-
-const YouTubePreview = React.forwardRef<
-  YouTubePlayerHandle,
-  {
-    videoKey: string;
-    title: string;
-    soundEnabled: boolean;
-    shouldPlay: boolean;
-    playerOrigin?: string;
-    onAutoplayBlocked: () => void;
-    onPlayerReady: () => void;
-    onPlaybackError: (videoKey: string) => void;
-    onVideoVisible: (videoKey: string) => void;
-  }
->(function YouTubePreview(
-  {
-    videoKey,
-    title,
-    soundEnabled,
-    shouldPlay,
-    playerOrigin,
-    onAutoplayBlocked,
-    onPlayerReady,
-    onPlaybackError,
-    onVideoVisible,
-  },
-  forwardedRef,
-) {
-  const mountRef = React.useRef<HTMLDivElement>(null);
-  const playerRef = React.useRef<YouTubePlayerInstance | null>(null);
-  const readyRef = React.useRef(false);
-  const loadedVideoRef = React.useRef(videoKey);
-  const videoKeyRef = React.useRef(videoKey);
-  const soundEnabledRef = React.useRef(soundEnabled);
-  const shouldPlayRef = React.useRef(shouldPlay);
-  const onAutoplayBlockedRef = React.useRef(onAutoplayBlocked);
-  const onPlaybackErrorRef = React.useRef(onPlaybackError);
-  const onPlayerReadyRef = React.useRef(onPlayerReady);
-  const onVideoVisibleRef = React.useRef(onVideoVisible);
-  const titleRef = React.useRef(title);
-  const [apiReady, setApiReady] = React.useState(() =>
-    Boolean(typeof window !== "undefined" && window.YT?.Player),
-  );
-
-  const syncPlayer = React.useCallback(() => {
-    const player = playerRef.current;
-    if (!player || !readyRef.current) return;
-
-    if (soundEnabledRef.current) player.unMute();
-    else player.mute();
-
-    if (loadedVideoRef.current !== videoKeyRef.current) {
-      // Cue first without playback. The parent reveals this exact keyed frame
-      // after CUED, then a subsequent visible commit is allowed to play it.
-      player.cueVideoById(videoKeyRef.current, 0);
-      loadedVideoRef.current = videoKeyRef.current;
-      return;
-    } else if (shouldPlayRef.current) {
-      player.playVideo();
-    } else {
-      player.pauseVideo();
-    }
-  }, []);
-
-  React.useImperativeHandle(
-    forwardedRef,
-    () => ({
-      mute() {
-        if (readyRef.current) playerRef.current?.mute();
-      },
-      pause() {
-        // Keep the intent ref in sync immediately so an ENDED event racing the
-        // user's pause (or pagehide) cannot start another loop iteration.
-        shouldPlayRef.current = false;
-        if (readyRef.current) playerRef.current?.pauseVideo();
-      },
-      play() {
-        shouldPlayRef.current = true;
-        if (readyRef.current) playerRef.current?.playVideo();
-      },
-      unmuteAndPlay() {
-        // These calls intentionally happen inside the user's click stack so
-        // WebKit can grant audio to this persistent media session.
-        shouldPlayRef.current = true;
-        if (readyRef.current) {
-          playerRef.current?.unMute();
-          playerRef.current?.playVideo();
-        }
-      },
-    }),
-    [],
-  );
-
-  React.useLayoutEffect(() => {
-    videoKeyRef.current = videoKey;
-    soundEnabledRef.current = soundEnabled;
-    shouldPlayRef.current = shouldPlay;
-    onAutoplayBlockedRef.current = onAutoplayBlocked;
-    onPlayerReadyRef.current = onPlayerReady;
-    onPlaybackErrorRef.current = onPlaybackError;
-    onVideoVisibleRef.current = onVideoVisible;
-    titleRef.current = title;
-    syncPlayer();
-    const iframe = mountRef.current?.querySelector("iframe");
-    iframe?.setAttribute("title", title);
-  }, [
-    onAutoplayBlocked,
-    onPlayerReady,
-    onPlaybackError,
-    onVideoVisible,
-    soundEnabled,
-    shouldPlay,
-    syncPlayer,
-    title,
-    videoKey,
-  ]);
-
-  React.useEffect(() => {
-    if (window.YT?.Player) {
-      setApiReady(true);
-      return;
-    }
-    const previousReady = window.onYouTubeIframeAPIReady;
-    const handleReady = () => {
-      previousReady?.();
-      setApiReady(Boolean(window.YT?.Player));
-    };
-    window.onYouTubeIframeAPIReady = handleReady;
-    return () => {
-      if (window.onYouTubeIframeAPIReady === handleReady) {
-        window.onYouTubeIframeAPIReady = previousReady;
-      }
-    };
-  }, []);
-
-  React.useEffect(() => {
-    const host = mountRef.current;
-    const api = window.YT;
-    if (!host || !apiReady || !api?.Player) return;
-    const playerMount = document.createElement("div");
-    playerMount.style.height = "100%";
-    playerMount.style.width = "100%";
-    host.replaceChildren(playerMount);
-
-    const playerVars: Record<string, number | string> = {
-      autoplay: 0,
-      cc_load_policy: 1,
-      controls: 0,
-      disablekb: 1,
-      fs: 0,
-      iv_load_policy: 3,
-      playsinline: 1,
-      rel: 0,
-    };
-    if (playerOrigin) playerVars.origin = playerOrigin;
-
-    playerRef.current = new api.Player(playerMount, {
-      videoId: loadedVideoRef.current,
-      host: "https://www.youtube-nocookie.com",
-      height: "100%",
-      width: "100%",
-      playerVars,
-      events: {
-        onReady(event) {
-          playerRef.current = event.target;
-          readyRef.current = true;
-          syncPlayer();
-          onPlayerReadyRef.current();
-          onVideoVisibleRef.current(loadedVideoRef.current);
-          const iframe = event.target.getIframe();
-          iframe.setAttribute("title", titleRef.current);
-          iframe.setAttribute("tabindex", "-1");
-        },
-        onStateChange(event) {
-          if (event.data === YOUTUBE_PLAYER_STATE_ENDED) {
-            const endedVideoKey =
-              event.target.getVideoData().video_id ?? loadedVideoRef.current;
-            // The same iframe is reused across the feed, so an ENDED event
-            // from the outgoing trailer must never restart beneath the next
-            // slide. Menus, overlays, page visibility, and explicit Pause all
-            // flow through shouldPlayRef and stop the loop as well.
-            if (
-              shouldPlayRef.current &&
-              endedVideoKey === videoKeyRef.current &&
-              endedVideoKey === loadedVideoRef.current
-            ) {
-              event.target.seekTo(0, true);
-              event.target.playVideo();
-            }
-            return;
-          }
-          // 1 = playing, 3 = buffering. At either point the frame belongs to
-          // the latest key and can replace its poster without flashing back.
-          if (event.data === 1 || event.data === 3 || event.data === 5) {
-            const visibleKey =
-              event.target.getVideoData().video_id ?? loadedVideoRef.current;
-            onVideoVisibleRef.current(visibleKey);
-          }
-        },
-        onAutoplayBlocked() {
-          onAutoplayBlockedRef.current();
-        },
-        onError() {
-          onPlaybackErrorRef.current(loadedVideoRef.current);
-        },
-      },
-    });
-
-    return () => {
-      const player = playerRef.current;
-      readyRef.current = false;
-      if (typeof player?.destroy === "function") player.destroy();
-      playerRef.current = null;
-      host.replaceChildren();
-    };
-  }, [apiReady, playerOrigin, syncPlayer]);
-
-  return (
-    <>
-      <Script
-        id="slate-youtube-iframe-api"
-        src="https://www.youtube.com/iframe_api"
-        strategy="afterInteractive"
-        onReady={() => setApiReady(Boolean(window.YT?.Player))}
-        onError={() => onAutoplayBlockedRef.current()}
-      />
-      <div ref={mountRef} className="h-full min-h-[200px] w-full bg-black" />
-    </>
-  );
-});
-
-function PreviewPlayer({
-  item,
-  index,
-  playing,
-  failed,
-  priority,
-  onPlay,
-}: {
-  item: TmdbPreviewItem;
-  index: number;
-  playing: boolean;
-  failed: boolean;
-  priority: boolean;
-  onPlay: () => void;
-}) {
-  const name = titleFor(item);
-
-  return (
-    <div
-      className="relative z-10 isolate flex h-full min-h-[12.5rem] w-full items-center justify-center overflow-hidden bg-transparent [container-type:size]"
-    >
-      <div
-        data-preview-player-index={index}
-        className={cn(
-          "preview-player-frame relative z-10 bg-black",
-          item.orientationHint === "portrait"
-            ? "preview-player-portrait"
-            : "preview-player-landscape",
-        )}
-      >
-        {!playing && failed ? (
-          <a
-            href={`https://www.youtube.com/watch?v=${encodeURIComponent(item.videoKey)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="group relative flex h-full min-h-[200px] w-full items-center justify-center overflow-hidden bg-black/35 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
-            aria-label={`Watch ${name} trailer on YouTube`}
-          >
-            {posterUrl(item.poster_path) ? (
-              <Image
-                src={posterUrl(item.poster_path)!}
-                alt=""
-                fill
-                sizes="(max-width: 767px) 80vw, 28rem"
-                className="object-cover opacity-50"
-                priority={priority}
-              />
-            ) : null}
-            <span className="relative inline-flex h-11 items-center gap-2 rounded-full border border-white/20 bg-black/70 px-4 text-xs font-semibold text-white shadow-xl">
-              <ExternalLink className="h-4 w-4" aria-hidden />
-              Watch on YouTube
-            </span>
-          </a>
-        ) : !playing ? (
-          <button
-            type="button"
-            onClick={onPlay}
-            className="group relative flex h-full min-h-[200px] w-full items-center justify-center overflow-hidden bg-black/35 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
-            aria-label={`Play ${name} trailer`}
-          >
-            {posterUrl(item.poster_path) ? (
-              <Image
-                src={posterUrl(item.poster_path)!}
-                alt=""
-                fill
-                sizes="(max-width: 767px) 80vw, 28rem"
-                className="object-cover opacity-55 transition-opacity duration-200 group-hover:opacity-65 motion-reduce:transition-none"
-                priority={priority}
-              />
-            ) : null}
-            <span className="relative grid h-14 w-14 place-items-center rounded-full border border-white/20 bg-black/60 text-white shadow-xl">
-              <Play className="ml-0.5 h-6 w-6 fill-current" aria-hidden />
-            </span>
-          </button>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function SaveControl({
-  item,
-  record,
-  ensureSaved,
-  onStatusChange,
-  onMenuOpenChange,
-}: {
-  item: TmdbPreviewItem;
-  record: SavedRecord | undefined;
-  ensureSaved: () => Promise<string>;
-  onStatusChange: (status: TitleStatus) => void;
-  onMenuOpenChange: (open: boolean) => void;
-}) {
-  const [pending, startTransition] = React.useTransition();
-
-  if (record) {
-    return (
-      <StatusPill
-        titleId={record.id}
-        status={record.status}
-        onStatusChange={onStatusChange}
-        onOpenChange={onMenuOpenChange}
-        triggerClassName="h-11 shrink-0 px-4 font-semibold"
-      />
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      disabled={pending}
-      onClick={() => {
-        startTransition(async () => {
-          try {
-            await ensureSaved();
-            toast.success(`${titleFor(item)} is in your library`);
-          } catch (error) {
-            toast.error(
-              error instanceof Error ? error.message : "Could not add title",
-            );
-          }
-        });
-      }}
-      className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-[0_12px_32px_-18px_hsl(var(--primary))] transition-[filter,transform] duration-150 hover:brightness-105 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-60 max-[359px]:w-11 max-[359px]:px-0 motion-reduce:active:scale-100"
-    >
-      {pending ? (
-        <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
-      ) : (
-        <Plus className="h-4 w-4" aria-hidden />
-      )}
-      <span className="max-[359px]:sr-only">
-        {pending ? "Adding…" : "Up Next"}
-      </span>
-    </button>
-  );
-}
-
-function PreviewSlide({
-  item,
-  index,
-  selected,
-  playerVisible,
-  playbackFailed,
-  playerReady,
-  playbackEnabled,
-  soundEnabled,
-  lists,
-  savedRecord,
-  ensureSaved,
-  onStatusChange,
-  onEnablePlayback,
-  onTogglePlayback,
-  onToggleSound,
-  onDetail,
-  onListIntent,
-  onMenuOpenChange,
-}: {
-  item: TmdbPreviewItem;
-  index: number;
-  selected: boolean;
-  playerVisible: boolean;
-  playbackFailed: boolean;
-  playerReady: boolean;
-  playbackEnabled: boolean;
-  soundEnabled: boolean;
-  lists: { id: string; name: string }[];
-  savedRecord: SavedRecord | undefined;
-  ensureSaved: () => Promise<string>;
-  onStatusChange: (status: TitleStatus) => void;
-  onEnablePlayback: () => void;
-  onTogglePlayback: () => void;
-  onToggleSound: () => void;
-  onDetail: () => void;
-  onListIntent: () => void;
-  onMenuOpenChange: (open: boolean) => void;
-}) {
-  const overlay = useDiscoverTitleOverlay();
-  const name = titleFor(item);
-  const year = yearFor(item);
-  const genre = primaryGenre(item);
-  const mediaLabel = item.media_type === "movie" ? "Film" : "Series";
-  const anchorId = `preview-title-${item.media_type}-${item.id}`;
-  const isSaved = Boolean(savedRecord);
-  return (
-    <article
-      id={`preview-${index + 1}`}
-      data-preview-index={index}
-      role="group"
-      aria-label={`${name} trailer`}
-      aria-roledescription="slide"
-      inert={selected ? undefined : true}
-      className="preview-feed-slide relative isolate grid h-full min-h-full snap-start snap-always grid-rows-[minmax(12.5rem,1fr)_auto] gap-0 overflow-hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[var(--preview-dock-clearance,0.5rem)]"
-    >
-      <PreviewPlayer
-        item={item}
-        index={index}
-        playing={playerVisible}
-        failed={playbackFailed}
-        priority={index < 2}
-        onPlay={onEnablePlayback}
-      />
-
-      <div className="preview-feed-info relative z-30 mx-auto h-fit min-h-0 w-full max-w-[64rem] min-w-0 self-end overflow-hidden px-4 pt-7 pb-2 text-white sm:px-6 md:px-8 md:pt-8">
-        <div className="preview-feed-kicker flex items-start">
-          <span
-            className={cn(
-              "inline-flex items-center font-mono text-[10px] font-semibold uppercase leading-none tracking-[0.14em]",
-              SOURCE_TONES[item.source],
-            )}
-          >
-            {SOURCE_LABELS[item.source]}
-          </span>
-        </div>
-
-        <h1 className="preview-feed-title mt-2 line-clamp-2 text-[clamp(1.4rem,5vw,2.25rem)] font-semibold leading-[1.02] tracking-[-0.035em]">
-          {name}
-        </h1>
-
-        <p className="preview-feed-meta mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/60 sm:mt-2">
-          {year ? <span>{year}</span> : null}
-          {year ? <span aria-hidden>·</span> : null}
-          <span>{mediaLabel}</span>
-          {genre ? <span aria-hidden>·</span> : null}
-          {genre ? <span>{genre}</span> : null}
-          {item.vote_average ? (
-            <>
-              <span aria-hidden>·</span>
-              <span>{item.vote_average.toFixed(1)}</span>
-            </>
-          ) : null}
-        </p>
-
-        <div className="preview-feed-actions mt-4 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide sm:gap-2.5">
-          <SaveControl
-            item={item}
-            record={savedRecord}
-            ensureSaved={ensureSaved}
-            onStatusChange={onStatusChange}
-            onMenuOpenChange={onMenuOpenChange}
-          />
-          <AddTitleToListButton
-            titleId={savedRecord?.id}
-            ensureTitleId={ensureSaved}
-            lists={lists}
-            variant="icon"
-            onOpenChange={(open) => {
-              onMenuOpenChange(open);
-              if (open) onListIntent();
-            }}
-          />
-          <button
-            id={anchorId}
-            type="button"
-            onPointerEnter={() => overlay?.prefetch(item)}
-            onFocus={() => overlay?.prefetch(item)}
-            onClick={() => {
-              onDetail();
-              overlay?.open(item, isSaved, anchorId);
-            }}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card/85 text-foreground shadow-sm transition-[background-color,border-color,transform] duration-150 hover:border-primary/40 hover:bg-card active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:active:scale-100"
-            aria-label={`View details for ${name}`}
-            title="View details"
-          >
-            <Info className="h-[18px] w-[18px]" aria-hidden />
-          </button>
-          <button
-            type="button"
-            disabled={!playerReady}
-            onClick={onTogglePlayback}
-            className="ml-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-wait disabled:opacity-45"
-            aria-label={playbackEnabled ? "Pause previews" : "Play previews"}
-            title={playbackEnabled ? "Pause previews" : "Play previews"}
-          >
-            {playbackEnabled ? (
-              <Pause className="h-3.5 w-3.5" aria-hidden />
-            ) : (
-              <Play className="h-3.5 w-3.5" aria-hidden />
-            )}
-          </button>
-          <button
-            type="button"
-            disabled={!playerReady}
-            onClick={onToggleSound}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-wait disabled:opacity-45"
-            aria-label={soundEnabled ? "Mute previews" : "Unmute previews"}
-            title={soundEnabled ? "Mute previews" : "Unmute previews"}
-          >
-            {soundEnabled ? (
-              <Volume2 className="h-4 w-4" aria-hidden />
-            ) : (
-              <VolumeX className="h-4 w-4" aria-hidden />
-            )}
-          </button>
-        </div>
-      </div>
-    </article>
-  );
 }
 
 export function PreviewsFeed({
@@ -2985,19 +2317,23 @@ export function PreviewsFeed({
               playerReady={playerReady && !failedVideoKeys.has(item.videoKey)}
               playbackEnabled={playbackEnabled && pageVisible}
               soundEnabled={soundEnabled}
-              lists={lists}
-              savedRecord={record}
-              ensureSaved={() => ensureSaved(item)}
-              onStatusChange={(status) => {
-                const current = savedRef.current.get(key);
-                const next = current
-                  ? { ...current, status }
-                  : record
-                    ? { ...record, status }
-                    : null;
-                if (!next) return;
-                rememberSaved(key, next);
-                overlay?.markSaved(item, next);
+              account={{
+                lists,
+                savedRecord: record,
+                ensureSaved: () => ensureSaved(item),
+                onStatusChange: (status) => {
+                  const current = savedRef.current.get(key);
+                  const next = current
+                    ? { ...current, status }
+                    : record
+                      ? { ...record, status }
+                      : null;
+                  if (!next) return;
+                  rememberSaved(key, next);
+                  overlay?.markSaved(item, next);
+                },
+                onListIntent: () => recordSignal(item, "listIntents", 0.85, true),
+                onMenuOpenChange: setMenuOpen,
               }}
               onEnablePlayback={() => {
                 youtubePlayerRef.current?.play();
@@ -3034,10 +2370,6 @@ export function PreviewsFeed({
                 }
               }}
               onDetail={() => recordSignal(item, "details", 0.7, true)}
-              onListIntent={() =>
-                recordSignal(item, "listIntents", 0.85, true)
-              }
-              onMenuOpenChange={setMenuOpen}
             />
           );
         })}

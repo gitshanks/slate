@@ -400,6 +400,8 @@ export interface TmdbPreviewAdaptiveWeights {
 }
 
 export interface TmdbPreviewFeedOptions {
+  /** Public previews use the same ranking without reading account/library data. */
+  includeLibrary?: boolean;
   targetSize?: number;
   lookupLimit?: number;
   waveSize?: number;
@@ -1287,13 +1289,15 @@ export async function getPreviewFeedBatch(
     `daily:${dayBucket}`;
   const batchSeed = `${sessionSeed}:batch:${batchIndex}`;
   const [library, trending, nowPlaying] = await Promise.all([
-    getRecommendedFromWatched(excludedKeys, {
-      // All sessions share six taste endpoints for this UTC day. Taste
-      // mutations still change the ranked seed contents, while a stable
-      // rotation bounds cold provider/cache misses across endless batches.
-      rotationSeed: `preview-taste-day:${dayBucket}`,
-      seedCount: 6,
-    }),
+    options.includeLibrary === false
+      ? Promise.resolve([])
+      : getRecommendedFromWatched(excludedKeys, {
+          // All sessions share six taste endpoints for this UTC day. Taste
+          // mutations still change the ranked seed contents, while a stable
+          // rotation bounds cold provider/cache misses across endless batches.
+          rotationSeed: `preview-taste-day:${dayBucket}`,
+          seedCount: 6,
+        }),
     getTrending(),
     getNowPlaying(),
   ]);
