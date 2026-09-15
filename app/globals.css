@@ -845,7 +845,7 @@ body:has(#app-bottom-nav)
   }
 
   .preview-feed-info {
-    padding: 0.5rem;
+    padding-block: 0.5rem;
   }
 
   .preview-feed-kicker,

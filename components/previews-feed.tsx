@@ -72,7 +72,7 @@ const PREVIEW_HISTORY_LIMIT = 240;
 const PREVIEW_REPLAY_GAP = 36;
 const PREVIEW_LOAD_RETRY_MS = 1_800;
 const PREVIEW_MAX_AUTOMATIC_RETRIES = 3;
-const PREVIEW_MOBILE_LANDING_LIMIT = 5;
+const PREVIEW_MOBILE_LANDING_LIMIT = 3;
 const PREVIEW_MOBILE_QUERY = "(max-width: 767px)";
 const PREVIEW_DESKTOP_HINT_KEY = "slate:previews-desktop-scroll-hint";
 const PREVIEW_LEDGER_PREFIX = "slate:previews-learning:v1";
@@ -1738,7 +1738,7 @@ export function PreviewsFeed({
     if (previous.finitePreviewLimit === finitePreviewLimit &&
       previous.frameHeight === frameHeight) return;
 
-    // A desktop visitor may be beyond the fifth title when narrowing the
+    // A desktop visitor may be beyond the mobile limit when narrowing the
     // window. Restore a real visible snap target before paint, without
     // remounting the persistent player or discarding the fetched tail.
     const nextIndex = Math.max(0, Math.min(
@@ -2079,7 +2079,7 @@ export function PreviewsFeed({
         activeIndexRef.current - PREVIEW_KEEP_BEHIND,
       );
       // A desktop request can finish after the viewport narrows. Keep its
-      // new titles in the backing tail without shifting the five visible ones.
+      // new titles in the backing tail without shifting the visible sequence.
       const removeFromStart = finitePreviewLimitRef.current === null
         ? Math.min(overflow, safelyRemovable)
         : 0;
@@ -2425,7 +2425,7 @@ export function PreviewsFeed({
         className={cn(
           "relative z-10 h-full min-h-0 touch-pan-y snap-y snap-mandatory overflow-x-hidden overflow-y-auto scrollbar-hide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
           finitePreviewLimit === null ? "overscroll-y-contain" : "overscroll-y-auto",
-          isPublicPreview && "mx-[clamp(32px,4vw,64px)]",
+          isPublicPreview && "mx-[clamp(24px,3vw,48px)]",
         )}
       >
         <p id="preview-feed-instructions" className="sr-only">

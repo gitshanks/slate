@@ -42,6 +42,7 @@ function PreviewPlayer({
   priority,
   onPlay,
   player,
+  frameRef,
 }: {
   item: TmdbPreviewItem;
   index: number;
@@ -50,12 +51,14 @@ function PreviewPlayer({
   priority: boolean;
   onPlay: () => void;
   player?: React.ReactNode;
+  frameRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const name = titleFor(item);
 
   return (
     <div className="relative z-10 isolate flex h-full min-h-[12.5rem] w-full items-center justify-center overflow-hidden bg-transparent [container-type:size]">
       <div
+        ref={frameRef}
         data-preview-player-index={index}
         className={cn(
           "preview-player-frame relative z-10 overflow-hidden rounded-2xl bg-black",
@@ -233,6 +236,36 @@ export function PreviewSlide({
   const anchorId = `preview-title-${item.media_type}-${item.id}`;
   const isSaved = Boolean(account?.savedRecord);
   const TitleHeading = account ? "h1" : "h3";
+  const playerFrameRef = React.useRef<HTMLDivElement>(null);
+  const infoRef = React.useRef<HTMLDivElement>(null);
+
+  React.useLayoutEffect(() => {
+    const frame = playerFrameRef.current;
+    const info = infoRef.current;
+    if (!frame || !info) return;
+    let resizeFrame = 0;
+    let lastWidth = 0;
+    const alignInfo = (width: number) => {
+      if (!Number.isFinite(width) || width <= 0 || Math.abs(width - lastWidth) < 0.25) return;
+      lastWidth = width;
+      info.style.width = `${width}px`;
+    };
+    // The player is constrained by both the width and height of its stage.
+    // Use its unscaled layout width so the caption and controls share its
+    // edges even while the landing section is scaling or a tablet rotates.
+    alignInfo(Number.parseFloat(getComputedStyle(frame).width));
+    const observer = new ResizeObserver(([entry]) => {
+      const width = entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => alignInfo(width));
+    });
+    observer.observe(frame);
+    return () => {
+      cancelAnimationFrame(resizeFrame);
+      observer.disconnect();
+    };
+  }, []);
+
   return (
     <article
       id={`preview-${index + 1}`}
@@ -244,6 +277,7 @@ export function PreviewSlide({
       className="preview-feed-slide relative isolate grid h-full min-h-full snap-start snap-always grid-rows-[minmax(12.5rem,1fr)_auto] gap-0 overflow-hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[var(--preview-dock-clearance,0.5rem)]"
     >
       <PreviewPlayer
+        frameRef={playerFrameRef}
         item={item}
         index={index}
         playing={playerVisible}
@@ -253,7 +287,7 @@ export function PreviewSlide({
         player={player}
       />
 
-      <div className="preview-feed-info relative z-30 mx-auto h-fit min-h-0 w-full max-w-[64rem] min-w-0 self-end overflow-hidden px-4 pt-7 pb-2 text-white sm:px-6 md:px-8 md:pt-8">
+      <div ref={infoRef} className="preview-feed-info relative z-30 mx-auto h-fit min-h-0 w-[calc(100%_-_1rem)] min-w-0 self-end overflow-hidden pt-7 pb-2 text-white md:pt-8">
         <div className="preview-feed-kicker flex items-start">
           <span
             className={cn(

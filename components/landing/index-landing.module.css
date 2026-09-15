@@ -294,11 +294,27 @@
   outline: none;
 }
 .featuresSurface {
-  --preview-surround: clamp(160px, 24svh, 240px);
+  --preview-surround: clamp(96px, 14svh, 144px);
   position: relative;
   isolation: isolate;
   overflow: clip;
   transform-origin: center top;
+}
+.featuresSurface > [data-preview-backdrop] {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--preview-surround),
+    #000 calc(100% - var(--preview-surround)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--preview-surround),
+    #000 calc(100% - var(--preview-surround)),
+    transparent
+  );
 }
 .featuresSurface::after {
   display: block;

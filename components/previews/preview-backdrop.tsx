@@ -9,7 +9,11 @@ export function PreviewBackdrop({
   priority?: boolean;
 }) {
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#050608]">
+    <div
+      aria-hidden="true"
+      data-preview-backdrop
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#050608]"
+    >
       {src && (
         <Image
           key={src}
