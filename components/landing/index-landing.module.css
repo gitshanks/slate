@@ -300,7 +300,6 @@
   letter-spacing: -0.055em;
   text-wrap: balance;
 }
-.sectionIntro > p,
 .closing > p {
   margin-top: 22px;
   color: #99999e;
@@ -310,14 +309,14 @@
 }
 .featureLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 64px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 48px;
 }
 .featureList {
   display: grid;
-  gap: 34px;
-  padding-bottom: 30px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 36px;
 }
 .feature {
   display: grid;
@@ -474,12 +473,8 @@
 }
 
 @media (max-width: 900px) {
-  .featureLayout {
-    gap: 32px;
-    grid-template-columns: 1fr;
-  }
   .featureList {
-    gap: 25px;
+    gap: 24px;
   }
   .feature {
     grid-template-columns: 18px 1fr;
@@ -490,6 +485,24 @@
   }
   .feature p {
     font-size: 13px;
+  }
+}
+
+@media (max-width: 760px) {
+  .featureList {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .feature {
+    grid-template-columns: 22px 1fr;
+    gap: 15px;
+  }
+  .feature h3 {
+    font-size: 18px;
+  }
+  .feature p {
+    max-width: 45ch;
+    font-size: 14px;
   }
 }
 
@@ -543,31 +556,8 @@
   .sectionIntro h2 {
     font-size: clamp(1.65rem, 9vw, 2.2rem);
   }
-  .sectionIntro > p {
-    margin-top: 18px;
-    font-size: 14px;
-  }
-  .desktopBreak {
-    display: none;
-  }
   .featureLayout {
-    grid-template-columns: 1fr;
     gap: 40px;
-  }
-  .featureList {
-    gap: 28px;
-    padding: 0;
-  }
-  .feature {
-    grid-template-columns: 22px 1fr;
-    gap: 15px;
-  }
-  .feature h3 {
-    font-size: 18px;
-  }
-  .feature p {
-    max-width: 45ch;
-    font-size: 14px;
   }
   .faq {
     padding: 56px 0 64px;

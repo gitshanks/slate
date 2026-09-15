@@ -1,11 +1,9 @@
 "use client";
 
 import * as React from "react";
-import {
-  Check,
-  ChevronDown,
-  Plus,
-} from "lucide-react";
+import Link from "next/link";
+import { flushSync } from "react-dom";
+import { Check, ChevronDown, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { CollectionTitleDetailOverlay } from "@/components/spatial-poster-grid";
 import {
@@ -26,6 +24,11 @@ import {
   loadDiscoverTitleDetail,
   updateCachedDiscoverTitleSavedTitle,
 } from "@/lib/discover-title-detail-cache";
+import {
+  clearPublicCatalogueDetailCache,
+  getCachedPublicCatalogueDetail,
+  loadPublicCatalogueDetail,
+} from "@/lib/public-catalogue-detail-cache";
 import type {
   PublicSpatialSavedTitle,
   PublicSpatialTitleDetail,
@@ -47,6 +50,11 @@ interface SavedState {
 const detailSource = {
   getCached: (title: TitleRow) => getCachedDiscoverTitleDetail(title),
   load: (title: TitleRow) => loadDiscoverTitleDetail(title),
+};
+
+const publicDetailSource = {
+  getCached: (title: TitleRow) => getCachedPublicCatalogueDetail(title),
+  load: (title: TitleRow) => loadPublicCatalogueDetail(title),
 };
 
 function itemKey(item: Pick<TmdbSearchResult, "id" | "media_type">) {
@@ -118,8 +126,7 @@ function DiscoverTitleActions({
   const [isPending, startTransition] = React.useTransition();
   const detailRecord = detail?.savedTitle ?? null;
   const record = savedState?.record ?? detailRecord;
-  const saved =
-    savedState?.saved ?? (savedFallback || Boolean(detailRecord));
+  const saved = savedState?.saved ?? (savedFallback || Boolean(detailRecord));
 
   React.useEffect(() => {
     if (detailRecord && !savedState?.record) onSaved(detailRecord);
@@ -184,8 +191,9 @@ function DiscoverTitleActions({
                   const savedStatus = row.status ?? value;
                   onSaved({ id: row.id, status: savedStatus });
                   const savedLabel =
-                    STATUS_OPTIONS.find((option) => option.value === savedStatus)
-                      ?.label ?? label;
+                    STATUS_OPTIONS.find(
+                      (option) => option.value === savedStatus,
+                    )?.label ?? label;
                   toast.success(`In ${savedLabel}`);
                 } catch (error) {
                   toast.error(
@@ -207,25 +215,36 @@ function DiscoverTitleActions({
 
 export function DiscoverTitleOverlayProvider({
   children,
+  publicPreview,
 }: {
   children: React.ReactNode;
+  publicPreview?: { saveHref: string };
 }) {
+  const isPublicPreview = Boolean(publicPreview);
+  const activeDetailSource = isPublicPreview
+    ? publicDetailSource
+    : detailSource;
   const [selection, setSelection] = React.useState<DiscoverSelection | null>(
     null,
   );
-  const [savedTitles, setSavedTitles] = React.useState<
-    Map<string, SavedState>
-  >(() => new Map());
+  const [savedTitles, setSavedTitles] = React.useState<Map<string, SavedState>>(
+    () => new Map(),
+  );
 
   React.useEffect(
     () => () => {
-      clearDiscoverTitleDetailCache();
+      if (isPublicPreview) clearPublicCatalogueDetailCache();
+      else clearDiscoverTitleDetailCache();
     },
-    [],
+    [isPublicPreview],
   );
 
   const rememberSaved = React.useCallback(
-    (title: Pick<TitleRow, "media_type" | "tmdb_id">, record: PublicSpatialSavedTitle | null) => {
+    (
+      title: Pick<TitleRow, "media_type" | "tmdb_id">,
+      record: PublicSpatialSavedTitle | null,
+    ) => {
+      if (isPublicPreview) return;
       const key = titleKey(title);
       if (record) updateCachedDiscoverTitleSavedTitle(title, record);
       setSavedTitles((current) => {
@@ -243,44 +262,50 @@ export function DiscoverTitleOverlayProvider({
         return next;
       });
     },
-    [],
+    [isPublicPreview],
   );
 
-  const prefetch = React.useCallback((item: TmdbSearchResult) => {
-    if (item.media_type !== "movie" && item.media_type !== "tv") return;
-    void loadDiscoverTitleDetail(catalogueTitle(item)).catch(() => undefined);
-  }, []);
+  const prefetch = React.useCallback(
+    (item: TmdbSearchResult) => {
+      if (item.media_type !== "movie" && item.media_type !== "tv") return;
+      void activeDetailSource.load(catalogueTitle(item)).catch(() => undefined);
+    },
+    [activeDetailSource],
+  );
 
   const open = React.useCallback(
     (item: TmdbSearchResult, saved: boolean, anchorElementId: string) => {
       if (item.media_type !== "movie" && item.media_type !== "tv") return;
       const title = catalogueTitle(item);
       if (saved) rememberSaved(title, null);
-      void loadDiscoverTitleDetail(title).catch(() => undefined);
-      setSelection({ title, anchorElementId, savedFallback: saved });
+      void activeDetailSource.load(title).catch(() => undefined);
+      setSelection({
+        title,
+        anchorElementId,
+        savedFallback: isPublicPreview ? false : saved,
+      });
     },
-    [rememberSaved],
+    [activeDetailSource, isPublicPreview, rememberSaved],
   );
 
   const isSaved = React.useCallback(
     (item: TmdbSearchResult, fallback: boolean) =>
-      savedTitles.get(itemKey(item))?.saved ?? fallback,
-    [savedTitles],
+      isPublicPreview
+        ? false
+        : (savedTitles.get(itemKey(item))?.saved ?? fallback),
+    [isPublicPreview, savedTitles],
   );
 
   const savedRecord = React.useCallback(
     (item: TmdbSearchResult) =>
-      savedTitles.get(itemKey(item))?.record ?? null,
-    [savedTitles],
+      isPublicPreview ? null : (savedTitles.get(itemKey(item))?.record ?? null),
+    [isPublicPreview, savedTitles],
   );
 
   const markSaved = React.useCallback(
     (item: TmdbSearchResult, record: PublicSpatialSavedTitle) => {
       if (item.media_type !== "movie" && item.media_type !== "tv") return;
-      rememberSaved(
-        { media_type: item.media_type, tmdb_id: item.id },
-        record,
-      );
+      rememberSaved({ media_type: item.media_type, tmdb_id: item.id }, record);
     },
     [rememberSaved],
   );
@@ -301,6 +326,29 @@ export function DiscoverTitleOverlayProvider({
   const renderActions = React.useCallback(
     (title: TitleRow, detail: PublicSpatialTitleDetail | null) => {
       if (!selection) return null;
+      if (publicPreview) {
+        return (
+          <Link
+            href={publicPreview.saveHref}
+            scroll={false}
+            onClick={() => {
+              // The action disappears when the inspector closes. Give login
+              // its lasting source button so dismissing it restores focus.
+              document
+                .querySelector("[data-slate-auth-trigger]")
+                ?.removeAttribute("data-slate-auth-trigger");
+              document
+                .getElementById(selection.anchorElementId)
+                ?.setAttribute("data-slate-auth-trigger", "true");
+              flushSync(() => setSelection(null));
+            }}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-background/55 px-3.5 text-xs font-medium text-foreground shadow-sm transition-[background-color,border-color,transform] hover:border-primary/35 hover:bg-accent active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            Add to library
+          </Link>
+        );
+      }
       const key = titleKey(title);
       return (
         <DiscoverTitleActions
@@ -312,7 +360,7 @@ export function DiscoverTitleOverlayProvider({
         />
       );
     },
-    [rememberSaved, savedTitles, selection],
+    [publicPreview, rememberSaved, savedTitles, selection],
   );
 
   return (
@@ -322,11 +370,11 @@ export function DiscoverTitleOverlayProvider({
         <CollectionTitleDetailOverlay
           key={selection.anchorElementId}
           title={selection.title}
-          detailSource={detailSource}
+          detailSource={activeDetailSource}
           renderActions={renderActions}
           anchorElementId={selection.anchorElementId}
-          scrollContainerId="app-scroll-area"
-          centerAfterId="app-top-nav"
+          scrollContainerId={isPublicPreview ? undefined : "app-scroll-area"}
+          centerAfterId={isPublicPreview ? undefined : "app-top-nav"}
           onClose={() => setSelection(null)}
         />
       ) : null}

@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     !Number.isInteger(batch) ||
     batch < 0 ||
     batch > 10_000 ||
-    exclusions.length > 96 ||
+    exclusions.length > 240 ||
     exclusions.some((key) => !/^(movie|tv):[1-9]\d{0,9}$/.test(key))
   ) {
     return Response.json({ error: "Invalid preview request" }, { status: 400 });
@@ -25,9 +25,9 @@ export async function GET(request: Request) {
     includeLibrary: false,
     sessionSeed: seed,
     batchIndex: batch,
-    targetSize: 8,
+    targetSize: 24,
     lookupLimit: 24,
-    waveSize: 8,
+    waveSize: 12,
   });
   return Response.json(result, {
     // Do not give different sessions a cached ordering; catalogue/video fetches

@@ -52,16 +52,11 @@ export function LandingDetails({ createHref }: { createHref: string }) {
             <br />
             All in one place.
           </h2>
-          <p>
-            The films friends mention. The shows you mean to start.
-            <br className={styles.desktopBreak} /> A little space to keep them
-            all.
-          </p>
         </div>
 
         <div className={styles.featureLayout}>
           <LandingPreviews saveHref={createHref} />
-          <div className={styles.featureList}>
+          <div id="slate-features" tabIndex={-1} className={styles.featureList}>
             <article className={styles.feature}>
               <span className={styles.featureIcon}>
                 <Search aria-hidden="true" />

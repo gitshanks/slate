@@ -318,11 +318,11 @@ export function PreviewSlide({
           <button
             id={anchorId}
             type="button"
-            onPointerEnter={() => account && overlay?.prefetch(item)}
-            onFocus={() => account && overlay?.prefetch(item)}
+            onPointerEnter={() => overlay?.prefetch(item)}
+            onFocus={() => overlay?.prefetch(item)}
             onClick={() => {
               onDetail();
-              if (account) overlay?.open(item, isSaved, anchorId);
+              overlay?.open(item, isSaved, anchorId);
             }}
             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card/85 text-foreground shadow-sm transition-[background-color,border-color,transform] duration-150 hover:border-primary/40 hover:bg-card active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:active:scale-100"
             aria-label={`View details for ${name}`}

@@ -25,7 +25,7 @@ import {
   type PreviewPreferenceWeights,
 } from "@/lib/preview-feedback-types";
 import { backdropUrl, posterUrl } from "@/lib/tmdb-image";
-import type { TmdbPreviewItem } from "@/lib/tmdb";
+import type { TmdbPreviewBatch, TmdbPreviewItem } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { PreviewSlide, type SavedRecord } from "@/components/previews/preview-slide";
 import { YouTubePreview, type YouTubePlayerHandle } from "@/components/previews/youtube-preview";
@@ -41,6 +41,26 @@ interface PreviewsFeedProps {
   /** A server-created seed keeps the first deck and later batches coherent. */
   sessionSeed?: string;
   initialPreferences?: PreviewPreferenceWeights;
+  /** Render the same feed inside the landing page, using public catalogue data. */
+  publicPreview?: {
+    saveHref: string;
+    active: boolean;
+    nextBatchIndex?: number;
+  };
+}
+
+async function loadPublicPreviews(exclusions: string[], context: PreviewLoadContext) {
+  const query = new URLSearchParams({
+    seed: context.sessionSeed,
+    batch: String(context.batchIndex),
+    exclude: exclusions.slice(-240).join(","),
+  });
+  const response = await fetch(`/api/public/previews?${query}`);
+  if (!response.ok) throw new Error("Previews unavailable");
+  return response.json() as Promise<TmdbPreviewBatch & {
+    feedbackAccepted?: boolean;
+    preferences?: PreviewPreferenceWeights;
+  }>;
 }
 
 const PREVIEW_LOAD_AHEAD = 12;
@@ -747,7 +767,7 @@ function useBlockingOverlayOpen() {
   return open;
 }
 
-function useAvailableFeedHeight(hostRef: React.RefObject<HTMLDivElement | null>) {
+function useAvailableFeedHeight(hostRef: React.RefObject<HTMLDivElement | null>, embedded = false) {
   const [height, setHeight] = React.useState<number | null>(null);
   const [usableHeight, setUsableHeight] = React.useState<number | null>(null);
 
@@ -774,13 +794,13 @@ function useAvailableFeedHeight(hostRef: React.RefObject<HTMLDivElement | null>)
         const nextHeight = Math.max(
           0,
           Math.floor(
-            useStableAppTrack && parentRect && parentRect.height > 0
-              ? parentRect.height
+            (embedded || useStableAppTrack) && parentRect && parentRect.height > 0
+              ? (embedded ? host.parentElement!.clientHeight : parentRect.height)
               : document.documentElement.clientHeight - rect.top,
           ),
         );
         const hostBottom = rect.top + nextHeight;
-        const dock = document.getElementById("app-bottom-nav");
+        const dock = embedded ? null : document.getElementById("app-bottom-nav");
         const dockRect = dock?.getBoundingClientRect();
         const dockIsVisible = Boolean(
           dockRect && dockRect.height > 0 && dockRect.top > rect.top,
@@ -819,7 +839,7 @@ function useAvailableFeedHeight(hostRef: React.RefObject<HTMLDivElement | null>)
       window.removeEventListener("slate:demo-banner-dismiss", measure);
       window.visualViewport?.removeEventListener("resize", measure);
     };
-  }, [hostRef]);
+  }, [hostRef, embedded]);
 
   return { height, usableHeight };
 }
@@ -979,10 +999,13 @@ export function PreviewsFeed({
   profileKey = "local",
   sessionSeed: initialSessionSeed,
   initialPreferences,
+  publicPreview,
 }: PreviewsFeedProps) {
+  const isPublicPreview = Boolean(publicPreview);
+  const surfaceActive = publicPreview?.active ?? true;
   const overlay = useDiscoverTitleOverlay();
   const [memorySession] = React.useState(() =>
-    readInMemoryPreviewSession(profileKey),
+    isPublicPreview ? null : readInMemoryPreviewSession(profileKey),
   );
   const initialFeedItems = memorySession?.items ?? initialItems;
   const initialActiveIndex = memorySession
@@ -1034,7 +1057,7 @@ export function PreviewsFeed({
     memorySession?.sessionStartedAt || new Date().toISOString(),
   );
   // The server-rendered opening deck owns batch zero.
-  const batchIndexRef = React.useRef(memorySession?.batchIndex ?? 1);
+  const batchIndexRef = React.useRef(memorySession?.batchIndex ?? publicPreview?.nextBatchIndex ?? 1);
   const exposureLedgerRef = React.useRef(new Map<string, PreviewExposure>());
   const preferencesRef = React.useRef(
     normalizePreferences(initialPreferences),
@@ -1091,7 +1114,7 @@ export function PreviewsFeed({
     );
   }
   const { height: frameHeight, usableHeight: usableFrameHeight } =
-    useAvailableFeedHeight(hostRef);
+    useAvailableFeedHeight(hostRef, isPublicPreview);
   const reducedMotion = useReducedMotion();
   const {
     dismiss: dismissDesktopScrollHint,
@@ -1113,7 +1136,7 @@ export function PreviewsFeed({
   const pausedItemKeyRef = React.useRef(memorySession?.pausedItemKey ?? null);
   const automaticPlaybackAllowedRef = React.useRef(false);
   const [soundEnabled, setSoundEnabled] = React.useState(
-    memorySession?.soundEnabled ?? true,
+    memorySession?.soundEnabled ?? !isPublicPreview,
   );
   const soundEnabledRef = React.useRef(soundEnabled);
   const [playerReady, setPlayerReady] = React.useState(false);
@@ -1144,6 +1167,7 @@ export function PreviewsFeed({
       !playbackFailed &&
       activePlayerIndex != null &&
       pageVisible &&
+      surfaceActive &&
       !menuOpen &&
       !blockingOverlayOpen &&
       !overlay?.hasSelection &&
@@ -1157,6 +1181,7 @@ export function PreviewsFeed({
   // A same-tab reload can only read sessionStorage after hydration, so apply
   // that snapshot in a layout effect before the restored slide is painted.
   React.useLayoutEffect(() => {
+    if (isPublicPreview) return;
     if (restoredSessionRef.current) return;
     const snapshot = readStoredPreviewSession(profileKey);
     if (!snapshot) return;
@@ -1205,9 +1230,10 @@ export function PreviewsFeed({
         : snapshot.playbackEnabled,
     );
     setSoundEnabled(snapshot.soundEnabled);
-  }, [profileKey]);
+  }, [profileKey, isPublicPreview]);
 
   const persistPreviewSession = React.useCallback(() => {
+    if (isPublicPreview) return;
     const currentItems = itemsRef.current;
     if (currentItems.length === 0) return;
     const currentIndex = Math.max(
@@ -1240,7 +1266,7 @@ export function PreviewsFeed({
       failedVideoKeys: Array.from(failedVideoKeysRef.current),
       savedEntries: Array.from(savedRef.current.entries()),
     });
-  }, [profileKey]);
+  }, [profileKey, isPublicPreview]);
 
   const persistPreviewSessionRef = React.useRef(persistPreviewSession);
   React.useEffect(() => {
@@ -1255,6 +1281,7 @@ export function PreviewsFeed({
   );
 
   const persistLearningNow = React.useCallback(() => {
+    if (isPublicPreview) return;
     if (!learningReadyRef.current) return;
     const exposures = Array.from(exposureLedgerRef.current.values())
       .filter(
@@ -1277,7 +1304,7 @@ export function PreviewsFeed({
       // Storage can be disabled in private browsing. Session learning still
       // works from refs and never blocks browsing.
     }
-  }, [learningStorageKey, profileKey]);
+  }, [learningStorageKey, profileKey, isPublicPreview]);
 
   const scheduleLearningPersistence = React.useCallback(() => {
     if (persistenceTimerRef.current) return;
@@ -1427,6 +1454,7 @@ export function PreviewsFeed({
   );
 
   const buildFeedbackPayload = React.useCallback(() => {
+    if (isPublicPreview) return null;
     if (pendingFeedbackPayloadRef.current) {
       return pendingFeedbackPayloadRef.current;
     }
@@ -1476,7 +1504,7 @@ export function PreviewsFeed({
     pendingFeedbackPayloadRef.current = payload;
     feedbackRef.current = newFeedbackAccumulator();
     return payload;
-  }, []);
+  }, [isPublicPreview]);
 
   const acceptFeedbackSnapshot = React.useCallback(
     (serverPreferences?: PreviewPreferenceWeights) => {
@@ -1494,6 +1522,7 @@ export function PreviewsFeed({
   );
 
   const syncRemainingFeedback = React.useCallback(() => {
+    if (isPublicPreview) return;
     if (
       feedbackSyncStartedRef.current ||
       feedbackDedicatedSyncUsedRef.current
@@ -1524,7 +1553,7 @@ export function PreviewsFeed({
         feedbackSyncStartedRef.current = false;
         feedbackDedicatedSyncUsedRef.current = false;
       });
-  }, [acceptFeedbackSnapshot, buildFeedbackPayload]);
+  }, [acceptFeedbackSnapshot, buildFeedbackPayload, isPublicPreview]);
 
   React.useEffect(() => {
     syncRemainingFeedbackRef.current = syncRemainingFeedback;
@@ -1535,7 +1564,9 @@ export function PreviewsFeed({
     if (!sessionSeedRef.current) sessionSeedRef.current = fallbackSessionId;
     if (!sessionIdRef.current) sessionIdRef.current = fallbackSessionId;
 
-    const localState = readLearningState(learningStorageKey);
+    const localState = isPublicPreview
+      ? { exposures: [], preferences: neutralPreviewPreferences() }
+      : readLearningState(learningStorageKey);
     exposureLedgerRef.current = new Map(
       localState.exposures.map((entry) => [entry.key, entry]),
     );
@@ -1547,7 +1578,7 @@ export function PreviewsFeed({
     learningReadyRef.current = true;
     persistLearningNow();
     rerankFutureRef.current();
-  }, [initialPreferences, learningStorageKey, persistLearningNow]);
+  }, [initialPreferences, learningStorageKey, persistLearningNow, isPublicPreview]);
 
   React.useEffect(() => {
     const scroller = scrollerRef.current;
@@ -1590,12 +1621,12 @@ export function PreviewsFeed({
 
   React.useEffect(() => {
     const item = itemsRef.current[activeIndex];
-    if (!item || !pageVisible) return;
+    if (!item || !pageVisible || !surfaceActive) return;
     const current = activeVisitRef.current;
     if (current && itemKey(current.item) === itemKey(item)) return;
     finishActiveVisit();
     startActiveVisit(item, true);
-  }, [activeIndex, finishActiveVisit, pageVisible, startActiveVisit]);
+  }, [activeIndex, finishActiveVisit, pageVisible, startActiveVisit, surfaceActive]);
 
   React.useEffect(() => {
     if (
@@ -1712,6 +1743,10 @@ export function PreviewsFeed({
   }, [reducedMotion]);
 
   const handleAutoplayBlocked = React.useCallback(() => {
+    if (isPublicPreview && (!surfaceActive || overlay?.hasSelection)) {
+      youtubePlayerRef.current?.pause();
+      return;
+    }
     if (!audibleAutoplayFallbackAttemptedRef.current) {
       audibleAutoplayFallbackAttemptedRef.current = true;
       youtubePlayerRef.current?.mute();
@@ -1725,7 +1760,7 @@ export function PreviewsFeed({
     playbackEnabledRef.current = false;
     setPlaybackEnabled(false);
     toast.message("Tap Play to continue previews");
-  }, []);
+  }, [isPublicPreview, surfaceActive, overlay?.hasSelection]);
 
   const handlePlaybackError = React.useCallback((videoKey: string) => {
     if (failedVideoKeysRef.current.has(videoKey)) return;
@@ -1733,13 +1768,21 @@ export function PreviewsFeed({
     next.add(videoKey);
     failedVideoKeysRef.current = next;
     setFailedVideoKeys(next);
-    toast.error("This trailer cannot play here. You can still open it on YouTube.");
-  }, []);
+    if (!isPublicPreview) toast.error("This trailer cannot play here. You can still open it on YouTube.");
+  }, [isPublicPreview]);
+
+  React.useEffect(() => {
+    if (!isPublicPreview || !surfaceActive || !playbackItem || playbackFailed ||
+      visibleVideoKey === playbackItem.videoKey) return;
+    const timeout = window.setTimeout(() => handlePlaybackError(playbackItem.videoKey), 12_000);
+    return () => window.clearTimeout(timeout);
+  }, [isPublicPreview, surfaceActive, playbackItem, playbackFailed, visibleVideoKey, handlePlaybackError]);
 
   React.useEffect(() => {
     const onVisibility = () => {
-      const visible = document.visibilityState === "visible";
+      const visible = document.visibilityState === "visible" && surfaceActive;
       if (!visible) {
+        youtubePlayerRef.current?.pause();
         finishActiveVisit();
         persistLearningNow();
         syncRemainingFeedbackRef.current();
@@ -1760,6 +1803,7 @@ export function PreviewsFeed({
         window.requestAnimationFrame(() => {
           if (
             document.visibilityState === "visible" &&
+            surfaceActive &&
             automaticPlaybackAllowedRef.current &&
             itemKeyAt(itemsRef.current, activeIndexRef.current) !== null &&
             pausedItemKeyRef.current !==
@@ -1795,6 +1839,7 @@ export function PreviewsFeed({
     menuOpen,
     overlay?.hasSelection,
     persistLearningNow,
+    surfaceActive,
   ]);
 
   React.useEffect(() => {
@@ -2035,7 +2080,9 @@ export function PreviewsFeed({
         preferences: normalizePreferences(preferencesRef.current),
         feedback,
       };
-      const batch = await loadMorePreviews(attemptedHistory.order, context);
+      const batch = await (isPublicPreview
+        ? loadPublicPreviews(attemptedHistory.order, context)
+        : loadMorePreviews(attemptedHistory.order, context));
       if (feedback && batch.feedbackAccepted) {
         acceptFeedbackSnapshot(batch.preferences);
       } else if (feedback) {
@@ -2076,18 +2123,19 @@ export function PreviewsFeed({
     buildFeedbackPayload,
     replayArchivedPreviews,
     schedulePreviewRetry,
+    isPublicPreview,
   ]);
 
   React.useEffect(() => {
     if (
-      !pageVisible ||
+      !pageVisible || !surfaceActive ||
       items.length === 0 ||
       activeIndex < Math.max(0, items.length - PREVIEW_LOAD_AHEAD)
     ) {
       return;
     }
     void requestMorePreviews();
-  }, [activeIndex, items, loadRevision, pageVisible, requestMorePreviews]);
+  }, [activeIndex, items, loadRevision, pageVisible, requestMorePreviews, surfaceActive]);
 
   React.useEffect(
     () => () => {
@@ -2150,19 +2198,26 @@ export function PreviewsFeed({
       const target = scroller.querySelector<HTMLElement>(
         `[data-preview-index="${clamped}"]`,
       );
+      if (isPublicPreview && target) {
+        scroller.scrollTo({
+          top: target.offsetTop,
+          behavior: behavior === "smooth" && reducedMotion === false ? "smooth" : "instant",
+        });
+        return;
+      }
       target?.scrollIntoView({
         block: "start",
         behavior:
           behavior === "smooth" && reducedMotion === false ? "smooth" : "auto",
       });
     },
-    [items.length, reducedMotion],
+    [items.length, reducedMotion, isPublicPreview],
   );
 
   if (items.length === 0) {
     return (
       <div
-        data-previews-feed
+        data-previews-feed={isPublicPreview ? undefined : true}
         className="flex h-full min-h-[28rem] items-center justify-center bg-[#050608] px-5 text-center text-white"
       >
         <div className="max-w-sm">
@@ -2189,7 +2244,7 @@ export function PreviewsFeed({
   if (usableFrameHeight !== null && usableFrameHeight < 364) {
     return (
       <div
-        data-previews-feed
+        data-previews-feed={isPublicPreview ? undefined : true}
         className="flex min-h-0 w-full items-center justify-center bg-[#050608] px-6 text-center"
         style={{ height: `${frameHeight}px` }}
       >
@@ -2209,8 +2264,9 @@ export function PreviewsFeed({
   return (
     <div
       ref={hostRef}
-      data-previews-feed
-      className="group/previews relative min-h-0 w-full overflow-hidden bg-[#050608]"
+      data-previews-feed={isPublicPreview ? undefined : true}
+      data-public-previews={isPublicPreview ? true : undefined}
+      className={cn("group/previews relative min-h-0 w-full bg-[#050608]", isPublicPreview ? "overflow-clip" : "overflow-hidden")}
       style={frameHeight ? { height: `${frameHeight}px` } : { height: "100%" }}
     >
       {ambientBackdrop ? (
@@ -2277,30 +2333,6 @@ export function PreviewsFeed({
         <p className="sr-only" aria-live="polite" aria-atomic="true">
           Now showing {titleFor(items[activeIndex])}
         </p>
-        <div className="preview-feed-a11y-navigation pointer-events-none fixed right-4 bottom-[calc(7rem+env(safe-area-inset-bottom,0px))] z-[80] flex gap-2 opacity-0 transition-opacity focus-within:opacity-100">
-          <button
-            type="button"
-            disabled={activeIndex === 0}
-            onClick={() => {
-              dismissDesktopScrollHint();
-              moveTo(activeIndex - 1);
-            }}
-            className="pointer-events-none inline-flex h-10 items-center rounded-full border border-border bg-background px-4 text-xs font-semibold text-foreground shadow-lg focus:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:hidden"
-          >
-            Previous preview
-          </button>
-          <button
-            type="button"
-            disabled={activeIndex === items.length - 1}
-            onClick={() => {
-              dismissDesktopScrollHint();
-              moveTo(activeIndex + 1);
-            }}
-            className="pointer-events-none inline-flex h-10 items-center rounded-full border border-border bg-background px-4 text-xs font-semibold text-foreground shadow-lg focus:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:hidden"
-          >
-            Next preview
-          </button>
-        </div>
         {items.map((item, index) => {
           const key = itemKey(item);
           const record = overlay?.savedRecord(item) ?? saved.get(key);
@@ -2317,7 +2349,8 @@ export function PreviewsFeed({
               playerReady={playerReady && !failedVideoKeys.has(item.videoKey)}
               playbackEnabled={playbackEnabled && pageVisible}
               soundEnabled={soundEnabled}
-              account={{
+              saveHref={publicPreview?.saveHref}
+              account={isPublicPreview ? undefined : {
                 lists,
                 savedRecord: record,
                 ensureSaved: () => ensureSaved(item),
@@ -2369,11 +2402,37 @@ export function PreviewsFeed({
                   setPlaybackEnabled(true);
                 }
               }}
-              onDetail={() => recordSignal(item, "details", 0.7, true)}
+              onDetail={() => {
+                recordSignal(item, "details", 0.7, true);
+              }}
             />
           );
         })}
       </div>
+        <div className={cn("preview-feed-a11y-navigation pointer-events-none right-4 z-[80] flex gap-2 opacity-0 transition-opacity focus-within:opacity-100", isPublicPreview ? "absolute top-4" : "fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))]")}>
+          <button
+            type="button"
+            disabled={activeIndex === 0}
+            onClick={() => {
+              dismissDesktopScrollHint();
+              moveTo(activeIndex - 1);
+            }}
+            className="pointer-events-none inline-flex h-10 items-center rounded-full border border-border bg-background px-4 text-xs font-semibold text-foreground shadow-lg focus:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:hidden"
+          >
+            Previous preview
+          </button>
+          <button
+            type="button"
+            disabled={activeIndex === items.length - 1}
+            onClick={() => {
+              dismissDesktopScrollHint();
+              moveTo(activeIndex + 1);
+            }}
+            className="pointer-events-none inline-flex h-10 items-center rounded-full border border-border bg-background px-4 text-xs font-semibold text-foreground shadow-lg focus:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:hidden"
+          >
+            Next preview
+          </button>
+        </div>
       <div
         ref={desktopNavigationRef}
         className={cn(
