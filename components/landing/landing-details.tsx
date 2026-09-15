@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Bookmark, Plus } from "lucide-react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { PreviewBackdrop } from "@/components/previews/preview-backdrop";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { LandingPreviews } from "./landing-previews";
 import styles from "./index-landing.module.css";
@@ -41,18 +42,23 @@ const FAQS = [
 
 export function LandingDetails({ createHref }: { createHref: string }) {
   const featuresRef = useRef<HTMLElement>(null);
+  const [previewBackdrop, setPreviewBackdrop] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({
     target: featuresRef,
     offset: ["start end", "start 45%"],
   });
+  const { scrollYProgress: exitProgress } = useScroll({
+    target: featuresRef,
+    offset: ["end end", "end 35%"],
+  });
   // Measure the stable section and settle before the player becomes active.
   // Native scroll drives the entrance directly, matching the splash pullback.
-  const transform = useTransform(
-    scrollYProgress,
-    [0, 1],
-    ["scale(0.94)", "scale(1)"],
-  );
+  const transform = useTransform(() => {
+    const enteringScale = 0.94 + scrollYProgress.get() * 0.06;
+    const leavingScale = 1 - exitProgress.get() * 0.06;
+    return `scale(${Math.min(enteringScale, leavingScale)})`;
+  });
 
   return (
     <div className={styles.details}>
@@ -67,14 +73,11 @@ export function LandingDetails({ createHref }: { createHref: string }) {
           className={styles.featuresSurface}
           style={reduceMotion ? undefined : { transform }}
         >
+          <PreviewBackdrop src={previewBackdrop} />
           <div className={styles.sectionIntro}>
-            <h2 id="features-title">
-              A preview of
-              <br />
-              what’s next.
-            </h2>
+            <h2 id="features-title">A preview of what’s next.</h2>
           </div>
-          <LandingPreviews saveHref={createHref} />
+          <LandingPreviews saveHref={createHref} onBackdropChange={setPreviewBackdrop} />
         </motion.div>
       </section>
 

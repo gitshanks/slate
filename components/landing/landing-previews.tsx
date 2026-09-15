@@ -8,7 +8,13 @@ import { DiscoverTitleOverlayProvider } from "@/components/discover-title-overla
 import type { TmdbPreviewBatch } from "@/lib/tmdb";
 import styles from "./landing-previews.module.css";
 
-export function LandingPreviews({ saveHref }: { saveHref: string }) {
+export function LandingPreviews({
+  saveHref,
+  onBackdropChange,
+}: {
+  saveHref: string;
+  onBackdropChange: (src: string | null) => void;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
   const requestRef = useRef<AbortController | null>(null);
   const seedRef = useRef<string | null>(null);
@@ -107,6 +113,7 @@ export function LandingPreviews({ saveHref }: { saveHref: string }) {
                 saveHref,
                 active: inView && pathname !== "/login",
                 nextBatchIndex: batch.nextBatchIndex,
+                onBackdropChange,
               }}
             />
           </div>

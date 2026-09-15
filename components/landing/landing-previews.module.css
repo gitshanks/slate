@@ -14,7 +14,6 @@
   position: relative;
   height: clamp(420px, 78svh, 760px);
   overflow: clip;
-  background: #050608;
 }
 .placeholder {
   display: flex;

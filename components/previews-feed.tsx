@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -28,6 +27,7 @@ import { backdropUrl, posterUrl } from "@/lib/tmdb-image";
 import type { TmdbPreviewBatch, TmdbPreviewItem } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { PreviewSlide, type SavedRecord } from "@/components/previews/preview-slide";
+import { PreviewBackdrop } from "@/components/previews/preview-backdrop";
 import { YouTubePreview, type YouTubePlayerHandle } from "@/components/previews/youtube-preview";
 import { titleFor } from "@/lib/preview-display";
 
@@ -46,6 +46,8 @@ interface PreviewsFeedProps {
     saveHref: string;
     active: boolean;
     nextBatchIndex?: number;
+    /** Let the surrounding landing section own the shared ambient artwork. */
+    onBackdropChange?: (src: string | null) => void;
   };
 }
 
@@ -70,6 +72,8 @@ const PREVIEW_HISTORY_LIMIT = 240;
 const PREVIEW_REPLAY_GAP = 36;
 const PREVIEW_LOAD_RETRY_MS = 1_800;
 const PREVIEW_MAX_AUTOMATIC_RETRIES = 3;
+const PREVIEW_MOBILE_LANDING_LIMIT = 5;
+const PREVIEW_MOBILE_QUERY = "(max-width: 767px)";
 const PREVIEW_DESKTOP_HINT_KEY = "slate:previews-desktop-scroll-hint";
 const PREVIEW_LEDGER_PREFIX = "slate:previews-learning:v1";
 const PREVIEW_RECENT_COOKIE = "slate_preview_recent_v1";
@@ -706,6 +710,28 @@ function useReducedMotion() {
   return reduced;
 }
 
+function subscribeToMobileViewport(onChange: () => void) {
+  const query = window.matchMedia(PREVIEW_MOBILE_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function getMobileViewportSnapshot() {
+  return window.matchMedia(PREVIEW_MOBILE_QUERY).matches;
+}
+
+function getServerMobileViewportSnapshot() {
+  return false;
+}
+
+function useMobileViewport() {
+  return React.useSyncExternalStore(
+    subscribeToMobileViewport,
+    getMobileViewportSnapshot,
+    getServerMobileViewportSnapshot,
+  );
+}
+
 function useDesktopScrollHint() {
   const [visible, setVisible] = React.useState(false);
 
@@ -1021,6 +1047,14 @@ export function PreviewsFeed({
   publicPreview,
 }: PreviewsFeedProps) {
   const isPublicPreview = Boolean(publicPreview);
+  const isMobileViewport = useMobileViewport();
+  const finitePreviewLimit = isPublicPreview && isMobileViewport
+    ? PREVIEW_MOBILE_LANDING_LIMIT
+    : null;
+  const finitePreviewLimitRef = React.useRef(finitePreviewLimit);
+  React.useLayoutEffect(() => {
+    finitePreviewLimitRef.current = finitePreviewLimit;
+  }, [finitePreviewLimit]);
   const surfaceActive = publicPreview?.active ?? true;
   const overlay = useDiscoverTitleOverlay();
   const [memorySession] = React.useState(() =>
@@ -1036,6 +1070,12 @@ export function PreviewsFeed({
       )
     : 0;
   const [items, setItems] = React.useState(initialFeedItems);
+  // Keep the randomized backing deck intact when a phone rotates or the
+  // viewport widens. Only the mobile landing surface has a finite boundary.
+  const visibleItems = React.useMemo(
+    () => finitePreviewLimit === null ? items : items.slice(0, finitePreviewLimit),
+    [finitePreviewLimit, items],
+  );
   const hostRef = React.useRef<HTMLDivElement>(null);
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const playerShellRef = React.useRef<HTMLDivElement>(null);
@@ -1116,8 +1156,8 @@ export function PreviewsFeed({
   // Tail reranks preserve membership. Key the observer by the set instead of
   // array order so moving unseen cards never disconnects every target.
   const observedItemMembership = React.useMemo(
-    () => items.map(itemKey).sort().join("|"),
-    [items],
+    () => visibleItems.map(itemKey).sort().join("|"),
+    [visibleItems],
   );
   if (!attemptedHistoryRef.current) {
     attemptedHistoryRef.current = createKeyHistory([
@@ -1176,8 +1216,12 @@ export function PreviewsFeed({
   );
   const savedRef = React.useRef(saved);
   const pendingSaves = React.useRef(new Map<string, Promise<string>>());
-  const playbackIndex = activePlayerIndex ?? activeIndex;
-  const playbackItem = items[playbackIndex] ?? null;
+  const visibleActiveIndex = Math.max(0, Math.min(activeIndex, visibleItems.length - 1));
+  const playbackIndex = Math.max(0, Math.min(
+    activePlayerIndex ?? visibleActiveIndex,
+    visibleItems.length - 1,
+  ));
+  const playbackItem = visibleItems[playbackIndex] ?? null;
   const playbackFailed = Boolean(
     playbackItem && failedVideoKeys.has(playbackItem.videoKey),
   );
@@ -1686,12 +1730,36 @@ export function PreviewsFeed({
     soundEnabledRef.current = soundEnabled;
   }, [soundEnabled]);
 
+  const previousPublicLayoutRef = React.useRef({ finitePreviewLimit, frameHeight });
+  React.useLayoutEffect(() => {
+    if (!isPublicPreview) return;
+    const previous = previousPublicLayoutRef.current;
+    previousPublicLayoutRef.current = { finitePreviewLimit, frameHeight };
+    if (previous.finitePreviewLimit === finitePreviewLimit &&
+      previous.frameHeight === frameHeight) return;
+
+    // A desktop visitor may be beyond the fifth title when narrowing the
+    // window. Restore a real visible snap target before paint, without
+    // remounting the persistent player or discarding the fetched tail.
+    const nextIndex = Math.max(0, Math.min(
+      activeIndexRef.current,
+      visibleItems.length - 1,
+    ));
+    const nextItem = visibleItems[nextIndex];
+    if (!nextItem) return;
+    activeIndexRef.current = nextIndex;
+    setActiveIndex(nextIndex);
+    setActivePlayerIndex((current) => current === null ? null : nextIndex);
+    restoreScrollItemKeyRef.current = itemKey(nextItem);
+    pendingScrollTopRef.current = null;
+  }, [finitePreviewLimit, frameHeight, isPublicPreview, visibleItems]);
+
   React.useLayoutEffect(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
     const restoreItemKey = restoreScrollItemKeyRef.current;
     if (restoreItemKey) {
-      const restoreIndex = items.findIndex(
+      const restoreIndex = visibleItems.findIndex(
         (item) => itemKey(item) === restoreItemKey,
       );
       const target =
@@ -1718,7 +1786,7 @@ export function PreviewsFeed({
     scroller.style.scrollBehavior = "auto";
     scroller.scrollTop = nextScrollTop;
     scroller.style.scrollBehavior = previousBehavior;
-  }, [frameHeight, items]);
+  }, [frameHeight, visibleItems]);
 
   useFloatingPlayerGeometry({
     hostRef,
@@ -1726,7 +1794,7 @@ export function PreviewsFeed({
     playerShellRef,
     desktopNavigationRef,
     activeIndex: activePlayerIndex,
-    navigationIndex: activeIndex,
+    navigationIndex: visibleActiveIndex,
     visible: playerShellVisible,
     frameHeight,
     capturePlayerGestures: isPublicPreview,
@@ -1905,7 +1973,8 @@ export function PreviewsFeed({
         const next = Number(
           (visible[0] as HTMLElement).dataset.previewPlayerIndex ?? "0",
         );
-        if (Number.isFinite(next)) {
+        if (Number.isFinite(next) &&
+          (finitePreviewLimitRef.current === null || next < finitePreviewLimitRef.current)) {
           activeIndexRef.current = next;
           setActiveIndex(next);
           setActivePlayerIndex(next);
@@ -1944,7 +2013,7 @@ export function PreviewsFeed({
   );
 
   const rerankFutureItems = React.useCallback(() => {
-    if (!learningReadyRef.current) return;
+    if (!learningReadyRef.current || finitePreviewLimitRef.current !== null) return;
     const currentItems = itemsRef.current;
     // Index + 1 is the active card, so +4 protects the active card and the
     // next three interaction targets from live personalization changes.
@@ -2009,7 +2078,11 @@ export function PreviewsFeed({
         0,
         activeIndexRef.current - PREVIEW_KEEP_BEHIND,
       );
-      const removeFromStart = Math.min(overflow, safelyRemovable);
+      // A desktop request can finish after the viewport narrows. Keep its
+      // new titles in the backing tail without shifting the five visible ones.
+      const removeFromStart = finitePreviewLimitRef.current === null
+        ? Math.min(overflow, safelyRemovable)
+        : 0;
       commitFeedItems(expanded.slice(removeFromStart), removeFromStart);
       return rankedUnique.length;
     },
@@ -2017,6 +2090,7 @@ export function PreviewsFeed({
   );
 
   const replayArchivedPreviews = React.useCallback(() => {
+    if (finitePreviewLimitRef.current !== null) return 0;
     const archive = playableArchiveRef.current;
     if (!archive) return 0;
     const savedKeys = new Set(savedRef.current.keys());
@@ -2064,6 +2138,9 @@ export function PreviewsFeed({
 
   const schedulePreviewRetry = React.useCallback((delay: number) => {
     if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = null;
+    const limit = finitePreviewLimitRef.current;
+    if (limit !== null && itemsRef.current.length >= limit) return;
     retryTimerRef.current = setTimeout(() => {
       retryTimerRef.current = null;
       setLoadRevision((revision) => revision + 1);
@@ -2073,6 +2150,8 @@ export function PreviewsFeed({
   const requestMorePreviews = React.useCallback(async () => {
     const attemptedHistory = attemptedHistoryRef.current;
     if (!attemptedHistory || loadingMoreRef.current) return;
+    const limit = finitePreviewLimitRef.current;
+    if (limit !== null && itemsRef.current.length >= limit) return;
     if (catalogueExhaustedRef.current) {
       replayArchivedPreviews();
       return;
@@ -2116,6 +2195,8 @@ export function PreviewsFeed({
       batchIndexRef.current = Math.min(10_000, requestBatchIndex + 1);
       loadFailureCountRef.current = 0;
 
+      const currentLimit = finitePreviewLimitRef.current;
+      if (currentLimit !== null && itemsRef.current.length >= currentLimit) return;
       if (appendedCount > 0) {
         return;
       } else if (batch.attemptedKeys.length === 0) {
@@ -2147,6 +2228,11 @@ export function PreviewsFeed({
   ]);
 
   React.useEffect(() => {
+    if (finitePreviewLimit !== null && items.length >= finitePreviewLimit) {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+      return;
+    }
     if (
       !pageVisible || !surfaceActive ||
       items.length === 0 ||
@@ -2155,7 +2241,7 @@ export function PreviewsFeed({
       return;
     }
     void requestMorePreviews();
-  }, [activeIndex, items, loadRevision, pageVisible, requestMorePreviews, surfaceActive]);
+  }, [activeIndex, finitePreviewLimit, items, loadRevision, pageVisible, requestMorePreviews, surfaceActive]);
 
   React.useEffect(
     () => () => {
@@ -2213,8 +2299,8 @@ export function PreviewsFeed({
   const moveTo = React.useCallback(
     (index: number, behavior: ScrollBehavior = "smooth") => {
       const scroller = scrollerRef.current;
-      if (!scroller || items.length === 0) return;
-      const clamped = Math.max(0, Math.min(items.length - 1, index));
+      if (!scroller || visibleItems.length === 0) return;
+      const clamped = Math.max(0, Math.min(visibleItems.length - 1, index));
       const target = scroller.querySelector<HTMLElement>(
         `[data-preview-index="${clamped}"]`,
       );
@@ -2231,8 +2317,18 @@ export function PreviewsFeed({
           behavior === "smooth" && reducedMotion === false ? "smooth" : "auto",
       });
     },
-    [items.length, reducedMotion, isPublicPreview],
+    [visibleItems.length, reducedMotion, isPublicPreview],
   );
+
+  const ambientItem = visibleItems[visibleActiveIndex] ?? visibleItems[0];
+  const ambientBackdrop = ambientItem
+    ? backdropUrl(ambientItem.backdrop_path, "w300") ??
+      posterUrl(ambientItem.poster_path)
+    : null;
+  const onBackdropChange = publicPreview?.onBackdropChange;
+  React.useEffect(() => {
+    onBackdropChange?.(ambientBackdrop);
+  }, [ambientBackdrop, onBackdropChange]);
 
   if (items.length === 0) {
     return (
@@ -2275,32 +2371,15 @@ export function PreviewsFeed({
     );
   }
 
-  const ambientItem = items[activeIndex] ?? items[0];
-  const ambientBackdrop = ambientItem
-    ? backdropUrl(ambientItem.backdrop_path, "w300") ??
-      posterUrl(ambientItem.poster_path)
-    : null;
-
   return (
     <div
       ref={hostRef}
       data-previews-feed={isPublicPreview ? undefined : true}
       data-public-previews={isPublicPreview ? true : undefined}
-      className={cn("group/previews relative min-h-0 w-full bg-[#050608]", isPublicPreview ? "overflow-clip" : "overflow-hidden")}
+      className={cn("group/previews relative min-h-0 w-full", !onBackdropChange && "bg-[#050608]", isPublicPreview ? "overflow-clip" : "overflow-hidden")}
       style={frameHeight ? { height: `${frameHeight}px` } : { height: "100%" }}
     >
-      {ambientBackdrop ? (
-        <Image
-          key={ambientBackdrop}
-          src={ambientBackdrop}
-          alt=""
-          fill
-          sizes="100vw"
-          className="pointer-events-none z-0 scale-125 object-cover opacity-45 blur-xl saturate-125"
-          priority={activeIndex === 0}
-        />
-      ) : null}
-      <div className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(4,5,8,0.30),rgba(4,5,8,0.38)_46%,rgba(4,5,8,0.68)_86%,rgba(4,5,8,0.82))]" />
+      {!onBackdropChange && <PreviewBackdrop src={ambientBackdrop} priority={visibleActiveIndex === 0} />}
       <div
         ref={scrollerRef}
         role="region"
@@ -2320,17 +2399,19 @@ export function PreviewsFeed({
             event.key === "PageDown" ||
             (key === "j" && !hasCommandModifier)
           ) {
+            if (finitePreviewLimit !== null && visibleActiveIndex === visibleItems.length - 1) return;
             event.preventDefault();
             dismissDesktopScrollHint();
-            moveTo(activeIndex + 1, "auto");
+            moveTo(visibleActiveIndex + 1, "auto");
           } else if (
             event.key === "ArrowUp" ||
             event.key === "PageUp" ||
             (key === "k" && !hasCommandModifier)
           ) {
+            if (finitePreviewLimit !== null && visibleActiveIndex === 0) return;
             event.preventDefault();
             dismissDesktopScrollHint();
-            moveTo(activeIndex - 1, "auto");
+            moveTo(visibleActiveIndex - 1, "auto");
           } else if (event.key === "Home") {
             event.preventDefault();
             dismissDesktopScrollHint();
@@ -2338,11 +2419,12 @@ export function PreviewsFeed({
           } else if (event.key === "End") {
             event.preventDefault();
             dismissDesktopScrollHint();
-            moveTo(items.length - 1, "auto");
+            moveTo(visibleItems.length - 1, "auto");
           }
         }}
         className={cn(
-          "relative z-10 h-full min-h-0 touch-pan-y snap-y snap-mandatory overflow-x-hidden overflow-y-auto overscroll-y-contain scrollbar-hide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+          "relative z-10 h-full min-h-0 touch-pan-y snap-y snap-mandatory overflow-x-hidden overflow-y-auto scrollbar-hide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+          finitePreviewLimit === null ? "overscroll-y-contain" : "overscroll-y-auto",
           isPublicPreview && "mx-[clamp(32px,4vw,64px)]",
         )}
       >
@@ -2352,9 +2434,9 @@ export function PreviewsFeed({
           {!isPublicPreview && " Previous and next preview buttons are also available."}
         </p>
         <p className="sr-only" aria-live="polite" aria-atomic="true">
-          Now showing {titleFor(items[activeIndex])}
+          Now showing {titleFor(visibleItems[visibleActiveIndex])}
         </p>
-        {items.map((item, index) => {
+        {visibleItems.map((item, index) => {
           const key = itemKey(item);
           const record = overlay?.savedRecord(item) ?? saved.get(key);
           return (
@@ -2362,7 +2444,7 @@ export function PreviewsFeed({
               key={key}
               item={item}
               index={index}
-              selected={index === activeIndex}
+              selected={index === visibleActiveIndex}
               playerVisible={
                 index === activePlayerIndex && playerShellVisible
               }
@@ -2477,10 +2559,10 @@ export function PreviewsFeed({
         ) : null}
         <button
           type="button"
-          disabled={activeIndex === 0}
+          disabled={visibleActiveIndex === 0}
           onClick={() => {
             dismissDesktopScrollHint();
-            moveTo(activeIndex - 1);
+            moveTo(visibleActiveIndex - 1);
           }}
           className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.08] bg-black/20 text-white/55 transition-[background-color,border-color,color,transform] duration-150 hover:border-white/15 hover:bg-black/35 hover:text-white/85 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-20 motion-reduce:active:scale-100"
           aria-label="Previous preview"
@@ -2490,10 +2572,10 @@ export function PreviewsFeed({
         </button>
         <button
           type="button"
-          disabled={activeIndex === items.length - 1}
+          disabled={visibleActiveIndex === visibleItems.length - 1}
           onClick={() => {
             dismissDesktopScrollHint();
-            moveTo(activeIndex + 1);
+            moveTo(visibleActiveIndex + 1);
           }}
           className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.08] bg-black/20 text-white/55 transition-[background-color,border-color,color,transform] duration-150 hover:border-white/15 hover:bg-black/35 hover:text-white/85 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-20 motion-reduce:active:scale-100"
           aria-label="Next preview"

@@ -294,10 +294,23 @@
   outline: none;
 }
 .featuresSurface {
+  --preview-surround: clamp(160px, 24svh, 240px);
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
   transform-origin: center top;
 }
+.featuresSurface::after {
+  display: block;
+  height: var(--preview-surround);
+  content: "";
+}
 .sectionIntro {
-  margin: 0 auto 64px;
+  position: relative;
+  display: grid;
+  height: var(--preview-surround);
+  margin: 0 auto;
+  place-items: center;
   text-align: center;
 }
 .sectionIntro h2,
@@ -307,6 +320,9 @@
   line-height: 1.03;
   letter-spacing: -0.055em;
   text-wrap: balance;
+}
+.sectionIntro h2 {
+  white-space: nowrap;
 }
 .closing > p {
   margin-top: 22px;
@@ -485,11 +501,8 @@
     padding: 80px 0 68px;
     scroll-margin-top: 32px;
   }
-  .sectionIntro {
-    margin-bottom: 36px;
-  }
   .sectionIntro h2 {
-    font-size: clamp(1.65rem, 9vw, 2.2rem);
+    font-size: clamp(1.2rem, 6.4vw, 2.2rem);
   }
   .faq {
     padding: 56px 0 64px;
