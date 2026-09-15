@@ -10,7 +10,7 @@ import {
   useScroll,
   useTransform,
 } from "motion/react";
-import { useRef, type MouseEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type MouseEvent, type ReactNode } from "react";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { LandingDetails } from "./landing-details";
 import styles from "./index-landing.module.css";
@@ -27,6 +27,24 @@ export function IndexLanding({
   const createHref = SLATE_HOSTED ? "/login?mode=create" : "/app";
   const signInHref = SLATE_HOSTED ? "/login" : "/app";
   const splashRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const navigation = performance.getEntriesByType("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    if (navigation?.type !== "reload") return;
+
+    const previousRestoration = history.scrollRestoration;
+    history.scrollRestoration = "manual";
+    const resetScroll = () => window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    resetScroll();
+    // A reload can restore the browser's saved position after hydration.
+    // Reset again once loading finishes, without animating the hero away.
+    window.addEventListener("load", resetScroll, { once: true });
+    return () => {
+      window.removeEventListener("load", resetScroll);
+      history.scrollRestoration = previousRestoration;
+    };
+  }, []);
   const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({
     target: splashRef,
