@@ -1,6 +1,7 @@
 .preview {
   position: relative;
   min-width: 0;
+  margin-inline: clamp(32px, 4vw, 64px);
 }
 .frame,
 .placeholder {
@@ -17,6 +18,13 @@
   border: 1px solid rgb(255 255 255 / 0.12);
   border-radius: 20px;
   background: #050608;
+}
+.hint {
+  margin: 14px 0 0;
+  color: #99999e;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
 }
 .placeholder {
   display: flex;
@@ -45,40 +53,7 @@
   color: #adebb3;
   cursor: pointer;
 }
-.placeholder button:focus-visible,
-.skip:focus-visible {
+.placeholder button:focus-visible {
   outline: 2px solid #adebb3;
   outline-offset: 3px;
-}
-.skip {
-  position: absolute;
-  z-index: 90;
-  top: 12px;
-  left: 12px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  background: #111113;
-  color: #adebb3;
-  font-size: 12px;
-  opacity: 0;
-  pointer-events: none;
-}
-.skip:focus-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-@media (hover: none), (pointer: coarse) {
-  .skip {
-    position: relative;
-    top: auto;
-    left: auto;
-    display: block;
-    width: fit-content;
-    margin: 0 0 12px auto;
-    padding: 4px 0;
-    background: transparent;
-    color: #99999e;
-    opacity: 1;
-    pointer-events: auto;
-  }
 }

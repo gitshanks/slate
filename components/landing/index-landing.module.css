@@ -267,8 +267,15 @@
 .details {
   position: relative;
   z-index: 3;
+  width: 100%;
+}
+
+.sectionIntro,
+.featureList,
+.faq,
+.closing {
   width: min(100% - 96px, 1080px);
-  margin: 0 auto;
+  margin-inline: auto;
 }
 
 .details p,
@@ -539,7 +546,10 @@
     letter-spacing: 0;
     text-transform: none;
   }
-  .details,
+  .sectionIntro,
+  .featureList,
+  .faq,
+  .closing,
   .footer {
     width: calc(100% - 40px);
   }

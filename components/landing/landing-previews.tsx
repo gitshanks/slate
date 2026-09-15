@@ -93,9 +93,6 @@ export function LandingPreviews({ saveHref }: { saveHref: string }) {
 
   return (
     <div ref={hostRef} className={styles.preview}>
-      <a href="#slate-features" className={styles.skip}>
-        Skip previews <span aria-hidden="true">↓</span>
-      </a>
       {batch ? (
         <DiscoverTitleOverlayProvider publicPreview={{ saveHref }}>
           <div className={styles.frame}>
@@ -127,6 +124,7 @@ export function LandingPreviews({ saveHref }: { saveHref: string }) {
           )}
         </div>
       )}
+      {batch && <p className={styles.hint}>Swipe up or down, or use the arrows.</p>}
     </div>
   );
 }

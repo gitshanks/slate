@@ -853,6 +853,7 @@ function useFloatingPlayerGeometry({
   navigationIndex,
   visible,
   frameHeight,
+  capturePlayerGestures = false,
 }: {
   hostRef: React.RefObject<HTMLDivElement | null>;
   scrollerRef: React.RefObject<HTMLDivElement | null>;
@@ -862,6 +863,7 @@ function useFloatingPlayerGeometry({
   navigationIndex: number;
   visible: boolean;
   frameHeight: number | null;
+  capturePlayerGestures?: boolean;
 }) {
   React.useLayoutEffect(() => {
     const host = hostRef.current;
@@ -907,13 +909,20 @@ function useFloatingPlayerGeometry({
               targetRect.left - hostRect.left - navigationWidth - navigationGap;
           }
 
+          // Embedded previews keep an explicit navigation option on phones,
+          // even when there is no ambient space beside the video.
+          const compactNavigation = capturePlayerGestures && navigationLeft == null;
+          if (compactNavigation) {
+            navigationLeft = hostRect.width - navigationWidth - 12;
+          }
+
           if (navigationLeft == null) {
             desktopNavigation.style.visibility = "hidden";
           } else {
             // Keep the desktop controls still while the snap surface moves
             // beneath them. Following the outgoing slide during wheel travel
             // makes the controls drift, then jump when the next slide wins.
-            const navigationTop = Math.max(
+            const navigationTop = compactNavigation ? 12 : Math.max(
               12,
               Math.min(
                 hostRect.height - navigationHeight - 12,
@@ -941,8 +950,10 @@ function useFloatingPlayerGeometry({
       // A cross-origin iframe consumes touch gestures before the snapping feed
       // can see them. On touch-first devices Slate's controls live below the
       // player, so let the full trailer frame remain a reliable swipe surface.
-      // Fine pointers keep direct YouTube interaction on desktop.
-      shell.style.pointerEvents = interactivePlayer.matches ? "auto" : "none";
+      // The embedded landing feed also needs wheel/trackpad gestures over the
+      // video itself. Its Slate controls handle play, pause, and sound.
+      shell.style.pointerEvents =
+        !capturePlayerGestures && interactivePlayer.matches ? "auto" : "none";
       shell.style.visibility = "visible";
     };
     const schedule = () => {
@@ -988,6 +999,7 @@ function useFloatingPlayerGeometry({
     playerShellRef,
     scrollerRef,
     visible,
+    capturePlayerGestures,
   ]);
 }
 
@@ -1710,6 +1722,7 @@ export function PreviewsFeed({
     navigationIndex: activeIndex,
     visible: playerShellVisible,
     frameHeight,
+    capturePlayerGestures: isPublicPreview,
   });
 
   // YouTube requires scripted playback to begin only after the real player is
@@ -2409,7 +2422,7 @@ export function PreviewsFeed({
           );
         })}
       </div>
-        <div className={cn("preview-feed-a11y-navigation pointer-events-none right-4 z-[80] flex gap-2 opacity-0 transition-opacity focus-within:opacity-100", isPublicPreview ? "absolute top-4" : "fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))]")}>
+        {!isPublicPreview ? <div className="preview-feed-a11y-navigation pointer-events-none right-4 z-[80] flex gap-2 opacity-0 transition-opacity focus-within:opacity-100 fixed bottom-[calc(7rem+env(safe-area-inset-bottom,0px))]">
           <button
             type="button"
             disabled={activeIndex === 0}
@@ -2432,19 +2445,20 @@ export function PreviewsFeed({
           >
             Next preview
           </button>
-        </div>
+        </div> : null}
       <div
         ref={desktopNavigationRef}
         className={cn(
-          "preview-desktop-navigation pointer-events-none invisible absolute left-0 top-0 z-40 w-12 flex-col items-stretch gap-2 opacity-0 transition-opacity duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] [backface-visibility:hidden]",
-          desktopScrollHintVisible
+          "pointer-events-none invisible absolute left-0 top-0 z-40 w-12 flex-col items-stretch gap-2 transition-opacity duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] [backface-visibility:hidden]",
+          isPublicPreview ? "flex" : "preview-desktop-navigation",
+          isPublicPreview || desktopScrollHintVisible
             ? "opacity-100"
-            : "group-hover/previews:opacity-70 focus-within:opacity-100",
+            : "opacity-0 group-hover/previews:opacity-70 focus-within:opacity-100",
         )}
         role="group"
         aria-label="Preview navigation"
       >
-        {desktopScrollHintVisible ? (
+        {!isPublicPreview && desktopScrollHintVisible ? (
           <div
             className="pointer-events-none absolute left-1/2 top-[-2.5rem] flex min-h-7 w-24 -translate-x-1/2 items-center justify-center gap-1 rounded-full border border-white/[0.08] bg-black/30 px-2 py-1 text-center text-[9px] font-medium leading-tight text-white/60"
             aria-hidden
