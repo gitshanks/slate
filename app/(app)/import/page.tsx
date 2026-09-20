@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { ImportWidget } from "@/components/import-widget";
-import { LinkImporter } from "@/components/link-importer";
 
 export const metadata: Metadata = {
   title: "slate · Import",
@@ -18,24 +17,11 @@ export default function ImportPage() {
           Bring it into slate
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Add recommendations from a link, or move an existing watch history
-          over from Letterboxd or Trakt.
+          Move an existing watch history over from Letterboxd or Trakt.
         </p>
       </div>
 
       <section>
-        <p className="mb-3 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-          From anywhere on the web
-        </p>
-        <h2 className="text-xl font-semibold tracking-tight">Add from a link</h2>
-        <p className="mb-4 mt-1 text-sm leading-relaxed text-muted-foreground">
-          Paste a public Instagram, YouTube, TikTok, article, IMDb, or TMDB
-          link. slate finds the movies and shows mentioned inside it.
-        </p>
-        <LinkImporter />
-      </section>
-
-      <section className="mt-12 border-t border-border/70 pt-10 sm:mt-16 sm:pt-12">
         <p className="mb-3 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
           From another service
         </p>

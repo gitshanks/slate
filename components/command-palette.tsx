@@ -25,6 +25,7 @@ import {
   Plus,
   Mic,
   Search,
+  Link2,
 } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb-image";
 import { addTitle } from "@/lib/actions";
@@ -32,6 +33,8 @@ import { RatingPair } from "@/components/rating-pair";
 import { formatTmdbScore, cn } from "@/lib/utils";
 import type { TitleStatus } from "@/lib/supabase";
 import { AiChatPanel } from "@/components/ai-chat-panel";
+import { LinkImporter } from "@/components/link-importer";
+import type { SharedLinkInput } from "@/lib/shared-link-resolver";
 import { useSpeechRecognition } from "@/lib/use-speech-recognition";
 import { toast } from "sonner";
 import {
@@ -165,6 +168,13 @@ function statusLabel(status: TitleStatus) {
   return ADD_STATUSES.find((option) => option.value === status)?.label ?? "Saved";
 }
 
+// Mirrors the resolver's URL extraction: a pasted link turns the palette's
+// primary command into "Add from a link".
+const SHARED_LINK_PATTERN = /https?:\/\/[^\s<>"']+/i;
+function looksLikeSharedLink(value: string): boolean {
+  return SHARED_LINK_PATTERN.test(value);
+}
+
 export function useCommandPalette() {
   const v = React.useContext(Ctx);
   if (!v) throw new Error("useCommandPalette must be used inside CommandPaletteProvider");
@@ -199,6 +209,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     React.useState<InlineResultsGeometry | null>(null);
   const [query, setQuery] = React.useState("");
   const [aiMode, setAiMode] = React.useState(false);
+  const [linkMode, setLinkMode] = React.useState(false);
+  const [linkInput, setLinkInput] = React.useState<SharedLinkInput | null>(null);
   const [askReturnQuery, setAskReturnQuery] = React.useState("");
   const [results, setResults] = React.useState<SearchResult[]>([]);
   const [library, setLibrary] = React.useState<LibraryHit[]>([]);
@@ -233,6 +245,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     blurActiveSmartSearch();
     setActiveSurfaceId(null);
     setAiMode(false);
+    setLinkMode(false);
+    setLinkInput(null);
     setAskReturnQuery("");
     setSubmitTick(0);
     setOpen(true);
@@ -250,6 +264,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     setQuery(initialQuery);
     setAskReturnQuery(options.mode === "ask" ? initialQuery : "");
     setAiMode(options.mode === "ask");
+    setLinkMode(false);
+    setLinkInput(null);
     setOpen(true);
     if (shouldSubmit) {
       setSubmitTick((tick) => tick + 1);
@@ -620,6 +636,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       setJustAdded(new Set());
       setAskReturnQuery("");
       setSubmitTick(0);
+      setLinkMode(false);
+      setLinkInput(null);
       librarySelectionRef.current = null;
     }
   }, [activeSurfaceId, open]);
@@ -998,6 +1016,20 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     inputRef.current?.blur();
   }, [aiEnabled, dismissInline, query]);
 
+  // "Add from a link": a pasted URL becomes the palette's most direct action.
+  // Selecting it hands the query to the AI link resolver inside the dialog.
+  const startLinkImport = React.useCallback(() => {
+    const value = query.trim();
+    if (!value) return;
+    dismissInline();
+    setAiMode(false);
+    setAskReturnQuery("");
+    setLinkInput({ url: value, text: value });
+    setLinkMode(true);
+    setOpen(true);
+    inputRef.current?.blur();
+  }, [dismissInline, query]);
+
   // Enter in Ask submits the input as a chat turn instead of letting cmdk
   // navigate (there is no command list in that state).
   // Blurring after submit dismisses the iOS soft keyboard so the user can
@@ -1241,10 +1273,29 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
       )}
     >
       {/* Exact search stays the default Enter action. Ask lives in the same
-          surface as a contextual command, not a separate mode the user has to
-          turn on before typing. */}
+          surface as a contextual command, and a pasted link swaps the default
+          Enter into the AI link resolver. */}
       {query.trim().length >= 2 && (
         <CommandGroup>
+          {looksLikeSharedLink(query) ? (
+            <CommandItem
+              value="from-link"
+              onSelect={startLinkImport}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                startLinkImport();
+              }}
+              className="gap-3"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/12 text-primary">
+                <Link2 className="h-4 w-4" />
+              </div>
+              <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                Find movies &amp; shows in{" "}
+                <span className="font-medium">this link</span>
+              </span>
+            </CommandItem>
+          ) : null}
           <CommandItem
             value="search-all"
             onSelect={handleSearchAll}
@@ -1304,7 +1355,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
         )}
       {!loading && !query && (
         <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-xs leading-relaxed text-muted-foreground">
-          Find a title, search by cast, or describe what you want to watch.
+          Find a title, search by cast, describe what you want to watch, or
+          paste a link to pull titles from it.
         </div>
       )}
 
@@ -1448,6 +1500,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
         contentClassName="h-[100dvh] rounded-none sm:h-[min(720px,calc(100dvh-2rem))] sm:max-w-2xl sm:rounded-2xl"
       >
         <div className="relative">
+          {!linkMode ? (
+          <>
           <CommandInput
             ref={inputRef}
             placeholder={placeholder}
@@ -1515,6 +1569,8 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
               <ArrowUp className="h-3.5 w-3.5" />
             </button>
           )}
+          </>
+          ) : null}
         </div>
 
         {aiMode ? (
@@ -1539,6 +1595,22 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
               onClose={() => setOpen(false)}
               submitTick={submitTick}
             />
+          </div>
+        ) : linkMode ? (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex items-center border-b border-border/60 px-3 py-2">
+              <button
+                type="button"
+                onClick={() => setLinkMode(false)}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-[background-color,color,transform] hover:bg-accent hover:text-foreground active:scale-[0.97]"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Back to results
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <LinkImporter initialShare={linkInput ?? undefined} autoStart />
+            </div>
           </div>
         ) : (
           renderStandardResults()
