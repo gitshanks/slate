@@ -1630,7 +1630,7 @@ export function CollectionTitleDetailOverlay({
   }, [anchorElementId, anchorTitleId]);
 
   const updatePosition = React.useCallback(() => {
-    if (!anchorTitleId && !anchorElementId) {
+    if (!anchorTitleId && !anchorElementId && !centerWithinSelector) {
       setPosition(null);
       return;
     }
@@ -1828,7 +1828,15 @@ export function CollectionTitleDetailOverlay({
     };
 
     const frameSelection = () => {
-      if (!anchorTitleId && !anchorElementId) return;
+      if (!anchorTitleId && !anchorElementId && !centerWithinSelector) return;
+      if (centerWithinSelector) {
+        // Centered inspectors (landing previews, smart-search results) frame
+        // against the section itself instead of a poster. Skip waiting for an
+        // anchor and any source card scrolling; the section defines placement.
+        updatePosition();
+        finish();
+        return;
+      }
       const source = resolveAnchorElement();
       if (!source) {
         attempts += 1;
@@ -1839,12 +1847,6 @@ export function CollectionTitleDetailOverlay({
       }
 
       updatePosition();
-      if (centerWithinSelector) {
-        // The info control sits at the foot of the video. Framing that control
-        // like a poster would shift the whole page away from the video center.
-        finish();
-        return;
-      }
       const scrollContainer = resolveScrollFrame();
       const containerRect = scrollContainer?.getBoundingClientRect();
       const topAnchorRect = centerAfterId

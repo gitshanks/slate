@@ -47,6 +47,8 @@ interface SavedState {
   record: PublicSpatialSavedTitle | null;
 }
 
+export type { SavedState };
+
 const detailSource = {
   getCached: (title: TitleRow) => getCachedDiscoverTitleDetail(title),
   load: (title: TitleRow) => loadDiscoverTitleDetail(title),
@@ -65,7 +67,7 @@ function titleKey(title: Pick<TitleRow, "tmdb_id" | "media_type">) {
   return `${title.media_type}:${title.tmdb_id}`;
 }
 
-function catalogueTitle(item: TmdbSearchResult): TitleRow {
+export function catalogueTitle(item: TmdbSearchResult): TitleRow {
   const mediaType = item.media_type === "tv" ? "tv" : "movie";
   return {
     id: `discover-${mediaType}-${item.id}`,
@@ -110,7 +112,7 @@ const STATUS_OPTIONS: {
   { value: "watched", label: "Watched" },
 ];
 
-function DiscoverTitleActions({
+export function DiscoverTitleActions({
   title,
   detail,
   savedFallback,

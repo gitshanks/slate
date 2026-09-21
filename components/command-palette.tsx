@@ -34,6 +34,20 @@ import { formatTmdbScore, cn } from "@/lib/utils";
 import type { TitleStatus } from "@/lib/supabase";
 import { AiChatPanel } from "@/components/ai-chat-panel";
 import { LinkImporter } from "@/components/link-importer";
+import {
+  CollectionTitleDetailOverlay,
+  type TitleDetailSource,
+  type TitleDetailActionsRenderer,
+} from "@/components/spatial-poster-grid";
+import {
+  DiscoverTitleActions,
+  catalogueTitle,
+} from "@/components/discover-title-overlay";
+import {
+  getCachedDiscoverTitleDetail,
+  loadDiscoverTitleDetail,
+  updateCachedDiscoverTitleSavedTitle,
+} from "@/lib/discover-title-detail-cache";
 import type { SharedLinkInput } from "@/lib/shared-link-resolver";
 import { useSpeechRecognition } from "@/lib/use-speech-recognition";
 import { toast } from "sonner";
@@ -49,7 +63,10 @@ interface SearchResult {
   media_type: "movie" | "tv";
   title?: string;
   name?: string;
+  original_title?: string;
+  original_name?: string;
   poster_path: string | null;
+  backdrop_path: string | null;
   release_date?: string;
   first_air_date?: string;
   overview?: string;
@@ -175,6 +192,14 @@ function looksLikeSharedLink(value: string): boolean {
   return SHARED_LINK_PATTERN.test(value);
 }
 
+// The smart-search result card reuses the same catalogue detail source as the
+// Discover rails, so a card opened from a completed search shares the session
+// cache with tiles the user taps in Discover.
+const paletteTitleDetailSource: TitleDetailSource = {
+  getCached: (title) => getCachedDiscoverTitleDetail(title),
+  load: (title) => loadDiscoverTitleDetail(title),
+};
+
 export function useCommandPalette() {
   const v = React.useContext(Ctx);
   if (!v) throw new Error("useCommandPalette must be used inside CommandPaletteProvider");
@@ -222,6 +247,12 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
   const [adding, setAdding] = React.useState<Set<string>>(new Set());
   const [justAdded, setJustAdded] = React.useState<Set<string>>(new Set());
+  // A catalogue result chosen from the palette opens as the same title card
+  // used across the app, centered over the app frame instead of beside a
+  // poster. Held outside the dialog so it survives the palette closing.
+  const [paletteSlab, setPaletteSlab] = React.useState<SearchResult | null>(
+    null,
+  );
   // Bumped each time the user submits an Ask — picked up by AiChatPanel
   // to fire the next chat turn.
   const [submitTick, setSubmitTick] = React.useState(0);
@@ -920,9 +951,41 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     (item: SearchResult) => {
       setOpen(false);
       dismissInline();
-      router.push(`/discover/${item.media_type}/${item.id}`);
+      setPaletteSlab(item);
     },
-    [dismissInline, router]
+    [dismissInline]
+  );
+
+  // The palette result card reuses Discover's status actions, so adding from a
+  // search feels identical to adding from a Discover rail. Saved-state comes
+  // from the session `saved` map (or the detail payload once it resolves).
+  const paletteRenderActions = React.useCallback<TitleDetailActionsRenderer>(
+    (title, detail) => {
+      const key = `${title.media_type}-${title.tmdb_id}`;
+      const hit = saved[key];
+      const record = hit ? { id: hit.id, status: hit.status } : null;
+      return (
+        <DiscoverTitleActions
+          title={title}
+          detail={detail}
+          savedFallback={Boolean(hit) || justAdded.has(key)}
+          savedState={record ? { saved: true, record } : undefined}
+          onSaved={(nextRecord) => {
+            setSaved((current) => ({
+              ...current,
+              [key]: {
+                id: nextRecord.id,
+                tmdb_id: title.tmdb_id,
+                media_type: title.media_type,
+                status: nextRecord.status,
+              },
+            }));
+            updateCachedDiscoverTitleSavedTitle(title, nextRecord);
+          }}
+        />
+      );
+    },
+    [justAdded, saved],
   );
 
   const handleLibrarySelect = React.useCallback(
@@ -1157,8 +1220,11 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     const isAdding = adding.has(key);
     const currentStatus = savedTitle?.status ?? (justAdded.has(key) ? "want" : null);
     const selectResult = () => {
-      if (savedTitle) handleSavedTitleSelect(savedTitle);
-      else handleSelect(result);
+      if (savedTitle && librarySelectionRef.current) {
+        handleSavedTitleSelect(savedTitle);
+      } else {
+        handleSelect(result);
+      }
     };
 
     return (
@@ -1616,6 +1682,17 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
           renderStandardResults()
         )}
         </CommandDialog>
+        {paletteSlab ? (
+          <CollectionTitleDetailOverlay
+            key={`palette-${paletteSlab.media_type}-${paletteSlab.id}`}
+            title={catalogueTitle(paletteSlab)}
+            detailSource={paletteTitleDetailSource}
+            renderActions={paletteRenderActions}
+            scrollContainerId="app-scroll-area"
+            centerWithinSelector="[data-title-overlay-safe-area]"
+            onClose={() => setPaletteSlab(null)}
+          />
+        ) : null}
       </SessionCtx.Provider>
     </Ctx.Provider>
   );
