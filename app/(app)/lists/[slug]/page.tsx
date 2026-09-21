@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
+import { ListPlus } from "lucide-react";
 import { type ListRow, type TitleRow } from "@/lib/supabase";
 import { getLibraryClient } from "@/lib/library-db";
-import { MediaGrid } from "@/components/media-grid";
+import { DiscoverTitleOverlayProvider } from "@/components/discover-title-overlay";
+import { ListTitlesOverlayGrid } from "@/components/list-titles-overlay-grid";
 import { EmptyState } from "@/components/empty-state";
 import { AddToListPicker } from "@/components/add-to-list-picker";
 import { DeleteListButton } from "@/components/delete-list-button";
 import { ShareListButton } from "@/components/share-list-button";
-import { ListPlus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,16 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
   const inThisList = new Set(titles.map((t) => t.id));
   const candidates = (libRows ?? []).filter((t) => !inThisList.has(t.id));
 
+  // All owner lists, for the overlay's add-to-list picker.
+  const { data: listsRows } = await db
+    .from("lists")
+    .select("id, name")
+    .order("name");
+  const allLists = (listsRows ?? []).map((row) => ({
+    id: String(row.id),
+    name: String(row.name),
+  }));
+
   return (
     <div>
       <div className="mb-10 flex items-start justify-between gap-4">
@@ -76,13 +87,15 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
           description="Add titles from your library above."
         />
       ) : (
-        <MediaGrid
-          titles={titles}
-          reorderContext={{
-            kind: "list",
-            listId: (list as ListRow).id,
-          }}
-        />
+        <DiscoverTitleOverlayProvider lists={allLists}>
+          <ListTitlesOverlayGrid
+            titles={titles}
+            reorderContext={{
+              kind: "list",
+              listId: (list as ListRow).id,
+            }}
+          />
+        </DiscoverTitleOverlayProvider>
       )}
     </div>
   );
