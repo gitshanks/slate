@@ -5,7 +5,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { AppScrollArea } from "@/components/app-scroll-area";
 import { DemoBanner } from "@/components/demo-banner";
 import { aiSearchEnabled } from "@/lib/ai-search";
-import { getLibraryOwnerId } from "@/lib/library-db";
+import { getLibraryClient, getLibraryOwnerId } from "@/lib/library-db";
 import { getProfileById, profileAvatarUrl } from "@/lib/profiles";
 import { SLATE_HOSTED, SLATE_PUBLIC } from "@/lib/public-mode";
 
@@ -13,15 +13,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // This layout and the data-access layer are the authorization boundary.
   // Keeping the check here avoids a billable Proxy invocation on every route.
   const ownerId = await getLibraryOwnerId();
-  const profile = SLATE_HOSTED
-    ? await getProfileById(ownerId)
-    : null;
+  const [profile, db] = await Promise.all([
+    SLATE_HOSTED ? getProfileById(ownerId) : Promise.resolve(null),
+    getLibraryClient(),
+  ]);
+  const listsResult = await db.from("lists").select("id, name").order("name");
+  const lists = (listsResult.data ?? []).map((list) => ({
+    id: String(list.id),
+    name: String(list.name),
+  }));
 
   return (
     // AiConversationProvider wraps everything so the command palette and the
     // /discover page share one live AI thread across client-side navigation.
     <AiConversationProvider>
-      <CommandPaletteProvider aiEnabled={aiSearchEnabled}>
+      <CommandPaletteProvider aiEnabled={aiSearchEnabled} lists={lists}>
         {/* Mobile navigation stays in the app stack so only the middle region
             scrolls, avoiding iOS drift after keyboard dismissal. Desktop uses
             the same dock as a compact fixed surface over document scrolling. */}

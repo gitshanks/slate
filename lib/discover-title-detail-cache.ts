@@ -18,7 +18,7 @@ export function getCachedDiscoverTitleDetail(
 
 export function updateCachedDiscoverTitleSavedTitle(
   title: Pick<TitleRow, "media_type" | "tmdb_id">,
-  savedTitle: PublicSpatialSavedTitle,
+  savedTitle: PublicSpatialSavedTitle | null,
 ) {
   const key = keyFor(title);
   const cached = details.get(key);
@@ -27,13 +27,14 @@ export function updateCachedDiscoverTitleSavedTitle(
   details.set(key, {
     ...cached,
     savedTitle,
-    resolvedTitle: cached.resolvedTitle
-      ? {
-          ...cached.resolvedTitle,
-          id: savedTitle.id,
-          status: savedTitle.status,
-        }
-      : cached.resolvedTitle,
+    resolvedTitle:
+      cached.resolvedTitle && savedTitle
+        ? {
+            ...cached.resolvedTitle,
+            id: savedTitle.id,
+            status: savedTitle.status,
+          }
+        : cached.resolvedTitle,
   });
 }
 

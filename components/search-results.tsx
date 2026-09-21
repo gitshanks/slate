@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Film, Tv, LayoutGrid } from "lucide-react";
-import { MediaGrid } from "@/components/media-grid";
 import { MotionGrid, MotionItem } from "@/components/motion-grid";
 import { LIBRARY_POSTER_GRID_CLASS_NAME } from "@/components/poster-grid-geometry";
 import { TmdbTile } from "@/components/tmdb-tile";
@@ -27,6 +26,28 @@ const CONTAINER_SIZED_LIBRARY_GRID_CLASS =
 
 const SECTION_HEADING =
   "mb-4 text-lg font-semibold tracking-tight text-foreground sm:text-xl";
+
+/**
+ * Library hits render through the same card as catalogue results so a click
+ * opens the shared title overlay instead of navigating to /title/{id}. The
+ * tmdb shape carries everything the card and overlay need.
+ */
+function toTmdbItem(title: TitleRow): TmdbMediaResult {
+  return {
+    id: title.tmdb_id,
+    media_type: title.media_type,
+    title: title.title,
+    name: title.title,
+    original_title: title.original_title ?? undefined,
+    original_name: title.original_title ?? undefined,
+    overview: title.overview ?? undefined,
+    poster_path: title.poster_path,
+    backdrop_path: title.backdrop_path,
+    release_date: title.release_date ?? undefined,
+    vote_average: title.tmdb_rating ?? undefined,
+    vote_count: title.tmdb_vote_count ?? undefined,
+  };
+}
 
 /**
  * Client wrapper for the search-results sections. The All / Films / Series
@@ -76,11 +97,26 @@ export function SearchResults({
       {filteredLibrary.length > 0 && (
         <section>
           <h2 className={SECTION_HEADING}>In your library</h2>
-          <MediaGrid
-            titles={filteredLibrary}
-            compactMobile={matchLibrary}
-            presentation={matchLibrary ? "profile" : "default"}
-          />
+          <MotionGrid
+            className={
+              matchLibrary
+                ? containerSized
+                  ? CONTAINER_SIZED_LIBRARY_GRID_CLASS
+                  : LIBRARY_POSTER_GRID_CLASS_NAME
+                : GRID_CLASS
+            }
+          >
+            {filteredLibrary.map((title) => (
+              <MotionItem key={`${title.media_type}-${title.tmdb_id}`}>
+                <TmdbTile
+                  item={toTmdbItem(title)}
+                  variant="grid"
+                  saved
+                  presentation={presentation}
+                />
+              </MotionItem>
+            ))}
+          </MotionGrid>
         </section>
       )}
 

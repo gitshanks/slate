@@ -11,6 +11,7 @@ import {
   type DiscoverTitleOverlayContextValue,
 } from "@/components/discover-title-overlay-context";
 import { StatusPill } from "@/components/status-pill";
+import { LibraryTitleActions } from "@/components/library-title-actions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -103,6 +104,24 @@ export function catalogueTitle(item: TmdbSearchResult): TitleRow {
   };
 }
 
+/**
+ * Upgrade a catalogue overlay row to the real library row once the detail (or
+ * a just-completed add) supplies the owned title id. The resolved row wins so
+ * the library controls read actual rating / review / genres, not placeholder
+ * catalogue fields.
+ */
+export function libraryRowFor(
+  title: TitleRow,
+  detail: PublicSpatialTitleDetail | null,
+  record: PublicSpatialSavedTitle,
+): TitleRow {
+  return {
+    ...(detail?.resolvedTitle ?? title),
+    id: record.id,
+    status: record.status,
+  };
+}
+
 const STATUS_OPTIONS: {
   value: Exclude<TitleStatus, "dropped">;
   label: string;
@@ -127,12 +146,27 @@ export function DiscoverTitleActions({
 }) {
   const [isPending, startTransition] = React.useTransition();
   const detailRecord = detail?.savedTitle ?? null;
-  const record = savedState?.record ?? detailRecord;
-  const saved = savedState?.saved ?? (savedFallback || Boolean(detailRecord));
+  // When the caller hands us provider-owned state it is authoritative — an
+  // explicit `{ saved: false, record: null }` after a removal must override a
+  // stale `detail.savedTitle` from the pre-removal snapshot. Only fall back to
+  // the detail when the caller has no opinion yet.
+  const record = savedState ? savedState.record : detailRecord;
+  const saved = savedState
+    ? savedState.saved
+    : savedFallback || Boolean(detailRecord);
 
+  // Seed provider state from the detail once, so the full library controls can
+  // replace this slim version. Never re-seed after the caller has removed the
+  // title (`saved: false`).
   React.useEffect(() => {
-    if (detailRecord && !savedState?.record) onSaved(detailRecord);
-  }, [detailRecord, onSaved, savedState?.record]);
+    if (
+      detailRecord &&
+      (!savedState || savedState.saved) &&
+      !savedState?.record
+    ) {
+      onSaved(detailRecord);
+    }
+  }, [detailRecord, onSaved, savedState]);
 
   if (record) {
     return (
@@ -218,9 +252,12 @@ export function DiscoverTitleActions({
 export function DiscoverTitleOverlayProvider({
   children,
   publicPreview,
+  lists = [],
 }: {
   children: React.ReactNode;
   publicPreview?: { saveHref: string };
+  /** Owner list names for the add-to-list control once a title is saved. */
+  lists?: { id: string; name: string }[];
 }) {
   const isPublicPreview = Boolean(publicPreview);
   const activeDetailSource = isPublicPreview
@@ -312,6 +349,22 @@ export function DiscoverTitleOverlayProvider({
     [rememberSaved],
   );
 
+  const forgetSaved = React.useCallback(
+    (title: Pick<TitleRow, "media_type" | "tmdb_id">) => {
+      if (isPublicPreview) return;
+      const key = titleKey(title);
+      void updateCachedDiscoverTitleSavedTitle(title, null);
+      setSavedTitles((current) => {
+        const existing = current.get(key);
+        if (!existing?.record) return current;
+        const next = new Map(current);
+        next.set(key, { saved: false, record: null });
+        return next;
+      });
+    },
+    [isPublicPreview],
+  );
+
   const context = React.useMemo<DiscoverTitleOverlayContextValue>(
     () => ({
       selectedAnchorElementId: selection?.anchorElementId ?? null,
@@ -352,17 +405,32 @@ export function DiscoverTitleOverlayProvider({
         );
       }
       const key = titleKey(title);
+      const state = savedTitles.get(key);
+      // The provider's map is authoritative once it holds an entry (open /
+      // add always record one); only fall back to the detail when it has none.
+      const record = state ? state.record : (detail?.savedTitle ?? null);
+      if (record) {
+        // A saved title renders the same controls as the Library inspector:
+        // status pill, sentiment, add-to-list, note, remove.
+        return (
+          <LibraryTitleActions
+            title={libraryRowFor(title, detail, record)}
+            lists={lists}
+            onRemoved={() => forgetSaved(title)}
+          />
+        );
+      }
       return (
         <DiscoverTitleActions
           title={title}
           detail={detail}
           savedFallback={selection.savedFallback}
-          savedState={savedTitles.get(key)}
-          onSaved={(record) => rememberSaved(title, record)}
+          savedState={state}
+          onSaved={(nextRecord) => rememberSaved(title, nextRecord)}
         />
       );
     },
-    [publicPreview, rememberSaved, savedTitles, selection],
+    [forgetSaved, lists, publicPreview, rememberSaved, savedTitles, selection],
   );
 
   return (

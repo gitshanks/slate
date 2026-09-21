@@ -42,7 +42,9 @@ import {
 import {
   DiscoverTitleActions,
   catalogueTitle,
+  libraryRowFor,
 } from "@/components/discover-title-overlay";
+import { LibraryTitleActions } from "@/components/library-title-actions";
 import {
   getCachedDiscoverTitleDetail,
   loadDiscoverTitleDetail,
@@ -220,9 +222,15 @@ interface ProviderProps {
   children: React.ReactNode;
   /** Set server-side from `aiSearchEnabled`. When false the AI toggle is hidden. */
   aiEnabled?: boolean;
+  /** Owner list names for the add-to-list control on a freshly saved title. */
+  lists?: { id: string; name: string }[];
 }
 
-export function CommandPaletteProvider({ children, aiEnabled = false }: ProviderProps) {
+export function CommandPaletteProvider({
+  children,
+  aiEnabled = false,
+  lists = [],
+}: ProviderProps) {
   const [open, setOpen] = React.useState(false);
   const [activeSurfaceId, setActiveSurfaceId] = React.useState<string | null>(
     null,
@@ -253,6 +261,10 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
   const [paletteSlab, setPaletteSlab] = React.useState<SearchResult | null>(
     null,
   );
+  // Keys removed from Library inside an open slab. The slab's detail snapshot
+  // still describes the pre-removal row, so this suppresses its stale
+  // `savedTitle` and flips the controls back to the add action.
+  const paletteRemovedKeysRef = React.useRef<Set<string>>(new Set());
   // Bumped each time the user submits an Ask — picked up by AiChatPanel
   // to fire the next chat turn.
   const [submitTick, setSubmitTick] = React.useState(0);
@@ -956,20 +968,57 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
     [dismissInline]
   );
 
-  // The palette result card reuses Discover's status actions, so adding from a
-  // search feels identical to adding from a Discover rail. Saved-state comes
-  // from the session `saved` map (or the detail payload once it resolves).
+  // The palette result card opens the same title card as Discover, and once a
+  // title is in Library its controls become the full inspector set. Saved-state
+  // comes from the session `saved` map (or the detail payload once it resolves).
   const paletteRenderActions = React.useCallback<TitleDetailActionsRenderer>(
     (title, detail) => {
       const key = `${title.media_type}-${title.tmdb_id}`;
       const hit = saved[key];
-      const record = hit ? { id: hit.id, status: hit.status } : null;
+      const removed = paletteRemovedKeysRef.current.has(key);
+      const record = hit
+        ? { id: hit.id, status: hit.status }
+        : removed
+          ? null
+          : (detail?.savedTitle ?? null);
+
+      const clearSaved = () => {
+        paletteRemovedKeysRef.current.add(key);
+        updateCachedDiscoverTitleSavedTitle(title, null);
+        setSaved((current) => {
+          const next = { ...current };
+          delete next[key];
+          return next;
+        });
+        setJustAdded((current) => {
+          const next = new Set(current);
+          next.delete(key);
+          return next;
+        });
+      };
+
+      if (record) {
+        return (
+          <LibraryTitleActions
+            title={libraryRowFor(title, detail, record)}
+            lists={lists}
+            onRemoved={clearSaved}
+          />
+        );
+      }
+
       return (
         <DiscoverTitleActions
           title={title}
           detail={detail}
-          savedFallback={Boolean(hit) || justAdded.has(key)}
-          savedState={record ? { saved: true, record } : undefined}
+          savedFallback={removed ? false : Boolean(hit) || justAdded.has(key)}
+          savedState={
+            removed
+              ? { saved: false, record: null }
+              : hit
+                ? { saved: true, record }
+                : undefined
+          }
           onSaved={(nextRecord) => {
             setSaved((current) => ({
               ...current,
@@ -985,7 +1034,7 @@ export function CommandPaletteProvider({ children, aiEnabled = false }: Provider
         />
       );
     },
-    [justAdded, saved],
+    [justAdded, lists, saved],
   );
 
   const handleLibrarySelect = React.useCallback(

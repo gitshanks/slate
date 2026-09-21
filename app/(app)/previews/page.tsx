@@ -106,7 +106,7 @@ export default async function PreviewsPage() {
   }));
 
   return (
-    <DiscoverTitleOverlayProvider>
+    <DiscoverTitleOverlayProvider lists={lists}>
       <PreviewsFeed
         items={batch.items}
         attemptedKeys={batch.attemptedKeys}

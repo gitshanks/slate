@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { SearchX } from "lucide-react";
 import { searchEverything } from "@/lib/search";
+import { getLibraryClient } from "@/lib/library-db";
 import { SearchResults } from "@/components/search-results";
+import { DiscoverTitleOverlayProvider } from "@/components/discover-title-overlay";
 import { EmptyState } from "@/components/empty-state";
 import type { PersonTile } from "@/components/people-grid";
 import {
@@ -51,6 +53,12 @@ export default async function SearchPage(props: PageProps<"/search">) {
     await searchEverything(q);
 
   const nothing = library.length === 0 && media.length === 0 && people.length === 0;
+  const db = await getLibraryClient();
+  const listsResult = await db.from("lists").select("id, name").order("name");
+  const lists = (listsResult.data ?? []).map((list) => ({
+    id: String(list.id),
+    name: String(list.name),
+  }));
 
   return (
     <div>
@@ -76,12 +84,14 @@ export default async function SearchPage(props: PageProps<"/search">) {
           description="Try a different spelling or fewer words."
         />
       ) : (
-        <SearchResults
-          library={library}
-          media={media}
-          people={people.map(toPersonTile)}
-          savedTmdbIds={[...savedTmdbIds]}
-        />
+        <DiscoverTitleOverlayProvider lists={lists}>
+          <SearchResults
+            library={library}
+            media={media}
+            people={people.map(toPersonTile)}
+            savedTmdbIds={[...savedTmdbIds]}
+          />
+        </DiscoverTitleOverlayProvider>
       )}
     </div>
   );
