@@ -225,3 +225,13 @@ export function createNeonClient() {
     },
   };
 }
+
+/** Run fixed, developer-authored SQL that cannot be expressed by the small
+ * Supabase-compatible query builder (for example an idempotent migration). */
+export async function runNeonQuery<Row extends Record<string, unknown> = Record<string, unknown>>(
+  text: string,
+  params: unknown[] = [],
+): Promise<Row[]> {
+  const result = await getPool().query(text, params);
+  return result.rows as Row[];
+}

@@ -5,6 +5,7 @@ import { cache } from "react";
 import { getLibraryClient, getLibraryOwnerId } from "@/lib/library-db";
 import { profileAvatarUrl, type ProfileRow } from "@/lib/profiles";
 import { SLATE_HOSTED } from "@/lib/public-mode";
+import { ensureSharedListSchema } from "@/lib/shared-list-schema";
 import { supabase } from "@/lib/supabase";
 import type { AccessibleList, ListRow, SharedListPerson, TitleRow } from "@/lib/types";
 
@@ -100,6 +101,9 @@ export async function getAccessibleListsForOwner(ownerId: string): Promise<Acces
   if (ownedError) throw new Error(ownedError.message);
   if (membershipError) {
     if (collaborationSchemaMissing(membershipError)) {
+      if (await ensureSharedListSchema()) {
+        return getAccessibleListsForOwner(ownerId);
+      }
       return decorateLists((owned ?? []) as ListRow[], ownerId, []);
     }
     throw new Error(membershipError.message);
@@ -199,6 +203,9 @@ export async function getAccessibleList(segment: string): Promise<AccessibleList
     .eq("list_id", list.id);
   if (error) {
     if (list.owner_id === ownerId && collaborationSchemaMissing(error)) {
+      if (await ensureSharedListSchema()) {
+        return getAccessibleList(segment);
+      }
       return (await decorateLists([list], ownerId, []))[0] ?? null;
     }
     throw new Error(error.message);
@@ -241,6 +248,7 @@ export async function createListInvite(listId: string) {
   const ownerId = await getLibraryOwnerId();
   const list = await requireListAccessForOwner(ownerId, listId, true);
   if (!SLATE_HOSTED) throw new Error("Shared lists require a hosted Slate account");
+  await ensureSharedListSchema();
   const token = randomBytes(24).toString("base64url");
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1_000).toISOString();
   await supabase.from("list_invites").delete().eq("list_id", list.id);
