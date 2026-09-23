@@ -9,6 +9,7 @@ import {
 import { getNativeTitleDetail } from "@/lib/native-api/title-detail";
 import { authenticateNativeRequest } from "@/lib/native-api/tokens";
 import type { TitleRow, TitleStatus } from "@/lib/types";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -112,6 +113,8 @@ export async function PATCH(
     if (error || !data) {
       throw new NativeApiError(404, "not_found", "This title is not in your library.");
     }
+    revalidatePath("/discover");
+    revalidatePath("/previews");
     return apiData(titleDTO(data as TitleRow));
   } catch (error) {
     return apiError(error);
@@ -137,6 +140,8 @@ export async function DELETE(
     if (error || !data) {
       throw new NativeApiError(404, "not_found", "This title is not in your library.");
     }
+    revalidatePath("/discover");
+    revalidatePath("/previews");
     return apiData({ deleted: true });
   } catch (error) {
     return apiError(error);

@@ -55,7 +55,7 @@ async function RecommendationsLoader({
 }
 
 /**
- * Server wrapper that fetches the watched-history-based recommendations
+ * Server wrapper that fetches library-based recommendations
  * and hands them (preloaded) to the expandable client section. Matches
  * the Suspense + skeleton pattern of TmdbRailAsync.
  */

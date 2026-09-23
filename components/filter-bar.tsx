@@ -34,6 +34,8 @@ export interface FilterBarProps {
   statusOptions?: readonly SegmentedFilterOption[];
   /** URL parameter used by the optional collection scope. */
   statusParam?: string;
+  /** Selected collection when the URL does not specify one. */
+  defaultStatus?: string;
   /** Lets status segments match the height of adjacent filter chips. */
   fullHeightStatus?: boolean;
   /** Keeps Motion layout IDs unique when multiple filter bars are mounted. */
@@ -78,6 +80,7 @@ export function FilterBar({
   recentSortLabel = "Recently added",
   statusOptions,
   statusParam = "status",
+  defaultStatus = "",
   fullHeightStatus = false,
   idPrefix = "library",
   popoverClassName,
@@ -93,7 +96,8 @@ export function FilterBar({
   const selectedSort = searchParams.get("sort") ?? "";
   const currentSort = showSort ? selectedSort : "";
   const currentSentiment = searchParams.get("sentiment") ?? "";
-  const currentStatus = statusOptions ? (searchParams.get(statusParam) ?? "") : "";
+  const explicitStatus = statusOptions ? searchParams.get(statusParam) : null;
+  const currentStatus = statusOptions ? (explicitStatus ?? defaultStatus) : "";
 
   const activeGenre = genres.find((g) => String(g.id) === currentGenre);
   const activeType = TYPE_OPTIONS.find((option) => option.value === currentType);
@@ -147,7 +151,7 @@ export function FilterBar({
     currentYear ||
     currentSort ||
     currentSentiment ||
-    currentStatus;
+    (currentStatus && currentStatus !== defaultStatus);
 
   const sortOptions = React.useMemo(() => {
     const options = [

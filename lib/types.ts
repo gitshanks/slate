@@ -51,3 +51,15 @@ export interface ListRow {
   created_at: string;
   updated_at?: string;
 }
+
+export interface SharedListPerson {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface AccessibleList extends ListRow {
+  isOwner: boolean;
+  owner: SharedListPerson | null;
+  members: SharedListPerson[];
+}

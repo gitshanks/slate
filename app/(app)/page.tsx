@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Film } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { LibraryCollectionView } from "@/components/library-collection-view";
-import { getLibraryClient, getLibraryOwnerId } from "@/lib/library-db";
+import { getLibraryOwnerId } from "@/lib/library-db";
+import { getEditableListOptions } from "@/lib/shared-lists";
 import { getProfileById, profileAvatarUrl } from "@/lib/profiles";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { fetchTitlesByStatus } from "@/lib/title-filters";
@@ -27,16 +28,15 @@ function interleaveShelves(shelves: TitleRow[][]) {
 }
 
 export default async function LibraryPage() {
-  const [ownerId, db, watchlist, watching, watched] = await Promise.all([
+  const [ownerId, watchlist, watching, watched] = await Promise.all([
     getLibraryOwnerId(),
-    getLibraryClient(),
     fetchTitlesByStatus("want"),
     fetchTitlesByStatus("watching"),
     fetchTitlesByStatus("watched"),
   ]);
-  const [profile, listsResult] = await Promise.all([
+  const [profile, lists] = await Promise.all([
     SLATE_HOSTED ? getProfileById(ownerId) : Promise.resolve(null),
-    db.from("lists").select("id, name").order("name", { ascending: true }),
+    getEditableListOptions(),
   ]);
   const firstError = watchlist.error ?? watching.error ?? watched.error;
 
@@ -55,10 +55,6 @@ export default async function LibraryPage() {
     watching.titles,
     watched.titles,
   ]);
-  const lists = ((listsResult.data ?? []) as { id: string; name: string }[]).map(
-    ({ id, name }) => ({ id, name }),
-  );
-
   return (
     <LibraryCollectionView
       titles={titles}

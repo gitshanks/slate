@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { DiscoverTitleOverlayProvider } from "@/components/discover-title-overlay";
 import { PreviewsFeed } from "@/components/previews-feed";
 import { getLibraryClient, getLibraryOwnerId } from "@/lib/library-db";
+import { getEditableListOptions } from "@/lib/shared-lists";
 import { getAllLibraryTitleKeys } from "@/lib/library-title-keys";
 import { getPreviewFeedbackProfile } from "@/lib/preview-feedback";
 import { getPreviewFeedBatch } from "@/lib/tmdb";
@@ -74,13 +75,12 @@ export default async function PreviewsPage() {
   const playerOrigin = /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(host)
     ? `${protocol}://${host}`
     : undefined;
-  const [savedKeys, listsResult, feedbackProfile] = await Promise.all([
+  const [savedKeys, lists, feedbackProfile] = await Promise.all([
     getAllLibraryTitleKeys(db),
-    db.from("lists").select("id, name").order("name"),
+    getEditableListOptions(),
     getPreviewFeedbackProfile(),
   ]);
 
-  if (listsResult.error) throw new Error(listsResult.error.message);
   const profileKey = createHash("sha256")
     .update(ownerId, "utf8")
     .digest("hex")
@@ -100,11 +100,6 @@ export default async function PreviewsPage() {
     softExcludedKeys: new Set(exposureKeys),
   } as const;
   const batch = await getPreviewFeedBatch(savedKeys, feedOptions);
-  const lists = (listsResult.data ?? []).map((list) => ({
-    id: String(list.id),
-    name: String(list.name),
-  }));
-
   return (
     <DiscoverTitleOverlayProvider lists={lists}>
       <PreviewsFeed

@@ -175,6 +175,32 @@ create table if not exists profiles (
 create index if not exists profiles_public_username_idx
   on profiles (username) where is_public;
 
+-- A shared list keeps one clear owner while invited people receive editor
+-- access. Invite secrets are stored as hashes, so a database read cannot be
+-- turned into a usable invitation URL.
+create table if not exists list_members (
+  list_id     uuid not null references lists(id) on delete cascade,
+  profile_id text not null references profiles(id) on delete cascade,
+  role        text not null default 'editor' check (role = 'editor'),
+  invited_by  text references profiles(id) on delete set null,
+  joined_at   timestamptz not null default now(),
+  primary key (list_id, profile_id)
+);
+
+create index if not exists list_members_profile_idx
+  on list_members (profile_id, joined_at desc);
+
+create table if not exists list_invites (
+  id          uuid primary key default gen_random_uuid(),
+  list_id     uuid not null references lists(id) on delete cascade,
+  token_hash  text unique not null,
+  created_by  text not null references profiles(id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  expires_at  timestamptz not null
+);
+
+create index if not exists list_invites_list_idx on list_invites (list_id);
+
 -- Native clients authenticate with Google or Apple ID tokens, then receive a
 -- short-lived Slate access token plus a rotating refresh token. Provider
 -- identities are deliberately separate from profiles so another identity can

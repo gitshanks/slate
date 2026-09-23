@@ -4,6 +4,7 @@ import { apiData, apiError, NativeApiError, optionalString, readJsonObject } fro
 import { authenticateNativeRequest } from "@/lib/native-api/tokens";
 import type { ListRow } from "@/lib/types";
 import { slugify } from "@/lib/utils";
+import { getAccessibleListsForOwner, getListCardRows } from "@/lib/shared-lists";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,22 +12,12 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const claims = await authenticateNativeRequest(request);
-    const db = libraryClientForOwner(claims.ownerId);
-    const { data: lists, error } = await db
-      .from("lists")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    const ids = (lists ?? []).map((list) => String(list.id));
+    const lists = await getAccessibleListsForOwner(claims.ownerId);
+    const ids = lists.map((list) => String(list.id));
     const summaries = new Map<string, { count: number; posterPaths: string[] }>();
     if (ids.length) {
-      const { data: rows, error: rowsError } = await db
-        .from("list_titles")
-        .select("list_id, position, titles(poster_path)")
-        .in("list_id", ids)
-        .order("position", { ascending: true });
-      if (rowsError) throw new Error(rowsError.message);
-      for (const row of rows ?? []) {
+      const rows = await getListCardRows(ids);
+      for (const row of rows) {
         const id = String(row.list_id);
         const summary = summaries.get(id) ?? { count: 0, posterPaths: [] };
         summary.count += 1;
@@ -40,7 +31,7 @@ export async function GET(request: Request) {
       }
     }
     return apiData({
-      lists: ((lists ?? []) as ListRow[]).map((list) => ({
+      lists: lists.map((list) => ({
         ...listDTO(list),
         count: summaries.get(list.id)?.count ?? 0,
         posterPaths: summaries.get(list.id)?.posterPaths ?? [],

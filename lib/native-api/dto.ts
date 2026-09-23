@@ -1,6 +1,6 @@
 import type { ProfileRow } from "@/lib/profiles";
 import { profileAvatarUrl } from "@/lib/profiles";
-import type { ListRow, TitleRow } from "@/lib/types";
+import type { AccessibleList, ListRow, TitleRow } from "@/lib/types";
 
 export function profileDTO(profile: ProfileRow, origin: string) {
   return {
@@ -48,7 +48,15 @@ export function titleDTO(title: TitleRow) {
   };
 }
 
-export function listDTO(list: ListRow) {
+export function listDTO(list: ListRow | AccessibleList) {
+  const access = "isOwner" in list
+    ? {
+        isOwner: list.isOwner,
+        owner: list.owner,
+        members: list.members,
+        shared: !list.isOwner || list.members.length > 0,
+      }
+    : {};
   return {
     id: list.id,
     slug: list.slug,
@@ -56,5 +64,6 @@ export function listDTO(list: ListRow) {
     description: list.description,
     createdAt: list.created_at,
     updatedAt: list.updated_at ?? list.created_at,
+    ...access,
   };
 }

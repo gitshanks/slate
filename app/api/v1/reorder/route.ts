@@ -2,6 +2,8 @@ import { libraryClientForOwner } from "@/lib/library-db";
 import { apiData, apiError, NativeApiError, readJsonObject } from "@/lib/native-api/http";
 import { authenticateNativeRequest } from "@/lib/native-api/tokens";
 import type { TitleStatus } from "@/lib/types";
+import { requireListAccessForOwner } from "@/lib/shared-lists";
+import { supabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,12 +58,13 @@ export async function PATCH(request: Request) {
       if (typeof body.listId !== "string" || !body.listId) {
         throw new NativeApiError(400, "bad_request", "List is invalid.");
       }
-      const { data: list } = await db.from("lists").select("id").eq("id", body.listId).maybeSingle();
-      if (!list) throw new NativeApiError(404, "not_found", "List not found.");
-      const { data, error } = await db
+      const list = await requireListAccessForOwner(claims.ownerId, body.listId)
+        .catch(() => { throw new NativeApiError(404, "not_found", "List not found."); });
+      const { data, error } = await supabase
         .from("list_titles")
         .select("title_id")
-        .eq("list_id", body.listId);
+        .eq("list_id", body.listId)
+        .eq("owner_id", list.owner_id ?? "");
       if (error) throw new Error(error.message);
       const actual = (data ?? []).map((row) => String(row.title_id));
       if (!sameIds(actual, orderedIds)) {
@@ -69,7 +72,7 @@ export async function PATCH(request: Request) {
       }
       const results = await Promise.all(
         orderedIds.map((id, position) =>
-          db.from("list_titles").update({ position }).eq("list_id", body.listId).eq("title_id", id)
+          supabase.from("list_titles").update({ position }).eq("list_id", body.listId).eq("owner_id", list.owner_id ?? "").eq("title_id", id)
         ),
       );
       const failed = results.find((result) => result.error)?.error;

@@ -4,7 +4,9 @@ import { libraryClientForOwner } from "@/lib/library-db";
 import { listDTO, titleDTO } from "@/lib/native-api/dto";
 import { NativeApiError } from "@/lib/native-api/http";
 import { getTitleMeta, type TmdbSearchResult } from "@/lib/tmdb";
-import type { ListRow, TitleRow } from "@/lib/types";
+import type { TitleRow } from "@/lib/types";
+import { getAccessibleListsForOwner } from "@/lib/shared-lists";
+import { supabase } from "@/lib/supabase";
 
 function recommendationDTO(item: TmdbSearchResult, fallbackType: "movie" | "tv") {
   const mediaType = item.media_type === "movie" || item.media_type === "tv"
@@ -41,10 +43,9 @@ export async function getNativeTitleDetail(
   const title = titleData as TitleRow;
   const [meta, listsResult, membershipsResult] = await Promise.all([
     getTitleMeta(title.media_type, title.tmdb_id),
-    db.from("lists").select("*").order("name", { ascending: true }),
-    db.from("list_titles").select("list_id").eq("title_id", title.id),
+    getAccessibleListsForOwner(ownerId),
+    supabase.from("list_titles").select("list_id").eq("title_id", title.id),
   ]);
-  if (listsResult.error) throw new Error(listsResult.error.message);
   if (membershipsResult.error) throw new Error(membershipsResult.error.message);
 
   const memberListIds = new Set(
@@ -79,7 +80,7 @@ export async function getNativeTitleDetail(
           })),
         }
       : null,
-    lists: ((listsResult.data ?? []) as ListRow[]).map((list) => ({
+    lists: listsResult.map((list) => ({
       ...listDTO(list),
       containsTitle: memberListIds.has(list.id),
     })),

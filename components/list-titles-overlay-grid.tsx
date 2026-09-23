@@ -34,15 +34,18 @@ function toTmdbItem(title: TitleRow): TmdbMediaResult {
 export function ListTitlesOverlayGrid({
   titles,
   reorderContext,
+  showCardActions = true,
 }: {
   titles: TitleRow[];
   reorderContext: MediaGridReorderContext;
+  showCardActions?: boolean;
 }) {
   const overlay = useDiscoverTitleOverlay();
   return (
     <MediaGrid
       titles={titles}
       reorderContext={reorderContext}
+      showCardActions={showCardActions}
       onTitleSelect={(title) =>
         overlay?.open(toTmdbItem(title), true, `shelf-title-${title.id}`)
       }

@@ -52,6 +52,8 @@ interface MediaGridProps {
   reorderContext?: MediaGridReorderContext;
   readOnly?: boolean;
   titleHrefBase?: string;
+  /** Use catalogue metadata when a list contains another person's title row. */
+  titleHrefMode?: "library" | "catalogue";
   /** Optional query string preserved when opening a title from this grid. */
   titleHrefSearch?: string;
   /** Opens a title in-place instead of navigating to its page. */
@@ -234,7 +236,9 @@ function OrderedMediaGrid(props: MediaGridProps) {
                 : undefined
             }
             href={
-              props.titleHrefBase
+              props.titleHrefMode === "catalogue"
+                ? `/discover/${title.media_type}/${title.tmdb_id}`
+                : props.titleHrefBase
                 ? `${props.titleHrefBase}/${title.id}${props.titleHrefSearch ?? ""}`
                 : undefined
             }
@@ -250,6 +254,7 @@ function MediaGridState({
   reorderContext,
   readOnly = false,
   titleHrefBase,
+  titleHrefMode,
   titleHrefSearch,
   onTitleSelect,
   activeTitleId,
@@ -449,7 +454,9 @@ function MediaGridState({
               showActions={showCardActions}
               onOpen={onTitleSelect ? () => onTitleSelect(title) : undefined}
               href={
-                titleHrefBase
+                titleHrefMode === "catalogue"
+                  ? `/discover/${title.media_type}/${title.tmdb_id}`
+                  : titleHrefBase
                   ? `${titleHrefBase}/${title.id}${titleHrefSearch ?? ""}`
                   : undefined
               }
@@ -490,6 +497,7 @@ function MediaGridState({
             onTitleSelect={onTitleSelect}
             readOnly={readOnly}
             titleHrefBase={titleHrefBase}
+            titleHrefMode={titleHrefMode}
             titleHrefSearch={titleHrefSearch}
             showCardActions={showCardActions}
             animateEntrance={animateEntrance}
@@ -628,6 +636,7 @@ interface SortablePosterProps {
   onTitleSelect?: (title: TitleRow) => void;
   readOnly: boolean;
   titleHrefBase?: string;
+  titleHrefMode?: "library" | "catalogue";
   titleHrefSearch?: string;
   showCardActions: boolean;
   animateEntrance: boolean;
@@ -648,6 +657,7 @@ function SortablePoster({
   onTitleSelect,
   readOnly,
   titleHrefBase,
+  titleHrefMode,
   titleHrefSearch,
   showCardActions,
   animateEntrance,
@@ -714,7 +724,9 @@ function SortablePoster({
           readOnly={readOnly}
           onOpen={onTitleSelect ? () => onTitleSelect(title) : undefined}
           href={
-            titleHrefBase
+            titleHrefMode === "catalogue"
+              ? `/discover/${title.media_type}/${title.tmdb_id}`
+              : titleHrefBase
               ? `${titleHrefBase}/${title.id}${titleHrefSearch ?? ""}`
               : undefined
           }

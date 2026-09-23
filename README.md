@@ -111,6 +111,17 @@ in the SQL editor instead. If this migration is delayed, Previews continues to
 learn locally in the browser and enables cross-device learning once the table
 is available.
 
+Hosted installations that enable collaborative lists should also run:
+
+```bash
+npm run db:migrate:shared-lists
+```
+
+For Supabase, apply
+[`supabase/migrations/20260923_shared_lists.sql`](./supabase/migrations/20260923_shared_lists.sql)
+in the SQL editor. The migration adds private membership and expiring invite
+records; existing personal lists remain unchanged.
+
 Prefer Supabase, or already have another Postgres? Set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` instead of `DATABASE_URL` — the data layer uses whichever backend is configured.
 
 ### Google account mode

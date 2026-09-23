@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { type TitleRow } from "@/lib/supabase";
 import { getLibraryClient } from "@/lib/library-db";
+import { getEditableListOptions } from "@/lib/shared-lists";
 import { getTitleMeta } from "@/lib/tmdb";
 import { getOmdbMetadata, isOmdbConfigured } from "@/lib/omdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
@@ -202,11 +203,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
         })
       : null;
 
-  const { data: listsData } = await db
-    .from("lists")
-    .select("id, name")
-    .order("name", { ascending: true });
-  const userLists = (listsData ?? []) as { id: string; name: string }[];
+  const userLists = await getEditableListOptions();
 
   return (
     <div className="relative -mx-4 -my-8 sm:-mx-6 sm:-my-10 lg:-mx-10 lg:-my-14 pb-20">

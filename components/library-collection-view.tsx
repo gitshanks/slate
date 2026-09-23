@@ -59,7 +59,7 @@ const SpatialPosterGrid = dynamic(
 type ViewMode = "shelf" | "space";
 
 const STATUS_OPTIONS = [
-  { value: "", label: "All" },
+  { value: "all", label: "All" },
   { value: "want", label: "Up Next" },
   { value: "watching", label: "Watching" },
   { value: "watched", label: "Watched" },
@@ -161,7 +161,7 @@ export function LibraryCollectionView({
   const toolbarLeftRef = React.useRef<number | null>(null);
   const toolbarAnimationsRef = React.useRef<Animation[]>([]);
   const normalizedQuery = query.trim().toLocaleLowerCase();
-  const status = searchParams.get("status") ?? "";
+  const status = searchParams.get("status") ?? "want";
   const activeStatus =
     status === "want" || status === "watching" || status === "watched"
       ? status
@@ -436,6 +436,7 @@ export function LibraryCollectionView({
                 sentimentDisplay="menu"
                 statusOptions={STATUS_OPTIONS}
                 statusParam="status"
+                defaultStatus="want"
                 fullHeightStatus
                 idPrefix="owned-library"
                 popoverClassName="z-[90] border-border bg-popover text-popover-foreground"

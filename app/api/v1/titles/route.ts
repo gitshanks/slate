@@ -2,6 +2,7 @@ import { addNativeTitle } from "@/lib/native-api/catalog";
 import { apiData, apiError, NativeApiError, readJsonObject } from "@/lib/native-api/http";
 import { authenticateNativeRequest } from "@/lib/native-api/tokens";
 import type { TitleStatus } from "@/lib/types";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +19,10 @@ export async function POST(request: Request) {
     }
     const tmdbId = Number(body.tmdbId);
     const status = (body.status ?? "want") as TitleStatus;
-    return apiData(await addNativeTitle(claims.ownerId, { tmdbId, mediaType, status }));
+    const title = await addNativeTitle(claims.ownerId, { tmdbId, mediaType, status });
+    revalidatePath("/discover");
+    revalidatePath("/previews");
+    return apiData(title);
   } catch (error) {
     return apiError(error);
   }

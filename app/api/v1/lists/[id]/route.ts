@@ -4,6 +4,8 @@ import { apiData, apiError, NativeApiError, optionalString, readJsonObject } fro
 import { authenticateNativeRequest } from "@/lib/native-api/tokens";
 import type { ListRow, TitleRow } from "@/lib/types";
 import { slugify } from "@/lib/utils";
+import { getListTitles, requireListAccessForOwner } from "@/lib/shared-lists";
+import { supabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,20 +20,9 @@ export async function GET(
       context.params,
     ]);
     const db = libraryClientForOwner(claims.ownerId);
-    const [{ data: list, error: listError }, { data: rows, error: rowsError }] = await Promise.all([
-      db.from("lists").select("*").eq("id", params.id).maybeSingle(),
-      db.from("list_titles")
-        .select("title_id, position, titles(*)")
-        .eq("list_id", params.id)
-        .order("position", { ascending: true }),
-    ]);
-    if (listError || !list) throw new NativeApiError(404, "not_found", "List not found.");
-    if (rowsError) throw new Error(rowsError.message);
-    const titles = (rows ?? []).flatMap((row) => {
-      const embedded = row.titles as unknown as TitleRow | TitleRow[] | null;
-      if (!embedded) return [];
-      return (Array.isArray(embedded) ? embedded : [embedded]).map(titleDTO);
-    });
+    const list = await requireListAccessForOwner(claims.ownerId, params.id)
+      .catch(() => { throw new NativeApiError(404, "not_found", "List not found."); });
+    const titles = (await getListTitles(list)).map(titleDTO);
     const inList = new Set(titles.map((title) => title.id));
     const { data: library, error: libraryError } = await db
       .from("titles")
@@ -39,7 +30,7 @@ export async function GET(
       .order("added_at", { ascending: false });
     if (libraryError) throw new Error(libraryError.message);
     return apiData({
-      list: listDTO(list as ListRow),
+      list: listDTO(list),
       titles,
       candidates: ((library ?? []) as TitleRow[])
         .filter((title) => !inList.has(title.id))
@@ -69,11 +60,13 @@ export async function PATCH(
     }
     if (Object.hasOwn(body, "description")) patch.description = optionalString(body.description, 1_000);
     if (!Object.keys(patch).length) throw new NativeApiError(400, "bad_request", "No list changes were provided.");
-    const db = libraryClientForOwner(claims.ownerId);
-    const { data, error } = await db
+    await requireListAccessForOwner(claims.ownerId, params.id, true)
+      .catch(() => { throw new NativeApiError(404, "not_found", "List not found."); });
+    const { data, error } = await supabase
       .from("lists")
       .update(patch)
       .eq("id", params.id)
+      .eq("owner_id", claims.ownerId)
       .select("*")
       .single();
     if (error || !data) throw new NativeApiError(404, "not_found", "List not found.");
@@ -92,8 +85,9 @@ export async function DELETE(
       authenticateNativeRequest(request),
       context.params,
     ]);
-    const db = libraryClientForOwner(claims.ownerId);
-    const { data, error } = await db.from("lists").delete().eq("id", params.id).select("id").single();
+    await requireListAccessForOwner(claims.ownerId, params.id, true)
+      .catch(() => { throw new NativeApiError(404, "not_found", "List not found."); });
+    const { data, error } = await supabase.from("lists").delete().eq("id", params.id).eq("owner_id", claims.ownerId).select("id").single();
     if (error || !data) throw new NativeApiError(404, "not_found", "List not found.");
     return apiData({ deleted: true });
   } catch (error) {

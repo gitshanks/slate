@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { type ListRow } from "@/lib/supabase";
-import { getLibraryClient } from "@/lib/library-db";
 import { EmptyState } from "@/components/empty-state";
 import { CreateListForm } from "@/components/create-list-form";
 import { DeleteListButton } from "@/components/delete-list-button";
 import { ShareListButton } from "@/components/share-list-button";
+import { ListPeople } from "@/components/list-people";
 import { ListPlus, Film } from "lucide-react";
+import { getAccessibleLists, getListCardRows } from "@/lib/shared-lists";
+import { SLATE_HOSTED } from "@/lib/public-mode";
+import type { AccessibleList } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -15,32 +17,26 @@ export const metadata: Metadata = {
 };
 
 export default async function ListsPage() {
-  const db = await getLibraryClient();
-  const { data: lists, error } = await db
-    .from("lists")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
+  let lists: AccessibleList[];
+  try {
+    lists = await getAccessibleLists();
+  } catch (error) {
     return (
       <EmptyState
         icon={<ListPlus className="h-6 w-6" />}
         title="Couldn't reach the database"
-        description={error.message}
+        description={error instanceof Error ? error.message : "Try again shortly."}
       />
     );
   }
 
   // Per-list count of titles + first 4 poster paths, batched
-  const ids = (lists ?? []).map((l) => l.id);
+  const ids = lists.map((l) => l.id);
   const counts: Record<string, number> = {};
   const posters: Record<string, string[]> = {};
   if (ids.length > 0) {
-    const { data: rows } = await db
-      .from("list_titles")
-      .select("list_id, titles(poster_path)")
-      .in("list_id", ids);
-    (rows ?? []).forEach((r) => {
+    const rows = await getListCardRows(ids);
+    rows.forEach((r) => {
       counts[r.list_id] = (counts[r.list_id] ?? 0) + 1;
       // Supabase embed can return single object or array depending on relationship type
       const t = r.titles;
@@ -68,7 +64,7 @@ export default async function ListsPage() {
         <CreateListForm />
       </div>
 
-      {(lists ?? []).length === 0 ? (
+      {lists.length === 0 ? (
         <EmptyState
           icon={<ListPlus className="h-6 w-6" />}
           title="No lists yet"
@@ -76,20 +72,22 @@ export default async function ListsPage() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(lists as ListRow[]).map((list) => {
+          {lists.map((list) => {
             const covers = posters[list.id] ?? [];
             const count = counts[list.id] ?? 0;
+            const people = list.owner ? [list.owner, ...list.members] : list.members;
             return (
               // Wrapper so we can absolutely position the action buttons
               // without nesting interactive elements inside <Link>.
               <div key={list.id} className="relative group/card">
                 <Link
-                  href={`/lists/${list.slug}`}
+                  href={`/lists/${list.id}`}
                   className="block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_60px_-24px_hsl(var(--primary)/0.35)]"
                 >
                   {/* Poster cover — the list's first titles fanned out as the
                       hero. Empty lists get a muted placeholder. */}
                   <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-b from-muted/40 to-muted/10">
+                    <ListPeople people={people} className="absolute left-3 top-3 z-20" />
                     {covers.length > 0 ? (
                       <>
                         <div className="absolute inset-0 flex items-center justify-center gap-2 px-6">
@@ -128,6 +126,11 @@ export default async function ListsPage() {
                         {count} {count === 1 ? "title" : "titles"}
                       </span>
                     </div>
+                    {!list.isOwner && list.owner ? (
+                      <p className="mt-1 text-xs text-primary/80">Shared by {list.owner.displayName}</p>
+                    ) : list.members.length > 0 ? (
+                      <p className="mt-1 text-xs text-primary/80">Shared with {list.members.length}</p>
+                    ) : null}
                     {list.description && (
                       <p className="mt-1 text-sm text-muted-foreground line-clamp-1">
                         {list.description}
@@ -138,8 +141,10 @@ export default async function ListsPage() {
                 {/* Share + Delete — absolutely positioned over the cover, stop
                     click propagation. Visible on hover (and always on touch). */}
                 <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
-                  <ShareListButton listSlug={list.slug} listName={list.name} />
-                  <DeleteListButton listId={list.id} listName={list.name} iconOnly />
+                  {SLATE_HOSTED ? (
+                    <ShareListButton listId={list.id} listName={list.name} owner={list.owner} members={list.members} isOwner={list.isOwner} iconOnly />
+                  ) : null}
+                  {list.isOwner ? <DeleteListButton listId={list.id} listName={list.name} iconOnly /> : null}
                 </div>
               </div>
             );

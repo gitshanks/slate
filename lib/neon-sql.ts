@@ -72,6 +72,8 @@ const ALLOWED_TABLES = new Set([
   "titles",
   "lists",
   "list_titles",
+  "list_members",
+  "list_invites",
   "profiles",
   "auth_identities",
   "device_sessions",

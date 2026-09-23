@@ -10,6 +10,8 @@ import {
 import { authenticateNativeRequest } from "@/lib/native-api/tokens";
 import type { ListRow } from "@/lib/types";
 import { slugify } from "@/lib/utils";
+import { requireListAccessForOwner } from "@/lib/shared-lists";
+import { supabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,15 +45,11 @@ export async function POST(
 
     let list: ListRow;
     if (requestedListId) {
-      const { data, error } = await db
-        .from("lists")
-        .select("*")
-        .eq("id", requestedListId)
-        .maybeSingle();
-      if (error || !data) {
+      try {
+        list = await requireListAccessForOwner(claims.ownerId, requestedListId);
+      } catch {
         throw new NativeApiError(404, "not_found", "That list could not be found.");
       }
-      list = data as ListRow;
     } else {
       const name = requestedName!;
       const { data, error } = await db
@@ -63,19 +61,23 @@ export async function POST(
       list = data as ListRow;
     }
 
-    const { data: lastRows, error: positionError } = await db
+    const listDb = requestedListId ? supabase : db;
+    let positionsQuery = listDb
       .from("list_titles")
       .select("position")
       .eq("list_id", list.id)
-      .order("position", { ascending: false })
-      .limit(1);
+      .order("position", { ascending: false });
+    if (requestedListId) positionsQuery = positionsQuery.eq("owner_id", list.owner_id ?? "");
+    const { data: lastRows, error: positionError } = await positionsQuery.limit(1);
     if (positionError) throw new Error(positionError.message);
     const lastPosition = Number(lastRows?.[0]?.position);
-    const { error: linkError } = await db.from("list_titles").insert({
+    const link: Record<string, unknown> = {
       list_id: list.id,
       title_id: titleId,
       position: Number.isFinite(lastPosition) ? lastPosition + 1 : 0,
-    });
+    };
+    if (requestedListId) link.owner_id = list.owner_id;
+    const { error: linkError } = await listDb.from("list_titles").insert(link);
     if (linkError && !linkError.message.toLowerCase().includes("duplicate")) {
       throw new Error(linkError.message);
     }

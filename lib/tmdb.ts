@@ -761,8 +761,8 @@ function rotateRankedSeeds<T>(
 }
 
 /**
- * Personalised "You might like" pool. Picks the user's top watched titles
- * (by sentiment rating, then TMDB score) as seeds, fans out to TMDB's
+ * Personalised "You might like" pool. Mixes the user's strongest watched
+ * signals with recently saved/active titles, fans out to TMDB's
  * /recommendations for each, merges by co-occurrence so titles surfaced
  * by multiple seeds rank higher, and strips anything already saved.
  */
@@ -772,18 +772,17 @@ export async function getRecommendedFromWatched(
 ): Promise<TmdbSearchResult[]> {
   try {
     const db = await getLibraryClient();
-    const watchedRequest = db
+    const libraryRequest = db
       .from("titles")
-      .select("tmdb_id, media_type, rating, favorite, tmdb_rating, watched_at")
-      .eq("status", "watched");
-    const [{ data: watched }, savedResult] = await Promise.all([
-      watchedRequest,
+      .select("tmdb_id, media_type, rating, favorite, tmdb_rating, watched_at, added_at, status");
+    const [{ data: libraryRows }, savedResult] = await Promise.all([
+      libraryRequest,
       excludedKeys
         ? Promise.resolve({ data: null })
         : db.from("titles").select("tmdb_id, media_type"),
     ]);
 
-    const seeds = (watched ?? []) as Pick<
+    const seeds = (libraryRows ?? []) as Pick<
       TitleRow,
       | "tmdb_id"
       | "media_type"
@@ -791,6 +790,8 @@ export async function getRecommendedFromWatched(
       | "favorite"
       | "tmdb_rating"
       | "watched_at"
+      | "added_at"
+      | "status"
     >[];
     if (seeds.length === 0) return [];
 
@@ -806,16 +807,17 @@ export async function getRecommendedFromWatched(
           >[]).map((row) => `${row.media_type}:${row.tmdb_id}`),
         );
 
-    // Prefer explicit positive taste signals. Disliked titles must never seed
-    // recommendations; unrated watched titles are only a fallback when the
-    // user has not reacted positively to anything yet.
-    const positiveSeeds = seeds.filter(
+    // Watched reactions remain the strongest taste signal. A small freshness
+    // lane lets a new Up Next / Watching title change the rail immediately,
+    // while the total provider fan-out remains capped at eight endpoints.
+    const watchedSeeds = seeds.filter((seed) => seed.status === "watched");
+    const positiveSeeds = watchedSeeds.filter(
       (seed) => seed.favorite || (seed.rating != null && seed.rating >= 2),
     );
     const usableSeeds = (
       positiveSeeds.length > 0
         ? positiveSeeds
-        : seeds.filter((seed) => seed.rating == null || seed.rating >= 2)
+        : watchedSeeds.filter((seed) => seed.rating == null || seed.rating >= 2)
     );
 
     // Rank seeds: user sentiment first (higher = loved), then TMDB score.
@@ -851,13 +853,20 @@ export async function getRecommendedFromWatched(
       1,
       8,
     ));
-    const topSeeds = options.rotationSeed
+    const rankedActive = seeds
+      .filter((seed) => seed.status !== "watched")
+      .slice()
+      .sort((a, b) => Date.parse(b.added_at) - Date.parse(a.added_at));
+    const freshCount = Math.min(2, rankedActive.length, seedCount);
+    const tasteCount = seedCount - freshCount;
+    const tasteSeeds = options.rotationSeed
       ? rotateRankedSeeds(
           rankedSeeds.slice(0, 24),
-          seedCount,
+          tasteCount,
           options.rotationSeed,
         )
-      : rankedSeeds.slice(0, seedCount);
+      : rankedSeeds.slice(0, tasteCount);
+    const topSeeds = [...tasteSeeds, ...rankedActive.slice(0, freshCount)];
 
     const seedKeys = new Set<string>(
       topSeeds.map((seed) => `${seed.media_type}:${seed.tmdb_id}`),

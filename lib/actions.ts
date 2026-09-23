@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type TitleRow, type TitleStatus } from "@/lib/supabase";
-import { getLibraryClient } from "@/lib/library-db";
+import { getLibraryClient, getLibraryOwnerId } from "@/lib/library-db";
 import { getAllLibraryTitleKeys } from "@/lib/library-title-keys";
 import {
   getMovie,
@@ -26,6 +26,9 @@ import {
   type PreviewPreferenceWeights,
 } from "@/lib/preview-feedback-types";
 import { slugify } from "@/lib/utils";
+import { requireListAccessForOwner } from "@/lib/shared-lists";
+import { SLATE_HOSTED } from "@/lib/public-mode";
+import { supabase } from "@/lib/supabase";
 
 async function nextStatusPosition(
   db: SupabaseClient,
@@ -369,14 +372,18 @@ export async function reorderListTitles(
   listId: string,
   orderedTitleIds: string[]
 ) {
-  const db = await getLibraryClient();
   if (!listId) throw new Error("Invalid list");
   const order = validateOrder(orderedTitleIds);
+  const ownerId = await getLibraryOwnerId();
+  const list = await requireListAccessForOwner(ownerId, listId);
+  const db = SLATE_HOSTED ? supabase : await getLibraryClient();
 
-  const { data, error: readError } = await db
+  let readQuery = db
     .from("list_titles")
     .select("title_id")
     .eq("list_id", listId);
+  if (SLATE_HOSTED) readQuery = readQuery.eq("owner_id", list.owner_id ?? "");
+  const { data, error: readError } = await readQuery;
   if (readError) throw new Error(readError.message);
 
   const actualIds = (data ?? []).map((row) => String(row.title_id));
@@ -385,13 +392,15 @@ export async function reorderListTitles(
   }
 
   const results = await Promise.all(
-    order.map((titleId, position) =>
-      db
+    order.map((titleId, position) => {
+      let updateQuery = (SLATE_HOSTED ? supabase : db)
         .from("list_titles")
         .update({ position })
         .eq("list_id", listId)
-        .eq("title_id", titleId)
-    )
+        .eq("title_id", titleId);
+      if (SLATE_HOSTED) updateQuery = updateQuery.eq("owner_id", list.owner_id ?? "");
+      return updateQuery;
+    })
   );
   const failed = results.find((result) => result.error);
   if (failed?.error) throw new Error(failed.error.message);
@@ -462,43 +471,57 @@ export async function createListAndAddTitle(
 }
 
 export async function addTitleToList(listId: string, titleId: string) {
+  const ownerId = await getLibraryOwnerId();
   const db = await getLibraryClient();
-  const [{ data: list }, { data: title }] = await Promise.all([
-    db.from("lists").select("id").eq("id", listId).maybeSingle(),
-    db.from("titles").select("id").eq("id", titleId).maybeSingle(),
-  ]);
-  if (!list || !title) throw new Error("List or title not found");
+  const list = await requireListAccessForOwner(ownerId, listId);
+  const { data: title } = await db.from("titles").select("id").eq("id", titleId).maybeSingle();
+  if (!title) throw new Error("Title not found");
+  const listDb = SLATE_HOSTED ? supabase : db;
 
-  const { data: lastRows } = await db
+  let positionsQuery = listDb
     .from("list_titles")
     .select("position")
     .eq("list_id", listId)
-    .order("position", { ascending: false })
-    .limit(1);
+    .order("position", { ascending: false });
+  if (SLATE_HOSTED) positionsQuery = positionsQuery.eq("owner_id", list.owner_id ?? "");
+  const { data: lastRows } = await positionsQuery.limit(1);
   const lastPosition = Number(lastRows?.[0]?.position);
-  const { error } = await db.from("list_titles").insert({
+  const link: Record<string, unknown> = {
     list_id: listId,
     title_id: titleId,
     position: Number.isFinite(lastPosition) ? lastPosition + 1 : 0,
-  });
+  };
+  if (SLATE_HOSTED) link.owner_id = list.owner_id;
+  const { error } = await listDb.from("list_titles").insert(link);
   if (error && !error.message.includes("duplicate")) throw new Error(error.message);
   revalidatePath("/lists");
 }
 
 export async function removeTitleFromList(listId: string, titleId: string) {
-  const db = await getLibraryClient();
-  const { error } = await db
+  const ownerId = await getLibraryOwnerId();
+  const list = await requireListAccessForOwner(ownerId, listId);
+  const db = SLATE_HOSTED ? supabase : await getLibraryClient();
+  let deleteQuery = db
     .from("list_titles")
     .delete()
     .eq("list_id", listId)
     .eq("title_id", titleId);
+  if (SLATE_HOSTED) deleteQuery = deleteQuery.eq("owner_id", list.owner_id ?? "");
+  const { error } = await deleteQuery;
   if (error) throw new Error(error.message);
   revalidatePath("/lists");
 }
 
 export async function deleteList(listId: string) {
-  const db = await getLibraryClient();
-  const { error } = await db.from("lists").delete().eq("id", listId);
+  const ownerId = await getLibraryOwnerId();
+  const list = await requireListAccessForOwner(ownerId, listId, true);
+  const db = SLATE_HOSTED ? supabase : await getLibraryClient();
+  let deleteQuery = db
+    .from("lists")
+    .delete()
+    .eq("id", listId);
+  if (SLATE_HOSTED) deleteQuery = deleteQuery.eq("owner_id", list.owner_id ?? "");
+  const { error } = await deleteQuery;
   if (error) throw new Error(error.message);
   revalidatePath("/lists");
   redirect("/lists");
@@ -512,6 +535,8 @@ function revalidateLibrary() {
 
 function revalidateRecommendationSurfaces() {
   // Invalidate only when the user changes a taste signal. There is no timer or
-  // background polling, and the next render still reuses TMDB's hourly cache.
+  // background polling, and the next render still reuses TMDB's per-title
+  // recommendation cache.
   revalidatePath("/discover");
+  revalidatePath("/previews");
 }

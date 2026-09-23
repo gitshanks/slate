@@ -80,6 +80,66 @@ test('public feed shares ranking, refresh intervals, and exclusions without acco
   assert.ok(accountReads() > 0, 'normal app still includes library recommendations');
 });
 
+test('library recommendations react to recent saves with bounded cached fan-out', async () => {
+  const rows = [
+    ...Array.from({ length: 8 }, (_, index) => ({
+      tmdb_id: index + 1,
+      media_type: 'movie',
+      rating: 3,
+      favorite: index === 0,
+      tmdb_rating: 8 - index / 10,
+      watched_at: `2026-08-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`,
+      added_at: `2026-07-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`,
+      status: 'watched',
+    })),
+    {
+      tmdb_id: 90, media_type: 'tv', rating: null, favorite: false,
+      tmdb_rating: 7, watched_at: null, added_at: '2026-09-20T00:00:00.000Z', status: 'want',
+    },
+    {
+      tmdb_id: 91, media_type: 'movie', rating: null, favorite: false,
+      tmdb_rating: 7, watched_at: null, added_at: '2026-09-23T00:00:00.000Z', status: 'want',
+    },
+  ];
+  const calls = [];
+  const db = {
+    from(name) {
+      assert.equal(name, 'titles');
+      return {
+        select() {
+          return Promise.resolve({ data: rows, error: null });
+        },
+      };
+    },
+  };
+  const tmdb = load('lib/tmdb.ts', {
+    'server-only': {}, react: { cache: (fn) => fn }, '@/lib/tmdb-image': {},
+    '@/lib/library-db': { getLibraryClient: async () => db },
+  }, {
+    fetch: async (url, options) => {
+      calls.push({ path: url.pathname, options });
+      const seedId = Number(url.pathname.split('/').at(-2));
+      return Response.json({ results: [{
+        id: 1_000 + seedId,
+        media_type: url.pathname.startsWith('/tv/') ? 'tv' : 'movie',
+        title: `Recommendation ${seedId}`,
+        vote_average: 8,
+      }] });
+    },
+  });
+
+  const result = await tmdb.getRecommendedFromWatched();
+  const paths = calls.map((call) => call.path);
+  assert.ok(paths.some((path) => path.endsWith('/movie/91/recommendations')));
+  assert.ok(paths.some((path) => path.endsWith('/tv/90/recommendations')));
+  assert.equal(paths.length, 8, 'provider fan-out remains capped at eight seeds');
+  assert.equal(result.length, 8);
+  for (const call of calls) {
+    assert.equal(call.options.cache, 'force-cache');
+    assert.equal(call.options.next.revalidate, 86400);
+  }
+});
+
 test('public route validates requests and explicitly opts out of library access', async () => {
   const calls = [];
   const route = load('app/api/public/previews/route.ts', {

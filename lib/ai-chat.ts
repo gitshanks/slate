@@ -334,10 +334,10 @@ async function executeTool(
 }
 
 /**
- * `recommend_for_you` — reads the user's watched titles from supabase
- * and asks TMDB for curated recommendations linked to each. This is the
- * personalised path; without it the model used to fall back to generic
- * popular TV (Law & Order, The Rookie…) for "what should I watch".
+ * `recommend_for_you` — reads the user's strongest watched signals plus their
+ * newest active saves and asks TMDB for curated recommendations linked to
+ * those titles. This is the personalised path; without it the model used to
+ * fall back to generic popular TV for "what should I watch".
  *
  * Falls back to discover('popular') if the user has no watched titles, so
  * the rail is never empty.

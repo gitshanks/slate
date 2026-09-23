@@ -2,7 +2,8 @@ import { libraryClientForOwner } from "@/lib/library-db";
 import { listDTO, titleDTO } from "@/lib/native-api/dto";
 import { apiData, apiError, NativeApiError } from "@/lib/native-api/http";
 import { authenticateNativeRequest } from "@/lib/native-api/tokens";
-import type { ListRow, TitleRow, TitleStatus } from "@/lib/types";
+import type { TitleRow, TitleStatus } from "@/lib/types";
+import { getAccessibleListsForOwner } from "@/lib/shared-lists";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,17 +25,16 @@ export async function GET(request: Request) {
       .order("position", { ascending: true })
       .order("added_at", { ascending: false });
 
-    const [{ data: titles, error: titlesError }, { data: lists, error: listsError }] =
+    const [{ data: titles, error: titlesError }, lists] =
       await Promise.all([
         titlesQuery,
-        db.from("lists").select("*").order("created_at", { ascending: true }),
+        getAccessibleListsForOwner(claims.ownerId),
       ]);
     if (titlesError) throw new Error(titlesError.message);
-    if (listsError) throw new Error(listsError.message);
 
     return apiData({
       titles: ((titles ?? []) as TitleRow[]).map(titleDTO),
-      lists: ((lists ?? []) as ListRow[]).map(listDTO),
+      lists: lists.map(listDTO),
       serverTime: new Date().toISOString(),
     });
   } catch (error) {
