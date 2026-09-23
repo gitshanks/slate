@@ -86,7 +86,7 @@ export function ShareListButton({ listId, listName, owner, members, isOwner, ico
         <button
           type="button"
           aria-label={`People with access to ${listName}`}
-          onClick={(event) => { event.preventDefault(); event.stopPropagation(); }}
+          onClick={(event) => event.stopPropagation()}
           className={cn(
             "inline-flex items-center justify-center gap-2 rounded-full border border-border bg-background/85 text-muted-foreground backdrop-blur-sm transition-colors hover:border-primary/40 hover:text-primary",
             iconOnly ? "h-8 w-8" : "h-9 px-3 text-xs font-medium",
