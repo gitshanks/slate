@@ -8,6 +8,7 @@ import { LoginOverlay } from "@/components/login/login-overlay";
 import { getAppSession } from "@/lib/app-access";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { safeRedirectPath } from "@/lib/email-auth-core";
+import { emailSignInConfigured } from "@/lib/email-auth";
 import styles from "./login.module.css";
 
 export const metadata: Metadata = {
@@ -39,6 +40,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const rawNext = Array.isArray(query.next) ? query.next[0] : query.next;
   const creating = rawMode === "create";
   const redirectTo = safeRedirectPath(rawNext);
+  const emailEnabled = emailSignInConfigured();
   const error = rawError ? loginErrorMessage(rawError) : null;
   const switchParams = new URLSearchParams();
   if (!creating) switchParams.set("mode", "create");
@@ -64,15 +66,18 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         {error ? <LoginError title={error.title} body={error.body} /> : null}
 
-        <EmailAuthForm creating={creating} redirectTo={redirectTo} />
+        {emailEnabled ? (
+          <>
+            <EmailAuthForm creating={creating} redirectTo={redirectTo} />
+            <div className="my-5 flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.18em] text-white/35" aria-hidden>
+              <span className="h-px flex-1 bg-white/10" />
+              or
+              <span className="h-px flex-1 bg-white/10" />
+            </div>
+          </>
+        ) : null}
 
-        <div className="my-5 flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.18em] text-white/35" aria-hidden>
-          <span className="h-px flex-1 bg-white/10" />
-          or
-          <span className="h-px flex-1 bg-white/10" />
-        </div>
-
-        <form action={continueWithGoogle}>
+        <form action={continueWithGoogle} className={emailEnabled ? undefined : styles.form}>
           <GoogleSignInButton
             label={creating ? "Sign up with Google" : "Sign in with Google"}
           />
