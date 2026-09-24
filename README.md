@@ -28,7 +28,7 @@ Letterboxd is great, but the feed can get in the way of the shelf. Slate keeps t
 - **⌘K command palette:** search TMDB and add anything to your library in one keystroke
 - **AI search:** flip the "Ask AI" pill (or ⌘⇧K) and type plain English like _"cozy autumn mysteries"_, _"A24 horror after 2020"_, or _"Nolan thrillers"_. Live query suggestions surface as you type. Powered by any OpenAI-compatible endpoint (Groq's free tier running Llama 3.3 70B by default) or Claude. Optional; drop in one key to enable
 - **Three clean states:** Watchlist, Watching, Watched, with Love / Like / Dislike ratings and private notes
-- **Google accounts:** the hosted app keeps each person's titles, lists, ratings, imports, recommendations, and ordering isolated in Neon
+- **Hosted accounts:** email-code and Google sign-in keep each person's titles, lists, ratings, imports, recommendations, and ordering isolated in Neon
 - **Shareable profiles:** opt in to a read-only public URL for your Watchlist, Watching, and Watched shelves; profiles are private by default
 - **Episode tracking without the chore:** for the shows you're watching, slate stores where you are (S2·E5), not every episode you've ticked off. Tap the chip on the card to advance one episode; on the title page, tap any episode in the season grid to set "I'm caught up to here." Two clicks to recover after a binge
 - **Critic scores you can trust:** IMDb rating + Rotten Tomatoes Tomatometer (with Metacritic fallback) on every saved title, fetched once via OMDB and cached
@@ -84,9 +84,11 @@ Push to GitHub and import at [vercel.com/new](https://vercel.com/new). Then, ins
 | `ANTHROPIC_API_KEY` | optional | Alternative AI backend; uses Claude instead of an open model. Set `AI_PROVIDER=anthropic` to prefer it when both keys are present. |
 | `APP_PASSCODE` | optional | Lock the app behind a shared passcode. Omit for public. |
 | `NEXT_PUBLIC_DEMO_MODE` | optional | Set to `1` on a portfolio or public-demo deploy. Skips the `APP_PASSCODE` gate, shows a demo banner, mounts a marketing landing page at `/`, and moves the watchlist to `/app`. Self-host default (unset) keeps the app at `/` so existing bookmarks and PWA installs are unaffected. |
-| `NEXT_PUBLIC_SLATE_HOSTED` | optional | Set to `1` for the Google-account hosted product. Mounts the marketing page at `/`, the private library at `/app`, and enables public profiles at `/u/:username`. |
+| `NEXT_PUBLIC_SLATE_HOSTED` | optional | Set to `1` for the hosted product. Mounts the marketing page at `/`, the private library at `/app`, and enables public profiles at `/u/:username`. |
 | `AUTH_SECRET` | hosted | Auth.js session secret. Generate with `npx auth secret`. |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | hosted | Google OAuth web-client credentials. Add `https://your-domain/api/auth/callback/google` as an authorized redirect URI. |
+| `RESEND_API_KEY` | hosted email login | Resend API key used to deliver one-time sign-in codes. `AUTH_RESEND_KEY` is also accepted. |
+| `AUTH_EMAIL_FROM` | hosted email login | Verified sender, for example `slate <sign-in@your-domain.com>`. `EMAIL_FROM` is also accepted. |
 | `NEXT_PUBLIC_SITE_URL` | hosted | Canonical origin used for public profile links, such as `https://s1ate.space`. |
 | `SLATE_LEGACY_OWNER_EMAIL` | optional | Google email allowed to claim rows created before account support on its first sign-in. |
 
@@ -122,9 +124,21 @@ For Supabase, apply
 in the SQL editor. The migration adds private membership and expiring invite
 records; existing personal lists remain unchanged.
 
+Passwordless email sign-in uses an additive authentication schema. Neon
+deployments apply it automatically on the first email request, or it can be
+applied explicitly with:
+
+```bash
+npm run db:migrate:email-auth
+```
+
+Supabase deployments can apply
+[`supabase/migrations/20260924_email_auth.sql`](./supabase/migrations/20260924_email_auth.sql)
+in the SQL editor.
+
 Prefer Supabase, or already have another Postgres? Set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` instead of `DATABASE_URL` — the data layer uses whichever backend is configured.
 
-### Google account mode
+### Hosted account mode
 
 1. Set `NEXT_PUBLIC_SLATE_HOSTED=1`, `AUTH_SECRET`, the two Google OAuth variables, and `NEXT_PUBLIC_SITE_URL`.
 2. In Google Cloud, authorize `https://your-domain/api/auth/callback/google`.

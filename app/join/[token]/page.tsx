@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Users } from "lucide-react";
-import { signIn } from "@/auth";
 import { acceptSharedListInvite } from "@/lib/shared-list-actions";
 import { getAppSession } from "@/lib/app-access";
 import { resolveListInvite } from "@/lib/shared-lists";
@@ -30,11 +29,6 @@ export default async function JoinListPage(props: { params: Promise<{ token: str
     );
   }
 
-  async function continueWithGoogle() {
-    "use server";
-    await signIn("google", { redirectTo: `/join/${token}` });
-  }
-
   async function join() {
     "use server";
     await acceptSharedListInvite(token);
@@ -57,9 +51,7 @@ export default async function JoinListPage(props: { params: Promise<{ token: str
             <button className="h-11 w-full rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-[filter,transform] hover:brightness-105 active:scale-[0.99]">Join list</button>
           </form>
         ) : (
-          <form action={continueWithGoogle} className="mt-6">
-            <button className="h-11 w-full rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-[filter,transform] hover:brightness-105 active:scale-[0.99]">Continue with Google</button>
-          </form>
+          <Link href={`/login?next=${encodeURIComponent(`/join/${token}`)}`} className="mt-6 flex h-11 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-[filter,transform] hover:brightness-105 active:scale-[0.99]">Continue to sign in</Link>
         )}
         <p className="mt-3 text-center text-[11px] text-muted-foreground">Private to the people invited.</p>
       </section>

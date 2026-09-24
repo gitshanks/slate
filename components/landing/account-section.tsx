@@ -57,7 +57,7 @@ export function AccountSection() {
             </h2>
           </div>
           <p className="max-w-md text-pretty text-base leading-relaxed text-white/52 sm:text-lg lg:pb-2">
-            Sign in with Google and pick up on any screen. Your order, ratings,
+            Sign in with email or Google and pick up on any screen. Your order, ratings,
             notes, and progress are already there.
           </p>
         </div>

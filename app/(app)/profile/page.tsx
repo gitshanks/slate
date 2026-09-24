@@ -22,7 +22,7 @@ export default async function ProfilePage() {
       <div className="mx-auto max-w-xl rounded-[1.5rem] border border-border/70 bg-card/50 p-6 sm:p-8">
         <h1 className="text-2xl font-semibold tracking-tight">Profile unavailable</h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Profile settings are available on the hosted Google-account version of slate.
+          Profile settings are available on the hosted account version of slate.
         </p>
       </div>
     );

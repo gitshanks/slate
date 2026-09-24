@@ -35,7 +35,7 @@ const FAQS = [
   {
     question: "Can I use it on my phone?",
     answer: SLATE_HOSTED
-      ? "Yes. Slate works in your browser on phones, tablets, and desktops. Sign in with the same Google account to keep your library with you."
+      ? "Yes. Slate works in your browser on phones, tablets, and desktops. Sign in with the same email or Google account to keep your library with you."
       : "Yes. Open your Slate instance in a browser on your phone, tablet, or desktop.",
   },
 ];

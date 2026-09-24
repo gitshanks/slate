@@ -76,6 +76,27 @@ export async function ensureGoogleProfile(identity: GoogleIdentity) {
   await claimLegacyLibrary(identity);
 }
 
+export async function ensureEmailProfile(identity: { id: string; email: string }) {
+  const { data: existing, error: readError } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", identity.id)
+    .maybeSingle();
+  if (readError) throw new Error(readError.message);
+  if (!existing) {
+    const { error } = await supabase.from("profiles").insert({
+      id: identity.id,
+      username: usernameFor({ ...identity, name: null, image: null }),
+      display_name: identity.email.split("@")[0] || "slate viewer",
+      avatar_url: null,
+    });
+    if (error && !error.message.toLowerCase().includes("duplicate")) {
+      throw new Error(error.message);
+    }
+  }
+  await claimLegacyLibrary({ ...identity, name: null, image: null });
+}
+
 /**
  * An existing single-user deployment can nominate one Google email to claim
  * the rows that predate accounts. This runs once and is deliberately opt-in.

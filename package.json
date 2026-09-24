@@ -11,6 +11,7 @@
     "db:migrate:native": "node scripts/apply-native-migration.mjs",
     "db:migrate:previews": "node scripts/apply-preview-feedback-migration.mjs",
     "db:migrate:shared-lists": "node scripts/apply-shared-lists-migration.mjs",
+    "db:migrate:email-auth": "node scripts/apply-email-auth-migration.mjs",
     "db:backfill:omdb": "node scripts/backfill-omdb-plots.mjs"
   },
   "dependencies": {
