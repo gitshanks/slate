@@ -5,12 +5,16 @@ export interface OnboardingPick {
   mediaType: "movie" | "tv";
 }
 
+export const ONBOARDING_DECK_SIZE = 10;
+export const ONBOARDING_SUGGESTION_COUNT = 40;
+export const MAX_ONBOARDING_SELECTIONS = ONBOARDING_DECK_SIZE + ONBOARDING_SUGGESTION_COUNT;
+
 export function titleKey(title: OnboardingPick) {
   return `${title.mediaType}:${title.tmdbId}`;
 }
 
-export function parseOnboardingPicks(value: unknown): OnboardingPick[] | null {
-  if (!Array.isArray(value) || value.length > 10) return null;
+export function parseOnboardingPicks(value: unknown, limit = ONBOARDING_DECK_SIZE): OnboardingPick[] | null {
+  if (!Array.isArray(value) || value.length > limit) return null;
   const picks: OnboardingPick[] = [];
   const seen = new Set<string>();
   for (const item of value) {
@@ -31,12 +35,11 @@ export function selectStarterRecommendations(
   kept: OnboardingPick[],
   passed: OnboardingPick[],
 ) {
-  const remaining = Math.max(0, 10 - kept.length);
-  if (!kept.length || !remaining) return [];
+  if (!kept.length) return [];
   const excluded = new Set([...kept, ...passed].map(titleKey));
   const result: TmdbSearchResult[] = [];
   const longest = Math.max(0, ...catalogues.map((catalogue) => catalogue.length));
-  for (let index = 0; index < longest && result.length < remaining; index += 1) {
+  for (let index = 0; index < longest && result.length < ONBOARDING_SUGGESTION_COUNT; index += 1) {
     for (const catalogue of catalogues) {
       const item = catalogue[index];
       if (!item || (item.media_type !== "movie" && item.media_type !== "tv")) continue;
@@ -46,7 +49,7 @@ export function selectStarterRecommendations(
       if (excluded.has(key)) continue;
       excluded.add(key);
       result.push(item);
-      if (result.length === remaining) break;
+      if (result.length === ONBOARDING_SUGGESTION_COUNT) break;
     }
   }
   return result;

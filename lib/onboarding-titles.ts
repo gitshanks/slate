@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { DEMO_TITLES } from "@/lib/demo-seed";
+import { ONBOARDING_DECK_SIZE } from "@/lib/onboarding-recommendations";
 import {
   getNowPlaying,
   getPopularMovies,
@@ -21,7 +22,7 @@ export interface OnboardingTitle {
   genres: string[];
 }
 
-const TITLE_COUNT = 10;
+const TITLE_COUNT = ONBOARDING_DECK_SIZE;
 
 const MOVIE_GENRES = new Map<number, string>([
   [28, "Action"],

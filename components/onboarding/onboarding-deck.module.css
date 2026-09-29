@@ -697,11 +697,15 @@
 .credits div + div { margin-top: 4px; }
 .credits dt { display: inline; color: rgb(255 255 255 / .4); margin-right: 7px; }
 .credits dd { display: inline; }
-.trailerRow { margin-top: 19px; min-height: 36px; }
+.titleHeading { display: flex; align-items: center; flex-wrap: wrap; column-gap: 18px; row-gap: 14px; }
+.titleHeading h1 { flex: 1 1 320px; }
+.decisionDock { display: none; }
 .trailerButton { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; border: 1px solid rgb(255 255 255 / .24); border-radius: 999px; background: rgb(20 20 20 / .45); color: #f6f3ed; font-size: 12px; font-weight: 600; cursor: pointer; }
 .trailerButton:hover { background: rgb(255 255 255 / .12); }
 .trailerButton:focus-visible, .suggestion:focus-visible { outline: 2px solid #adebb3; outline-offset: 4px; }
-.trailerStatus { color: rgb(255 255 255 / .45); font-size: 12px; }
+.trailerButton { flex-shrink: 0; min-height: 44px; }
+.trailerStatus, .detailsRetry { display: inline-block; margin-top: 10px; color: rgb(255 255 255 / .5); font-size: 12px; }
+.detailsRetry { text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 .starterReview { max-width: 850px; padding-block: 32px; }
 .starterReview h1 { font-size: clamp(2.8rem, 5vw, 4.5rem); }
 .shelfSection { margin-top: 30px; text-align: left; }
@@ -714,15 +718,29 @@
 .shelfPoster { position: relative; aspect-ratio: 2 / 3; overflow: hidden; border-radius: 12px; border: 1px solid rgb(255 255 255 / .17); background: #171717; }
 .shelfPoster img { object-fit: cover; }
 .suggestion { position: relative; text-align: left; cursor: pointer; border-radius: 12px; align-self: start; }
-.suggestion[data-selected=false] .shelfPoster { opacity: .38; }
+.suggestion[data-selected=true] .shelfPoster { border-color: #adebb3; box-shadow: 0 0 0 1px #adebb3; }
 .selectionMark { position: absolute; right: 6px; top: 6px; display: grid; width: 23px; height: 23px; place-items: center; border-radius: 50%; background: #adebb3; color: #102113; box-shadow: 0 2px 12px #0006; }
 .selectionMark svg { width: 14px; height: 14px; }
-.suggestion[data-selected=false] .selectionMark { background: #222; color: #fff; }
+.suggestion[data-selected=false] .selectionMark { background: rgb(15 15 15 / .85); border: 1px solid rgb(255 255 255 / .35); color: #fff; }
+.shelfActions { position: sticky; top: 12px; z-index: 25; width: fit-content; max-width: 100%; margin-inline: auto; padding: 12px 18px; border-radius: 28px; background: rgb(8 8 8 / .9); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.shelfActions .backButton { margin-top: 5px; }
 @media (max-width: 900px) {
-  .details { padding-inline: 4px; }
+  .content { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
+  .details { padding-inline: 4px; text-align: left; }
+  .tasteEyebrow { display: none; }
+  .titleHeading { flex-wrap: nowrap; gap: 14px; }
+  .titleHeading h1 { flex: 1; min-width: 0; margin-top: 0; font-size: clamp(1.75rem, 7.2vw, 2.8rem); line-height: 1; text-wrap: pretty; }
+  .meta { justify-content: flex-start; flex-wrap: nowrap; white-space: nowrap; font-size: 9px; letter-spacing: .08em; }
+  .meta .extendedMeta { display: none; }
+  .meta span + span::before { margin-inline: 7px; }
+  .desktopDecisions, .gestureHint { display: none; }
+  .decisionDock { display: block; position: fixed; bottom: 0; inset-inline: 0; z-index: 40; padding: 14px 20px max(16px, env(safe-area-inset-bottom)); background: rgb(8 8 8 / .9); border-top: 1px solid rgb(255 255 255 / .06); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .decisionDock .decisionRow { width: min(100%, 420px); margin: 0 auto; }
+  .decisionDock .passButton { flex: 1; }
+  .decisionDock .keepButton { flex: 1.6; }
   .overview { text-align: left; }
   .credits { text-align: left; }
-  .deck { width: min(55vw, 248px); }
+  .deck { width: min(52vw, 25svh, 248px); }
   .shelfGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
   .starterReview { padding-top: 8px; }
 }

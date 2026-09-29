@@ -680,11 +680,29 @@ export async function getPopularTv(): Promise<TmdbSearchResult[]> {
 export async function getRecommendationsFor(
   type: "movie" | "tv",
   tmdbId: number,
+  page = 1,
+): Promise<TmdbMediaResult[]> {
+  return getRelatedCatalogue(type, tmdbId, "recommendations", page);
+}
+
+export async function getSimilarFor(
+  type: "movie" | "tv",
+  tmdbId: number,
+  page = 1,
+): Promise<TmdbMediaResult[]> {
+  return getRelatedCatalogue(type, tmdbId, "similar", page);
+}
+
+async function getRelatedCatalogue(
+  type: "movie" | "tv",
+  tmdbId: number,
+  kind: "recommendations" | "similar",
+  page: number,
 ): Promise<TmdbMediaResult[]> {
   try {
     const res = await tmdb<{ results: TmdbSearchResult[] }>(
-      `/${type}/${tmdbId}/recommendations`,
-      { language: "en-US", page: "1" },
+      `/${type}/${tmdbId}/${kind}`,
+      { language: "en-US", page: String(page) },
       { revalidate: TMDB_CACHE_SECONDS.recommendations },
     );
     return res.results

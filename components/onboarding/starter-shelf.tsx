@@ -27,14 +27,14 @@ export function StarterShelf({
     kept: kept.map(({ tmdbId, mediaType }) => ({ tmdbId, mediaType })),
     passed: passed.map(({ tmdbId, mediaType }) => ({ tmdbId, mediaType })),
   });
-  const needsSuggestions = kept.length > 0 && kept.length < 10;
+  const needsSuggestions = kept.length > 0;
   const [suggestions, setSuggestions] = useState<OnboardingTitle[] | null>(
     () => shelfCache.get(requestBody) ?? (needsSuggestions ? null : []),
   );
-  const [omitted, setOmitted] = useState<string[]>([]);
+  const [included, setIncluded] = useState<string[]>([]);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const selectedSuggestions = (suggestions ?? []).filter((title) => !omitted.includes(titleKey(title)));
+  const selectedSuggestions = (suggestions ?? []).filter((title) => included.includes(titleKey(title)));
   const selections = [...kept, ...selectedSuggestions].map(({ tmdbId, mediaType }) => ({ tmdbId, mediaType }));
 
   useEffect(() => {
@@ -69,9 +69,19 @@ export function StarterShelf({
       <h1>{kept.length ? "A good beginning." : "Begin with a blank slate."}</h1>
       <p className={styles.reviewCopy}>
         {kept.length
-          ? "Your picks come first. A few more, inspired by them, can round out your Up Next."
+          ? "Start with your picks, or find a few more to look forward to."
           : "Skip the warm-up and start exploring. Your recommendations grow with what you save and watch."}
       </p>
+      <form action={action} className={`${styles.reviewActions} ${styles.shelfActions}`} onSubmit={onSubmit}>
+        <input type="hidden" name="selections" value={JSON.stringify(selections)} />
+        {error ? <p className={styles.error} role="alert">{error}</p> : null}
+        <button type="submit" className={styles.openButton} disabled={pending}
+          data-analytics-action="onboarding_save_taste" data-analytics-area="taste_builder">
+          <span>{pending ? "Building your slate…" : selections.length ? `Start with ${selections.length} ${selections.length === 1 ? "title" : "titles"}` : "Start exploring"}</span>
+          {!pending ? <ArrowRight aria-hidden="true" /> : null}
+        </button>
+        {hasMore ? <button type="button" className={styles.backButton} disabled={pending} onClick={onBack}>Keep choosing</button> : null}
+      </form>
       {kept.length ? (
         <section className={styles.shelfSection} aria-labelledby="your-picks-heading">
           <h2 id="your-picks-heading">You picked <span>{kept.length}</span></h2>
@@ -84,10 +94,10 @@ export function StarterShelf({
         <section className={styles.shelfSection} aria-labelledby="suggested-picks-heading" aria-busy={!suggestions && !failed}>
           <h2 id="suggested-picks-heading">Based on what you liked</h2>
           <p className={styles.shelfNote}>
-            {suggestions?.length ? "Included in your starter shelf. Tap any to leave it out." : failed
+            {suggestions?.length ? "Add any that catch your eye. Tap again to leave it out." : failed
               ? "Suggestions couldn't load. Retry, or start with just your picks."
               : suggestions ? "No close matches this time. Your picks are a great place to start."
-              : "Finding a few that belong alongside your picks…"}
+              : "Finding more to explore…"}
           </p>
           {failed ? (
             <button type="button" className={styles.backButton} onClick={() => { setFailed(false); setAttempt((value) => value + 1); }}>
@@ -96,7 +106,7 @@ export function StarterShelf({
           ) : null}
           <div className={styles.shelfGrid}>
             {suggestions?.map((title) => {
-              const selected = !omitted.includes(titleKey(title));
+              const selected = included.includes(titleKey(title));
               return (
                 <button
                   type="button"
@@ -106,9 +116,9 @@ export function StarterShelf({
                   disabled={pending}
                   className={styles.suggestion}
                   data-selected={selected}
-                  onClick={() => setOmitted((current) => selected
-                    ? [...current, titleKey(title)]
-                    : current.filter((key) => key !== titleKey(title)))}
+                  onClick={() => setIncluded((current) => selected
+                    ? current.filter((key) => key !== titleKey(title))
+                    : [...current, titleKey(title)])}
                 >
                   <ShelfPoster title={title} />
                   <span className={styles.selectionMark}>{selected ? <Check /> : <Plus />}</span>
@@ -118,16 +128,6 @@ export function StarterShelf({
           </div>
         </section>
       ) : null}
-      <form action={action} className={styles.reviewActions} onSubmit={onSubmit}>
-        <input type="hidden" name="selections" value={JSON.stringify(selections)} />
-        {error ? <p className={styles.error} role="alert">{error}</p> : null}
-        <button type="submit" className={styles.openButton} disabled={pending || (!suggestions && !failed)}
-          data-analytics-action="onboarding_save_taste" data-analytics-area="taste_builder">
-          <span>{pending ? "Building your slate…" : selections.length ? `Start with ${selections.length} ${selections.length === 1 ? "title" : "titles"}` : "Start exploring"}</span>
-          {!pending ? <ArrowRight aria-hidden="true" /> : null}
-        </button>
-        {hasMore ? <button type="button" className={styles.backButton} disabled={pending} onClick={onBack}>Keep choosing</button> : null}
-      </form>
     </motion.section>
   );
 }

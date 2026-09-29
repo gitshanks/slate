@@ -239,35 +239,14 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
               </div>
 
               <div className={styles.details}>
-                <p className={styles.eyebrow}>Shape your Up Next</p>
-                <h1 data-onboarding-title>{active.title}</h1>
                 <OnboardingTitleDetails
                   key={`${active.mediaType}:${active.tmdbId}`}
                   title={active}
                   onTrailerOpenChange={setTrailerOpen}
                 />
 
-                <div className={styles.decisionRow}>
-                  <button
-                    type="button"
-                    className={styles.passButton}
-                    onClick={() => decide("pass")}
-                    data-analytics-action="onboarding_pass"
-                    data-analytics-area="taste_builder"
-                  >
-                    <X aria-hidden="true" />
-                    <span>Pass</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.keepButton}
-                    onClick={() => decide("keep")}
-                    data-analytics-action="onboarding_keep"
-                    data-analytics-area="taste_builder"
-                  >
-                    <Plus aria-hidden="true" />
-                    <span>Keep for later</span>
-                  </button>
+                <div className={styles.desktopDecisions}>
+                  <DecisionControls onDecision={decide} />
                 </div>
                 <p className={styles.gestureHint}>
                   Drag the poster or use <span>←</span> <span>→</span>
@@ -277,7 +256,27 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
           ) : null}
         </AnimatePresence>
       </div>
+      {!reviewing && !state.ok && active ? (
+        <div className={styles.decisionDock}>
+          <DecisionControls onDecision={decide} />
+        </div>
+      ) : null}
     </main>
+  );
+}
+
+function DecisionControls({ onDecision }: { onDecision: (choice: Choice) => void }) {
+  return (
+    <div className={styles.decisionRow}>
+      <button type="button" className={styles.passButton} onClick={() => onDecision("pass")}
+        data-analytics-action="onboarding_pass" data-analytics-area="taste_builder">
+        <X aria-hidden="true" /><span>Pass</span>
+      </button>
+      <button type="button" className={styles.keepButton} onClick={() => onDecision("keep")}
+        data-analytics-action="onboarding_keep" data-analytics-area="taste_builder">
+        <Plus aria-hidden="true" /><span>Keep for later</span>
+      </button>
+    </div>
   );
 }
 

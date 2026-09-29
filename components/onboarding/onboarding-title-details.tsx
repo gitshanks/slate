@@ -48,14 +48,34 @@ export function OnboardingTitleDetails({
 
   return (
     <>
+      <p className={`${styles.eyebrow} ${styles.tasteEyebrow}`}>Shape your Up Next</p>
+      <div className={styles.titleHeading}>
+        <h1 data-onboarding-title>{title.title}</h1>
+        {detail?.trailerKey ? (
+          <TrailerButton
+            trailerKey={detail.trailerKey}
+            titleName={title.title}
+            label="Trailer"
+            source="onboarding"
+            className={styles.trailerButton}
+            onOpenChange={onTrailerOpenChange}
+          />
+        ) : null}
+      </div>
       <div className={styles.meta}>
         <span>{title.mediaType === "movie" ? "Film" : "Series"}</span>
         {title.releaseDate ? <span>{title.releaseDate.slice(0, 4)}</span> : null}
-        {title.genres.map((genre) => <span key={genre}>{genre}</span>)}
-        {runtime ? <span>{runtime} min</span> : null}
-        {seasons ? <span>{seasons} {seasons === 1 ? "season" : "seasons"}</span> : null}
-        {rating ? <span>{rating.toFixed(1)} / 10 {row?.imdb_rating ? "IMDb" : "TMDB"}</span> : null}
+        {title.genres.map((genre, index) => <span className={index ? styles.extendedMeta : undefined} key={genre}>{genre}</span>)}
+        {runtime ? <span className={styles.extendedMeta}>{runtime} min</span> : null}
+        {seasons ? <span className={styles.extendedMeta}>{seasons} {seasons === 1 ? "season" : "seasons"}</span> : null}
+        {rating ? <span className={styles.extendedMeta}>{rating.toFixed(1)} / 10 {row?.imdb_rating ? "IMDb" : "TMDB"}</span> : null}
       </div>
+      {failed ? (
+        <button type="button" className={styles.detailsRetry} onClick={() => {
+          setFailed(false);
+          setAttempt((value) => value + 1);
+        }}>Retry details & trailer</button>
+      ) : !detail ? <span className={styles.trailerStatus} role="status">Loading details & trailer…</span> : null}
       <p className={styles.overview}>{summary}</p>
       {detail?.directedBy.length || detail?.cast.length ? (
         <dl className={styles.credits}>
@@ -73,28 +93,6 @@ export function OnboardingTitleDetails({
           ) : null}
         </dl>
       ) : null}
-      <div className={styles.trailerRow}>
-        {detail?.trailerKey ? (
-          <TrailerButton
-            trailerKey={detail.trailerKey}
-            titleName={title.title}
-            source="onboarding"
-            className={styles.trailerButton}
-            onOpenChange={onTrailerOpenChange}
-          />
-        ) : failed ? (
-          <button type="button" className={styles.trailerButton} onClick={() => {
-            setFailed(false);
-            setAttempt((value) => value + 1);
-          }}>
-            Retry details & trailer
-          </button>
-        ) : (
-          <span className={styles.trailerStatus} role="status">
-            {detail ? "No trailer available for this title" : "Loading details & trailer…"}
-          </span>
-        )}
-      </div>
     </>
   );
 }

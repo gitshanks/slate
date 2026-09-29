@@ -1,7 +1,7 @@
 import { appApiUnauthorizedResponse } from "@/lib/app-access";
-import { parseOnboardingPicks, selectStarterRecommendations } from "@/lib/onboarding-recommendations";
+import { ONBOARDING_DECK_SIZE, parseOnboardingPicks } from "@/lib/onboarding-recommendations";
 import { normalizeOnboardingTitle } from "@/lib/onboarding-titles";
-import { getRecommendationsFor } from "@/lib/tmdb";
+import { getOnboardingSuggestions } from "@/lib/onboarding-suggestions";
 
 export async function POST(request: Request) {
   const unauthorized = await appApiUnauthorizedResponse();
@@ -14,13 +14,10 @@ export async function POST(request: Request) {
   }
   const kept = parseOnboardingPicks(body?.kept);
   const passed = parseOnboardingPicks(body?.passed);
-  if (!kept || !passed || kept.length + passed.length > 10) {
+  if (!kept || !passed || kept.length + passed.length > ONBOARDING_DECK_SIZE) {
     return Response.json({ error: "Invalid choices." }, { status: 400 });
   }
-  const catalogues = kept.length && kept.length < 10
-    ? await Promise.all(kept.map((pick) => getRecommendationsFor(pick.mediaType, pick.tmdbId)))
-    : [];
-  const titles = selectStarterRecommendations(catalogues, kept, passed)
+  const titles = (await getOnboardingSuggestions(kept, passed))
     .flatMap((item) => {
       const title = normalizeOnboardingTitle(item);
       return title ? [title] : [];

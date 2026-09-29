@@ -17,6 +17,7 @@ interface TrailerButtonProps {
   /** "pill" (default, desktop row) or "row" (mobile More sheet). */
   variant?: "pill" | "row";
   className?: string;
+  label?: string;
   source?: string;
   onOpenChange?: (open: boolean) => void;
 }
@@ -26,7 +27,7 @@ interface TrailerButtonProps {
  * Only render this when you actually have a trailerKey — the parent should
  * gate on that.
  */
-export function TrailerButton({ trailerKey, titleName, variant = "pill", className, source = "title_detail", onOpenChange }: TrailerButtonProps) {
+export function TrailerButton({ trailerKey, titleName, variant = "pill", className, label = "Watch trailer", source = "title_detail", onOpenChange }: TrailerButtonProps) {
   const [open, setOpen] = React.useState(false);
 
   // Only set the iframe src while the dialog is open so we don't preload the
@@ -51,16 +52,17 @@ export function TrailerButton({ trailerKey, titleName, variant = "pill", classNa
           <button
             type="button"
             data-analytics-action="watch_trailer"
+            aria-label={`Watch trailer for ${titleName}`}
             className={className ?? "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"}
           >
             <Play className="h-3.5 w-3.5 fill-current" />
-            Watch trailer
+            {label}
           </button>
         )}
       </DialogTrigger>
-      <DialogContent size="lg" className="p-0 sm:max-w-3xl" aria-describedby={undefined}>
+      <DialogContent placement="center" size="lg" className="w-[calc(100vw-1.5rem)] max-w-[min(48rem,calc(177.78dvh-5rem))] p-0 sm:max-w-[min(48rem,calc(177.78dvh-5rem))]" aria-describedby={undefined}>
         <DialogTitle className="sr-only">{titleName} - trailer</DialogTitle>
-        <div className="relative aspect-video w-full overflow-hidden rounded-b-2xl bg-black sm:rounded-lg">
+        <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black">
           {open && (
             <iframe
               src={src}

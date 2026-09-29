@@ -13,7 +13,7 @@ function load(file, dependencies = {}) {
   }).outputText;
   const exports = {};
   vm.runInNewContext(output, {
-    exports, Date, Set, FormData, TextEncoder,
+    exports, Date, Set, FormData, TextEncoder, Response,
     process: { env: { DATABASE_URL: "test-only", AUTH_SECRET: "isolated-test-secret-at-least-32-characters" } },
     require(name) {
       if (name in dependencies) return dependencies[name];
@@ -23,7 +23,8 @@ function load(file, dependencies = {}) {
   return exports;
 }
 
-const { selectStarterRecommendations, parseOnboardingPicks } = load("lib/onboarding-recommendations.ts");
+const recommendationHelpers = load("lib/onboarding-recommendations.ts");
+const { selectStarterRecommendations, parseOnboardingPicks, MAX_ONBOARDING_SELECTIONS } = recommendationHelpers;
 const { belongsToAccount } = load("lib/account-session.ts");
 const { deleteAccountData } = load("lib/account-deletion.ts");
 
@@ -32,13 +33,13 @@ function item(id, media_type = "movie") {
 }
 const pick = (tmdbId, mediaType = "movie") => ({ tmdbId, mediaType });
 
-test("starter suggestions exclude passed/kept titles, dedupe across sources, and balance seeds up to ten", () => {
+test("starter suggestions exclude passed/kept titles, dedupe across sources, and balance seeds", () => {
   const result = selectStarterRecommendations([
     [item(1), item(3), item(4), item(5), item(6), item(7), item(8)],
     [item(2, "tv"), item(4), item(9, "tv"), item(10, "tv"), item(11, "tv"), item(12, "tv")],
   ], [pick(1), pick(2, "tv")], [pick(3)]);
-  assert.equal(result.length, 8);
-  assert.equal(new Set(result.map((row) => row.media_type + ":" + row.id)).size, 8);
+  assert.equal(result.length, 9);
+  assert.equal(new Set(result.map((row) => row.media_type + ":" + row.id)).size, 9);
   assert.ok(!result.some((row) => [1, 2, 3].includes(row.id)));
   assert.ok(result.slice(0, 4).some((row) => row.media_type === "tv"));
 });
@@ -46,7 +47,68 @@ test("starter suggestions exclude passed/kept titles, dedupe across sources, and
 test("empty taste or unavailable catalogues don't invent starter picks", () => {
   assert.equal(selectStarterRecommendations([[item(1)]], [], []).length, 0);
   assert.equal(selectStarterRecommendations([], [pick(1)], []).length, 0);
-  assert.equal(selectStarterRecommendations([[item(11)]], Array.from({ length: 10 }, (_, i) => pick(i + 1)), []).length, 0);
+  assert.equal(selectStarterRecommendations([[item(11)]], Array.from({ length: 10 }, (_, i) => pick(i + 1)), []).length, 1);
+});
+
+test("forty optional suggestions remain available after keeping all ten cards", () => {
+  const result = selectStarterRecommendations([
+    Array.from({ length: 60 }, (_, i) => item(i + 1)),
+  ], Array.from({ length: 10 }, (_, i) => pick(i + 1)), []);
+  assert.equal(result.length, 40);
+  assert.equal(result[0].id, 11);
+  assert.equal(result.at(-1).id, 50);
+  assert.equal(parseOnboardingPicks(Array.from({ length: 50 }, (_, i) => pick(i + 1)), MAX_ONBOARDING_SELECTIONS).length, 50);
+  assert.equal(parseOnboardingPicks(Array.from({ length: 51 }, (_, i) => pick(i + 1)), MAX_ONBOARDING_SELECTIONS), null);
+});
+
+test("small taste samples expand through cached related pages only as needed", async () => {
+  const requests = [];
+  const { getOnboardingSuggestions } = load("lib/onboarding-suggestions.ts", {
+    "server-only": {},
+    "@/lib/onboarding-recommendations": recommendationHelpers,
+    "@/lib/tmdb": {
+      getRecommendationsFor: async (type, id, page = 1) => {
+        requests.push([type, id, page]);
+        return Array.from({ length: 20 }, (_, i) => item((page - 1) * 20 + i + 1));
+      },
+      getSimilarFor: async () => { requests.push("similar"); return Array.from({ length: 20 }, (_, i) => item(i + 40)); },
+    },
+  });
+  const result = await getOnboardingSuggestions([pick(1)], [pick(3)]);
+  assert.equal(result.length, 40);
+  assert.ok(result.every((row) => row.id !== 1 && row.id !== 3));
+  assert.deepEqual(requests, [["movie", 1, 1], ["movie", 1, 2], "similar"]);
+});
+
+test("a full first page pool avoids extra catalogue calls", async () => {
+  let requests = 0;
+  const { getOnboardingSuggestions } = load("lib/onboarding-suggestions.ts", {
+    "server-only": {},
+    "@/lib/onboarding-recommendations": recommendationHelpers,
+    "@/lib/tmdb": {
+      getRecommendationsFor: async (_type, id, page = 1) => {
+        assert.equal(page, 1); requests++;
+        return Array.from({ length: 20 }, (_, i) => item(id * 100 + i));
+      },
+      getSimilarFor: async () => { throw new Error("Unnecessary request"); },
+    },
+  });
+  assert.equal((await getOnboardingSuggestions([pick(1), pick(2), pick(3)], [])).length, 40);
+  assert.equal(requests, 3);
+  assert.equal((await getOnboardingSuggestions([], [])).length, 0);
+  assert.equal(requests, 3);
+});
+
+test("a new release with few curated matches can fill forty from two similar pages", async () => {
+  const { getOnboardingSuggestions } = load("lib/onboarding-suggestions.ts", {
+    "server-only": {},
+    "@/lib/onboarding-recommendations": recommendationHelpers,
+    "@/lib/tmdb": {
+      getRecommendationsFor: async () => [],
+      getSimilarFor: async (_type, _id, page) => Array.from({ length: 20 }, (_, i) => item(page * 100 + i)),
+    },
+  });
+  assert.equal((await getOnboardingSuggestions([pick(1)], [])).length, 40);
 });
 
 test("submission rejects malformed or oversized selections and keeps film/series IDs distinct", () => {
@@ -98,7 +160,7 @@ test("onboarding saves approved suggestions after kept picks and completes only 
     "next/cache": { revalidatePath() {} },
     "@/lib/actions": { addTitle: async (selection) => { added.push(selection.tmdbId); return { id: String(selection.tmdbId), status: "want" }; } },
     "@/lib/profiles": { getProfileById: async () => ({ onboarding_completed_at: completed ? "done" : null }) },
-    "@/lib/onboarding-recommendations": { parseOnboardingPicks },
+    "@/lib/onboarding-recommendations": recommendationHelpers,
     "@/lib/library-db": {
       getLibraryOwnerId: async () => "a",
       getLibraryClient: async () => ({ from: () => ({ update: (values) => ({ eq: async (_, id) => {
@@ -106,16 +168,16 @@ test("onboarding saves approved suggestions after kept picks and completes only 
       } }) }) }),
     },
     "@/lib/supabase": { supabase: { from: () => ({ update: () => ({ eq: async (_, id) => {
-      assert.equal(id, "a"); assert.equal(positions.length, 3); completed = true; return { error: null };
+      assert.equal(id, "a"); assert.equal(positions.length, 50); completed = true; return { error: null };
     } }) }) } },
   });
   const form = new FormData();
-  form.set("selections", JSON.stringify([pick(1), pick(2, "tv"), pick(3)]));
-  assert.equal((await completeOnboarding({}, form)).savedCount, 3);
-  assert.deepEqual(added, [1, 2, 3]);
-  assert.deepEqual(positions, [["1", -1000], ["2", -999], ["3", -998]]);
+  form.set("selections", JSON.stringify(Array.from({ length: 50 }, (_, i) => pick(i + 1))));
+  assert.equal((await completeOnboarding({}, form)).savedCount, 50);
+  assert.deepEqual(added, Array.from({ length: 50 }, (_, i) => i + 1));
+  assert.deepEqual(positions, Array.from({ length: 50 }, (_, i) => [String(i + 1), -1000 + i]));
   await completeOnboarding({}, form);
-  assert.equal(added.length, 3, "Completed onboarding must not write twice");
+  assert.equal(added.length, 50, "Completed onboarding must not write twice");
 });
 
 const schema = fs.readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8")

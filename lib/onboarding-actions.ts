@@ -5,7 +5,7 @@ import { addTitle } from "@/lib/actions";
 import { getLibraryClient, getLibraryOwnerId } from "@/lib/library-db";
 import { getProfileById } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
-import { parseOnboardingPicks, type OnboardingPick } from "@/lib/onboarding-recommendations";
+import { MAX_ONBOARDING_SELECTIONS, parseOnboardingPicks, type OnboardingPick } from "@/lib/onboarding-recommendations";
 
 export interface OnboardingState {
   ok: boolean;
@@ -86,9 +86,9 @@ export async function completeOnboarding(
 }
 
 function parseSelections(value: FormDataEntryValue | null): OnboardingPick[] | null {
-  if (typeof value !== "string" || value.length > 2_000) return null;
+  if (typeof value !== "string" || value.length > 8_000) return null;
   try {
-    return parseOnboardingPicks(JSON.parse(value));
+    return parseOnboardingPicks(JSON.parse(value), MAX_ONBOARDING_SELECTIONS);
   } catch {
     return null;
   }

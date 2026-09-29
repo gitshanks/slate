@@ -1,168 +1,116 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PrivacyPreferencesButton } from "@/components/analytics/privacy-preferences-button";
 
 export const metadata: Metadata = {
-  title: "Privacy and analytics · slate",
-  description:
-    "How slate uses account data, optional product analytics, and masked session replay.",
+  title: "Privacy · slate",
+  description: "How Slate handles your information and the choices you have.",
 };
 
-const contactEmail =
-  process.env.PRIVACY_CONTACT_EMAIL?.trim() || "nishankatwork@gmail.com";
+const contactEmail = process.env.PRIVACY_CONTACT_EMAIL?.trim() || "nishankatwork@gmail.com";
+const textLink = "text-[#f6f3ed] underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#adebb3]";
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-dvh bg-[#0c0b0a] text-[#f4eee4] selection:bg-[#adebb3]/25">
-      <div className="mx-auto w-full max-w-[1120px] px-5 pb-24 pt-6 sm:px-8 sm:pt-8 lg:px-12">
+    <main className="min-h-dvh bg-[#080808] text-[#f6f3ed] selection:bg-[#adebb3]/25">
+      <div className="mx-auto w-full max-w-5xl px-6 pb-16 pt-7 sm:px-10 sm:pt-9">
         <nav className="flex items-center justify-between" aria-label="Privacy page navigation">
           <Link href="/" aria-label="slate home">
-            <Image src="/brand/logo-light.svg" alt="slate" width={74} height={21} priority />
+            <Image src="/brand/logo-light.svg" alt="slate" width={78} height={22} className="h-auto" priority />
           </Link>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs font-medium text-white/55 transition-colors hover:text-white"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-            Back to slate
+          <Link href="/" className="inline-flex items-center gap-2 py-2 text-xs text-white/60 transition-colors hover:text-white">
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Back to Slate
           </Link>
         </nav>
 
-        <header className="grid gap-8 border-b border-white/10 pb-14 pt-20 sm:pt-28 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#adebb3]/72">
-              Plain-language privacy
+        <article className="mx-auto max-w-[640px] pt-16 sm:pt-24">
+          <header className="border-b border-white/10 pb-9">
+            <h1 className="text-5xl font-semibold leading-none tracking-[-0.055em] sm:text-6xl">Privacy</h1>
+            <p className="mt-5 max-w-md text-[15px] leading-7 text-white/65">
+              How Slate handles your information and the choices you have.
             </p>
-            <h1 className="mt-5 max-w-4xl text-balance text-[clamp(3.25rem,8vw,7.25rem)] font-medium leading-[0.84] tracking-[-0.07em]">
-              Useful signals.
-              <br />
-              <span className="font-serif font-normal italic text-[#de7548]">Clear boundaries.</span>
-            </h1>
-          </div>
-          <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-5">
-            <ShieldCheck className="h-5 w-5 text-[#adebb3]" aria-hidden />
-            <p className="mt-4 text-sm leading-6 text-white/66">
-              Optional analytics stays off until you accept. You can change your choice at any time.
-            </p>
-            <PrivacyPreferencesButton className="mt-4 text-xs text-[#adebb3]/80 hover:text-[#adebb3]" />
-          </div>
-        </header>
+            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 text-xs text-white/45">
+              <span>Updated September 28, 2026</span>
+              <PrivacyPreferencesButton className="text-xs text-[#adebb3] underline underline-offset-4 hover:text-white" />
+            </div>
+          </header>
 
-        <div className="grid gap-16 py-16 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-20 lg:py-24">
-          <aside className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/32 lg:sticky lg:top-10 lg:self-start">
-            <p>Effective September 28, 2026</p>
-            <p className="mt-2">Applies to the hosted slate service</p>
-          </aside>
-
-          <article className="max-w-3xl space-y-16 text-[15px] leading-7 text-white/64">
-            <PolicySection title="The short version">
+          <div className="space-y-9 py-10 text-sm leading-7 text-white/65 sm:space-y-11 sm:text-[15px]">
+            <PolicySection title="Your account and library">
               <p>
-                Your library, ratings, notes, lists, profile, and account details make slate work. Product analytics is optional and runs only after consent. Slate uses those analytics to understand feature adoption, find broken or confusing flows, measure performance, and improve the product. It is not used for advertising and is not sold.
+                Slate uses your sign-in details, profile, saved titles, ratings, notes, lists, and viewing preferences to run your account, sync your library, and personalize recommendations. We also keep the records needed to secure sign-ins and shared lists.
               </p>
-            </PolicySection>
-
-            <PolicySection title="What the app needs">
               <p>
-                When you create an account, slate stores your account identifier, verified email address, profile details, authentication records, library, lists, shared-list membership, ratings, notes, preview preferences, and the actions needed to keep those features in sync. Authentication, security, and the library cannot operate without this data.
+                A public profile can be seen by others. People in a shared list can see its contents. You control your profile visibility and who you invite.
               </p>
             </PolicySection>
 
             <PolicySection title="Optional analytics">
-              <div className="overflow-hidden rounded-[1.4rem] border border-white/10">
-                <DataRow label="Identity" value="A stable account ID, email, display name, account age, locale, time zone, and web platform after you accept analytics." />
-                <DataRow label="Product use" value="Page types, navigation, feature actions and outcomes, preview behavior, library changes, list collaboration, imports, and conversion steps." />
-                <DataRow label="Quality" value="Web performance measurements, device and browser category, failed playback, and anonymous error fingerprints." />
-                <DataRow label="Replay" value="A visual playback of consenting sessions with every text value and form field masked. Headers, request bodies, canvas content, hidden fields, and file inputs are excluded." last />
-              </div>
-            </PolicySection>
-
-            <PolicySection title="What stays out">
               <p>
-                Slate’s analytics implementation does not intentionally send search phrases, private notes, list names, invite tokens, one-time sign-in codes, uploaded file names or contents, raw error messages, or full title and profile URLs. Sensitive route segments are replaced with generic placeholders before analytics events are sent. IP enrichment and exact device-model collection are disabled.
+                With your permission, we use PostHog to understand how Slate is used and where it needs improvement. This includes feature activity, device and browser information, performance, and errors. When signed in, activity can be linked to your account ID, email, name, account age, language, and time zone.
+              </p>
+              <p>
+                Analytics also includes session replays: a playback of interactions with text and form entries hidden. Private notes, search text, list names, sign-in codes, and uploaded file contents are excluded from analytics.
+              </p>
+              <p>
+                These features stay off until you accept. Choose <span className="text-white/85">Necessary only</span> to use Slate without them. We do not sell this data or use it for advertising.
               </p>
             </PolicySection>
 
-            <PolicySection title="Cookies and local storage">
+            <PolicySection title="Cookies and browser storage">
               <p>
-                Essential browser storage keeps you signed in and remembers app settings. If you accept analytics, PostHog uses first-party identifiers in cookies and local storage to connect events into sessions and recognize returning browsers. The browser identifier expires after 180 days. Slate also stores your analytics choice locally so it can be respected on later visits.
+                Essential storage keeps you signed in and remembers your settings and privacy choice. If you accept analytics, additional identifiers connect visits and activity; the analytics cookie lasts up to 180 days.
+              </p>
+              <p>
+                You can change your choice through Privacy choices in the footer or Profile settings. Turning analytics off stops new collection on that browser. We also respect Global Privacy Control and Do Not Track signals.
               </p>
             </PolicySection>
 
-            <PolicySection title="Processor and purpose">
+            <PolicySection title="Services that help Slate work">
               <p>
-                Slate uses PostHog as a data processor for product analytics and masked session replay. The legal basis for optional analytics is your consent. PostHog receives data only after consent and processes it according to the project’s configured hosting region and retention settings. You can read the vendor’s own privacy information on the PostHog website.
-              </p>
-              <a
-                href="https://posthog.com/privacy"
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#adebb3]/78 underline decoration-[#adebb3]/25 underline-offset-4 hover:text-[#adebb3]"
-              >
-                PostHog privacy policy
-                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-              </a>
-            </PolicySection>
-
-            <PolicySection title="Your choices and rights">
-              <p className="mb-5">
-                You can delete your account in Profile settings. This removes your profile, library, notes, ratings, preview preferences, lists you own, and account sessions. For any previously collected analytics, contact us using the address below.
+                Service providers handle hosting, data storage, sign-in, email delivery, and optional analytics on our behalf. When you use AI features, your request and relevant library context are sent to the AI provider to generate a response.
               </p>
               <p>
-                Choose “Necessary only” to use slate without optional analytics. Choosing it later stops new analytics and recording on that browser. A Global Privacy Control or Do Not Track signal also keeps analytics off. Depending on where you live, you may ask to access, correct, export, restrict, object to, or delete personal data.
-              </p>
-              <p className="mt-5">
-                Send privacy requests to{" "}
-                <a className="text-white underline decoration-white/25 underline-offset-4 hover:decoration-white/60" href={`mailto:${contactEmail}`}>
-                  {contactEmail}
-                </a>
-                . Include the account email and the request you want completed. Do not include a sign-in code or private note.
+                Embedded trailers use YouTube. Google sign-in and YouTube are also covered by <a href="https://policies.google.com/privacy" className={textLink}>Google’s privacy policy</a>. You can read <a href="https://posthog.com/privacy" className={textLink}>PostHog’s privacy policy</a> for its handling of analytics data. Providers may process information in countries other than your own.
               </p>
             </PolicySection>
 
-            <PolicySection title="Retention and changes">
+            <PolicySection title="Keeping and deleting information">
               <p>
-                Account and library data remains while the account is active or as needed to provide and secure the service. Analytics retention follows the configured PostHog project policy and should be reviewed regularly. Data may be kept longer when required to resolve fraud, security, legal, or accounting obligations. Material changes to this notice will be reflected here with a new effective date.
+                Account data is kept while you use Slate. You can <Link href="/profile" className={textLink}>delete your account in Profile settings</Link>. This removes your profile, library, notes, ratings, preferences, and lists you own, and signs you out on every device. Owned shared lists are removed for their members too.
+              </p>
+              <p>
+                Previously collected analytics follows our analytics provider’s retention settings. Contact us to request its deletion. Some records may need to be retained for security or legal obligations.
               </p>
             </PolicySection>
-          </article>
-        </div>
+
+            <PolicySection title="Questions or requests">
+              <p>
+                For questions about this hosted Slate service, or to request access, correction, export, or deletion of your information, email <a href={`mailto:${contactEmail}`} className={`${textLink} break-words`}>{contactEmail}</a> with your account email and request.
+              </p>
+              <p>
+                Depending on where you live, you may also have rights to restrict or object to processing and to complain to your local data protection authority. If our practices change, we’ll update this page and its date.
+              </p>
+            </PolicySection>
+          </div>
+
+          <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/45">
+            <span>Slate</span>
+            <a href={`mailto:${contactEmail}`} className="py-2 transition-colors hover:text-white">Contact about privacy</a>
+          </footer>
+        </article>
       </div>
     </main>
   );
 }
 
-function PolicySection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function PolicySection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section>
-      <h2 className="mb-5 text-2xl font-semibold tracking-[-0.035em] text-[#f4eee4] sm:text-3xl">
-        {title}
-      </h2>
+    <section className="space-y-3">
+      <h2 className="text-lg font-semibold tracking-[-0.025em] text-[#f6f3ed]">{title}</h2>
       {children}
     </section>
-  );
-}
-
-function DataRow({
-  label,
-  value,
-  last = false,
-}: {
-  label: string;
-  value: string;
-  last?: boolean;
-}) {
-  return (
-    <div className={`grid gap-2 p-5 sm:grid-cols-[8rem_1fr] sm:gap-6 ${last ? "" : "border-b border-white/10"}`}>
-      <strong className="text-sm font-semibold text-[#f4eee4]">{label}</strong>
-      <span>{value}</span>
-    </div>
   );
 }

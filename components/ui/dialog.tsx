@@ -28,25 +28,26 @@ const DialogOverlay = React.forwardRef<
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
 const dialogContentVariants = cva(
-  // Mobile: anchored to top of screen, full width, slides in from top
-  // Desktop (sm+): centered with zoom animation
   [
     "fixed z-[90] grid gap-4 bg-background shadow-lg border",
-    // Mobile positioning — top anchored
-    "left-0 right-0 top-0 rounded-t-none rounded-b-2xl translate-x-0 translate-y-0",
     "data-[state=open]:animate-in data-[state=closed]:animate-out",
     "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-    "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
     "duration-200",
-    // Desktop — centered
-    "sm:left-[50%] sm:top-[50%] sm:right-auto sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg",
-    "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
-    "sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%]",
-    "sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]",
     "p-6",
   ].join(" "),
   {
     variants: {
+      placement: {
+        responsive: [
+          "left-0 right-0 top-0 rounded-t-none rounded-b-2xl translate-x-0 translate-y-0",
+          "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+          "sm:left-[50%] sm:top-[50%] sm:right-auto sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg",
+          "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
+          "sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%]",
+          "sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]",
+        ].join(" "),
+        center: "left-1/2 right-auto top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 motion-reduce:animate-none",
+      },
       size: {
         sm:   "w-full sm:max-w-sm",
         md:   "w-full sm:max-w-lg",
@@ -54,7 +55,7 @@ const dialogContentVariants = cva(
         full: "w-full sm:max-w-[calc(100vw-2rem)] sm:h-[calc(100vh-2rem)]",
       },
     },
-    defaultVariants: { size: "md" },
+    defaultVariants: { size: "md", placement: "responsive" },
   }
 )
 
@@ -65,12 +66,12 @@ interface DialogContentProps
 const DialogContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, children, size, ...props }, ref) => (
+>(({ className, children, size, placement, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
-      className={cn(dialogContentVariants({ size }), className)}
+      className={cn(dialogContentVariants({ size, placement }), className)}
       {...props}
     >
       {children}
