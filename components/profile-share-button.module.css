@@ -77,7 +77,7 @@
 }
 
 .copyButton,
-.secondaryButton {
+.profileLink {
   transition: background-color 160ms, transform 160ms var(--ease-ui-out);
 }
 
@@ -128,7 +128,7 @@
     background-color: hsl(var(--primary-hover));
   }
 
-  .secondaryButton:hover {
+  .profileLink:hover {
     background-color: hsl(var(--accent));
   }
 }
@@ -136,7 +136,7 @@
 @media (prefers-reduced-motion: no-preference) {
   .trigger:active,
   .copyButton:active,
-  .secondaryButton:active {
+  .profileLink:active {
     transform: scale(0.97);
   }
 

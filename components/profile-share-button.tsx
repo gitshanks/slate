@@ -128,35 +128,37 @@ export function ProfileShareButton({
             Let friends in on what you&apos;re watching and what you&apos;ve loved.
           </DialogDescription>
 
-          <div className="mt-6 flex min-w-0 items-center gap-3 rounded-2xl border border-border/70 bg-foreground/[0.025] p-3">
-            <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-medium text-primary">
-              <span aria-hidden>{displayName.slice(0, 1).toLocaleUpperCase()}</span>
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt="" referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full object-cover" onError={(event) => { event.currentTarget.hidden = true; }} />
-              ) : null}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium tracking-tight">{displayName}</p>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">@{username}</p>
-            </div>
-            <span className="flex shrink-0 items-center gap-1.5 pr-1 text-[11px] text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-              Public
-            </span>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <button type="button" onClick={copyLink} className={`${styles.copyButton} inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-2 text-xs font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring sm:px-3`}>
+          <div className="mt-6 flex min-w-0 items-center gap-1.5 rounded-2xl border border-border/70 bg-foreground/[0.025] p-1.5">
+            <Link
+              href={profilePath}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Open ${displayName}'s public profile (opens in a new tab)`}
+              title="Open public profile"
+              className={`${styles.profileLink} flex min-w-0 flex-1 items-center gap-2 rounded-xl p-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
+            >
+              <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-medium text-primary">
+                <span aria-hidden>{displayName.slice(0, 1).toLocaleUpperCase()}</span>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="" referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full object-cover" onError={(event) => { event.currentTarget.hidden = true; }} />
+                ) : null}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="flex min-w-0 items-center gap-1 text-sm font-medium tracking-tight">
+                  <span className="truncate">{displayName}</span>
+                  <ArrowUpRight className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
+                </p>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">@{username}</p>
+              </div>
+            </Link>
+            <button type="button" onClick={copyLink} aria-label={copied ? "Link copied" : "Copy link"} className={`${styles.copyButton} inline-flex h-11 w-24 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-2 text-xs font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}>
               <span className={styles.copyIcon} data-copied={copied} data-animate={animateFeedback} aria-hidden>
                 <Copy className="h-4 w-4" />
                 <Check className="h-4 w-4" />
               </span>
-              <span aria-live="polite">{copied ? "Link copied" : "Copy link"}</span>
+              <span aria-live="polite">{copied ? "Copied" : "Copy link"}</span>
             </button>
-            <Link href={profilePath} target="_blank" rel="noreferrer" className={`${styles.secondaryButton} inline-flex h-12 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-border px-2 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring sm:px-3`}>
-              View profile <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
-            </Link>
           </div>
         </div>
       </DialogContent>
