@@ -1,11 +1,6 @@
 .trigger {
-  background: linear-gradient(165deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.07));
-  box-shadow: inset 0 1px 0 hsl(var(--primary) / 0.13), 0 2px 8px hsl(var(--background) / 0.15);
-  transition: background-color 160ms, border-color 160ms, transform 160ms var(--ease-ui-out);
-}
-
-.trigger > svg {
-  transition: transform 180ms var(--ease-ui-out);
+  background: hsl(var(--foreground) / 0.035);
+  transition: color 160ms, background-color 160ms, border-color 160ms, transform 160ms var(--ease-ui-out);
 }
 
 .panel {
@@ -120,8 +115,9 @@
 
 @media (hover: hover) and (pointer: fine) {
   .trigger:hover {
-    border-color: hsl(var(--primary) / 0.55);
-    background-color: hsl(var(--primary) / 0.08);
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--foreground) / 0.2);
+    background-color: hsl(var(--foreground) / 0.07);
   }
 
   .copyButton:hover {
@@ -154,9 +150,4 @@
     }
   }
 
-  @media (hover: hover) and (pointer: fine) {
-    .trigger:hover > svg {
-      transform: translateY(-1px) rotate(-8deg);
-    }
-  }
 }

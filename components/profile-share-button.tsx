@@ -88,7 +88,7 @@ export function ProfileShareButton({
           data-analytics-area="library_toolbar"
           onPointerDown={() => setAnimateArt(true)}
           onKeyDown={() => setAnimateArt(false)}
-          className={`${styles.trigger} inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-primary/30 px-3 text-xs font-semibold text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[379px]:w-10 max-[379px]:px-0 md:max-xl:w-10 md:max-xl:px-0`}
+          className={`${styles.trigger} inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-border px-3 text-xs font-medium text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[379px]:w-10 max-[379px]:px-0 md:max-xl:w-10 md:max-xl:px-0`}
         >
           <Share2 className="h-3.5 w-3.5" aria-hidden />
           <span className="max-[379px]:sr-only md:max-xl:sr-only">Share<span className="hidden xl:inline"> profile</span></span>
