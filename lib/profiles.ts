@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { supabase } from "@/lib/supabase";
 import { slugify } from "@/lib/utils";
+import { ensureOnboardingSchema } from "@/lib/onboarding-schema";
 
 export interface ProfileRow {
   id: string;
@@ -12,6 +13,7 @@ export interface ProfileRow {
   avatar_mime: string | null;
   avatar_updated_at: string | null;
   identity_customized: boolean;
+  onboarding_completed_at: string | null;
   is_public: boolean;
   created_at: string;
   updated_at: string;
@@ -41,6 +43,7 @@ function usernameFor(identity: GoogleIdentity): string {
  * the person's chosen URL or privacy preference.
  */
 export async function ensureGoogleProfile(identity: GoogleIdentity) {
+  await ensureOnboardingSchema();
   const { data: existing, error: readError } = await supabase
     .from("profiles")
     .select("*")
@@ -77,6 +80,7 @@ export async function ensureGoogleProfile(identity: GoogleIdentity) {
 }
 
 export async function ensureEmailProfile(identity: { id: string; email: string }) {
+  await ensureOnboardingSchema();
   const { data: existing, error: readError } = await supabase
     .from("profiles")
     .select("id")
@@ -122,10 +126,11 @@ async function claimLegacyLibrary(identity: GoogleIdentity) {
 }
 
 export const getProfileById = cache(async (id: string) => {
+  await ensureOnboardingSchema();
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, username, display_name, avatar_url, avatar_mime, avatar_updated_at, identity_customized, is_public, created_at, updated_at"
+      "id, username, display_name, avatar_url, avatar_mime, avatar_updated_at, identity_customized, onboarding_completed_at, is_public, created_at, updated_at"
     )
     .eq("id", id)
     .maybeSingle();
@@ -134,10 +139,11 @@ export const getProfileById = cache(async (id: string) => {
 });
 
 export const getPublicProfile = cache(async (username: string) => {
+  await ensureOnboardingSchema();
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, username, display_name, avatar_url, avatar_mime, avatar_updated_at, identity_customized, is_public, created_at, updated_at"
+      "id, username, display_name, avatar_url, avatar_mime, avatar_updated_at, identity_customized, onboarding_completed_at, is_public, created_at, updated_at"
     )
     .eq("username", username.toLowerCase())
     .eq("is_public", true)

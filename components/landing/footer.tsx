@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SLATE_HOSTED } from "@/lib/public-mode";
+import { PrivacyPreferencesButton } from "@/components/analytics/privacy-preferences-button";
 
 export function LandingFooter() {
   const hosted = SLATE_HOSTED;
@@ -38,6 +39,10 @@ export function LandingFooter() {
             >
               Case study
             </a>
+            <Link href="/privacy" className="transition-colors hover:text-white">
+              Privacy
+            </Link>
+            <PrivacyPreferencesButton className="text-xs text-white/36 hover:text-white" />
           </div>
           <p className="mt-4 max-w-lg leading-relaxed">
             Want to run your own copy? slate is{" "}

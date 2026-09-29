@@ -6,6 +6,8 @@ import { getProfileById, profileAvatarUrl } from "@/lib/profiles";
 import { ProfileSettingsForm } from "@/components/profile-settings-form";
 import { APP_ROOT, SLATE_HOSTED } from "@/lib/public-mode";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { PrivacyPreferencesButton } from "@/components/analytics/privacy-preferences-button";
 
 export const metadata: Metadata = {
   title: "Profile · slate",
@@ -53,12 +55,29 @@ export default async function ProfilePage() {
           avatarUrl={avatarUrl}
         />
 
+        <section className="mt-5 flex flex-col gap-4 rounded-[1.5rem] border border-border/70 bg-card/45 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div>
+            <h2 className="text-sm font-medium">Data and privacy</h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Review what slate collects or change optional analytics.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/privacy" className="text-xs font-medium text-muted-foreground hover:text-foreground">
+              Read details
+            </Link>
+            <PrivacyPreferencesButton compact />
+          </div>
+        </section>
+
         <form
           action={async () => {
             "use server";
             await signOut({ redirectTo: "/" });
           }}
           className="mt-5 flex justify-end"
+          data-analytics-reset="true"
+          data-analytics-form="sign_out"
         >
           <button
             type="submit"

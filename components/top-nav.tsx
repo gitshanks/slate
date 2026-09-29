@@ -145,6 +145,8 @@ export function TopNav({
               <button
                 type="button"
                 onClick={open}
+                data-analytics-action="open_search"
+                data-analytics-area="top_navigation"
                 className="ml-1 hidden items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
               >
                 <Search className="h-3.5 w-3.5" />
@@ -157,6 +159,8 @@ export function TopNav({
                 type="button"
                 onClick={open}
                 aria-label="Search"
+                data-analytics-action="open_search"
+                data-analytics-area="top_navigation"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:hidden"
               >
                 <Search className="h-5 w-5" />

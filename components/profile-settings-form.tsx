@@ -16,6 +16,7 @@ import {
 } from "@/lib/profile-actions";
 import { ProfileAvatarEditor } from "@/components/profile-avatar-editor";
 import { cn } from "@/lib/utils";
+import { captureAnalytics } from "@/lib/analytics";
 
 const USERNAME = /^[a-z0-9][a-z0-9-]{2,29}$/;
 
@@ -38,6 +39,7 @@ export function ProfileSettingsForm({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const lastAttemptRef = useRef("");
+  const lastTrackedAttemptRef = useRef("");
   const [state, action, pending] = useActionState(updateProfile, {
     ok: false,
     message: "",
@@ -80,6 +82,16 @@ export function ProfileSettingsForm({
   useEffect(() => {
     if (!state.message) return;
     if (!state.ok) toast.error(state.message);
+    if (
+      state.ok &&
+      state.attemptSnapshot &&
+      lastTrackedAttemptRef.current !== state.attemptSnapshot
+    ) {
+      lastTrackedAttemptRef.current = state.attemptSnapshot;
+      captureAnalytics("profile_updated", {
+        public_profile: state.isPublic ?? false,
+      });
+    }
   }, [state]);
 
   useEffect(() => {
@@ -129,12 +141,13 @@ export function ProfileSettingsForm({
 
   async function copyLink() {
     await navigator.clipboard.writeText(publicUrl);
+    captureAnalytics("profile_link_copied", { public_profile: savedPublic });
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
   }
 
   return (
-    <form ref={formRef} action={action} className="space-y-5">
+    <form ref={formRef} action={action} className="space-y-5" data-analytics-form="profile_settings" data-analytics-private>
       <section className="rounded-[1.75rem] border border-border/70 bg-card/55 p-5 shadow-[0_24px_80px_-62px_hsl(var(--foreground)/0.5)] sm:p-7">
         <div className="flex items-center gap-4 sm:gap-6">
           <ProfileAvatarEditor

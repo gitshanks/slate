@@ -4,6 +4,7 @@ import { ensureGoogleProfile, type ProfileRow } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { slugify } from "@/lib/utils";
 import type { VerifiedProviderIdentity } from "@/lib/native-api/provider-identity";
+import { ensureOnboardingSchema } from "@/lib/onboarding-schema";
 
 interface IdentityRow {
   provider: "google" | "apple";
@@ -28,6 +29,7 @@ function usernameFor(identity: VerifiedProviderIdentity): string {
 }
 
 async function ensureProfile(ownerId: string, identity: VerifiedProviderIdentity) {
+  await ensureOnboardingSchema();
   const { data: existing, error: readError } = await supabase
     .from("profiles")
     .select("*")

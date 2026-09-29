@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { removeTitle, setStatus } from "@/lib/actions";
 import type { TitleStatus } from "@/lib/supabase";
 import { toast } from "sonner";
+import { captureAnalytics } from "@/lib/analytics";
 
 const STATUS_OPTIONS: {
   value: TitleStatus;
@@ -45,6 +46,7 @@ export function PosterCardActions({
     startDelete(async () => {
       try {
         await removeTitle(titleId);
+        captureAnalytics("title_removed", { source: "poster_card" });
         toast.success("Removed");
         router.refresh();
       } catch (err) {
@@ -61,6 +63,11 @@ export function PosterCardActions({
       setOptimisticStatus(value);
       try {
         await setStatus(titleId, value);
+        captureAnalytics("title_status_changed", {
+          from_status: optimisticStatus,
+          to_status: value,
+          source: "poster_card",
+        });
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed");
       }

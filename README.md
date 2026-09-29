@@ -90,6 +90,9 @@ Push to GitHub and import at [vercel.com/new](https://vercel.com/new). Then, ins
 | `RESEND_API_KEY` | hosted email login | Resend API key used to deliver one-time sign-in codes. `AUTH_RESEND_KEY` is also accepted. |
 | `AUTH_EMAIL_FROM` | hosted email login | Verified sender, for example `slate <sign-in@your-domain.com>`. `EMAIL_FROM` is also accepted. |
 | `NEXT_PUBLIC_SITE_URL` | hosted | Canonical origin used for public profile links, such as `https://s1ate.space`. |
+| `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` | optional | Enables consented product analytics and masked session replay. Use the public `phc_…` project token. Analytics stays off until the visitor opts in. |
+| `NEXT_PUBLIC_POSTHOG_HOST` / `NEXT_PUBLIC_POSTHOG_UI_HOST` | optional | PostHog ingestion and dashboard hosts. Defaults to the US region; set the matching EU hosts for an EU project. |
+| `PRIVACY_CONTACT_EMAIL` | hosted analytics | Contact shown on `/privacy` for data requests. |
 | `SLATE_LEGACY_OWNER_EMAIL` | optional | Google email allowed to claim rows created before account support on its first sign-in. |
 
 After enabling OMDb on an existing library, run the one-time backfill below.
@@ -136,6 +139,19 @@ Supabase deployments can apply
 [`supabase/migrations/20260924_email_auth.sql`](./supabase/migrations/20260924_email_auth.sql)
 in the SQL editor.
 
+Hosted installs should also apply the one-column onboarding migration before
+deploying this version:
+
+```bash
+npm run db:migrate:onboarding
+```
+
+Neon deployments also apply this additive migration automatically at the
+profile boundary. Existing accounts are marked complete; profiles created
+afterward enter the first-account setup once. Supabase deployments can apply
+[`supabase/migrations/20260928_account_onboarding.sql`](./supabase/migrations/20260928_account_onboarding.sql)
+in the SQL editor.
+
 Prefer Supabase, or already have another Postgres? Set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` instead of `DATABASE_URL` — the data layer uses whichever backend is configured.
 
 ### Hosted account mode
@@ -146,6 +162,10 @@ Prefer Supabase, or already have another Postgres? Set `SUPABASE_URL` + `SUPABAS
 4. If the deployment already contains your pre-account library, set `SLATE_LEGACY_OWNER_EMAIL` to your Google email before the first sign-in. Only that account can claim the legacy rows.
 
 Leave every hosted-account variable unset to retain the original self-hosted/single-user behavior, including the optional `APP_PASSCODE` gate.
+
+### Product analytics
+
+When a PostHog project token is configured, slate shows an explicit analytics choice and initializes PostHog only after opt in. Page paths and feature outcomes are tracked without private search text, notes, list names, invite tokens, authentication codes, or uploaded file contents. Session replay masks all text and form values. See [`docs/analytics.md`](./docs/analytics.md) for the event catalogue, dashboard recipes, privacy boundaries, and deployment setup.
 
 ## Self-host
 

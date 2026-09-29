@@ -10,6 +10,7 @@ import {
 import { addTitleToList, createListAndAddTitle } from "@/lib/actions";
 import { ActionRow } from "@/components/action-row";
 import { toast } from "sonner";
+import { captureAnalytics } from "@/lib/analytics";
 
 interface AddTitleToListButtonBaseProps {
   lists: { id: string; name: string }[];
@@ -108,6 +109,10 @@ export function AddTitleToListButton({
       try {
         const resolvedTitleId = await resolveTitleId();
         await addTitleToList(listId, resolvedTitleId);
+        captureAnalytics("list_title_added", {
+          source: "title_detail",
+          saved_title_first: !titleId,
+        });
         setAdded((prev) => new Set([...prev, listId]));
         toast.success(`Added to "${listName}"`);
       } catch (e) {
@@ -123,6 +128,11 @@ export function AddTitleToListButton({
       try {
         const resolvedTitleId = await resolveTitleId();
         const list = await createListAndAddTitle(name, resolvedTitleId);
+        captureAnalytics("list_created", { source: "title_detail", added_title: true });
+        captureAnalytics("list_title_added", {
+          source: "new_list",
+          saved_title_first: !titleId,
+        });
         setAdded((prev) => new Set([...prev, list.id]));
         toast.success(`Created "${list.name}" and added title`);
         setDraft("");

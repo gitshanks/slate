@@ -26,6 +26,7 @@ import {
   type SearchIntent,
   type AssistantTurn,
 } from "@/components/ai-conversation";
+import { captureAnalytics, countBucket } from "@/lib/analytics";
 
 interface AiChatPanelProps {
   /** The shared input value — the chat treats it as the next user message. */
@@ -65,6 +66,11 @@ export function AiChatPanel({
         status: "want",
       });
       setAdded((current) => new Set(current).add(key));
+      captureAnalytics("title_saved", {
+        source: "ai_search",
+        status: "want",
+        media_type: item.media_type,
+      });
       toast.success(
         `${item.title || item.name || "Title"} added to Up Next.`,
       );
@@ -98,6 +104,10 @@ export function AiChatPanel({
     if (streaming) return;
     lastTickRef.current = submitTick;
     if (query.trim()) {
+      captureAnalytics("ai_prompt_submitted", {
+        query_length_bucket: countBucket(query.trim().length),
+        source: "typed",
+      });
       submit(query);
       setQuery("");
     }
@@ -143,7 +153,13 @@ export function AiChatPanel({
                 <button
                   key={`${i}-${s}`}
                   type="button"
-                  onClick={() => submit(s)}
+                  onClick={() => {
+                    captureAnalytics("ai_prompt_submitted", {
+                      query_length_bucket: countBucket(s.length),
+                      source: "suggestion",
+                    });
+                    submit(s);
+                  }}
                   className="inline-flex items-center rounded-md border border-border bg-card px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
                 >
                   {s}

@@ -164,6 +164,8 @@ export function BottomNav() {
                       : undefined
                   }
                   aria-current={current ? "page" : undefined}
+                  data-analytics-action={`navigate_${t.label.toLowerCase()}`}
+                  data-analytics-area="primary_navigation"
                   className={cn(
                     "relative isolate grid h-full touch-manipulation grid-rows-[20px_11px] content-center justify-items-center gap-[5px] overflow-hidden rounded-full px-1 text-[11px] font-medium tracking-tight outline-none transition-[color,transform] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97] max-[359px]:px-0 max-[359px]:text-[10px] motion-reduce:transition-colors motion-reduce:active:scale-100",
                     active
@@ -200,6 +202,8 @@ export function BottomNav() {
           aria-label="Find and add a title"
           aria-expanded={inlineOpen}
           aria-controls={inlineOpen ? resultsListId ?? undefined : undefined}
+          data-analytics-action="open_search"
+          data-analytics-area="primary_navigation"
           style={{
             background:
               "linear-gradient(180deg, hsl(var(--foreground) / 0.16) 0%, hsl(var(--foreground) / 0.035) 43%, transparent 72%), radial-gradient(circle at 50% 112%, hsl(var(--primary) / 0.38), transparent 68%), hsl(var(--background) / 0.54)",

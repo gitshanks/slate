@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Upload, Check, AlertTriangle, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { runImport, type ImportResult } from "@/lib/import-actions";
+import { captureAnalytics, countBucket } from "@/lib/analytics";
 
 /**
  * Single-form library-import widget.
@@ -24,6 +25,17 @@ export function ImportWidget() {
   const formRef = useRef<HTMLFormElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const trackedResultRef = useRef<ImportResult | null>(null);
+
+  useEffect(() => {
+    if (!state?.ok || trackedResultRef.current === state) return;
+    trackedResultRef.current = state;
+    captureAnalytics("import_completed", {
+      imported_bucket: countBucket(state.imported),
+      unmatched_bucket: countBucket(state.unmatched.length),
+      had_unmatched: state.unmatched.length > 0,
+    });
+  }, [state]);
 
   function clearFile() {
     if (inputRef.current) inputRef.current.value = "";
@@ -44,7 +56,7 @@ export function ImportWidget() {
   }
 
   return (
-    <form ref={formRef} action={action} className="space-y-5">
+    <form ref={formRef} action={action} className="space-y-5" data-analytics-form="library_import" data-analytics-private>
       <label
         onDragOver={(e) => {
           e.preventDefault();

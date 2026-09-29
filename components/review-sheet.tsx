@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ActionRow } from "@/components/action-row";
 import { setReview } from "@/lib/actions";
 import { toast } from "sonner";
+import { captureAnalytics, countBucket } from "@/lib/analytics";
 
 export function ReviewSheet({
   titleId,
@@ -34,6 +35,10 @@ export function ReviewSheet({
     startTransition(async () => {
       try {
         await setReview(titleId, review);
+        captureAnalytics("title_note_saved", {
+          has_note: Boolean(review.trim()),
+          length_bucket: countBucket(review.trim().length),
+        });
         toast.success("Saved");
         setOpen(false);
       } catch (e) {
@@ -57,6 +62,7 @@ export function ReviewSheet({
         <button
           type="button"
           onClick={() => setOpen(true)}
+          data-analytics-action="open_private_note"
           className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
         >
           <NotebookPen className="h-3.5 w-3.5 text-muted-foreground" />
@@ -87,6 +93,7 @@ export function ReviewSheet({
                 rows={10}
                 placeholder="What did you think?"
                 className="w-full resize-none rounded-lg border border-input bg-background px-4 py-3 text-base sm:text-sm outline-none ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground"
+                data-analytics-private
               />
             </div>
 

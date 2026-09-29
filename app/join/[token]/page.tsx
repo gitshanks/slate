@@ -47,7 +47,7 @@ export default async function JoinListPage(props: { params: Promise<{ token: str
         {invitation.list.description ? <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{invitation.list.description}</p> : null}
         <p className="mt-8 text-sm leading-relaxed text-muted-foreground">You’ll be able to add, remove, and arrange titles together.</p>
         {session?.user?.id ? (
-          <form action={join} className="mt-6">
+          <form action={join} className="mt-6" data-analytics-form="shared_list_invite_accept">
             <button className="h-11 w-full rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-[filter,transform] hover:brightness-105 active:scale-[0.99]">Join list</button>
           </form>
         ) : (

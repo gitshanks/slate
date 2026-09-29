@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { ArrowRight, Mail } from "lucide-react";
 import {
@@ -9,6 +9,7 @@ import {
   type RequestEmailCodeState,
   type VerifyEmailCodeState,
 } from "@/lib/email-auth-actions";
+import { captureAnalytics } from "@/lib/analytics";
 
 const REQUEST_INITIAL: RequestEmailCodeState = { step: "email" };
 const VERIFY_INITIAL: VerifyEmailCodeState = {};
@@ -28,6 +29,16 @@ export function EmailAuthForm({
     verifyEmailLoginCode,
     VERIFY_INITIAL,
   );
+  const trackedCodeStep = useRef(false);
+  useEffect(() => {
+    if (requestState.step !== "code" || trackedCodeStep.current) return;
+    trackedCodeStep.current = true;
+    captureAnalytics("auth_method_selected", {
+      method: "email",
+      stage: "code_sent",
+      account_intent: creating ? "create" : "sign_in",
+    });
+  }, [creating, requestState.step]);
   const resetParams = new URLSearchParams();
   if (creating) resetParams.set("mode", "create");
   if (redirectTo !== "/app") resetParams.set("next", redirectTo);
@@ -39,7 +50,7 @@ export function EmailAuthForm({
         <p className="text-center text-sm leading-6 text-white/65">
           Enter the code sent to <span className="font-medium text-white/90">{requestState.maskedEmail}</span>
         </p>
-        <form action={verifyAction} className="mt-5 space-y-3">
+        <form action={verifyAction} className="ph-no-capture mt-5 space-y-3" data-analytics-form="verify_email_code">
           <input type="hidden" name="email" value={requestState.email} />
           <input type="hidden" name="redirectTo" value={redirectTo} />
           <label className="sr-only" htmlFor="email-code">Six-digit code</label>
@@ -73,7 +84,7 @@ export function EmailAuthForm({
   }
 
   return (
-    <form action={requestAction} className="mt-8 space-y-3">
+    <form action={requestAction} className="ph-no-capture mt-8 space-y-3" data-analytics-form="request_email_code">
       <label className="sr-only" htmlFor="email">Email address</label>
       <div className="relative">
         <Mail className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" aria-hidden />

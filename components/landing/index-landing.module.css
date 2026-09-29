@@ -457,6 +457,23 @@
   color: #929297;
   font-size: 11px;
 }
+.footerLinks {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.footerPrivacy {
+  min-height: 36px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: rgb(255 255 255 / 0.62);
+  font: inherit;
+  cursor: pointer;
+}
+.footerPrivacy:hover {
+  color: #fff;
+}
 .srOnly {
   position: absolute;
   width: 1px;
@@ -545,6 +562,10 @@
     gap: 16px;
     padding-right: max(20px, env(safe-area-inset-right));
     padding-left: max(20px, env(safe-area-inset-left));
+  }
+  .footerLinks {
+    flex-wrap: wrap;
+    gap: 8px 18px;
   }
 }
 

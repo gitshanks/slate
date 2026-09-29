@@ -13,6 +13,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { captureAnalytics } from "@/lib/analytics";
 
 const OPTIONS: { value: TitleStatus; label: string }[] = [
   { value: "want", label: "Up Next" },
@@ -46,6 +47,11 @@ export function StatusPill({
       setOptimisticStatus(next);
       try {
         await setStatus(titleId, next);
+        captureAnalytics("title_status_changed", {
+          from_status: optimisticStatus,
+          to_status: next,
+          source: "title_actions",
+        });
         onStatusChange?.(next);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Failed");
@@ -60,6 +66,7 @@ export function StatusPill({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
+          data-analytics-action="open_status"
           className={cn(
             "inline-flex h-9 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3.5 text-xs font-medium text-primary shadow-sm transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             triggerClassName,

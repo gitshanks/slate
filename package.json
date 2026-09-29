@@ -12,6 +12,7 @@
     "db:migrate:previews": "node scripts/apply-preview-feedback-migration.mjs",
     "db:migrate:shared-lists": "node scripts/apply-shared-lists-migration.mjs",
     "db:migrate:email-auth": "node scripts/apply-email-auth-migration.mjs",
+    "db:migrate:onboarding": "node scripts/apply-onboarding-migration.mjs",
     "db:backfill:omdb": "node scripts/backfill-omdb-plots.mjs"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
     "next-themes": "^0.4.6",
     "openai": "^6.35.0",
     "pg": "^8.22.0",
+    "posthog-js": "^1.434.17",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "sonner": "^2.0.7",

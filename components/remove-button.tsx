@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { removeTitle } from "@/lib/actions";
 import { APP_ROOT } from "@/lib/public-mode";
 import { toast } from "sonner";
+import { captureAnalytics } from "@/lib/analytics";
 
 export function RemoveButton({
   titleId,
@@ -37,6 +38,7 @@ export function RemoveButton({
     start(async () => {
       try {
         await removeTitle(titleId);
+        captureAnalytics("title_removed", { source: variant ?? (iconOnly ? "icon" : "button") });
         toast.success("Removed");
         onRemoved?.();
         if (redirectOnRemove) router.push(APP_ROOT);
@@ -67,6 +69,7 @@ export function RemoveButton({
         aria-label="Remove from library"
         onClick={onClick}
         disabled={pending}
+        data-analytics-action="remove_title"
         className={cn(
           "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive disabled:opacity-50",
           className,
@@ -84,6 +87,7 @@ export function RemoveButton({
       onClick={onClick}
       loading={pending}
       leftIcon={<Trash2 className="h-3.5 w-3.5" />}
+      data-analytics-action="remove_title"
     >
       Remove
     </Button>

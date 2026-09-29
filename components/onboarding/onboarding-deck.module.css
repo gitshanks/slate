@@ -1,0 +1,757 @@
+.page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  overflow: clip;
+  background: #080808;
+  color: #f6f3ed;
+  -webkit-touch-callout: none;
+}
+
+.backdrop,
+.backdropImage,
+.backdropWash,
+.grain {
+  position: absolute;
+  inset: 0;
+}
+
+.backdrop {
+  z-index: -3;
+  overflow: hidden;
+  background: #11100f;
+}
+
+.backdropImage {
+  inset: -2%;
+}
+
+.backdropImage img {
+  object-fit: cover;
+  object-position: center 32%;
+  filter: saturate(0.68) contrast(1.04) brightness(0.7);
+}
+
+.backdropWash {
+  background:
+    linear-gradient(90deg, rgb(4 4 4 / 0.42) 0%, rgb(4 4 4 / 0.62) 47%, rgb(4 4 4 / 0.82) 100%),
+    linear-gradient(180deg, rgb(5 5 5 / 0.58) 0%, transparent 26%, transparent 62%, rgb(5 5 5 / 0.8) 100%),
+    radial-gradient(circle at 28% 46%, transparent 0%, rgb(0 0 0 / 0.14) 40%, rgb(0 0 0 / 0.42) 100%);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.grain {
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.62'/%3E%3C/svg%3E");
+  background-size: 180px;
+  mix-blend-mode: soft-light;
+}
+
+.header {
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  width: min(100% - 64px, 1400px);
+  margin-inline: auto;
+  padding-top: max(28px, env(safe-area-inset-top));
+}
+
+.progress {
+  display: grid;
+  grid-template-columns: auto 210px auto;
+  align-items: center;
+  gap: 13px;
+  color: rgb(255 255 255 / 0.48);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.progressTrack {
+  position: relative;
+  height: 1px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.16);
+}
+
+.progressFill {
+  position: absolute;
+  inset: 0;
+  background: #adebb3;
+  box-shadow: 0 0 12px rgb(173 235 179 / 0.48);
+  transform-origin: left center;
+}
+
+.progressCount {
+  min-width: 42px;
+  color: rgb(255 255 255 / 0.7);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.headerActions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 18px;
+}
+
+.undoButton,
+.finishButton,
+.backButton {
+  border: 0;
+  background: transparent;
+  color: rgb(255 255 255 / 0.58);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 610;
+  transition: color 160ms ease, opacity 160ms ease;
+}
+
+.undoButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.undoButton svg {
+  width: 13px;
+  height: 13px;
+}
+
+.undoButton:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.finishButton {
+  min-width: 54px;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: rgb(16 16 16 / 0.38);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.content {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: 96px 48px 46px;
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) minmax(360px, 600px);
+  align-items: center;
+  justify-content: center;
+  gap: clamp(54px, 7vw, 110px);
+  width: min(100%, 1140px);
+}
+
+.deck {
+  position: relative;
+  width: min(100%, 382px);
+  aspect-ratio: 2 / 3;
+  justify-self: end;
+  perspective: 900px;
+}
+
+.nextCard,
+.activeCard {
+  position: absolute;
+  overflow: hidden;
+  border-radius: 28px;
+}
+
+.nextCard {
+  inset: 13px -18px -13px 18px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: #151515;
+  box-shadow: 0 26px 72px rgb(0 0 0 / 0.36);
+  opacity: 0.34;
+  transform: rotate(2.6deg) scale(0.982);
+  transform-origin: bottom center;
+}
+
+.nextCard img,
+.activeCard img,
+.miniPoster img {
+  object-fit: cover;
+}
+
+.activeCard img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.nextCard img {
+  filter: saturate(0.6) brightness(0.7);
+}
+
+.activeCard {
+  z-index: 2;
+  inset: 0;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  background: #171717;
+  box-shadow:
+    0 44px 110px rgb(0 0 0 / 0.52),
+    0 12px 34px rgb(0 0 0 / 0.34),
+    inset 0 1px rgb(255 255 255 / 0.14);
+  cursor: grab;
+  touch-action: pan-y;
+  will-change: transform;
+}
+
+.cardSheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(130deg, rgb(255 255 255 / 0.11), transparent 24%),
+    linear-gradient(180deg, transparent 70%, rgb(0 0 0 / 0.24));
+}
+
+.swipeStamp {
+  position: absolute;
+  top: 27px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 8px 13px 7px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.keepStamp {
+  left: 24px;
+  color: #c8f9cd;
+  background: rgb(14 49 21 / 0.52);
+  transform: rotate(-4deg);
+}
+
+.passStamp {
+  right: 24px;
+  color: #ffb39a;
+  background: rgb(64 23 15 / 0.52);
+  transform: rotate(4deg);
+}
+
+.details {
+  min-width: 0;
+  max-width: 580px;
+}
+
+.eyebrow {
+  color: #adebb3;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.details h1,
+.review h1,
+.completion h1 {
+  margin-top: 15px;
+  font-size: clamp(3.4rem, 6.3vw, 5.6rem);
+  font-weight: 720;
+  line-height: 0.89;
+  letter-spacing: -0.068em;
+  text-wrap: balance;
+  text-shadow: 0 8px 38px rgb(0 0 0 / 0.42);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  margin-top: 22px;
+  color: rgb(255 255 255 / 0.56);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 590;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.meta span + span::before {
+  margin-inline: 9px;
+  color: rgb(255 255 255 / 0.27);
+  content: "·";
+}
+
+.overview,
+.reviewCopy {
+  max-width: 540px;
+  margin-top: 18px;
+  color: rgb(255 255 255 / 0.63);
+  font-size: 14px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.decisionRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.passButton,
+.keepButton,
+.openButton {
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 680;
+  letter-spacing: -0.012em;
+  transition:
+    transform 160ms var(--ease-ui-out),
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.passButton svg,
+.keepButton svg,
+.openButton svg {
+  width: 17px;
+  height: 17px;
+}
+
+.passButton {
+  min-width: 106px;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  background: rgb(22 22 22 / 0.46);
+  color: rgb(255 255 255 / 0.8);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.keepButton,
+.openButton {
+  border: 1px solid rgb(218 255 222 / 0.7);
+  background: rgb(173 235 179 / 0.92);
+  color: #102113;
+  box-shadow:
+    0 16px 42px rgb(0 0 0 / 0.24),
+    0 8px 28px rgb(173 235 179 / 0.1),
+    inset 0 1px rgb(255 255 255 / 0.54);
+}
+
+.keepButton {
+  min-width: 158px;
+  padding-inline: 20px;
+}
+
+.gestureHint {
+  margin-top: 16px;
+  color: rgb(255 255 255 / 0.34);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gestureHint span {
+  display: inline-grid;
+  width: 19px;
+  height: 19px;
+  margin-left: 4px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 5px;
+  color: rgb(255 255 255 / 0.56);
+  font-size: 10px;
+}
+
+.review,
+.completion {
+  width: min(100%, 920px);
+  text-align: center;
+}
+
+.review h1,
+.completion h1 {
+  max-width: 860px;
+  margin-inline: auto;
+}
+
+.reviewCopy {
+  max-width: 550px;
+  margin: 20px auto 0;
+}
+
+.posterStrip {
+  display: flex;
+  min-height: 176px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 28px;
+  padding-inline: 28px;
+}
+
+.miniPoster {
+  position: relative;
+  width: 104px;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.24);
+  border-radius: 13px;
+  background: #171717;
+  box-shadow: 0 20px 48px rgb(0 0 0 / 0.42);
+}
+
+.miniPoster + .miniPoster {
+  margin-left: -13px;
+}
+
+.moreCount {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin-left: -7px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 999px;
+  background: rgb(13 13 13 / 0.72);
+  color: #adebb3;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.reviewActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 28px;
+}
+
+.openButton {
+  min-width: 178px;
+  padding-inline: 23px;
+}
+
+.openButton:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.backButton {
+  margin-top: 15px;
+  padding: 8px 12px;
+}
+
+.error {
+  max-width: 440px;
+  margin: 0 auto 14px;
+  color: #ffc5b3;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.completionMark {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 22px;
+  place-items: center;
+  border: 1px solid rgb(218 255 222 / 0.7);
+  border-radius: 999px;
+  background: #adebb3;
+  color: #102113;
+  box-shadow: 0 16px 54px rgb(173 235 179 / 0.2);
+}
+
+.completionMark svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 2.2;
+}
+
+.undoButton:focus-visible,
+.finishButton:focus-visible,
+.passButton:focus-visible,
+.keepButton:focus-visible,
+.openButton:focus-visible,
+.backButton:focus-visible {
+  outline: 2px solid #adebb3;
+  outline-offset: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .undoButton:hover,
+  .finishButton:hover,
+  .backButton:hover {
+    color: #fff;
+  }
+
+  .passButton:hover {
+    border-color: rgb(255 255 255 / 0.34);
+    background: rgb(35 35 35 / 0.62);
+    color: #fff;
+    transform: translateY(-2px);
+  }
+
+  .keepButton:hover,
+  .openButton:hover {
+    background: rgb(193 244 198 / 0.98);
+    box-shadow:
+      0 19px 48px rgb(0 0 0 / 0.3),
+      0 10px 32px rgb(173 235 179 / 0.14),
+      inset 0 1px rgb(255 255 255 / 0.64);
+    transform: translateY(-2px);
+  }
+}
+
+.passButton:active,
+.keepButton:active,
+.openButton:active {
+  transform: scale(0.975);
+}
+
+@media (max-width: 900px) {
+  .header {
+    grid-template-columns: 1fr auto;
+    width: calc(100% - 40px);
+    padding-top: max(20px, env(safe-area-inset-top));
+  }
+
+  .progress {
+    position: absolute;
+    top: calc(max(20px, env(safe-area-inset-top)) + 42px);
+    right: 0;
+    left: 0;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+  }
+
+  .headerActions {
+    grid-column: 2;
+  }
+
+  .undoButton span {
+    display: none;
+  }
+
+  .undoButton svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .content {
+    align-items: center;
+    padding: calc(max(20px, env(safe-area-inset-top)) + 91px) 20px max(24px, env(safe-area-inset-bottom));
+  }
+
+  .stage {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .deck {
+    width: min(68vw, 286px);
+    justify-self: auto;
+  }
+
+  .nextCard,
+  .activeCard {
+    border-radius: 23px;
+  }
+
+  .nextCard {
+    inset: 10px -13px -10px 13px;
+  }
+
+  .details {
+    width: min(100%, 560px);
+    max-width: none;
+    text-align: center;
+  }
+
+  .details h1 {
+    margin-top: 10px;
+    font-size: clamp(2.25rem, 10vw, 3.4rem);
+    line-height: 0.92;
+  }
+
+  .meta {
+    justify-content: center;
+    margin-top: 13px;
+  }
+
+  .overview {
+    display: -webkit-box;
+    max-width: 500px;
+    margin: 12px auto 0;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .decisionRow {
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .gestureHint {
+    margin-top: 12px;
+  }
+
+  .backdropWash {
+    background:
+      linear-gradient(180deg, rgb(4 4 4 / 0.62) 0%, rgb(4 4 4 / 0.42) 38%, rgb(4 4 4 / 0.86) 100%),
+      radial-gradient(circle at 50% 30%, transparent 0%, rgb(0 0 0 / 0.24) 70%);
+  }
+
+  .review,
+  .completion {
+    align-self: center;
+    padding-top: 5svh;
+  }
+
+  .review h1,
+  .completion h1 {
+    font-size: clamp(2.8rem, 12vw, 4.8rem);
+  }
+}
+
+@media (max-width: 560px) {
+  .progress {
+    font-size: 8px;
+  }
+
+  .progressTrack {
+    min-width: 70px;
+  }
+
+  .finishButton {
+    min-width: 50px;
+    padding: 7px 12px;
+    font-size: 11px;
+  }
+
+  .content {
+    padding-inline: 16px;
+  }
+
+  .deck {
+    width: min(67vw, 266px);
+  }
+
+  .eyebrow {
+    font-size: 9px;
+  }
+
+  .passButton,
+  .keepButton {
+    min-height: 49px;
+  }
+
+  .passButton {
+    min-width: 96px;
+  }
+
+  .keepButton {
+    min-width: 151px;
+    padding-inline: 17px;
+  }
+
+  .posterStrip {
+    min-height: 128px;
+    margin-top: 24px;
+    padding-inline: 0;
+  }
+
+  .miniPoster {
+    width: 75px;
+    border-radius: 10px;
+  }
+
+  .miniPoster + .miniPoster {
+    margin-left: -16px;
+  }
+
+  .reviewCopy {
+    font-size: 13px;
+  }
+}
+
+@media (max-height: 740px) and (max-width: 900px) {
+  .content {
+    padding-top: calc(max(18px, env(safe-area-inset-top)) + 84px);
+  }
+
+  .stage {
+    gap: 14px;
+  }
+
+  .deck {
+    width: min(55vw, 222px);
+  }
+
+  .details h1 {
+    font-size: clamp(2rem, 8.8vw, 2.8rem);
+  }
+
+  .overview,
+  .gestureHint {
+    display: none;
+  }
+
+  .decisionRow {
+    margin-top: 16px;
+  }
+
+  .posterStrip {
+    min-height: 110px;
+  }
+
+  .miniPoster {
+    width: 66px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .undoButton,
+  .finishButton,
+  .backButton,
+  .passButton,
+  .keepButton,
+  .openButton {
+    transition: none;
+  }
+}

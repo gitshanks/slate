@@ -8,6 +8,7 @@ import { createSharedListInvite, leaveList, removeSharedListMember } from "@/lib
 import type { SharedListPerson } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { captureAnalytics } from "@/lib/analytics";
 
 interface ShareListButtonProps {
   listId: string;
@@ -45,6 +46,7 @@ export function ShareListButton({ listId, listName, owner, members, isOwner, ico
     startTransition(async () => {
       try {
         const invite = await createSharedListInvite(listId);
+        captureAnalytics("list_invite_created", { member_count: members.length + 1 });
         const url = `${window.location.origin}/join/${invite.token}`;
         setInviteUrl(url);
         await navigator.clipboard.writeText(url);
@@ -61,6 +63,7 @@ export function ShareListButton({ listId, listName, owner, members, isOwner, ico
     startTransition(async () => {
       try {
         await removeSharedListMember(listId, person.id);
+        captureAnalytics("list_member_removed", { remaining_member_count: Math.max(1, members.length) });
         toast.success(`${person.displayName} removed`);
         router.refresh();
       } catch (error) {

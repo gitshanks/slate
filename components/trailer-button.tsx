@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ActionRow } from "@/components/action-row";
+import { captureAnalytics } from "@/lib/analytics";
 
 interface TrailerButtonProps {
   trailerKey: string;
@@ -32,13 +33,20 @@ export function TrailerButton({ trailerKey, titleName, variant = "pill" }: Trail
     : "";
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) captureAnalytics("trailer_opened", { source: "title_detail" });
+      }}
+    >
       <DialogTrigger asChild>
         {variant === "row" ? (
           <ActionRow icon={<Play className="h-[18px] w-[18px] fill-current" />} label="Watch trailer" />
         ) : (
           <button
             type="button"
+            data-analytics-action="watch_trailer"
             className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
           >
             <Play className="h-3.5 w-3.5 fill-current" />

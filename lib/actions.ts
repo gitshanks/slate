@@ -247,7 +247,7 @@ export async function addTitleWithStatus(formData: FormData) {
     status: validStatuses.includes(status) ? status : "want",
   });
   if (!row?.id) throw new Error("Failed to add title");
-  redirect(`/title/${row.id}`);
+  return { id: row.id };
 }
 
 export async function setStatus(titleId: string, status: TitleStatus) {
@@ -424,7 +424,7 @@ export async function createList(formData: FormData) {
   });
   if (error) throw new Error(error.message);
   revalidatePath("/lists");
-  redirect(`/lists/${slug}`);
+  return { slug };
 }
 
 /**
@@ -524,7 +524,6 @@ export async function deleteList(listId: string) {
   const { error } = await deleteQuery;
   if (error) throw new Error(error.message);
   revalidatePath("/lists");
-  redirect("/lists");
 }
 
 function revalidateLibrary() {

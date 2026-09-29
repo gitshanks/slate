@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { PublicProfileCollectionView } from "@/components/public-profile-collection-view";
 import { getPublicProfile, profileAvatarUrl } from "@/lib/profiles";
@@ -77,12 +78,14 @@ export default async function PublicProfilePage({
       data-public-profile-index
       className="dark min-h-dvh w-full bg-[#080a09] text-foreground"
     >
-      <PublicProfileCollectionView
-        titles={titles}
-        username={profile.username}
-        displayName={profile.display_name}
-        avatarUrl={avatarUrl}
-      />
+      <Suspense fallback={null}>
+        <PublicProfileCollectionView
+          titles={titles}
+          username={profile.username}
+          displayName={profile.display_name}
+          avatarUrl={avatarUrl}
+        />
+      </Suspense>
     </main>
   );
 }

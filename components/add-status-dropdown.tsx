@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { ChevronDown, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { addTitleWithStatus } from "@/lib/actions";
 import type { TitleStatus } from "@/lib/supabase";
+import { captureAnalytics } from "@/lib/analytics";
 
 const OPTIONS: { value: TitleStatus; label: string }[] = [
   { value: "want", label: "Up Next" },
@@ -29,6 +31,7 @@ interface AddStatusDropdownProps {
  * navigates to the title detail page.
  */
 export function AddStatusDropdown({ tmdbId, mediaType }: AddStatusDropdownProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   function add(status: TitleStatus) {
@@ -37,7 +40,13 @@ export function AddStatusDropdown({ tmdbId, mediaType }: AddStatusDropdownProps)
       fd.set("tmdbId", String(tmdbId));
       fd.set("mediaType", mediaType);
       fd.set("status", status);
-      await addTitleWithStatus(fd);
+      const { id } = await addTitleWithStatus(fd);
+      captureAnalytics("title_saved", {
+        source: "discover",
+        status,
+        media_type: mediaType,
+      });
+      router.push(`/title/${id}`);
     });
   }
 
@@ -47,6 +56,8 @@ export function AddStatusDropdown({ tmdbId, mediaType }: AddStatusDropdownProps)
         <button
           type="button"
           disabled={isPending}
+          data-analytics-action="open_add_to_library"
+          data-analytics-area="discover_title"
           className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
         >
           <Plus className="h-3.5 w-3.5 text-muted-foreground" />

@@ -30,6 +30,11 @@ import { PreviewSlide, type SavedRecord } from "@/components/previews/preview-sl
 import { PreviewBackdrop } from "@/components/previews/preview-backdrop";
 import { YouTubePreview, type YouTubePlayerHandle } from "@/components/previews/youtube-preview";
 import { titleFor } from "@/lib/preview-display";
+import {
+  captureAnalytics,
+  countBucket,
+  durationBucket,
+} from "@/lib/analytics";
 
 interface PreviewsFeedProps {
   items: TmdbPreviewItem[];
@@ -1084,6 +1089,17 @@ export function PreviewsFeed({
   const audibleAutoplayFallbackAttemptedRef = React.useRef(false);
   const itemsRef = React.useRef(items);
   const activeIndexRef = React.useRef(initialActiveIndex);
+  const analyticsPreviousIndexRef = React.useRef(initialActiveIndex);
+  const analyticsNavigationMethodRef = React.useRef("initial");
+  const analyticsStartedAtRef = React.useRef(Date.now());
+  const analyticsCompletedRef = React.useRef(false);
+  const analyticsSeenRef = React.useRef(
+    new Set(
+      initialFeedItems[initialActiveIndex]
+        ? [itemKey(initialFeedItems[initialActiveIndex])]
+        : [],
+    ),
+  );
   const lastPlaybackItemKeyRef = React.useRef(
     itemKeyAt(initialFeedItems, initialActiveIndex),
   );
@@ -1508,6 +1524,17 @@ export function PreviewsFeed({
     }
   }, [recordSignal]);
 
+  const completeAnalyticsSession = React.useCallback(() => {
+    if (analyticsCompletedRef.current) return;
+    analyticsCompletedRef.current = true;
+    captureAnalytics("preview_session_completed", {
+      surface: isPublicPreview ? "landing" : "app",
+      trailers_seen_bucket: countBucket(analyticsSeenRef.current.size),
+      duration_bucket: durationBucket(Date.now() - analyticsStartedAtRef.current),
+      saved_count_bucket: countBucket(savedRef.current.size),
+    });
+  }, [isPublicPreview]);
+
   const startActiveVisit = React.useCallback(
     (item: TmdbPreviewItem, countImpression: boolean) => {
       activeVisitRef.current = { item, startedAt: Date.now() };
@@ -1709,6 +1736,18 @@ export function PreviewsFeed({
     const activeItem = itemsRef.current[activeIndex];
     if (!activeItem) return;
     const activeItemKey = itemKey(activeItem);
+    analyticsSeenRef.current.add(activeItemKey);
+    if (analyticsPreviousIndexRef.current !== activeIndex) {
+      captureAnalytics("preview_advanced", {
+        direction: activeIndex > analyticsPreviousIndexRef.current ? "next" : "previous",
+        method: analyticsNavigationMethodRef.current,
+        media_type: activeItem.media_type,
+        source: activeItem.source,
+        surface: isPublicPreview ? "landing" : "app",
+      });
+      analyticsPreviousIndexRef.current = activeIndex;
+      analyticsNavigationMethodRef.current = "scroll_or_swipe";
+    }
     if (lastPlaybackItemKeyRef.current === activeItemKey) return;
     lastPlaybackItemKeyRef.current = activeItemKey;
     if (pausedItemKeyRef.current === activeItemKey) return;
@@ -1720,7 +1759,16 @@ export function PreviewsFeed({
       playbackEnabledRef.current = true;
       setPlaybackEnabled(true);
     }
-  }, [activeIndex, items]);
+  }, [activeIndex, isPublicPreview, items]);
+
+  React.useEffect(() => {
+    const onPageHide = () => completeAnalyticsSession();
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      completeAnalyticsSession();
+    };
+  }, [completeAnalyticsSession]);
 
   React.useEffect(() => {
     playbackEnabledRef.current = playbackEnabled;
@@ -1856,6 +1904,9 @@ export function PreviewsFeed({
     next.add(videoKey);
     failedVideoKeysRef.current = next;
     setFailedVideoKeys(next);
+    captureAnalytics("preview_playback_failed", {
+      surface: isPublicPreview ? "landing" : "app",
+    });
     if (!isPublicPreview) toast.error("This trailer cannot play here. You can still open it on YouTube.");
   }, [isPublicPreview]);
 
@@ -2286,6 +2337,11 @@ export function PreviewsFeed({
           rememberSaved(key, record);
           overlay?.markSaved(item, record);
           recordSignal(item, "saves", 1, true);
+          captureAnalytics("preview_saved", {
+            media_type: item.media_type,
+            source: item.source,
+            surface: "app",
+          });
           return row.id;
         })
         .finally(() => pendingSaves.current.delete(key));
@@ -2297,10 +2353,15 @@ export function PreviewsFeed({
   );
 
   const moveTo = React.useCallback(
-    (index: number, behavior: ScrollBehavior = "smooth") => {
+    (
+      index: number,
+      behavior: ScrollBehavior = "smooth",
+      method = "navigation_control",
+    ) => {
       const scroller = scrollerRef.current;
       if (!scroller || visibleItems.length === 0) return;
       const clamped = Math.max(0, Math.min(visibleItems.length - 1, index));
+      analyticsNavigationMethodRef.current = method;
       const target = scroller.querySelector<HTMLElement>(
         `[data-preview-index="${clamped}"]`,
       );
@@ -2402,7 +2463,7 @@ export function PreviewsFeed({
             if (finitePreviewLimit !== null && visibleActiveIndex === visibleItems.length - 1) return;
             event.preventDefault();
             dismissDesktopScrollHint();
-            moveTo(visibleActiveIndex + 1, "auto");
+            moveTo(visibleActiveIndex + 1, "auto", "keyboard");
           } else if (
             event.key === "ArrowUp" ||
             event.key === "PageUp" ||
@@ -2411,15 +2472,15 @@ export function PreviewsFeed({
             if (finitePreviewLimit !== null && visibleActiveIndex === 0) return;
             event.preventDefault();
             dismissDesktopScrollHint();
-            moveTo(visibleActiveIndex - 1, "auto");
+            moveTo(visibleActiveIndex - 1, "auto", "keyboard");
           } else if (event.key === "Home") {
             event.preventDefault();
             dismissDesktopScrollHint();
-            moveTo(0, "auto");
+            moveTo(0, "auto", "keyboard");
           } else if (event.key === "End") {
             event.preventDefault();
             dismissDesktopScrollHint();
-            moveTo(visibleItems.length - 1, "auto");
+            moveTo(visibleItems.length - 1, "auto", "keyboard");
           }
         }}
         className={cn(
@@ -2507,6 +2568,11 @@ export function PreviewsFeed({
               }}
               onDetail={() => {
                 recordSignal(item, "details", 0.7, true);
+                captureAnalytics("preview_info_opened", {
+                  media_type: item.media_type,
+                  source: item.source,
+                  surface: isPublicPreview ? "landing" : "app",
+                });
               }}
             />
           );
@@ -2518,7 +2584,7 @@ export function PreviewsFeed({
             disabled={activeIndex === 0}
             onClick={() => {
               dismissDesktopScrollHint();
-              moveTo(activeIndex - 1);
+              moveTo(activeIndex - 1, "smooth", "accessible_button");
             }}
             className="pointer-events-none inline-flex h-10 items-center rounded-full border border-border bg-background px-4 text-xs font-semibold text-foreground shadow-lg focus:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:hidden"
           >
@@ -2529,7 +2595,7 @@ export function PreviewsFeed({
             disabled={activeIndex === items.length - 1}
             onClick={() => {
               dismissDesktopScrollHint();
-              moveTo(activeIndex + 1);
+              moveTo(activeIndex + 1, "smooth", "accessible_button");
             }}
             className="pointer-events-none inline-flex h-10 items-center rounded-full border border-border bg-background px-4 text-xs font-semibold text-foreground shadow-lg focus:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:hidden"
           >
@@ -2562,7 +2628,7 @@ export function PreviewsFeed({
           disabled={visibleActiveIndex === 0}
           onClick={() => {
             dismissDesktopScrollHint();
-            moveTo(visibleActiveIndex - 1);
+            moveTo(visibleActiveIndex - 1, "smooth", "arrow_button");
           }}
           className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.08] bg-black/20 text-white/55 transition-[background-color,border-color,color,transform] duration-150 hover:border-white/15 hover:bg-black/35 hover:text-white/85 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-20 motion-reduce:active:scale-100"
           aria-label="Previous preview"
@@ -2575,7 +2641,7 @@ export function PreviewsFeed({
           disabled={visibleActiveIndex === visibleItems.length - 1}
           onClick={() => {
             dismissDesktopScrollHint();
-            moveTo(visibleActiveIndex + 1);
+            moveTo(visibleActiveIndex + 1, "smooth", "arrow_button");
           }}
           className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.08] bg-black/20 text-white/55 transition-[background-color,border-color,color,transform] duration-150 hover:border-white/15 hover:bg-black/35 hover:text-white/85 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-20 motion-reduce:active:scale-100"
           aria-label="Next preview"

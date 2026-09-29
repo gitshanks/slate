@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Ellipsis, LogOut, Upload, UserRound } from "lucide-react";
+import { Ellipsis, LogOut, ShieldCheck, Upload, UserRound } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
 import {
   DropdownMenu,
@@ -160,12 +160,19 @@ export function OwnerMenu({
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-accent">
+              <Link href="/privacy">
+                <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                Privacy
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <form action={signOutAction}>
               <DropdownMenuItem
                 asChild
                 className="gap-2 rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive"
               >
-                <button type="submit" className="w-full">
+                <button type="submit" className="w-full" data-analytics-action="sign_out" data-analytics-reset="true">
                   <LogOut className="h-3.5 w-3.5 text-current opacity-75" />
                   Sign out
                 </button>

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -9,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { createList } from "@/lib/actions";
+import { captureAnalytics } from "@/lib/analytics";
 
 /**
  * "New list" trigger + popover form. The trigger is the only piece visible
@@ -17,13 +19,20 @@ import { createList } from "@/lib/actions";
  * never overflows on narrow phones). Closes itself on a successful submit.
  */
 export function CreateListForm() {
+  const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [pending, start] = React.useTransition();
 
   function handleSubmit(fd: FormData) {
     start(async () => {
-      await createList(fd);
+      const hasDescription = Boolean(String(fd.get("description") ?? "").trim());
+      const { slug } = await createList(fd);
+      captureAnalytics("list_created", {
+        source: "lists_page",
+        has_description: hasDescription,
+      });
       setOpen(false);
+      router.push(`/lists/${slug}`);
     });
   }
 
@@ -39,7 +48,7 @@ export function CreateListForm() {
         sideOffset={8}
         className="w-[360px] max-w-[calc(100vw-2rem)] p-4"
       >
-        <form action={handleSubmit} className="flex flex-col gap-3">
+        <form action={handleSubmit} className="flex flex-col gap-3" data-analytics-form="create_list" data-analytics-private>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
             New list
           </p>

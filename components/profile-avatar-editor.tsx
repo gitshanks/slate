@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { LoaderCircle, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { captureAnalytics } from "@/lib/analytics";
 
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
 const MAX_UPLOAD_BYTES = 650 * 1024;
@@ -161,6 +162,15 @@ export function ProfileAvatarEditor({
       if (!response.ok || !result.avatarUrl) throw new Error(result.message);
 
       replaceObjectUrl(result.avatarUrl);
+      captureAnalytics("profile_avatar_updated", {
+        source_type: prepared.type,
+        source_size_bucket:
+          prepared.size < 100_000
+            ? "under_100kb"
+            : prepared.size < 300_000
+              ? "100-300kb"
+              : "300kb+",
+      });
       toast.success("Profile photo updated.");
       router.refresh();
     } catch (error) {

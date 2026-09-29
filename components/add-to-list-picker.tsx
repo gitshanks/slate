@@ -20,6 +20,7 @@ import { addTitleToList } from "@/lib/actions";
 import { toast } from "sonner";
 import type { TitleRow } from "@/lib/supabase";
 import { formatYear } from "@/lib/utils";
+import { captureAnalytics } from "@/lib/analytics";
 
 export function AddToListPicker({
   listId,
@@ -35,6 +36,7 @@ export function AddToListPicker({
     start(async () => {
       try {
         await addTitleToList(listId, titleId);
+        captureAnalytics("list_title_added", { source: "list_page" });
         toast.success(`Added "${name}"`);
         setOpen(false);
       } catch (e) {

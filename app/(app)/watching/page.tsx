@@ -37,7 +37,9 @@ export default async function WatchingPage() {
         </p>
       </div>
 
-      <FilterBar genres={allGenres} />
+      <Suspense fallback={null}>
+        <FilterBar genres={allGenres} />
+      </Suspense>
 
       {allTitles.length === 0 ? (
         <EmptyState

@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AccentProvider } from "@/components/accent-provider";
 import { SonnerToaster } from "@/components/ui/sonner";
 import { UpdateBanner } from "@/components/update-banner";
+import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
 import { ACCENT_STORAGE_KEY, DEFAULT_ACCENT } from "@/lib/accent-theme";
 import "./globals.css";
 
@@ -64,6 +65,7 @@ export default function RootLayout({
               {children}
               <SonnerToaster />
               <UpdateBanner />
+              <AnalyticsProvider />
             </AccentProvider>
           </ThemeProvider>
         </MotionConfig>

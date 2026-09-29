@@ -26,6 +26,7 @@ import type {
 import { posterUrl } from "@/lib/tmdb-image";
 import { APP_ROOT } from "@/lib/public-mode";
 import { cn } from "@/lib/utils";
+import { captureAnalytics, countBucket } from "@/lib/analytics";
 
 interface LinkImporterProps {
   initialShare?: SharedLinkInput;
@@ -80,6 +81,14 @@ export function LinkImporter({
       setResolution(body);
       setSelected(defaults);
       setPhase("review");
+      captureAnalytics("shared_link_resolved", {
+        source_host: body.source.hostname ?? "unknown",
+        candidate_count_bucket: countBucket(body.candidates.length),
+        already_saved_count_bucket: countBucket(
+          body.candidates.filter((candidate) => candidate.inLibrary).length,
+        ),
+        has_warning: Boolean(body.warning),
+      });
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : "slate could not read that link.",
@@ -144,6 +153,11 @@ export function LinkImporter({
         );
         setSaveResult(result);
         setPhase("saved");
+        captureAnalytics("shared_link_titles_saved", {
+          added_count_bucket: countBucket(result.added),
+          existing_count_bucket: countBucket(result.existing),
+          failed_count_bucket: countBucket(result.failed),
+        });
         if (result.added > 0) {
           toast.success(
             `${result.added} ${result.added === 1 ? "title" : "titles"} added to Up Next`,
@@ -159,7 +173,7 @@ export function LinkImporter({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/45">
-      <form onSubmit={submitDraft} className="p-4 sm:p-5">
+      <form onSubmit={submitDraft} className="p-4 sm:p-5" data-analytics-form="shared_link_resolve" data-analytics-private>
         <label htmlFor="shared-link" className="text-sm font-medium text-foreground">
           Link or recommendation text
         </label>

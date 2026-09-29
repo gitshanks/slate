@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Film } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { LibraryCollectionView } from "@/components/library-collection-view";
@@ -56,11 +57,13 @@ export default async function LibraryPage() {
     watched.titles,
   ]);
   return (
-    <LibraryCollectionView
-      titles={titles}
-      displayName={profile?.display_name || "You"}
-      avatarUrl={profile ? profileAvatarUrl(profile) : null}
-      lists={lists}
-    />
+    <Suspense fallback={null}>
+      <LibraryCollectionView
+        titles={titles}
+        displayName={profile?.display_name || "You"}
+        avatarUrl={profile ? profileAvatarUrl(profile) : null}
+        lists={lists}
+      />
+    </Suspense>
   );
 }

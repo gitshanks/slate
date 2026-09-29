@@ -167,6 +167,7 @@ create table if not exists profiles (
                   check (avatar_mime in ('image/jpeg', 'image/png', 'image/webp')),
   avatar_updated_at timestamptz,
   identity_customized boolean not null default false,
+  onboarding_completed_at timestamptz,
   is_public     boolean not null default false,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()

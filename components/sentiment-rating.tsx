@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { captureAnalytics } from "@/lib/analytics";
 
 export type Sentiment = 1 | 2 | 3;
 
@@ -51,6 +52,10 @@ export function SentimentRating({
       setOptimistic(value);
       try {
         await setRating(titleId, value);
+        captureAnalytics("title_rated", {
+          rating: value,
+          cleared: value === null,
+        });
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Failed to save");
       }
@@ -88,6 +93,7 @@ export function SentimentRating({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
+          data-analytics-action="open_rating"
           className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <TriggerIcon className={cn("h-3.5 w-3.5", match ? cn(match.activeClass, "fill-current") : "text-muted-foreground")} />

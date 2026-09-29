@@ -13,6 +13,7 @@ import {
 import { useLayoutEffect, useRef, type MouseEvent, type ReactNode } from "react";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { LandingDetails } from "./landing-details";
+import { PrivacyPreferencesButton } from "@/components/analytics/privacy-preferences-button";
 import styles from "./index-landing.module.css";
 
 export function IndexLanding({
@@ -125,6 +126,8 @@ export function IndexLanding({
                       className={styles.primaryAction}
                       href={createHref}
                       scroll={false}
+                      data-analytics-action="landing_primary_cta"
+                      data-analytics-area="hero"
                     >
                       {SLATE_HOSTED ? "Create your slate" : "Open slate"}
                     </Link>
@@ -133,6 +136,8 @@ export function IndexLanding({
                         className={styles.secondaryAction}
                         href={signInHref}
                         scroll={false}
+                        data-analytics-action="landing_sign_in"
+                        data-analytics-area="hero"
                       >
                         Sign in
                       </Link>
@@ -167,13 +172,17 @@ export function IndexLanding({
               height={20}
             />
           </Link>
-          <a
-            href="https://github.com/gitshanks/slate"
-            target="_blank"
-            rel="noreferrer"
-          >
-            GitHub <ArrowUpRight aria-hidden="true" />
-          </a>
+          <div className={styles.footerLinks}>
+            <Link href="/privacy">Privacy</Link>
+            <PrivacyPreferencesButton className={styles.footerPrivacy} />
+            <a
+              href="https://github.com/gitshanks/slate"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHub <ArrowUpRight aria-hidden="true" />
+            </a>
+          </div>
         </footer>
       </div>
 

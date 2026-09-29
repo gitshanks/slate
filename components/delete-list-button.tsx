@@ -2,9 +2,11 @@
 
 import { useTransition } from "react";
 import { Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { deleteList } from "@/lib/actions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { captureAnalytics } from "@/lib/analytics";
 
 interface DeleteListButtonProps {
   listId: string;
@@ -20,6 +22,7 @@ export function DeleteListButton({
   iconOnly = false,
   className,
 }: DeleteListButtonProps) {
+  const router = useRouter();
   const [pending, start] = useTransition();
 
   function onClick(e: React.MouseEvent) {
@@ -29,18 +32,12 @@ export function DeleteListButton({
     start(async () => {
       try {
         await deleteList(listId);
-        // deleteList() redirects to /lists on success
+        captureAnalytics("list_deleted", {
+          source: iconOnly ? "list_card" : "list_page",
+        });
+        router.push("/lists");
+        router.refresh();
       } catch (err) {
-        // Re-throw the Next.js redirect signal so it completes normally
-        if (
-          err &&
-          typeof err === "object" &&
-          "digest" in err &&
-          typeof (err as { digest: unknown }).digest === "string" &&
-          (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
-        ) {
-          throw err;
-        }
         toast.error(err instanceof Error ? err.message : "Failed to delete list");
       }
     });

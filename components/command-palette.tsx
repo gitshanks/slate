@@ -59,6 +59,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { captureAnalytics, countBucket } from "@/lib/analytics";
 
 interface SearchResult {
   id: number;
@@ -283,6 +284,7 @@ export function CommandPaletteProvider({
   const router = useRouter();
 
   const openPalette = React.useCallback(() => {
+    captureAnalytics("search_opened", { mode: "catalogue", source: "palette" });
     librarySelectionRef.current = null;
     skipAutoFocusRef.current = false;
     blurActiveSmartSearch();
@@ -300,6 +302,11 @@ export function CommandPaletteProvider({
     const shouldSubmit = Boolean(
       options.mode === "ask" && options.submit && initialQuery,
     );
+    captureAnalytics("search_opened", {
+      mode: options.mode === "ask" ? "ai" : "catalogue",
+      source: "programmatic",
+      has_initial_query: Boolean(initialQuery),
+    });
     librarySelectionRef.current = options.onLibrarySelect ?? null;
     skipAutoFocusRef.current = shouldSubmit;
     blurActiveSmartSearch();
@@ -620,6 +627,10 @@ export function CommandPaletteProvider({
   const handleSearchAll = React.useCallback(() => {
     const q = query.trim();
     if (!q) return;
+    captureAnalytics("search_started", {
+      mode: "catalogue_page",
+      query_length_bucket: countBucket(q.length),
+    });
     setOpen(false);
     dismissInline();
     router.push(`/search?q=${encodeURIComponent(q)}`);
@@ -917,6 +928,14 @@ export function CommandPaletteProvider({
         setSaved(data.saved ?? {});
         setApproximate(Boolean(data.approximate));
         setApproxQuery(data.approxQuery ?? null);
+        captureAnalytics("search_started", {
+          mode: "catalogue_inline",
+          stage: "results_loaded",
+          query_length_bucket: countBucket(trimmed.length),
+          catalogue_results_bucket: countBucket((data.results ?? []).length),
+          library_results_bucket: countBucket((data.library ?? []).length),
+          approximate: Boolean(data.approximate),
+        });
       } catch {
         // Aborts are expected on every keystroke.
       } finally {
@@ -1096,6 +1115,11 @@ export function CommandPaletteProvider({
           }));
         }
         setJustAdded((s) => new Set(s).add(key));
+        captureAnalytics("title_saved", {
+          source: "search",
+          status,
+          media_type: item.media_type,
+        });
         const name = item.title || item.name || "Title";
         toast.success(`${name} added to ${statusLabel(status)}.`);
         // The Server Action revalidates the Library page and returns its
@@ -1119,6 +1143,11 @@ export function CommandPaletteProvider({
   const startAsk = React.useCallback(() => {
     if (!aiEnabled) return;
     const prompt = query.trim();
+    captureAnalytics("search_started", {
+      mode: "ai",
+      query_length_bucket: countBucket(prompt.length),
+      auto_submitted: Boolean(prompt),
+    });
     setAskReturnQuery(prompt);
     dismissInline();
     setAiMode(true);
@@ -1133,6 +1162,10 @@ export function CommandPaletteProvider({
   const startLinkImport = React.useCallback(() => {
     const value = query.trim();
     if (!value) return;
+    captureAnalytics("search_started", {
+      mode: "shared_link",
+      query_length_bucket: countBucket(value.length),
+    });
     dismissInline();
     setAiMode(false);
     setAskReturnQuery("");
@@ -1649,6 +1682,8 @@ export function CommandPaletteProvider({
               title={listening ? "Listening… tap to stop" : "Search by voice"}
               aria-pressed={listening}
               onClick={toggleVoice}
+              data-analytics-action={listening ? "stop_voice_search" : "start_voice_search"}
+              data-analytics-area="search"
               className={cn(
                 "absolute top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",
                 "right-12",
