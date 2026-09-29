@@ -8,7 +8,6 @@ import {
   Globe2,
   LoaderCircle,
   Lock,
-  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -272,14 +271,14 @@ export function ProfileSettingsForm({
         <label className="flex cursor-pointer items-center gap-3 p-5 sm:gap-4 sm:p-6">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             {publicEnabled ? (
-              <Share2 className="h-[18px] w-[18px]" />
+              <Globe2 className="h-[18px] w-[18px]" />
             ) : (
               <Lock className="h-[18px] w-[18px]" />
             )}
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-base font-semibold tracking-tight">
-              Share your slate
+              Public profile
             </span>
             <span className="mt-1 block text-[11px] leading-5 text-muted-foreground sm:text-xs">
               {publicEnabled
@@ -309,7 +308,7 @@ export function ProfileSettingsForm({
           </span>
         </label>
 
-        <div className="border-t border-border/60 p-3 sm:p-4">
+        {savedPublic && publicEnabled ? <div className="border-t border-border/60 p-3 sm:p-4">
           {savedPublic ? <p className="mb-3 flex items-center gap-2 px-1 text-xs text-muted-foreground"><Globe2 className="h-3.5 w-3.5 shrink-0" aria-hidden /><span className="truncate">{publicUrl.replace(/^https?:\/\/(?:www\.)?/, "")}</span></p> : null}
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -356,7 +355,7 @@ export function ProfileSettingsForm({
               </span>
             )}
           </div>
-        </div>
+        </div> : null}
       </section>
 
     </form>

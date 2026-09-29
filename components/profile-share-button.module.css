@@ -1,0 +1,162 @@
+.trigger {
+  background: linear-gradient(165deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.07));
+  box-shadow: inset 0 1px 0 hsl(var(--primary) / 0.13), 0 2px 8px hsl(var(--background) / 0.15);
+  transition: background-color 160ms, border-color 160ms, transform 160ms var(--ease-ui-out);
+}
+
+.trigger > svg {
+  transition: transform 180ms var(--ease-ui-out);
+}
+
+.panel {
+  max-height: calc(100dvh - 2rem);
+  box-shadow: 0 32px 100px -24px #0009, inset 0 1px 0 hsl(var(--foreground) / 0.06);
+}
+
+.panel[data-animate="false"] {
+  animation: none;
+}
+
+.panel > button:last-child {
+  z-index: 10;
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border-radius: 50%;
+  background: hsl(var(--foreground) / 0.06);
+}
+
+.artwork {
+  --poster-width: 4.5rem;
+  --poster-step: 1.75rem;
+  position: relative;
+  height: 11.25rem;
+  isolation: isolate;
+}
+
+.poster {
+  position: absolute;
+  top: 1.75rem;
+  left: 50%;
+  width: var(--poster-width);
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 0.625rem;
+  background: hsl(var(--muted));
+  box-shadow: 0 8px 20px -6px #0007, 0 0 0 1px hsl(var(--foreground) / 0.1);
+  transform-origin: 50% 100%;
+  transform: translateX(calc(-50% + var(--position) * var(--poster-step))) translateY(var(--drop)) rotate(var(--angle));
+}
+
+.poster::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid #ffffff24;
+  border-radius: inherit;
+}
+
+.posterFallback {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.copyButton {
+  box-shadow: inset 0 1px 0 #ffffff24, 0 2px 4px #0001;
+}
+
+.copyButton,
+.secondaryButton {
+  transition: background-color 160ms, transform 160ms var(--ease-ui-out);
+}
+
+.copyIcon {
+  display: grid;
+  width: 1rem;
+  height: 1rem;
+}
+
+.copyIcon > svg {
+  grid-area: 1 / 1;
+}
+
+.copyIcon > svg:last-child,
+.copyIcon[data-copied="true"] > svg:first-child {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.copyIcon[data-copied="true"] > svg:last-child {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (min-width: 380px) {
+  .artwork {
+    --poster-width: 5.5rem;
+    --poster-step: 2rem;
+    height: 12.75rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .artwork {
+    --poster-width: 6.25rem;
+    --poster-step: 2.5rem;
+    height: 14rem;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .trigger:hover {
+    border-color: hsl(var(--primary) / 0.55);
+    background-color: hsl(var(--primary) / 0.08);
+  }
+
+  .copyButton:hover {
+    background-color: hsl(var(--primary-hover));
+  }
+
+  .secondaryButton:hover {
+    background-color: hsl(var(--accent));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .trigger:active,
+  .copyButton:active,
+  .secondaryButton:active {
+    transform: scale(0.97);
+  }
+
+  .copyIcon[data-animate="true"] > svg {
+    transition: opacity 150ms, transform 180ms var(--ease-ui-out);
+  }
+
+  .panel[data-animate="true"] .poster {
+    transition: transform 280ms var(--ease-ui-out);
+  }
+
+  @starting-style {
+    .panel[data-animate="true"] .poster {
+      transform: translateX(calc(-50% + var(--position) * 1rem)) translateY(12px) rotate(0deg);
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .trigger:hover > svg {
+      transform: translateY(-1px) rotate(-8deg);
+    }
+  }
+}

@@ -452,7 +452,9 @@ export function LibraryCollectionView({
         }
         actions={
           <>
-            {shareProfile ? <ProfileShareButton {...shareProfile} /> : null}
+            {shareProfile?.isPublic ? (
+              <ProfileShareButton username={shareProfile.username} displayName={displayName} avatarUrl={avatarUrl} titles={titles} />
+            ) : null}
             <ViewSwitcher mode={mode} disabled={isSwitching} onSelect={selectMode} />
             <ThemeToggle className="h-10 w-10 shrink-0 border border-border bg-foreground/[0.055] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground md:hidden lg:inline-flex" />
             <OwnerMenu
