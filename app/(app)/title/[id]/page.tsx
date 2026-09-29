@@ -9,6 +9,7 @@ import { getOmdbMetadata, isOmdbConfigured } from "@/lib/omdb";
 import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import { BackdropHero } from "@/components/backdrop-hero";
 import { StatusPill } from "@/components/status-pill";
+import { TitleShareButton } from "@/components/title-share-button";
 import { SentimentRating } from "@/components/sentiment-rating";
 import { ReviewSheet } from "@/components/review-sheet";
 import { RemoveButton } from "@/components/remove-button";
@@ -297,6 +298,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                 sheet so the header never wraps to three rows of pills. */}
             <div className="mt-6 flex flex-wrap items-center gap-2">
               <StatusPill titleId={title.id} status={title.status} />
+              <TitleShareButton title={title} />
               <SentimentRating
                 titleId={title.id}
                 rating={title.rating != null ? Number(title.rating) : null}

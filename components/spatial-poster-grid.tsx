@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { ImdbBadge, MetacriticBadge, RottenTomatoesBadge } from "@/components/rating-icons";
 import { TrailerButton } from "@/components/trailer-button";
+import { TitleShareButton } from "@/components/title-share-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import type {
   PublicSpatialPerson,
@@ -1249,6 +1250,7 @@ function TitleDetailSlab({
               ) : null}
             </>
           )}
+          <TitleShareButton title={resolvedTitle} />
           {detail?.trailerKey ? (
             <TrailerButton
               trailerKey={detail.trailerKey}

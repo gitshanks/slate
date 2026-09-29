@@ -29,17 +29,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (!SLATE_HOSTED) redirect("/");
 
   const session = await getAppSession();
-
-  if (session?.user?.id) {
-    redirect("/app");
-  }
-
   const query = await searchParams;
   const rawError = Array.isArray(query.error) ? query.error[0] : query.error;
   const rawMode = Array.isArray(query.mode) ? query.mode[0] : query.mode;
   const rawNext = Array.isArray(query.next) ? query.next[0] : query.next;
   const creating = rawMode === "create";
   const redirectTo = safeRedirectPath(rawNext);
+  if (session?.user?.id) redirect(redirectTo);
   const emailEnabled = emailSignInConfigured();
   const error = rawError ? loginErrorMessage(rawError) : null;
   const switchParams = new URLSearchParams();

@@ -32,7 +32,7 @@ interface Decision {
   choice: Choice;
 }
 
-export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
+export function OnboardingDeck({ titles, returnTo = "/app" }: { titles: OnboardingTitle[]; returnTo?: string }) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const [trailerOpen, setTrailerOpen] = React.useState(false);
@@ -57,9 +57,10 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
   React.useEffect(() => {
     captureAnalytics("onboarding_started", {
       surface: "taste_builder",
+      source: returnTo.startsWith("/t/") ? "title_share" : "direct",
       title_count: countBucket(titles.length),
     });
-  }, [titles.length]);
+  }, [titles.length, returnTo]);
 
   React.useEffect(() => {
     // Long synopses can scroll on phones. Bring each new pick back into view.
@@ -73,6 +74,7 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
     completionTrackedRef.current = true;
     const savedCount = state.savedCount ?? kept.length;
     captureAnalytics("onboarding_completed", {
+      source: returnTo.startsWith("/t/") ? "title_share" : "direct",
       selected_count: countBucket(savedCount),
       viewed_count: countBucket(submittedViewedRef.current),
     });
@@ -81,16 +83,16 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
         viewed_count: countBucket(submittedViewedRef.current),
       });
     }
-  }, [kept.length, state]);
+  }, [kept.length, state, returnTo]);
 
   React.useEffect(() => {
     if (!state.ok) return;
     const timeout = window.setTimeout(() => {
-      router.replace("/app");
+      router.replace(returnTo);
       router.refresh();
     }, reduceMotion ? 0 : 720);
     return () => window.clearTimeout(timeout);
-  }, [reduceMotion, router, state.ok]);
+  }, [reduceMotion, router, state.ok, returnTo]);
 
   const decide = React.useCallback(
     (choice: Choice) => {

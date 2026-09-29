@@ -42,6 +42,13 @@ export type AnalyticsEvent =
   | "search_started"
   | "shared_link_resolved"
   | "shared_link_titles_saved"
+  | "title_share_opened"
+  | "title_share_link_copied"
+  | "title_share_sheet_completed"
+  | "shared_title_viewed"
+  | "shared_title_save_started"
+  | "shared_title_join_started"
+  | "shared_title_saved"
   | "title_favorite_changed"
   | "title_note_saved"
   | "title_rated"
@@ -278,6 +285,7 @@ export function analyticsRoute(rawPath: string) {
   }
 
   const replacements: Array<[RegExp, string]> = [
+    [/^\/t\/(movie|tv)\/[^/]+/i, "/t/:type/:id"],
     [/^\/join\/[^/]+/i, "/join/:token"],
     [/^\/u\/[^/]+\/title\/[^/]+/i, "/u/:username/title/:id"],
     [/^\/u\/[^/]+/i, "/u/:username"],
@@ -293,6 +301,7 @@ export function analyticsRoute(rawPath: string) {
 }
 
 export function analyticsSurface(route: string) {
+  if (route.startsWith("/t/")) return "shared_title";
   if (route === "/") return "landing";
   if (route.startsWith("/login")) return "auth";
   if (route.startsWith("/onboarding")) return "onboarding";

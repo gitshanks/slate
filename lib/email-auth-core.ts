@@ -38,5 +38,7 @@ export function maskEmail(email: string): string {
 export function safeRedirectPath(value: unknown, fallback = "/app"): string {
   if (typeof value !== "string") return fallback;
   const path = value.trim();
-  return path.startsWith("/") && !path.startsWith("//") ? path : fallback;
+  // Backslashes and control characters can turn a seemingly local path into
+  // a different origin when the browser normalizes it after authentication.
+  return path.startsWith("/") && !path.startsWith("//") && !/[\\\u0000-\u001f\u007f]/.test(path) ? path : fallback;
 }

@@ -44,5 +44,8 @@ test("login redirects remain local and email display is masked", () => {
   assert.equal(exports.safeRedirectPath("/join/token"), "/join/token");
   assert.equal(exports.safeRedirectPath("https://example.com"), "/app");
   assert.equal(exports.safeRedirectPath("//example.com"), "/app");
+  assert.equal(exports.safeRedirectPath("/\\example.com"), "/app");
+  assert.equal(exports.safeRedirectPath("/\n/example.com"), "/app");
+  assert.equal(exports.safeRedirectPath("/onboarding?next=%2Ft%2Fmovie%2F42"), "/onboarding?next=%2Ft%2Fmovie%2F42");
   assert.equal(exports.maskEmail("person@example.com"), "pe••••@example.com");
 });

@@ -20,6 +20,7 @@ import {
 import { RatingChip } from "@/components/rating-chip";
 import { TitleDescription } from "@/components/title-description";
 import { TrailerButton } from "@/components/trailer-button";
+import { SharedTitleActions } from "@/components/shared-title-actions";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { getPublicProfileTitle } from "@/lib/public-profile-library";
 import { getOmdbMetadata } from "@/lib/omdb";
@@ -248,6 +249,7 @@ export default async function PublicTitlePage(props: Props) {
             </div>
 
             <TitleDescription text={summary} />
+            <SharedTitleActions title={title} />
 
             {title.review ? (
               <section className="mt-8 max-w-2xl rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-sm">
