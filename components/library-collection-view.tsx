@@ -19,6 +19,7 @@ import {
   OwnerMenu,
 } from "@/components/owned-app-toolbar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ProfileShareButton } from "@/components/profile-share-button";
 import {
   useCommandPalette,
   useSmartSearchSession,
@@ -70,6 +71,7 @@ interface LibraryCollectionViewProps {
   displayName: string;
   avatarUrl: string | null;
   lists: { id: string; name: string }[];
+  shareProfile?: { username: string; isPublic: boolean } | null;
 }
 
 function ViewSwitcher({
@@ -135,6 +137,7 @@ export function LibraryCollectionView({
   displayName,
   avatarUrl,
   lists,
+  shareProfile,
 }: LibraryCollectionViewProps) {
   const searchParams = useSearchParams();
   const { activate: activateSmartSearch } = useCommandPalette();
@@ -449,6 +452,7 @@ export function LibraryCollectionView({
         }
         actions={
           <>
+            {shareProfile ? <ProfileShareButton {...shareProfile} /> : null}
             <ViewSwitcher mode={mode} disabled={isSwitching} onSelect={selectMode} />
             <ThemeToggle className="h-10 w-10 shrink-0 border border-border bg-foreground/[0.055] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground md:hidden lg:inline-flex" />
             <OwnerMenu

@@ -62,6 +62,7 @@ export default async function LibraryPage() {
         titles={titles}
         displayName={profile?.display_name || "You"}
         avatarUrl={profile ? profileAvatarUrl(profile) : null}
+        shareProfile={profile ? { username: profile.username, isPublic: profile.is_public } : null}
         lists={lists}
       />
     </Suspense>

@@ -91,6 +91,8 @@ export async function updateProfile(
   }
 
   revalidatePath("/profile");
+  // Hosted /app rewrites to /; refresh its sharing controls after profile edits.
+  revalidatePath("/");
   revalidatePath(`/u/${current.username}`);
   revalidatePath(`/u/${username}`);
   return {

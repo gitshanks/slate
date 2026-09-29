@@ -8,6 +8,7 @@ import {
   Globe2,
   LoaderCircle,
   Lock,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -140,10 +141,15 @@ export function ProfileSettingsForm({
   }
 
   async function copyLink() {
-    await navigator.clipboard.writeText(publicUrl);
-    captureAnalytics("profile_link_copied", { public_profile: savedPublic });
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      captureAnalytics("profile_link_copied", { public_profile: savedPublic });
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+      toast.error("Couldn't copy the link. Open your profile to copy its address.");
+    }
   }
 
   return (
@@ -262,17 +268,17 @@ export function ProfileSettingsForm({
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-[1.5rem] border border-border/70 bg-card/45">
+      <section id="profile-sharing" className="scroll-mt-44 overflow-hidden rounded-[1.5rem] border border-primary/20 bg-card/45">
         <label className="flex cursor-pointer items-center gap-3 p-5 sm:gap-4 sm:p-6">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background/70 text-muted-foreground">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             {publicEnabled ? (
-              <Globe2 className="h-[18px] w-[18px] text-primary" />
+              <Share2 className="h-[18px] w-[18px]" />
             ) : (
               <Lock className="h-[18px] w-[18px]" />
             )}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-medium">
+            <span className="block text-base font-semibold tracking-tight">
               Share your slate
             </span>
             <span className="mt-1 block text-[11px] leading-5 text-muted-foreground sm:text-xs">
@@ -304,49 +310,48 @@ export function ProfileSettingsForm({
         </label>
 
         <div className="border-t border-border/60 p-3 sm:p-4">
-          <div className="grid grid-cols-[minmax(0,1fr)_2.75rem] gap-2">
+          {savedPublic ? <p className="mb-3 flex items-center gap-2 px-1 text-xs text-muted-foreground"><Globe2 className="h-3.5 w-3.5 shrink-0" aria-hidden /><span className="truncate">{publicUrl.replace(/^https?:\/\/(?:www\.)?/, "")}</span></p> : null}
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={copyLink}
-              disabled={!savedPublic}
+              disabled={!savedPublic || !publicEnabled || pending}
               aria-label={
                 copied ? "Public profile link copied" : "Copy public profile link"
               }
               className={cn(
-                "inline-flex h-11 min-w-0 items-center justify-start gap-2 rounded-xl bg-background/55 px-3.5 text-left text-xs font-medium transition-[background-color,opacity,transform] active:scale-[0.99]",
+                "inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-full px-3.5 text-xs font-semibold transition-[background-color,opacity,transform] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring",
                 savedPublic
-                  ? "hover:bg-background"
-                  : "cursor-not-allowed text-muted-foreground opacity-45"
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground"
               )}
             >
               {copied ? (
-                <Check className="h-3.5 w-3.5 shrink-0 text-success" />
+                <Check className="h-3.5 w-3.5 shrink-0" />
               ) : (
                 <Copy className="h-3.5 w-3.5 shrink-0" />
               )}
-              <span className="min-w-0 truncate font-mono text-[11px]">
-                {savedPublic
-                  ? copied
-                    ? "Link copied"
-                    : publicUrl.replace(/^https?:\/\/(?:www\.)?/, "")
-                  : "No public link yet"}
+              <span aria-live="polite">
+                {copied ? "Link copied" : "Copy link"}
               </span>
             </button>
-            {savedPublic ? (
+            {savedPublic && publicEnabled && !pending ? (
               <a
                 href={`/u/${savedUsername}`}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Open public profile"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-background/55 transition-[background-color,transform] hover:bg-background active:scale-[0.97]"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border bg-background/55 px-3 text-xs font-medium transition-[background-color,transform] hover:bg-background active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
               >
+                View profile
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             ) : (
               <span
                 aria-hidden
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-background/25 text-muted-foreground opacity-45"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border px-3 text-xs text-muted-foreground opacity-45"
               >
+                View profile
                 <Lock className="h-3.5 w-3.5" />
               </span>
             )}
