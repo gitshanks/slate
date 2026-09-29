@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useActionState } from "react";
-import { ArrowRight, Check, Plus, RotateCcw, X } from "lucide-react";
+import { Check, Plus, RotateCcw, X } from "lucide-react";
 import {
   AnimatePresence,
   motion,
@@ -21,6 +21,8 @@ import type { OnboardingTitle } from "@/lib/onboarding-titles";
 import { backdropUrl, posterUrl } from "@/lib/tmdb-image";
 import { captureAnalytics, countBucket } from "@/lib/analytics";
 import styles from "./onboarding-deck.module.css";
+import { OnboardingTitleDetails } from "./onboarding-title-details";
+import { StarterShelf } from "./starter-shelf";
 
 const INITIAL_STATE: OnboardingState = { ok: false, message: "" };
 
@@ -33,6 +35,7 @@ interface Decision {
 export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
+  const [trailerOpen, setTrailerOpen] = React.useState(false);
   const [cursor, setCursor] = React.useState(0);
   const [decisions, setDecisions] = React.useState<Decision[]>([]);
   const [reviewing, setReviewing] = React.useState(titles.length === 0);
@@ -59,6 +62,13 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
   }, [titles.length]);
 
   React.useEffect(() => {
+    // Long synopses can scroll on phones. Bring each new pick back into view.
+    if (window.scrollY > 0) {
+      window.scrollTo({ top: 0, behavior: reduceMotion ? "instant" : "smooth" });
+    }
+  }, [cursor, reviewing, reduceMotion]);
+
+  React.useEffect(() => {
     if (!state.ok || completionTrackedRef.current) return;
     completionTrackedRef.current = true;
     const savedCount = state.savedCount ?? kept.length;
@@ -71,12 +81,16 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
         viewed_count: countBucket(submittedViewedRef.current),
       });
     }
+  }, [kept.length, state]);
+
+  React.useEffect(() => {
+    if (!state.ok) return;
     const timeout = window.setTimeout(() => {
       router.replace("/app");
       router.refresh();
     }, reduceMotion ? 0 : 720);
     return () => window.clearTimeout(timeout);
-  }, [kept.length, reduceMotion, router, state]);
+  }, [reduceMotion, router, state.ok]);
 
   const decide = React.useCallback(
     (choice: Choice) => {
@@ -89,24 +103,23 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
         media_type: active.mediaType,
         position: cursor + 1,
       });
-      if (cursor + 1 >= titles.length) {
-        setReviewing(true);
-      } else {
-        setCursor((current) => current + 1);
-      }
+      setCursor(cursor + 1);
+      if (cursor + 1 >= titles.length) setReviewing(true);
     }, [active, cursor, pending, reviewing, titles.length],
   );
 
   const undo = React.useCallback(() => {
     if (!decisions.length || pending) return;
     setDecisions((current) => current.slice(0, -1));
-    setCursor((current) => Math.max(0, current - 1));
+    setCursor(decisions.length - 1);
     setReviewing(false);
   }, [decisions.length, pending]);
 
   React.useEffect(() => {
-    if (reviewing || pending || state.ok) return;
+    if (reviewing || pending || state.ok || trailerOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+      if ((event.target as HTMLElement).closest("input, textarea, select, [role=dialog]")) return;
       if (event.key === "ArrowLeft") {
         event.preventDefault();
         decide("pass");
@@ -118,7 +131,7 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [decide, pending, reviewing, state.ok]);
+  }, [decide, pending, reviewing, state.ok, trailerOpen]);
 
   const progress = reviewing ? 1 : titles.length ? cursor / titles.length : 1;
 
@@ -157,7 +170,7 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
           <button
             type="button"
             onClick={undo}
-            disabled={!decisions.length || pending}
+            disabled={!decisions.length || pending || state.ok}
             className={styles.undoButton}
             data-analytics-action="onboarding_undo"
             data-analytics-area="taste_builder"
@@ -185,10 +198,11 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
           {state.ok ? (
             <Completion key="complete" savedCount={state.savedCount ?? kept.length} />
           ) : reviewing ? (
-            <Review
+            <StarterShelf
               key="review"
               kept={kept}
-              viewedCount={decisions.length}
+              passed={decisions.filter((item) => item.choice === "pass").map((item) => item.title)}
+              hasMore={cursor < titles.length}
               pending={pending}
               error={state.message}
               action={action}
@@ -227,12 +241,11 @@ export function OnboardingDeck({ titles }: { titles: OnboardingTitle[] }) {
               <div className={styles.details}>
                 <p className={styles.eyebrow}>Shape your Up Next</p>
                 <h1 data-onboarding-title>{active.title}</h1>
-                <div className={styles.meta}>
-                  <span>{active.mediaType === "movie" ? "Film" : "Series"}</span>
-                  {yearFor(active) ? <span>{yearFor(active)}</span> : null}
-                  {active.genres.map((genre) => <span key={genre}>{genre}</span>)}
-                </div>
-                <p className={styles.overview}>{active.overview}</p>
+                <OnboardingTitleDetails
+                  key={`${active.mediaType}:${active.tmdbId}`}
+                  title={active}
+                  onTrailerOpenChange={setTrailerOpen}
+                />
 
                 <div className={styles.decisionRow}>
                   <button
@@ -363,95 +376,6 @@ function SwipeCard({
   );
 }
 
-function Review({
-  kept,
-  viewedCount,
-  pending,
-  error,
-  action,
-  onBack,
-  onSubmit,
-}: {
-  kept: OnboardingTitle[];
-  viewedCount: number;
-  pending: boolean;
-  error: string;
-  action: (payload: FormData) => void;
-  onBack: () => void;
-  onSubmit: () => void;
-}) {
-  const selections = kept.map((title) => ({
-    tmdbId: title.tmdbId,
-    mediaType: title.mediaType,
-  }));
-
-  return (
-    <motion.section
-      className={styles.review}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <p className={styles.eyebrow}>Your first shelf</p>
-      <h1>
-        {kept.length ? "A good beginning." : "Begin with a blank slate."}
-      </h1>
-      <p className={styles.reviewCopy}>
-        {kept.length
-          ? `${kept.length} ${kept.length === 1 ? "title is" : "titles are"} ready in Up Next. Your previews will get sharper as you keep watching and saving.`
-          : "Skip the warm-up and start exploring. Slate will learn from what you save, watch, and pass on."}
-      </p>
-
-      {kept.length ? (
-        <div className={styles.posterStrip} aria-label={`${kept.length} kept titles`}>
-          {kept.slice(0, 6).map((title, index) => (
-            <motion.div
-              key={`${title.mediaType}:${title.tmdbId}`}
-              className={styles.miniPoster}
-              initial={{ opacity: 0, y: 16, rotate: 0 }}
-              animate={{ opacity: 1, y: 0, rotate: (index - Math.min(kept.length, 6) / 2) * 1.4 }}
-              transition={{ delay: index * 0.045, duration: 0.38 }}
-            >
-              <Image src={posterUrl(title.posterPath, "w185")!} alt={title.title} fill sizes="110px" />
-            </motion.div>
-          ))}
-          {kept.length > 6 ? <span className={styles.moreCount}>+{kept.length - 6}</span> : null}
-        </div>
-      ) : null}
-
-      <form
-        action={action}
-        className={styles.reviewActions}
-        onSubmit={() => onSubmit()}
-      >
-        <input type="hidden" name="selections" value={JSON.stringify(selections)} />
-        {error ? <p className={styles.error} role="alert">{error}</p> : null}
-        <button
-          type="submit"
-          className={styles.openButton}
-          disabled={pending}
-          data-analytics-action="onboarding_save_taste"
-          data-analytics-area="taste_builder"
-        >
-          <span>{pending ? "Building your slate…" : kept.length ? "Open Up Next" : "Start exploring"}</span>
-          {!pending ? <ArrowRight aria-hidden="true" /> : null}
-        </button>
-        {viewedCount < 10 ? (
-          <button
-            type="button"
-            className={styles.backButton}
-            onClick={onBack}
-            disabled={pending}
-          >
-            Keep choosing
-          </button>
-        ) : null}
-      </form>
-    </motion.section>
-  );
-}
-
 function Completion({ savedCount }: { savedCount: number }) {
   return (
     <motion.section
@@ -473,8 +397,4 @@ function Completion({ savedCount }: { savedCount: number }) {
       <h1>{savedCount ? "Your Up Next is waiting." : "Your slate is ready."}</h1>
     </motion.section>
   );
-}
-
-function yearFor(title: OnboardingTitle) {
-  return title.releaseDate?.slice(0, 4) ?? "";
 }

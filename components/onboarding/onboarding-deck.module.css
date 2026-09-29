@@ -188,8 +188,7 @@
 }
 
 .nextCard img,
-.activeCard img,
-.miniPoster img {
+.activeCard img {
   object-fit: cover;
 }
 
@@ -409,46 +408,6 @@
   margin: 20px auto 0;
 }
 
-.posterStrip {
-  display: flex;
-  min-height: 176px;
-  align-items: center;
-  justify-content: center;
-  margin-top: 28px;
-  padding-inline: 28px;
-}
-
-.miniPoster {
-  position: relative;
-  width: 104px;
-  aspect-ratio: 2 / 3;
-  overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 0.24);
-  border-radius: 13px;
-  background: #171717;
-  box-shadow: 0 20px 48px rgb(0 0 0 / 0.42);
-}
-
-.miniPoster + .miniPoster {
-  margin-left: -13px;
-}
-
-.moreCount {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  margin-left: -7px;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.2);
-  border-radius: 999px;
-  background: rgb(13 13 13 / 0.72);
-  color: #adebb3;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 10px;
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-}
-
 .reviewActions {
   display: flex;
   flex-direction: column;
@@ -612,14 +571,10 @@
   }
 
   .overview {
-    display: -webkit-box;
     max-width: 500px;
     margin: 12px auto 0;
-    overflow: hidden;
     font-size: 13px;
     line-height: 1.5;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
   }
 
   .decisionRow {
@@ -690,20 +645,8 @@
     padding-inline: 17px;
   }
 
-  .posterStrip {
-    min-height: 128px;
-    margin-top: 24px;
-    padding-inline: 0;
-  }
 
-  .miniPoster {
-    width: 75px;
-    border-radius: 10px;
-  }
 
-  .miniPoster + .miniPoster {
-    margin-left: -16px;
-  }
 
   .reviewCopy {
     font-size: 13px;
@@ -727,7 +670,6 @@
     font-size: clamp(2rem, 8.8vw, 2.8rem);
   }
 
-  .overview,
   .gestureHint {
     display: none;
   }
@@ -736,13 +678,7 @@
     margin-top: 16px;
   }
 
-  .posterStrip {
-    min-height: 110px;
-  }
 
-  .miniPoster {
-    width: 66px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -755,3 +691,40 @@
     transition: none;
   }
 }
+
+/* Catalogue detail stays readable at every height; the page can scroll. */
+.credits { margin-top: 16px; color: rgb(255 255 255 / .65); font-size: 12px; line-height: 1.65; }
+.credits div + div { margin-top: 4px; }
+.credits dt { display: inline; color: rgb(255 255 255 / .4); margin-right: 7px; }
+.credits dd { display: inline; }
+.trailerRow { margin-top: 19px; min-height: 36px; }
+.trailerButton { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; border: 1px solid rgb(255 255 255 / .24); border-radius: 999px; background: rgb(20 20 20 / .45); color: #f6f3ed; font-size: 12px; font-weight: 600; cursor: pointer; }
+.trailerButton:hover { background: rgb(255 255 255 / .12); }
+.trailerButton:focus-visible, .suggestion:focus-visible { outline: 2px solid #adebb3; outline-offset: 4px; }
+.trailerStatus { color: rgb(255 255 255 / .45); font-size: 12px; }
+.starterReview { max-width: 850px; padding-block: 32px; }
+.starterReview h1 { font-size: clamp(2.8rem, 5vw, 4.5rem); }
+.shelfSection { margin-top: 30px; text-align: left; }
+.shelfSection h2 { font-size: 16px; font-weight: 600; letter-spacing: -.025em; }
+.shelfSection h2 > span { color: rgb(255 255 255 / .45); margin-left: 7px; font-size: 12px; }
+.shelfNote { margin-top: 5px; color: rgb(255 255 255 / .5); font-size: 12px; line-height: 1.6; }
+.shelfGrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px; margin-top: 14px; }
+.shelfTitle { min-width: 0; }
+.shelfTitle > span { display: block; margin-top: 7px; font-size: 11px; line-height: 1.4; color: rgb(255 255 255 / .75); }
+.shelfPoster { position: relative; aspect-ratio: 2 / 3; overflow: hidden; border-radius: 12px; border: 1px solid rgb(255 255 255 / .17); background: #171717; }
+.shelfPoster img { object-fit: cover; }
+.suggestion { position: relative; text-align: left; cursor: pointer; border-radius: 12px; align-self: start; }
+.suggestion[data-selected=false] .shelfPoster { opacity: .38; }
+.selectionMark { position: absolute; right: 6px; top: 6px; display: grid; width: 23px; height: 23px; place-items: center; border-radius: 50%; background: #adebb3; color: #102113; box-shadow: 0 2px 12px #0006; }
+.selectionMark svg { width: 14px; height: 14px; }
+.suggestion[data-selected=false] .selectionMark { background: #222; color: #fff; }
+@media (max-width: 900px) {
+  .details { padding-inline: 4px; }
+  .overview { text-align: left; }
+  .credits { text-align: left; }
+  .deck { width: min(55vw, 248px); }
+  .shelfGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+  .starterReview { padding-top: 8px; }
+}
+@media (max-width: 560px) { .shelfGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (pointer: coarse) { .gestureHint { display: none; } }

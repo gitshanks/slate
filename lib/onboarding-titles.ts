@@ -79,7 +79,7 @@ export async function getOnboardingTitles(accountId: string) {
   const pool = [trending, nowPlaying, popularMovies, popularTv]
     .flat()
     .flatMap((item) => {
-      const normalized = normalizeTitle(item);
+      const normalized = normalizeOnboardingTitle(item);
       if (!normalized) return [];
       const key = `${normalized.mediaType}:${normalized.tmdbId}`;
       if (seen.has(key)) return [];
@@ -109,11 +109,11 @@ export async function getOnboardingTitles(accountId: string) {
   return balanced;
 }
 
-function normalizeTitle(item: TmdbSearchResult): OnboardingTitle | null {
+export function normalizeOnboardingTitle(item: TmdbSearchResult): OnboardingTitle | null {
   if (item.media_type !== "movie" && item.media_type !== "tv") return null;
   const title = item.title || item.name;
   const overview = item.overview?.trim();
-  if (!title || !overview || overview.length < 40) return null;
+  if (!title || !overview) return null;
   if (!item.poster_path || !item.backdrop_path) return null;
 
   const genreMap = item.media_type === "movie" ? MOVIE_GENRES : TV_GENRES;

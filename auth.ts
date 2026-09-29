@@ -1,7 +1,8 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
-import { ensureGoogleProfile } from "@/lib/profiles";
+import { ensureGoogleProfile, getProfileById } from "@/lib/profiles";
+import { belongsToAccount } from "@/lib/account-session";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import {
   accountOwnerForEmail,
@@ -98,6 +99,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.userId = user.id;
       } else if (account?.provider === "google" && account.providerAccountId) {
         token.userId = googleOwnerId(account.providerAccountId);
+      }
+      if (SLATE_HOSTED) {
+        if (!token.userId) return null;
+        const currentProfile = await getProfileById(token.userId);
+        if (!currentProfile) return null;
+        // Only an actual sign-in can bind a cookie to a new account. Merely
+        // refreshing an old cookie must never restore a deleted identity.
+        if (!account && !belongsToAccount(token, currentProfile.created_at)) return null;
+        token.accountCreatedAt = currentProfile.created_at;
       }
       if (!token.emailAccountLinked && token.userId && token.email) {
         try {

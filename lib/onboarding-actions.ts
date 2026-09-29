@@ -5,19 +5,13 @@ import { addTitle } from "@/lib/actions";
 import { getLibraryClient, getLibraryOwnerId } from "@/lib/library-db";
 import { getProfileById } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
+import { parseOnboardingPicks, type OnboardingPick } from "@/lib/onboarding-recommendations";
 
 export interface OnboardingState {
   ok: boolean;
   message: string;
   savedCount?: number;
 }
-
-interface SelectedTitle {
-  tmdbId: number;
-  mediaType: "movie" | "tv";
-}
-
-const MAX_SELECTIONS = 10;
 
 export async function completeOnboarding(
   _previous: OnboardingState,
@@ -26,6 +20,7 @@ export async function completeOnboarding(
   const ownerId = await getLibraryOwnerId();
   const profile = await getProfileById(ownerId);
   if (!profile) return { ok: false, message: "Your profile could not be loaded." };
+  if (profile.onboarding_completed_at) return { ok: true, message: "Your slate is ready.", savedCount: 0 };
 
   const selections = parseSelections(formData.get("selections"));
   if (!selections) {
@@ -58,7 +53,6 @@ export async function completeOnboarding(
         const { error } = await db
           .from("titles")
           .update({
-            status: "want",
             position: -1_000 + index,
             updated_at: new Date().toISOString(),
           })
@@ -91,33 +85,10 @@ export async function completeOnboarding(
   }
 }
 
-function parseSelections(value: FormDataEntryValue | null): SelectedTitle[] | null {
+function parseSelections(value: FormDataEntryValue | null): OnboardingPick[] | null {
   if (typeof value !== "string" || value.length > 2_000) return null;
   try {
-    const parsed = JSON.parse(value) as unknown;
-    if (!Array.isArray(parsed) || parsed.length > MAX_SELECTIONS) return null;
-
-    const seen = new Set<string>();
-    const selections: SelectedTitle[] = [];
-    for (const entry of parsed) {
-      if (!entry || typeof entry !== "object") return null;
-      const candidate = entry as Record<string, unknown>;
-      if (
-        !Number.isInteger(candidate.tmdbId) ||
-        Number(candidate.tmdbId) <= 0 ||
-        (candidate.mediaType !== "movie" && candidate.mediaType !== "tv")
-      ) {
-        return null;
-      }
-      const key = `${candidate.mediaType}:${candidate.tmdbId}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      selections.push({
-        tmdbId: Number(candidate.tmdbId),
-        mediaType: candidate.mediaType,
-      });
-    }
-    return selections;
+    return parseOnboardingPicks(JSON.parse(value));
   } catch {
     return null;
   }

@@ -106,6 +106,9 @@ export default function PrivacyPage() {
             </PolicySection>
 
             <PolicySection title="Your choices and rights">
+              <p className="mb-5">
+                You can delete your account in Profile settings. This removes your profile, library, notes, ratings, preview preferences, lists you own, and account sessions. For any previously collected analytics, contact us using the address below.
+              </p>
               <p>
                 Choose “Necessary only” to use slate without optional analytics. Choosing it later stops new analytics and recording on that browser. A Global Privacy Control or Do Not Track signal also keeps analytics off. Depending on where you live, you may ask to access, correct, export, restrict, object to, or delete personal data.
               </p>

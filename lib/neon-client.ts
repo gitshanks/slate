@@ -9,7 +9,7 @@
 import "server-only";
 import { createRequire } from "node:module";
 import { connection } from "next/server";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { buildQuery, makeState, type BuilderState, type Op } from "@/lib/neon-sql";
 
 // `pg` is loaded through a real Node require (created lazily inside getPool),
@@ -234,4 +234,20 @@ export async function runNeonQuery<Row extends Record<string, unknown> = Record<
 ): Promise<Row[]> {
   const result = await getPool().query(text, params);
   return result.rows as Row[];
+}
+
+/** Keep related mutations atomic on the same pooled connection. */
+export async function runNeonTransaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await getPool().connect();
+  try {
+    await client.query("begin");
+    const result = await work(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
 }

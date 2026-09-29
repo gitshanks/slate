@@ -8,6 +8,7 @@ import { APP_ROOT, SLATE_HOSTED } from "@/lib/public-mode";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PrivacyPreferencesButton } from "@/components/analytics/privacy-preferences-button";
+import { DeleteAccountSettings } from "@/components/delete-account-settings";
 
 export const metadata: Metadata = {
   title: "Profile · slate",
@@ -69,6 +70,8 @@ export default async function ProfilePage() {
             <PrivacyPreferencesButton compact />
           </div>
         </section>
+
+        <DeleteAccountSettings />
 
         <form
           action={async () => {

@@ -3,6 +3,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { jwtVerify, SignJWT } from "jose";
 import { NativeApiError } from "@/lib/native-api/http";
+import { supabase } from "@/lib/supabase";
 
 export const ACCESS_TOKEN_LIFETIME_SECONDS = 15 * 60;
 export const REFRESH_TOKEN_LIFETIME_SECONDS = 90 * 24 * 60 * 60;
@@ -83,7 +84,18 @@ export function accessTokenFromRequest(request: Request): string {
 export async function authenticateNativeRequest(
   request: Request,
 ): Promise<NativeAccessClaims> {
-  return verifyAccessToken(accessTokenFromRequest(request));
+  const claims = await verifyAccessToken(accessTokenFromRequest(request));
+  const { data, error } = await supabase
+    .from("device_sessions")
+    .select("id, revoked_at, expires_at")
+    .eq("id", claims.sessionId)
+    .eq("owner_id", claims.ownerId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data || data.revoked_at || new Date(data.expires_at).getTime() <= Date.now()) {
+    throw new NativeApiError(401, "not_authenticated", "Your session has expired.");
+  }
+  return claims;
 }
 
 export function createRefreshToken(): { token: string; hash: string } {
