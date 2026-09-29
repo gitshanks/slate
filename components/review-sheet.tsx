@@ -4,6 +4,7 @@ import * as React from "react";
 import { NotebookPen } from "lucide-react";
 import {
   Sheet,
+  SheetTrigger,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -50,26 +51,26 @@ export function ReviewSheet({
   const label = initialReview ? "Edit note" : "Add note";
 
   return (
-    <>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
       {variant === "row" ? (
         <ActionRow
           icon={<NotebookPen className="h-[18px] w-[18px]" />}
           label={label}
           sublabel={initialReview ? "Your private note" : "Jot a private note"}
-          onClick={() => setOpen(true)}
         />
       ) : (
         <button
           type="button"
-          onClick={() => setOpen(true)}
           data-analytics-action="open_private_note"
-          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
+          aria-label={`${label} for ${titleName}`}
+          title={label}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          <NotebookPen className="h-3.5 w-3.5 text-muted-foreground" />
-          {label}
+          <NotebookPen className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
         </button>
       )}
-      <Sheet open={open} onOpenChange={setOpen}>
+      </SheetTrigger>
         <SheetContent side="right" className="w-full sm:max-w-md">
           <SheetHeader>
             <SheetTitle>{titleName}</SheetTitle>
@@ -107,7 +108,6 @@ export function ReviewSheet({
             </div>
           </div>
         </SheetContent>
-      </Sheet>
-    </>
+    </Sheet>
   );
 }

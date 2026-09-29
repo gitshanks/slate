@@ -12,7 +12,7 @@ import { parseSharedTitle, titleSharePath, type ShareableTitle } from "@/lib/tit
 import { cn } from "@/lib/utils";
 import styles from "./title-sharing.module.css";
 
-export function TitleShareButton({ title, source = "title_detail", label, className, onOpenChange }: {
+export function TitleShareButton({ title, source = "title_detail", label = "Share", className, onOpenChange }: {
   title: ShareableTitle;
   source?: string;
   label?: string;
@@ -72,8 +72,8 @@ export function TitleShareButton({ title, source = "title_detail", label, classN
     }}>
       <DialogTrigger asChild>
         <button type="button" aria-label={`Share ${title.title}`} title="Share title" data-analytics-action="share_title"
-          className={cn("inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full border border-border bg-foreground/[0.035] text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", label ? "px-4" : "w-9", className)}>
-          <Share2 className="h-3.5 w-3.5" aria-hidden />{label}
+          className={cn("inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-border bg-card text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", label ? "px-3" : "w-9", className)}>
+          <Share2 className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />{label}
         </button>
       </DialogTrigger>
       <DialogContent placement="center" className={`${styles.shareDialog} w-[calc(100%-2rem)] max-w-sm gap-0 overflow-hidden rounded-[1.75rem] p-0 sm:max-w-sm`}>
