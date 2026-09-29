@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Ellipsis, LogOut, ShieldCheck, Upload, UserRound } from "lucide-react";
+import { Ellipsis, LogOut, Upload, UserRound } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
 import {
   DropdownMenu,
@@ -157,13 +157,6 @@ export function OwnerMenu({
               >
                 <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
                 Profile
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild className="gap-2 rounded-lg focus:bg-accent">
-              <Link href="/privacy">
-                <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
-                Privacy
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
