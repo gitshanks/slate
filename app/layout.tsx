@@ -33,12 +33,21 @@ export const metadata: Metadata = {
     title: "slate · your watchlist",
     description:
       "A personal watchlist for everything you want to watch — private by default and shareable when you choose.",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "slate — save what you want to watch",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "slate · your watchlist",
     description:
       "A personal watchlist for everything you want to watch — private by default and shareable when you choose.",
+    images: ["/opengraph-image"],
   },
 };
 

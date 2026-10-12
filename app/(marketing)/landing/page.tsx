@@ -10,11 +10,20 @@ export const metadata: Metadata = {
     title: "slate",
     description: "Save what you want to watch. Share it when you want.",
     type: "website",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "slate — save what you want to watch",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "slate",
     description: "Save what you want to watch. Share it when you want.",
+    images: ["/opengraph-image"],
   },
 };
 
