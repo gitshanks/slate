@@ -26,6 +26,7 @@ import { PublicTitlePageAddControl } from "@/components/public-title-page-add-co
 import { getAppSession } from "@/lib/app-access";
 import { libraryClientForOwner } from "@/lib/library-db";
 import { SLATE_HOSTED } from "@/lib/public-mode";
+import { siteOrigin } from "@/lib/site-url";
 import { getPublicProfileTitle } from "@/lib/public-profile-library";
 import { getOmdbMetadata } from "@/lib/omdb";
 import { formatPlotText } from "@/lib/plot-format";
@@ -59,11 +60,29 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     record.title.overview,
   )?.replace(/\s+/g, " ");
 
+  const origin = siteOrigin();
+  const canonical = `${origin}/u/${record.profile.username}/title/${record.title.id}`;
+  const description =
+    summary ||
+    `See ${record.title.title} on ${record.profile.display_name}'s slate.`;
+
   return {
+    metadataBase: new URL(origin),
     title: `${record.title.title} · ${record.profile.display_name}'s slate`,
-    description:
-      summary ||
-      `See ${record.title.title} on ${record.profile.display_name}'s slate.`,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title: `${record.title.title} · ${record.profile.display_name}'s slate`,
+      description,
+      url: canonical,
+      siteName: "slate",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${record.title.title} · ${record.profile.display_name}'s slate`,
+      description,
+    },
   };
 }
 

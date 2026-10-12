@@ -8,6 +8,7 @@ import { SonnerToaster } from "@/components/ui/sonner";
 import { UpdateBanner } from "@/components/update-banner";
 import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
 import { ACCENT_STORAGE_KEY, DEFAULT_ACCENT } from "@/lib/accent-theme";
+import { siteOrigin } from "@/lib/site-url";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,10 +22,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin()),
   title: "slate · your watchlist",
   description:
     "A personal watchlist for everything you want to watch — private by default and shareable when you choose.",
   manifest: "/manifest.webmanifest",
+  openGraph: {
+    siteName: "slate",
+    type: "website",
+    title: "slate · your watchlist",
+    description:
+      "A personal watchlist for everything you want to watch — private by default and shareable when you choose.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "slate · your watchlist",
+    description:
+      "A personal watchlist for everything you want to watch — private by default and shareable when you choose.",
+  },
 };
 
 export const viewport: Viewport = {

@@ -11,6 +11,11 @@ export const metadata: Metadata = {
     description: "Save what you want to watch. Share it when you want.",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "slate",
+    description: "Save what you want to watch. Share it when you want.",
+  },
 };
 
 export default async function LandingPage() {

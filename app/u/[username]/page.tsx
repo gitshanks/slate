@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PublicProfileCollectionView } from "@/components/public-profile-collection-view";
 import { getAppSession } from "@/lib/app-access";
 import { getPublicProfile, profileAvatarUrl } from "@/lib/profiles";
+import { siteOrigin } from "@/lib/site-url";
 import { fetchTitlesByStatusForOwner } from "@/lib/title-filters";
 import type { TitleRow } from "@/lib/types";
 import { SLATE_HOSTED } from "@/lib/public-mode";
@@ -35,19 +36,26 @@ export async function generateMetadata({
   if (!profile) {
     return { title: "Profile not found · slate", robots: { index: false } };
   }
-  const origin =
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-    "https://s1ate.space";
-  const avatarUrl = profileAvatarUrl(profile, origin);
+  const origin = siteOrigin();
+  const canonical = `${origin}/u/${profile.username}`;
+  const description = `See what ${profile.display_name} wants to watch, is watching, and has watched.`;
 
   return {
+    metadataBase: new URL(origin),
     title: `${profile.display_name}'s watchlist · slate`,
-    description: `See what ${profile.display_name} wants to watch, is watching, and has watched.`,
+    description,
+    alternates: { canonical },
     openGraph: {
-      title: `${profile.display_name}'s watchlist`,
+      title: `${profile.display_name}'s slate`,
       description: `Browse ${profile.display_name}'s shelves on slate.`,
+      url: canonical,
+      siteName: "slate",
       type: "profile",
-      images: avatarUrl ? [avatarUrl] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${profile.display_name}'s slate`,
+      description: `Browse ${profile.display_name}'s shelves on slate.`,
     },
   };
 }
