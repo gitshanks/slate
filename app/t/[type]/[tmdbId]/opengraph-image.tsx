@@ -25,7 +25,7 @@ export default async function Image({
   const title = await getSharedTitle(type, tmdbId).catch(() => null);
   const name = title?.title || "Something good to watch";
   const backdrop = backdropUrl(title?.backdrop_path, "w1280");
-  const poster = posterUrl(title?.poster_path, "w500");
+  const poster = posterUrl(title?.poster_path, "w342");
   const meta = title
     ? [
         title.media_type === "movie" ? "Film" : "Series",

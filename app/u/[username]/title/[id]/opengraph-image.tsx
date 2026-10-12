@@ -53,7 +53,7 @@ export default async function Image({
 
   const { profile, title } = record;
   const backdrop = backdropUrl(title.backdrop_path, "w1280");
-  const poster = posterUrl(title.poster_path, "w500");
+  const poster = posterUrl(title.poster_path, "w342");
   const status =
     title.status === "watching"
       ? "Watching"

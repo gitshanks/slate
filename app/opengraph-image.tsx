@@ -40,7 +40,7 @@ export default function Image() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={posterUrl(HERO_POSTER, "w500")!}
+          src={posterUrl(HERO_POSTER, "w342")!}
           alt=""
           width={520}
           height={630}
