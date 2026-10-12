@@ -1,5 +1,8 @@
+import { getAppSession } from "@/lib/app-access";
+import { libraryClientForOwner } from "@/lib/library-db";
 import { getPublicProfileTitle } from "@/lib/public-profile-library";
 import { buildSpatialTitleDetail } from "@/lib/spatial-title-detail";
+import { SLATE_HOSTED } from "@/lib/public-mode";
 
 export const runtime = "nodejs";
 
@@ -20,7 +23,30 @@ export async function GET(
 
   const detail = await buildSpatialTitleDetail(record.title);
 
-  return Response.json(detail, {
+  // Attach the viewer's own copy (if any) so a shared profile can offer an
+  // Add control without ever exposing another account's private rows.
+  let savedTitle: { id: string; status: string } | null = null;
+  if (SLATE_HOSTED) {
+    try {
+      const session = await getAppSession();
+      const viewerId = session?.user?.id;
+      if (viewerId) {
+        const { data } = await libraryClientForOwner(viewerId)
+          .from("titles")
+          .select("id, status")
+          .eq("tmdb_id", record.title.tmdb_id)
+          .eq("media_type", record.title.media_type)
+          .maybeSingle();
+        if (data) savedTitle = data as unknown as { id: string; status: string };
+      }
+    } catch {
+      savedTitle = null;
+    }
+  }
+
+  return Response.json(
+    { ...detail, savedTitle },
+    {
     headers: {
       // Public status can change at any time. Keep this response out of shared
       // caches so a previously public title never lingers after that switch.

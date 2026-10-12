@@ -21,6 +21,8 @@ import {
 } from "@/components/spatial-poster-grid";
 import { extractGenres, filterAndSort } from "@/lib/filter-utils";
 import { loadPublicTitleDetail } from "@/lib/public-title-detail-cache";
+import { PublicProfileTitleActions } from "@/components/public-profile-title-actions";
+import type { PublicSpatialTitleDetail } from "@/lib/public-spatial-detail-types";
 import { cn } from "@/lib/utils";
 import type { TitleRow } from "@/lib/types";
 
@@ -56,6 +58,7 @@ interface PublicProfileCollectionViewProps {
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  viewerSignedIn?: boolean;
 }
 
 export function PublicProfileCollectionView({
@@ -63,6 +66,7 @@ export function PublicProfileCollectionView({
   username,
   displayName,
   avatarUrl,
+  viewerSignedIn = false,
 }: PublicProfileCollectionViewProps) {
   const [query, setQuery] = React.useState("");
   const [searchOpen, setSearchOpen] = React.useState(false);
@@ -152,6 +156,18 @@ export function PublicProfileCollectionView({
       setShelfTitle(title);
     },
     [username],
+  );
+
+  const renderProfileTitleActions = React.useCallback(
+    (title: TitleRow, detail: PublicSpatialTitleDetail | null) => (
+      <PublicProfileTitleActions
+        title={title}
+        detail={detail}
+        username={username}
+        viewerSignedIn={viewerSignedIn}
+      />
+    ),
+    [username, viewerSignedIn],
   );
 
   const selectMode = React.useCallback(
@@ -485,6 +501,7 @@ export function PublicProfileCollectionView({
               anchorTitleId={shelfTitle.id}
               centerAfterId="public-collection-controls"
               onClose={closeShelfTitle}
+              renderActions={renderProfileTitleActions}
             />
           ) : null}
         </>
@@ -506,6 +523,7 @@ export function PublicProfileCollectionView({
             searchTarget={searchTarget}
             initialCamera={spatialCamera}
             onCameraChange={setSpatialCamera}
+            renderActions={renderProfileTitleActions}
           />
         </motion.div>
       )}

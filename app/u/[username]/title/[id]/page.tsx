@@ -22,6 +22,10 @@ import { TitleDescription } from "@/components/title-description";
 import { TrailerButton } from "@/components/trailer-button";
 import { SharedTitleActions } from "@/components/shared-title-actions";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
+import { PublicTitlePageAddControl } from "@/components/public-title-page-add-control";
+import { getAppSession } from "@/lib/app-access";
+import { libraryClientForOwner } from "@/lib/library-db";
+import { SLATE_HOSTED } from "@/lib/public-mode";
 import { getPublicProfileTitle } from "@/lib/public-profile-library";
 import { getOmdbMetadata } from "@/lib/omdb";
 import { formatPlotText } from "@/lib/plot-format";
@@ -129,6 +133,29 @@ export default async function PublicTitlePage(props: Props) {
             }
           : null;
   const SentimentIcon = sentiment?.icon;
+  let viewerSignedIn = false;
+  let viewerSaved: { id: string; status: "want" | "watching" | "watched" | "dropped" } | null =
+    null;
+  if (SLATE_HOSTED) {
+    try {
+      const session = await getAppSession();
+      const viewerId = session?.user?.id;
+      viewerSignedIn = Boolean(viewerId);
+      if (viewerId) {
+        const { data } = await libraryClientForOwner(viewerId)
+          .from("titles")
+          .select("id, status")
+          .eq("tmdb_id", title.tmdb_id)
+          .eq("media_type", title.media_type)
+          .maybeSingle();
+        if (data)
+          viewerSaved = data as unknown as typeof viewerSaved;
+      }
+    } catch {
+      viewerSignedIn = false;
+      viewerSaved = null;
+    }
+  }
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-10 lg:pt-12">
@@ -221,10 +248,19 @@ export default async function PublicTitlePage(props: Props) {
             </h1>
 
             <div className="mt-6 flex flex-wrap items-center gap-2">
-              <span className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-xs font-medium text-primary-foreground">
+              <span
+                title={`On ${profile.display_name}'s slate`}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-xs font-medium text-primary-foreground"
+              >
                 <ShelfIcon className="h-3.5 w-3.5" />
                 {shelf.label}
               </span>
+              <PublicTitlePageAddControl
+                tmdbId={title.tmdb_id}
+                mediaType={title.media_type}
+                viewerSignedIn={viewerSignedIn}
+                initialSaved={viewerSaved}
+              />
               {sentiment && SentimentIcon ? (
                 <span className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium">
                   <SentimentIcon

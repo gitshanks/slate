@@ -2052,6 +2052,7 @@ export function PublicTitleDetailOverlay({
   onClose,
   anchorTitleId,
   centerAfterId,
+  renderActions,
 }: {
   title: TitleRow;
   username: string;
@@ -2060,6 +2061,7 @@ export function PublicTitleDetailOverlay({
   anchorTitleId?: string;
   /** Keeps a first-row inspector clear of fixed collection controls. */
   centerAfterId?: string;
+  renderActions?: TitleDetailActionsRenderer;
 }) {
   const detailSource = React.useMemo(
     () => publicTitleDetailSource(username),
@@ -2073,6 +2075,7 @@ export function PublicTitleDetailOverlay({
       onClose={onClose}
       anchorTitleId={anchorTitleId}
       centerAfterId={centerAfterId}
+      renderActions={renderActions}
     />
   );
 }

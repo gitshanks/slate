@@ -1,4 +1,7 @@
-import type { PublicSpatialTitleDetail } from "@/lib/public-spatial-detail-types";
+import type {
+  PublicSpatialSavedTitle,
+  PublicSpatialTitleDetail,
+} from "@/lib/public-spatial-detail-types";
 
 const details = new Map<string, PublicSpatialTitleDetail>();
 const pending = new Map<string, Promise<PublicSpatialTitleDetail>>();
@@ -9,6 +12,17 @@ function detailKey(username: string, titleId: string) {
 
 export function getCachedPublicTitleDetail(username: string, titleId: string) {
   return details.get(detailKey(username, titleId)) ?? null;
+}
+
+export function updateCachedPublicTitleSavedTitle(
+  username: string,
+  titleId: string,
+  savedTitle: PublicSpatialSavedTitle | null,
+) {
+  const key = detailKey(username, titleId);
+  const cached = details.get(key);
+  if (!cached) return;
+  details.set(key, { ...cached, savedTitle });
 }
 
 /**

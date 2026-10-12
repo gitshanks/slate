@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { PublicProfileCollectionView } from "@/components/public-profile-collection-view";
+import { getAppSession } from "@/lib/app-access";
 import { getPublicProfile, profileAvatarUrl } from "@/lib/profiles";
 import { fetchTitlesByStatusForOwner } from "@/lib/title-filters";
 import type { TitleRow } from "@/lib/types";
@@ -72,6 +73,13 @@ export default async function PublicProfilePage({
     watching.titles,
     watched.titles,
   ]);
+  let viewerSignedIn = false;
+  try {
+    const session = await getAppSession();
+    viewerSignedIn = Boolean(session?.user?.id);
+  } catch {
+    viewerSignedIn = false;
+  }
 
   return (
     <main
@@ -84,6 +92,7 @@ export default async function PublicProfilePage({
           username={profile.username}
           displayName={profile.display_name}
           avatarUrl={avatarUrl}
+          viewerSignedIn={viewerSignedIn}
         />
       </Suspense>
     </main>
