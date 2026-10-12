@@ -1,21 +1,19 @@
 import { ImageResponse } from "next/og";
-import {
-  OG,
-  OG_SIZE,
-  OgEyebrow,
-  OgFooter,
-  OgPoster,
-  OgRoot,
-  headlineSize,
-} from "@/lib/og-design";
 import { getSharedTitle } from "@/lib/shared-title-data";
 import { siteOrigin } from "@/lib/site-url";
 import { backdropUrl, posterUrl } from "@/lib/tmdb-image";
 
 export const alt = "A recommendation worth passing on · slate";
-export const size = OG_SIZE;
+export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const revalidate = 86400;
+
+function titleSize(text: string) {
+  if (text.length > 48) return 62;
+  if (text.length > 34) return 74;
+  if (text.length > 23) return 86;
+  return 100;
+}
 
 export default async function Image({
   params,
@@ -23,11 +21,11 @@ export default async function Image({
   params: Promise<{ type: string; tmdbId: string }>;
 }) {
   const { type, tmdbId } = await params;
-  const origin = siteOrigin();
+  const origin = siteOrigin().replace(/^https?:\/\//, "");
   const title = await getSharedTitle(type, tmdbId).catch(() => null);
-  const backdrop = backdropUrl(title?.backdrop_path, "w1280");
-  const poster = posterUrl(title?.poster_path, "w342");
   const name = title?.title || "Something good to watch";
+  const backdrop = backdropUrl(title?.backdrop_path, "w1280");
+  const poster = posterUrl(title?.poster_path, "w500");
   const meta = title
     ? [
         title.media_type === "movie" ? "Film" : "Series",
@@ -35,101 +33,144 @@ export default async function Image({
         title.genres?.[0]?.name,
       ].filter(Boolean)
     : [];
+  const synopsis = title?.overview?.replace(/\s+/g, " ").slice(0, 118);
 
   return new ImageResponse(
-    (
-      <OgRoot>
-        {backdrop ? (
-          // eslint-disable-next-line @next/next/no-img-element
+    <div
+      style={{
+        display: "flex",
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
+        background: "#07100e",
+        color: "#f4f3ed",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      {backdrop ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={backdrop}
+          alt=""
+          width={1200}
+          height={630}
+          style={{
+            display: "flex",
+            position: "absolute",
+            inset: 0,
+            objectFit: "cover",
+            opacity: 0.72,
+          }}
+        />
+      ) : null}
+      <div
+        style={{
+          display: "flex",
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(90deg, rgba(5,9,8,.97) 0%, rgba(5,9,8,.88) 40%, rgba(5,9,8,.18) 100%), linear-gradient(0deg, rgba(5,9,8,.75) 0%, transparent 55%)",
+        }}
+      />
+      {poster ? (
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            right: 72,
+            top: 52,
+            width: 310,
+            height: 474,
+            overflow: "hidden",
+            borderRadius: 8,
+            background: "#111a17",
+            boxShadow: "0 28px 70px rgba(0,0,0,.48)",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={backdrop}
+            src={poster}
             alt=""
-            width={1200}
-            height={630}
-            style={{
-              display: "flex",
-              position: "absolute",
-              left: 0,
-              top: 0,
-              objectFit: "cover",
-              opacity: 0.38,
-            }}
+            width={310}
+            height={474}
+            style={{ display: "flex", objectFit: "cover" }}
           />
-        ) : null}
-        <div
-          style={{
-            display: "flex",
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-            background:
-              "linear-gradient(90deg, rgba(8,10,9,0.94) 0%, rgba(8,10,9,0.78) 45%, rgba(8,10,9,0.35) 100%)",
-          }}
-        />
-        <div
-          style={{
-            display: "flex",
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 280,
-            background:
-              "linear-gradient(0deg, rgba(8,10,9,0.9) 0%, rgba(8,10,9,0) 100%)",
-          }}
-        />
+        </div>
+      ) : null}
+      <div
+        style={{
+          display: "flex",
+          position: "relative",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          width: "100%",
+          height: "100%",
+          padding: "52px 72px 42px",
+        }}
+      >
         <div
           style={{
             display: "flex",
             flexDirection: "row",
             alignItems: "center",
-            gap: 56,
-            width: "100%",
-            height: "100%",
-            padding: "56px 72px",
+            gap: 12,
+            fontSize: 28,
+            fontWeight: 700,
+            letterSpacing: -1.2,
           }}
         >
-          <OgPoster src={poster} width={264} height={396} title={name} />
+          <span style={{ display: "flex", color: "#b4e6bd" }}>slate</span>
+          <span style={{ display: "flex", color: "#a4aaa6", fontSize: 20 }}>
+            recommends
+          </span>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
+            width: 700,
+            marginTop: -8,
+          }}
+        >
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              gap: 20,
-              width: 700,
+              fontSize: titleSize(name),
+              fontWeight: 700,
+              letterSpacing: -4,
+              lineHeight: 0.98,
+              maxWidth: 700,
             }}
           >
-            <OgEyebrow>SLATE · WORTH PASSING ON</OgEyebrow>
+            {name}
+          </div>
+          {meta.length ? (
+            <div style={{ display: "flex", fontSize: 26, color: "#b4e6bd" }}>
+              {meta.join("   /   ")}
+            </div>
+          ) : null}
+          {synopsis ? (
             <div
               style={{
                 display: "flex",
-                fontSize: headlineSize(name),
-                fontWeight: 800,
-                letterSpacing: -2,
-                lineHeight: 1.04,
-                color: OG.ink,
+                maxWidth: 650,
+                fontSize: 22,
+                lineHeight: 1.28,
+                color: "#d2d5d2",
               }}
             >
-              {name}
+              {synopsis}
+              {title?.overview && title.overview.length > 118 ? "…" : ""}
             </div>
-            {meta.length > 0 ? (
-              <div style={{ display: "flex", fontSize: 26, color: OG.muted }}>
-                {meta.join("  ·  ")}
-              </div>
-            ) : null}
-            <div style={{ display: "flex", fontSize: 26, color: "#d4d4d8" }}>
-              Watch it. Keep it. Pass it on.
-            </div>
-            <OgFooter
-              left="slate"
-              right={origin.replace(/^https?:\/\//, "")}
-            />
-          </div>
+          ) : null}
         </div>
-      </OgRoot>
-    ),
+        <div style={{ display: "flex", fontSize: 19, color: "#c3cbc5" }}>
+          A good one, passed on. <span style={{ color: "#728078" }}>　{origin}</span>
+        </div>
+      </div>
+    </div>,
     size,
   );
 }
