@@ -55,14 +55,17 @@ export function TopNav({
   );
 
   if (primaryToolbarLabel) {
+    const isProfile = pathname === "/profile" || pathname.startsWith("/profile/");
     return (
       <OwnedAppToolbar
         id="app-top-nav"
         ariaLabel={`${primaryToolbarLabel} controls`}
         center={
-          <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 justify-center md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:justify-self-center">
-            {toolbarSearch}
-          </div>
+          isProfile ? null : (
+            <div className="col-span-2 col-start-1 row-start-2 flex min-w-0 justify-center md:col-span-1 md:col-start-2 md:row-start-1 md:w-full md:justify-self-center">
+              {toolbarSearch}
+            </div>
+          )
         }
         actions={
           <>
