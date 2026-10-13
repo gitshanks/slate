@@ -184,7 +184,7 @@ export function SmartSearchBar({
             isInlineExpanded && resultsListId ? "listbox" : undefined
           }
           value={query}
-          placeholder={placeholder}
+          placeholder={isExpanded ? placeholder : "Search"}
           inputMode="search"
           enterKeyHint="search"
           autoComplete="off"
