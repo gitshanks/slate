@@ -2,7 +2,13 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { ExternalLink, Play } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Play,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +19,9 @@ import { captureAnalytics } from "@/lib/analytics";
 import { TMDB_IMG } from "@/lib/tmdb-image";
 import { cn, formatRuntime } from "@/lib/utils";
 import {
+  frameXtvEpisodeEmbed,
   frameXtvEpisodeUrl,
+  frameXtvMovieEmbed,
   frameXtvMovieUrl,
   frameXtvSeriesUrl,
   toFrameXtvSeasons,
@@ -35,14 +43,14 @@ interface FrameXtvButtonProps {
   source?: string;
 }
 
-function trackOpen(
+function trackPlay(
   source: string,
   type: "movie" | "tv",
   season?: number,
   episode?: number,
 ) {
   captureAnalytics("ui_interaction", {
-    control: "framextv_open",
+    control: "framextv_play",
     source,
     media_type: type,
     season: season ?? null,
@@ -50,9 +58,14 @@ function trackOpen(
   });
 }
 
+function pillClassName(): string {
+  return "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80";
+}
+
 /**
- * "Watch now" via frameXTV. Movies link straight to the player; TV shows
- * open a season/episode picker that deep-links per episode.
+ * "Watch now" via frameXTV — plays natively in an in-app embed dialog.
+ * Movies start playing immediately; TV shows open a season/episode picker
+ * that loads each episode in the same player.
  */
 export function FrameXtvButton({
   tmdbId,
@@ -66,44 +79,12 @@ export function FrameXtvButton({
 }: FrameXtvButtonProps) {
   const [open, setOpen] = React.useState(false);
 
-  if (type === "movie") {
-    const href = frameXtvMovieUrl(tmdbId);
-    if (variant === "row") {
-      return (
-        <ActionRow
-          icon={<Play className="h-[18px] w-[18px] fill-current" />}
-          label="Watch on frameXTV"
-          sublabel="Stream now"
-          onClick={() => {
-            trackOpen(source, type);
-            window.open(href, "_blank", "noopener,noreferrer");
-          }}
-        />
-      );
-    }
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        data-analytics-action="watch_framextv"
-        aria-label={`Watch ${titleName} on frameXTV`}
-        title="Watch on frameXTV"
-        onClick={() => trackOpen(source, type)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
-      >
-        <Play className="h-3.5 w-3.5 fill-current" />
-        Watch now
-      </a>
-    );
-  }
-
   const trigger =
     variant === "row" ? (
       <ActionRow
         icon={<Play className="h-[18px] w-[18px] fill-current" />}
         label="Watch on frameXTV"
-        sublabel="Pick a season and episode"
+        sublabel={type === "movie" ? "Play now" : "Pick a season and episode"}
         onClick={() => setOpen(true)}
       />
     ) : (
@@ -113,7 +94,7 @@ export function FrameXtvButton({
         aria-label={`Watch ${titleName} on frameXTV`}
         title="Watch on frameXTV"
         onClick={() => setOpen(true)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80"
+        className={pillClassName()}
       >
         <Play className="h-3.5 w-3.5 fill-current" />
         Watch now
@@ -125,15 +106,17 @@ export function FrameXtvButton({
       {trigger}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
-          size="md"
-          className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-hidden rounded-2xl p-4"
+          placement="center"
+          size="lg"
+          className="max-h-[90dvh] w-[calc(100vw-1.5rem)] overflow-hidden p-0"
         >
-          <DialogTitle className="pr-6 text-sm font-semibold">
-            Watch on frameXTV
+          <DialogTitle className="sr-only">
+            Watch {titleName} on frameXTV
           </DialogTitle>
           {open && (
-            <FrameXtvEpisodePicker
+            <FrameXtvDialogBody
               tmdbId={tmdbId}
+              type={type}
               titleName={titleName}
               seasons={seasonsProp}
               currentSeason={currentSeason}
@@ -147,20 +130,235 @@ export function FrameXtvButton({
   );
 }
 
+function FrameXtvDialogBody({
+  tmdbId,
+  type,
+  titleName,
+  seasons,
+  currentSeason,
+  currentEpisode,
+  source,
+}: {
+  tmdbId: number;
+  type: "movie" | "tv";
+  titleName: string;
+  seasons?: FrameXtvSeason[] | null;
+  currentSeason?: number | null;
+  currentEpisode?: number | null;
+  source: string;
+}) {
+  // Movies play immediately; TV starts on the picker (null = picker).
+  const [player, setPlayer] = React.useState<{
+    season: number;
+    episode: number;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (type === "movie") trackPlay(source, type);
+  }, [source, type]);
+
+  if (type === "movie") {
+    return (
+      <FrameXtvPlayer
+        tmdbId={tmdbId}
+        titleName={titleName}
+        season={null}
+        episode={null}
+        seasons={[]}
+        onBack={null}
+        onStep={null}
+      />
+    );
+  }
+
+  if (player) {
+    return (
+      <FrameXtvPlayer
+        tmdbId={tmdbId}
+        titleName={titleName}
+        season={player.season}
+        episode={player.episode}
+        seasons={seasons ? toFrameXtvSeasons(seasons) : []}
+        onBack={() => setPlayer(null)}
+        onStep={(season, episode) => {
+          setPlayer({ season, episode });
+          trackPlay(source, type, season, episode);
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="p-4">
+      <p className="pr-8 text-sm font-semibold">Watch on frameXTV</p>
+      <FrameXtvEpisodePicker
+        tmdbId={tmdbId}
+        titleName={titleName}
+        seasons={seasons}
+        currentSeason={currentSeason}
+        currentEpisode={currentEpisode}
+        onSelect={(season, episode) => {
+          setPlayer({ season, episode });
+          trackPlay(source, type, season, episode);
+        }}
+      />
+    </div>
+  );
+}
+
+function FrameXtvPlayer({
+  tmdbId,
+  titleName,
+  season,
+  episode,
+  seasons,
+  onBack,
+  onStep,
+}: {
+  tmdbId: number;
+  titleName: string;
+  season: number | null;
+  episode: number | null;
+  seasons: FrameXtvSeason[];
+  onBack: (() => void) | null;
+  onStep: ((season: number, episode: number) => void) | null;
+}) {
+  const src =
+    season !== null && episode !== null
+      ? frameXtvEpisodeEmbed(tmdbId, season, episode, { title: titleName })
+      : frameXtvMovieEmbed(tmdbId, { title: titleName });
+  const watchUrl =
+    season !== null && episode !== null
+      ? frameXtvEpisodeUrl(tmdbId, season, episode)
+      : frameXtvMovieUrl(tmdbId);
+
+  const prev = season !== null && episode !== null
+    ? stepEpisode(seasons, season, episode, -1)
+    : null;
+  const next = season !== null && episode !== null
+    ? stepEpisode(seasons, season, episode, 1)
+    : null;
+
+  const label =
+    season !== null && episode !== null
+      ? `S${season} E${episode}`
+      : titleName;
+
+  return (
+    <div className="min-w-0">
+      <div className="flex items-center gap-1 px-2 pt-2 sm:gap-2 sm:px-3 sm:pt-3">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Back to episodes"
+            className="grid h-9 w-9 shrink-0 touch-manipulation place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+          </button>
+        )}
+        <p className="min-w-0 flex-1 truncate px-1 text-sm font-semibold">
+          {season !== null && episode !== null ? (
+            <>
+              <span className="font-mono text-xs text-muted-foreground">
+                {label} ·{" "}
+              </span>
+              {titleName}
+            </>
+          ) : (
+            titleName
+          )}
+        </p>
+        {prev && onStep && (
+          <button
+            type="button"
+            onClick={() => onStep(prev.season, prev.episode)}
+            aria-label={`Previous episode (S${prev.season} E${prev.episode})`}
+            className="grid h-9 w-9 shrink-0 touch-manipulation place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden />
+          </button>
+        )}
+        {next && onStep && (
+          <button
+            type="button"
+            onClick={() => onStep(next.season, next.episode)}
+            aria-label={`Next episode (S${next.season} E${next.episode})`}
+            className="grid h-9 w-9 shrink-0 touch-manipulation place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ChevronRight className="h-4 w-4" aria-hidden />
+          </button>
+        )}
+        <a
+          href={watchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open on framextv.xyz"
+          title="Open on framextv.xyz"
+          className="grid h-9 w-9 shrink-0 touch-manipulation place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <ExternalLink className="h-4 w-4" aria-hidden />
+        </a>
+      </div>
+      <div className="px-2 pb-2 pt-1 sm:px-3 sm:pb-3">
+        <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+          <iframe
+            key={src}
+            src={src}
+            title={`${titleName}${label !== titleName ? ` ${label}` : ""} on frameXTV`}
+            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 h-full w-full border-0"
+          />
+        </div>
+        <p className="mt-2 hidden text-[11px] text-muted-foreground sm:block">
+          Stream provided by frameXTV
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Step one episode across season boundaries using TMDB episode counts. */
+function stepEpisode(
+  seasons: FrameXtvSeason[],
+  season: number,
+  episode: number,
+  direction: -1 | 1,
+): { season: number; episode: number } | null {
+  const ordered = seasons.slice().sort((a, b) => a.season_number - b.season_number);
+  const current = ordered.find((s) => s.season_number === season);
+  const count = current?.episode_count ?? null;
+
+  if (direction === 1) {
+    if (count !== null && episode < count) return { season, episode: episode + 1 };
+    if (count === null) return { season, episode: episode + 1 };
+    const nextSeason = ordered.find((s) => s.season_number > season);
+    return nextSeason ? { season: nextSeason.season_number, episode: 1 } : null;
+  }
+
+  if (episode > 1) return { season, episode: episode - 1 };
+  const prevSeason = ordered
+    .slice()
+    .reverse()
+    .find((s) => s.season_number < season);
+  return prevSeason ? { season: prevSeason.season_number, episode: prevSeason.episode_count } : null;
+}
+
 function FrameXtvEpisodePicker({
   tmdbId,
   titleName,
   seasons: seasonsProp,
   currentSeason,
   currentEpisode,
-  source,
+  onSelect,
 }: {
   tmdbId: number;
   titleName: string;
   seasons?: FrameXtvSeason[] | null;
   currentSeason?: number | null;
   currentEpisode?: number | null;
-  source: string;
+  onSelect: (season: number, episode: number) => void;
 }) {
   const [seasons, setSeasons] = React.useState<FrameXtvSeason[] | null>(
     seasonsProp ? toFrameXtvSeasons(seasonsProp) : null,
@@ -248,7 +446,6 @@ function FrameXtvEpisodePicker({
           href={frameXtvSeriesUrl(tmdbId)}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => trackOpen(source, "tv")}
           className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
         >
           Open {titleName} on frameXTV
@@ -289,22 +486,16 @@ function FrameXtvEpisodePicker({
   return (
     <div className="min-h-0">
       {showResume && (
-        <a
-          href={frameXtvEpisodeUrl(tmdbId, currentSeason, currentEpisode)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => trackOpen(source, "tv", currentSeason, currentEpisode)}
-          className="mb-3 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 transition-colors hover:bg-primary/15"
+        <button
+          type="button"
+          onClick={() => onSelect(currentSeason, currentEpisode)}
+          className="mb-3 flex w-full items-center gap-3 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-left transition-colors hover:bg-primary/15"
         >
           <Play className="h-4 w-4 shrink-0 fill-current text-primary" aria-hidden />
           <span className="min-w-0 flex-1 truncate text-sm font-medium">
             Resume S{currentSeason} E{currentEpisode}
           </span>
-          <ExternalLink
-            aria-hidden
-            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-          />
-        </a>
+        </button>
       )}
 
       <div
@@ -369,19 +560,11 @@ function FrameXtvEpisodePicker({
             {(episodes ?? []).map((episode) => {
               const runtime = formatRuntime(episode.runtime);
               return (
-                <a
+                <button
                   key={episode.episode_number}
-                  href={frameXtvEpisodeUrl(
-                    tmdbId,
-                    activeSeason as number,
-                    episode.episode_number,
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() =>
-                    trackOpen(source, "tv", activeSeason ?? undefined, episode.episode_number)
-                  }
-                  className="group flex items-center gap-3 rounded-xl border border-border bg-card/50 p-2 transition-colors hover:border-primary/40 hover:bg-card"
+                  type="button"
+                  onClick={() => onSelect(activeSeason as number, episode.episode_number)}
+                  className="group flex w-full items-center gap-3 rounded-xl border border-border bg-card/50 p-2 text-left transition-colors hover:border-primary/40 hover:bg-card"
                 >
                   {episode.still_path ? (
                     <Image
@@ -409,11 +592,11 @@ function FrameXtvEpisodePicker({
                         .join(" · ") || " "}
                     </span>
                   </span>
-                  <ExternalLink
+                  <Play
                     aria-hidden
-                    className="h-3.5 w-3.5 shrink-0 text-muted-foreground/55 transition-colors group-hover:text-primary"
+                    className="h-4 w-4 shrink-0 fill-current text-muted-foreground/55 transition-colors group-hover:text-primary"
                   />
-                </a>
+                </button>
               );
             })}
           </div>
@@ -424,7 +607,6 @@ function FrameXtvEpisodePicker({
         href={frameXtvSeriesUrl(tmdbId)}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={() => trackOpen(source, "tv")}
         className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         Open series page on frameXTV
