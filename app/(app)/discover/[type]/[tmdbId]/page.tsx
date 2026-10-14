@@ -14,6 +14,7 @@ import { posterUrl as rawPosterUrl } from "@/lib/tmdb-image";
 import { getLibraryClient } from "@/lib/library-db";
 import { BackdropHero } from "@/components/backdrop-hero";
 import { TrailerButton } from "@/components/trailer-button";
+import { FrameXtvButton } from "@/components/framextv-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { TmdbRail } from "@/components/tmdb-rail";
 import { CastRail } from "@/components/cast-rail";
@@ -263,6 +264,13 @@ export default async function DiscoverTitlePage(
               {meta.trailerKey && (
                 <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} />
               )}
+              <FrameXtvButton
+                type={type}
+                tmdbId={tmdbId}
+                titleName={titleName}
+                seasons={meta.seasons}
+                source="discover_detail"
+              />
               {meta.watchProviders && meta.watchProviders.providers.length > 0 && (
                 <WatchProvidersButton
                   providers={meta.watchProviders.providers}

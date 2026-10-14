@@ -227,6 +227,16 @@ struct TitleDetailView: View {
                             Label("Where to watch", systemImage: "tv")
                         }
                     }
+                    if let frameXTVURL = frameXTVURL(
+                        tmdbId: currentTitle.tmdbId,
+                        mediaType: currentTitle.mediaType,
+                        season: currentTitle.currentSeason,
+                        episode: currentTitle.currentEpisode
+                    ) {
+                        Link(destination: frameXTVURL) {
+                            Label("Watch on frameXTV", systemImage: "play.fill")
+                        }
+                    }
                     Button { presentedSheet = .lists } label: {
                         Label("Add to list", systemImage: "text.badge.plus")
                     }
@@ -519,6 +529,18 @@ struct TitleDetailView: View {
             dismiss()
         } catch { errorMessage = error.localizedDescription }
     }
+}
+
+private func frameXTVURL(tmdbId: Int, mediaType: MediaType, season: Int?, episode: Int?) -> URL? {
+    let value: String
+    if mediaType == .tv, let season, let episode {
+        value = "https://framextv.xyz/watch/\(tmdbId)/\(season)/\(episode)"
+    } else if mediaType == .tv {
+        value = "https://framextv.xyz/tv/\(tmdbId)"
+    } else {
+        value = "https://framextv.xyz/watch/\(tmdbId)"
+    }
+    return URL(string: value)
 }
 
 private struct NoteEditorSheet: View {

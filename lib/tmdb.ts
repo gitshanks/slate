@@ -263,6 +263,50 @@ export async function getTv(id: number) {
   return { ...raw, imdb_id } as TmdbTvDetail;
 }
 
+export interface TmdbSeasonEpisode {
+  episode_number: number;
+  name: string;
+  overview: string;
+  still_path: string | null;
+  air_date: string | null;
+  runtime: number | null;
+}
+
+/** Regular seasons for a series (specials + empty buckets stripped). */
+export async function getTvSeasons(tmdbId: number): Promise<TmdbSeasonSummary[]> {
+  try {
+    const detail = await getTv(tmdbId);
+    return (detail.seasons ?? [])
+      .filter((s) => s.season_number >= 1 && s.episode_count > 0)
+      .map((s) => ({
+        season_number: s.season_number,
+        episode_count: s.episode_count,
+        name: s.name,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/** Episodes for one season — fetched lazily by the episode picker. */
+export async function getTvSeasonEpisodes(
+  tmdbId: number,
+  seasonNumber: number,
+): Promise<TmdbSeasonEpisode[]> {
+  const data = await tmdb<{ episodes?: TmdbSeasonEpisode[] }>(
+    `/tv/${tmdbId}/season/${seasonNumber}`,
+    { language: "en-US" },
+  );
+  return (data.episodes ?? []).map((episode) => ({
+    episode_number: episode.episode_number,
+    name: episode.name || `Episode ${episode.episode_number}`,
+    overview: episode.overview ?? "",
+    still_path: episode.still_path ?? null,
+    air_date: episode.air_date ?? null,
+    runtime: episode.runtime ?? null,
+  }));
+}
+
 /** Resolve an IMDb title URL to the corresponding TMDB movie or series. */
 export async function findByImdbId(
   imdbId: string,
@@ -313,6 +357,13 @@ export interface TmdbWatchProviders {
   link: string;
 }
 
+/** Regular (non-specials) season with its TMDB episode count. */
+export interface TmdbSeasonSummary {
+  season_number: number;
+  episode_count: number;
+  name: string;
+}
+
 export interface TmdbDetailWithMeta {
   vote_average: number | null;
   vote_count: number | null;
@@ -326,6 +377,8 @@ export interface TmdbDetailWithMeta {
   directedBy: string[];
   /** Streaming availability (flatrate only, US region). Null if unavailable. */
   watchProviders: TmdbWatchProviders | null;
+  /** Regular seasons for TV (episode counts from the same detail payload). Empty for movies. */
+  seasons: TmdbSeasonSummary[];
 }
 
 export interface TmdbPersonDetail {
@@ -552,6 +605,19 @@ export const getTitleMeta = cache(async (
         ? { providers: usProviders.flatrate, link: usProviders.link }
         : null;
 
+    // Regular seasons only — strip TMDB's "Season 0" specials bucket and
+    // zero-episode placeholders, same as normalizeForStorage.
+    const seasons: TmdbSeasonSummary[] =
+      type === "tv"
+        ? ((detail as TmdbTvDetail).seasons ?? [])
+            .filter((s) => s.season_number >= 1 && s.episode_count > 0)
+            .map((s) => ({
+              season_number: s.season_number,
+              episode_count: s.episode_count,
+              name: s.name,
+            }))
+        : [];
+
     return {
       vote_average: detail.vote_average ?? null,
       vote_count: detail.vote_count ?? null,
@@ -562,6 +628,7 @@ export const getTitleMeta = cache(async (
       crew,
       directedBy,
       watchProviders,
+      seasons,
     };
   } catch {
     return {
@@ -574,6 +641,7 @@ export const getTitleMeta = cache(async (
       crew: [],
       directedBy: [],
       watchProviders: null,
+      seasons: [],
     };
   }
 });

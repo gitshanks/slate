@@ -15,6 +15,7 @@ import { ReviewSheet } from "@/components/review-sheet";
 import { RemoveButton } from "@/components/remove-button";
 import { MoreActionsSheet } from "@/components/more-actions-sheet";
 import { TrailerButton } from "@/components/trailer-button";
+import { FrameXtvButton } from "@/components/framextv-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { TmdbRail } from "@/components/tmdb-rail";
@@ -68,17 +69,29 @@ async function TitleTrailerAndProviders({
   type,
   tmdbId,
   titleName,
+  currentSeason,
+  currentEpisode,
   variant = "pill",
 }: {
   type: "movie" | "tv";
   tmdbId: number;
   titleName: string;
+  currentSeason?: number | null;
+  currentEpisode?: number | null;
   variant?: "pill" | "row";
 }) {
   const meta = await getTitleMeta(type, tmdbId);
-  if (!meta.trailerKey && !meta.watchProviders) return null;
   const inner = (
     <>
+      <FrameXtvButton
+        type={type}
+        tmdbId={tmdbId}
+        titleName={titleName}
+        seasons={meta.seasons}
+        currentSeason={currentSeason}
+        currentEpisode={currentEpisode}
+        variant={variant}
+      />
       {meta.trailerKey && (
         <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} variant={variant} />
       )}
@@ -311,6 +324,8 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                     type={title.media_type}
                     tmdbId={title.tmdb_id}
                     titleName={title.title}
+                    currentSeason={title.current_season}
+                    currentEpisode={title.current_episode}
                   />
                 </Suspense>
                 <AddTitleToListButton titleId={title.id} lists={userLists} />
@@ -331,6 +346,8 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                       type={title.media_type}
                       tmdbId={title.tmdb_id}
                       titleName={title.title}
+                      currentSeason={title.current_season}
+                      currentEpisode={title.current_episode}
                       variant="row"
                     />
                   </Suspense>

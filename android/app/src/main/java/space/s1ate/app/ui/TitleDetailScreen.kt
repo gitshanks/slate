@@ -287,6 +287,10 @@ fun TitleDetailScreen(
                         providerSheet = true
                     }
                 }
+                SheetAction("Watch on frameXTV", Icons.Outlined.PlayArrow) {
+                    moreSheet = false
+                    launchUrl(frameXtvUrl(current.tmdbId, current.mediaType, current.currentSeason, current.currentEpisode))
+                }
                 SheetAction("Add to list", Icons.AutoMirrored.Outlined.PlaylistAdd) {
                     moreSheet = false
                     listSheet = true
@@ -593,6 +597,15 @@ private fun statusIcon(status: LibraryStatus) = when (status) {
 
 private fun ratingLabel(rating: Double?) = when (rating) { 3.0 -> "Love"; 2.0 -> "Like"; 1.0 -> "Dislike"; else -> "Rate" }
 private fun ratingIcon(rating: Double?) = when (rating) { 3.0 -> Icons.Outlined.Favorite; 2.0 -> Icons.Outlined.ThumbUp; 1.0 -> Icons.Outlined.ThumbDown; else -> Icons.Outlined.Close }
+
+private fun frameXtvUrl(tmdbId: Int, mediaType: MediaType, season: Int?, episode: Int?): String {
+    return if (mediaType == MediaType.tv && season != null && episode != null)
+        "https://framextv.xyz/watch/$tmdbId/$season/$episode"
+    else if (mediaType == MediaType.tv)
+        "https://framextv.xyz/tv/$tmdbId"
+    else
+        "https://framextv.xyz/watch/$tmdbId"
+}
 
 private fun providerUrl(provider: TitleWatchProvider, title: String, fallback: String?): String {
     val query = Uri.encode(title)
