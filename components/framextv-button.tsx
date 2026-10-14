@@ -7,6 +7,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Maximize,
+  Minimize,
   Play,
 } from "lucide-react";
 import {
@@ -239,13 +241,37 @@ function FrameXtvPlayer({
     ? stepEpisode(seasons, season, episode, 1)
     : null;
 
+  // Our own chrome goes fullscreen — the player's built-in buttons also
+  // fire popups/ads, so the iframe below is sandboxed to block those.
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+
+  React.useEffect(() => {
+    const onChange = () => setIsFullscreen(document.fullscreenElement != null);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleFullscreen = React.useCallback(() => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => {});
+      return;
+    }
+    try {
+      const request = containerRef.current?.requestFullscreen();
+      if (request instanceof Promise) void request.catch(() => {});
+    } catch {
+      // Fullscreen unavailable — the inline player still works.
+    }
+  }, []);
+
   const label =
     season !== null && episode !== null
       ? `S${season} E${episode}`
       : titleName;
 
   return (
-    <div className="min-w-0">
+    <div ref={containerRef} className="min-w-0 bg-background">
       <div className="flex items-center gap-1 px-2 pt-2 sm:gap-2 sm:px-3 sm:pt-3">
         {onBack && (
           <button
@@ -289,6 +315,19 @@ function FrameXtvPlayer({
             <ChevronRight className="h-4 w-4" aria-hidden />
           </button>
         )}
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          className="grid h-9 w-9 shrink-0 touch-manipulation place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          {isFullscreen ? (
+            <Minimize className="h-4 w-4" aria-hidden />
+          ) : (
+            <Maximize className="h-4 w-4" aria-hidden />
+          )}
+        </button>
         <a
           href={watchUrl}
           target="_blank"
@@ -306,6 +345,10 @@ function FrameXtvPlayer({
             key={src}
             src={src}
             title={`${titleName}${label !== titleName ? ` ${label}` : ""} on frameXTV`}
+            // Sandboxed: scripts + same-origin keep the player working, but
+            // popups, new tabs, top-level navigation, and modal spam stay
+            // blocked. Fullscreen is handled by our own header button.
+            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
             allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
             allowFullScreen
             className="absolute inset-0 h-full w-full border-0"
