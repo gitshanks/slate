@@ -14,6 +14,7 @@ const OWNED_TABLES = new Set([
   "lists",
   "list_titles",
   "preview_feedback",
+  "watched_episodes",
 ]);
 
 function withOwner<T>(data: T, ownerId: string): T {

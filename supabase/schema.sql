@@ -101,6 +101,20 @@ create index if not exists titles_status_position_idx on titles (owner_id, statu
 create unique index if not exists titles_owner_tmdb_type_idx
   on titles (owner_id, tmdb_id, media_type);
 
+-- Per-episode watched state for TV tracking. One row per watched episode;
+-- unwatched is the absence of a row. Cascades on delete with the title.
+create table if not exists watched_episodes (
+  owner_id   text not null default 'self-hosted',
+  title_id   uuid not null references titles (id) on delete cascade,
+  season     integer not null check (season >= 0),
+  episode    integer not null check (episode >= 1),
+  watched_at timestamptz not null default now(),
+  primary key (owner_id, title_id, season, episode)
+);
+
+create index if not exists watched_episodes_title_idx
+  on watched_episodes (owner_id, title_id);
+
 create table if not exists lists (
   id          uuid primary key default gen_random_uuid(),
   owner_id    text not null default 'self-hosted',

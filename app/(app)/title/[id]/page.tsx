@@ -71,6 +71,7 @@ async function TitleTrailerAndProviders({
   titleName,
   currentSeason,
   currentEpisode,
+  libraryId,
   variant = "pill",
 }: {
   type: "movie" | "tv";
@@ -78,6 +79,7 @@ async function TitleTrailerAndProviders({
   titleName: string;
   currentSeason?: number | null;
   currentEpisode?: number | null;
+  libraryId?: string | null;
   variant?: "pill" | "row";
 }) {
   const meta = await getTitleMeta(type, tmdbId);
@@ -90,6 +92,7 @@ async function TitleTrailerAndProviders({
         seasons={meta.seasons}
         currentSeason={currentSeason}
         currentEpisode={currentEpisode}
+        libraryId={libraryId}
         variant={variant}
       />
       {meta.trailerKey && (
@@ -326,6 +329,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                     titleName={title.title}
                     currentSeason={title.current_season}
                     currentEpisode={title.current_episode}
+                    libraryId={title.id}
                   />
                 </Suspense>
                 <AddTitleToListButton titleId={title.id} lists={userLists} />
@@ -348,6 +352,7 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                       titleName={title.title}
                       currentSeason={title.current_season}
                       currentEpisode={title.current_episode}
+                      libraryId={title.id}
                       variant="row"
                     />
                   </Suspense>

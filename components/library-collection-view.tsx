@@ -550,6 +550,7 @@ export function LibraryCollectionView({
           anchorTitleId={shelfTitle.id}
           scrollContainerId="app-scroll-area"
           centerAfterId="library-collection-controls"
+          trackingLibraryId={shelfTitle.id}
           onClose={closeShelfTitle}
         />
       ) : null}

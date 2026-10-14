@@ -269,6 +269,7 @@ export default async function DiscoverTitlePage(
                 tmdbId={tmdbId}
                 titleName={titleName}
                 seasons={meta.seasons}
+                libraryId={existing?.id ?? null}
                 source="discover_detail"
               />
               {meta.watchProviders && meta.watchProviders.providers.length > 0 && (

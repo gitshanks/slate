@@ -1029,6 +1029,7 @@ function TitleDetailSlab({
   contentClassName,
   entryOffsetX = 28,
   maxContentHeight,
+  trackingLibraryId,
 }: {
   title: TitleRow;
   detail: PublicSpatialTitleDetail | null;
@@ -1040,6 +1041,8 @@ function TitleDetailSlab({
   contentClassName?: string;
   entryOffsetX?: number;
   maxContentHeight?: number;
+  /** Owned library row id — enables episode tracking. Null for shared/catalogue titles. */
+  trackingLibraryId?: string | null;
 }) {
   const resolvedTitle = detail?.resolvedTitle
     ? { ...title, ...detail.resolvedTitle }
@@ -1264,6 +1267,7 @@ function TitleDetailSlab({
             titleName={resolvedTitle.title}
             currentSeason={resolvedTitle.current_season}
             currentEpisode={resolvedTitle.current_episode}
+            libraryId={trackingLibraryId}
             source="inspector"
           />
           {detail?.watchProviders?.providers.length ? (
@@ -1574,6 +1578,7 @@ export function CollectionTitleDetailOverlay({
   scrollContainerId,
   centerAfterId,
   centerWithinSelector,
+  trackingLibraryId,
 }: {
   title: TitleRow;
   detailSource: TitleDetailSource;
@@ -1589,6 +1594,8 @@ export function CollectionTitleDetailOverlay({
   centerAfterId?: string;
   /** Center over an embedded preview without moving its source or the page. */
   centerWithinSelector?: string;
+  /** Owned library row id — enables episode tracking. Null for shared/catalogue titles. */
+  trackingLibraryId?: string | null;
 }) {
   const reducedMotion = useReducedMotion() ?? false;
   const [detail, setDetail] = React.useState<PublicSpatialTitleDetail | null>(
@@ -2041,6 +2048,7 @@ export function CollectionTitleDetailOverlay({
             className="w-full"
             entryOffsetX={28}
             maxContentHeight={position.maxContentHeight}
+            trackingLibraryId={trackingLibraryId}
           />
         </div>
       ) : null}
@@ -2709,6 +2717,7 @@ export function SpatialPosterGrid({
                     renderActions={renderActions}
                     onClose={closeDetail}
                     maxContentHeight={slabFrame.maxContentHeight}
+                    trackingLibraryId={username ? null : selectedTitle.id}
                   />
                 </div>
               ) : null}
