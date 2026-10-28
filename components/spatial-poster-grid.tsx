@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { ImdbBadge, MetacriticBadge, RottenTomatoesBadge } from "@/components/rating-icons";
 import { TrailerButton } from "@/components/trailer-button";
-import { FrameXtvButton } from "@/components/framextv-button";
 import { TitleShareButton } from "@/components/title-share-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import type {
@@ -1261,27 +1260,24 @@ function TitleDetailSlab({
               titleName={resolvedTitle.title}
             />
           ) : null}
-          <FrameXtvButton
-            type={resolvedTitle.media_type}
-            tmdbId={resolvedTitle.tmdb_id}
+          <WatchProvidersButton
+            providers={(detail?.watchProviders?.providers ?? []).map((provider) => ({
+              provider_id: provider.id,
+              provider_name: provider.name,
+              logo_path: provider.logoPath,
+            }))}
+            link={detail?.watchProviders?.link}
             titleName={resolvedTitle.title}
-            currentSeason={resolvedTitle.current_season}
-            currentEpisode={resolvedTitle.current_episode}
-            libraryId={trackingLibraryId}
-            source="inspector"
+            presentation="inline"
+            frameXtv={{
+              type: resolvedTitle.media_type,
+              tmdbId: resolvedTitle.tmdb_id,
+              currentSeason: resolvedTitle.current_season,
+              currentEpisode: resolvedTitle.current_episode,
+              libraryId: trackingLibraryId,
+              source: "inspector",
+            }}
           />
-          {detail?.watchProviders?.providers.length ? (
-            <WatchProvidersButton
-              providers={detail.watchProviders.providers.map((provider) => ({
-                provider_id: provider.id,
-                provider_name: provider.name,
-                logo_path: provider.logoPath,
-              }))}
-              link={detail.watchProviders.link}
-              titleName={resolvedTitle.title}
-              presentation="inline"
-            />
-          ) : null}
         </div>
 
         {loading ? <DetailLoading /> : null}

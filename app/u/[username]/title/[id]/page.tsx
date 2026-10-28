@@ -20,7 +20,6 @@ import {
 import { RatingChip } from "@/components/rating-chip";
 import { TitleDescription } from "@/components/title-description";
 import { TrailerButton } from "@/components/trailer-button";
-import { FrameXtvButton } from "@/components/framextv-button";
 import { SharedTitleActions } from "@/components/shared-title-actions";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { PublicTitlePageAddControl } from "@/components/public-title-page-add-control";
@@ -295,20 +294,17 @@ export default async function PublicTitlePage(props: Props) {
                   titleName={title.title}
                 />
               ) : null}
-              <FrameXtvButton
-                type={title.media_type}
-                tmdbId={title.tmdb_id}
+              <WatchProvidersButton
+                providers={meta?.watchProviders?.providers ?? []}
+                link={meta?.watchProviders?.link}
                 titleName={title.title}
-                seasons={meta?.seasons}
-                source="shared_title"
+                frameXtv={{
+                  type: title.media_type,
+                  tmdbId: title.tmdb_id,
+                  seasons: meta?.seasons,
+                  source: "shared_title",
+                }}
               />
-              {meta?.watchProviders?.providers.length ? (
-                <WatchProvidersButton
-                  providers={meta.watchProviders.providers}
-                  link={meta.watchProviders.link}
-                  titleName={title.title}
-                />
-              ) : null}
             </div>
 
             <TitleDescription text={summary} />

@@ -15,7 +15,6 @@ import { ReviewSheet } from "@/components/review-sheet";
 import { RemoveButton } from "@/components/remove-button";
 import { MoreActionsSheet } from "@/components/more-actions-sheet";
 import { TrailerButton } from "@/components/trailer-button";
-import { FrameXtvButton } from "@/components/framextv-button";
 import { WatchProvidersButton } from "@/components/watch-providers-button";
 import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import { TmdbRail } from "@/components/tmdb-rail";
@@ -85,27 +84,23 @@ async function TitleTrailerAndProviders({
   const meta = await getTitleMeta(type, tmdbId);
   const inner = (
     <>
-      <FrameXtvButton
-        type={type}
-        tmdbId={tmdbId}
-        titleName={titleName}
-        seasons={meta.seasons}
-        currentSeason={currentSeason}
-        currentEpisode={currentEpisode}
-        libraryId={libraryId}
-        variant={variant}
-      />
       {meta.trailerKey && (
         <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} variant={variant} />
       )}
-      {meta.watchProviders && meta.watchProviders.providers.length > 0 && (
-        <WatchProvidersButton
-          providers={meta.watchProviders.providers}
-          link={meta.watchProviders.link}
-          titleName={titleName}
-          variant={variant}
-        />
-      )}
+      <WatchProvidersButton
+        providers={meta.watchProviders?.providers ?? []}
+        link={meta.watchProviders?.link}
+        titleName={titleName}
+        variant={variant}
+        frameXtv={{
+          type,
+          tmdbId,
+          seasons: meta.seasons,
+          currentSeason,
+          currentEpisode,
+          libraryId,
+        }}
+      />
     </>
   );
   // Row variant feeds straight into the More sheet's flex-col; pill variant

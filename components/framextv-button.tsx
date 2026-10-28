@@ -23,7 +23,6 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ActionRow } from "@/components/action-row";
 import { captureAnalytics } from "@/lib/analytics";
 import { TMDB_IMG } from "@/lib/tmdb-image";
 import { cn, formatRuntime } from "@/lib/utils";
@@ -62,12 +61,10 @@ const STATUS_LABELS: Record<TitleStatus, string> = {
 
 const COMPLETION_THRESHOLD = 0.92;
 
-interface FrameXtvButtonProps {
+/** Everything the frameXTV player needs for one title. */
+export interface FrameXtvTarget {
   tmdbId: number;
   type: "movie" | "tv";
-  titleName: string;
-  /** "pill" (default, desktop row) or "row" (mobile More sheet). */
-  variant?: "pill" | "row";
   /** Regular seasons for TV. Fetched lazily when omitted. */
   seasons?: FrameXtvSeason[] | null;
   /** The viewer's saved progress — preselects the season + resume link. */
@@ -76,6 +73,12 @@ interface FrameXtvButtonProps {
   /** Owned library row id. Omit for unsaved/shared titles (no tracking). */
   libraryId?: string | null;
   source?: string;
+}
+
+interface FrameXtvDialogProps extends FrameXtvTarget {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  titleName: string;
 }
 
 function trackPlay(
@@ -93,78 +96,49 @@ function trackPlay(
   });
 }
 
-function pillClassName(): string {
-  return "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-card/80";
-}
-
 /**
- * "Watch now" via frameXTV — plays natively in an in-app embed dialog.
- * Movies start playing immediately; TV shows open a season/episode picker
- * with per-episode watched tracking that drives the library shelf
- * (Up Next → Watching → Watched) automatically.
+ * The frameXTV player as a controlled dialog — plays natively in an in-app
+ * embed. Movies start playing immediately; TV shows open a season/episode
+ * picker with per-episode watched tracking that drives the library shelf
+ * (Up Next → Watching → Watched) automatically. Opened from the frameXTV
+ * entry in Where to watch.
  */
-export function FrameXtvButton({
+export function FrameXtvDialog({
+  open,
+  onOpenChange,
   tmdbId,
   type,
   titleName,
-  variant = "pill",
   seasons: seasonsProp,
   currentSeason,
   currentEpisode,
   libraryId,
   source = "title_detail",
-}: FrameXtvButtonProps) {
-  const [open, setOpen] = React.useState(false);
-
-  const trigger =
-    variant === "row" ? (
-      <ActionRow
-        icon={<Play className="h-[18px] w-[18px] fill-current" />}
-        label="Watch on frameXTV"
-        sublabel={type === "movie" ? "Play now" : "Pick a season and episode"}
-        onClick={() => setOpen(true)}
-      />
-    ) : (
-      <button
-        type="button"
-        data-analytics-action="watch_framextv"
-        aria-label={`Watch ${titleName} on frameXTV`}
-        title="Watch on frameXTV"
-        onClick={() => setOpen(true)}
-        className={pillClassName()}
-      >
-        <Play className="h-3.5 w-3.5 fill-current" />
-        Watch now
-      </button>
-    );
-
+}: FrameXtvDialogProps) {
   return (
-    <>
-      {trigger}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
-          placement="center"
-          size="lg"
-          className="max-h-[90dvh] w-[calc(100vw-1.5rem)] overflow-hidden p-0"
-        >
-          <DialogTitle className="sr-only">
-            Watch {titleName} on frameXTV
-          </DialogTitle>
-          {open && (
-            <FrameXtvDialogBody
-              tmdbId={tmdbId}
-              type={type}
-              titleName={titleName}
-              seasons={seasonsProp}
-              currentSeason={currentSeason}
-              currentEpisode={currentEpisode}
-              libraryId={libraryId}
-              source={source}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        placement="center"
+        size="lg"
+        className="max-h-[90dvh] w-[calc(100vw-1.5rem)] overflow-hidden p-0"
+      >
+        <DialogTitle className="sr-only">
+          Watch {titleName} on frameXTV
+        </DialogTitle>
+        {open && (
+          <FrameXtvDialogBody
+            tmdbId={tmdbId}
+            type={type}
+            titleName={titleName}
+            seasons={seasonsProp}
+            currentSeason={currentSeason}
+            currentEpisode={currentEpisode}
+            libraryId={libraryId}
+            source={source}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -598,9 +572,11 @@ function FrameXtvPlayer({
             title={`${titleName}${label !== titleName ? ` ${label}` : ""} on frameXTV`}
             // Sandboxed: scripts + same-origin keep the player working, but
             // popups, new tabs, top-level navigation, and modal spam stay
-            // blocked. Fullscreen is handled by our own header button.
+            // blocked. The embed redirects to another frameXTV domain, so
+            // the allow list uses * — the default ('src') would stop the
+            // player's own fullscreen button.
             sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
-            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+            allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *"
             allowFullScreen
             className="absolute inset-0 h-full w-full border-0"
           />
