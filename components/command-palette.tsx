@@ -738,17 +738,11 @@ export function CommandPaletteProvider({
       const viewportBottom = viewportTop + viewportHeight;
       const isPhone = viewportWidth < 768;
       const gutter = isPhone ? 12 : 16;
-      // Phones pin the panel to the field's own edges so it reads as the
-      // field opening downward; wider layouts may grow past a compact field.
-      const width = isPhone
-        ? Math.min(rect.width, viewportWidth - gutter * 2)
-        : Math.min(
-            672,
-            Math.max(rect.width, Math.min(560, viewportWidth - gutter * 2)),
-          );
-      const centeredLeft = rect.left + rect.width / 2 - width / 2;
+      // Pin the panel to the field's own edges so it reads as the field
+      // opening downward; the field already expands while engaged.
+      const width = Math.min(rect.width, viewportWidth - gutter * 2);
       const left = Math.min(
-        Math.max(viewportLeft + gutter, isPhone ? rect.left : centeredLeft),
+        Math.max(viewportLeft + gutter, rect.left),
         Math.max(viewportLeft + gutter, viewportRight - gutter - width),
       );
       const top = Math.round(rect.bottom + (isPhone ? 6 : 8));
@@ -1323,7 +1317,7 @@ export function CommandPaletteProvider({
             event.preventDefault();
             selectResult();
           }}
-          className="gap-3 pr-[7.75rem]"
+          className="gap-3 pr-[7.75rem] @max-[22.5rem]:pr-[5.25rem]"
         >
           <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-muted">
             {poster ? (
@@ -1340,11 +1334,11 @@ export function CommandPaletteProvider({
             <span className="truncate text-sm font-medium text-foreground">
               {name}
             </span>
-            <span className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] uppercase text-muted-foreground">
+            <span className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap font-mono text-[11px] uppercase text-muted-foreground">
               {result.media_type === "movie" ? (
-                <Film className="h-3 w-3" />
+                <Film className="h-3 w-3 shrink-0" />
               ) : (
-                <Tv className="h-3 w-3" />
+                <Tv className="h-3 w-3 shrink-0" />
               )}
               {result.media_type}
               {year ? <span>· {year}</span> : null}
@@ -1367,14 +1361,16 @@ export function CommandPaletteProvider({
                 aria-label={`Add ${name} to Up Next`}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => handleQuickAdd(result, "want")}
-                className="inline-flex min-w-[5.35rem] items-center justify-center gap-1.5 px-2.5 text-[11px] font-medium transition-[background-color,transform] hover:bg-primary/12 active:scale-[0.97] disabled:cursor-wait"
+                className="inline-flex min-w-[5.35rem] items-center justify-center gap-1.5 px-2.5 text-[11px] @max-[22.5rem]:min-w-9 @max-[22.5rem]:px-0 font-medium transition-[background-color,transform] hover:bg-primary/12 active:scale-[0.97] disabled:cursor-wait"
               >
                 {isAdding ? (
                   <Loader2 className="loading-spinner h-3.5 w-3.5" />
                 ) : (
                   <Plus className="h-3.5 w-3.5" />
                 )}
-                <span>{isAdding ? "Adding" : "Up Next"}</span>
+                <span className="@max-[22.5rem]:sr-only">
+                  {isAdding ? "Adding" : "Up Next"}
+                </span>
               </button>
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
@@ -1564,11 +1560,11 @@ export function CommandPaletteProvider({
                   <span className="truncate text-sm font-medium text-foreground">
                     {hit.title}
                   </span>
-                  <span className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] uppercase text-muted-foreground">
+                  <span className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap font-mono text-[11px] uppercase text-muted-foreground">
                     {hit.media_type === "movie" ? (
-                      <Film className="h-3 w-3" />
+                      <Film className="h-3 w-3 shrink-0" />
                     ) : (
-                      <Tv className="h-3 w-3" />
+                      <Tv className="h-3 w-3 shrink-0" />
                     )}
                     {hit.media_type}
                     {year && <span>· {year}</span>}
@@ -1639,7 +1635,7 @@ export function CommandPaletteProvider({
             role="region"
             aria-label="Find and add a title"
             className={cn(
-              "smart-search-inline-results fixed z-[85] overflow-hidden rounded-[1.25rem] border border-border bg-popover/96 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.58)] ring-1 ring-foreground/[0.04] backdrop-blur-2xl",
+              "smart-search-inline-results @container fixed z-[85] overflow-hidden rounded-[1.25rem] border border-border bg-popover/96 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.58)] ring-1 ring-foreground/[0.04] backdrop-blur-2xl",
               mobileAddEntrySurfaceId === activeSurfaceId &&
                 "smart-search-mobile-results-enter",
             )}
@@ -1652,7 +1648,7 @@ export function CommandPaletteProvider({
           >
             <Command
               shouldFilter={false}
-              className="h-auto max-h-full rounded-[1.25rem] bg-transparent [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-1.5 [&_[cmdk-group]:first-child]:pt-1.5 [&_[cmdk-group]:last-child]:pb-1.5 [&_[cmdk-item]]:rounded-xl [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-2"
+              className="h-auto max-h-full rounded-[1.25rem] bg-transparent [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-1.5 [&_[cmdk-group]:first-child]:pt-1.5 [&_[cmdk-group]:last-child]:pb-1.5 [&_[cmdk-item]]:rounded-xl [&_[cmdk-item]]:pl-2 [&_[cmdk-item]]:py-2"
             >
               {renderStandardResults(true)}
             </Command>
