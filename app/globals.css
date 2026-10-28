@@ -796,7 +796,7 @@ body:has([data-previews-feed]) {
   }
 
   .smart-search-inline-results {
-    background-color: hsl(var(--popover) / 0.985);
+    background-color: hsl(var(--popover));
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }

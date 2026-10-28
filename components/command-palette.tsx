@@ -736,17 +736,22 @@ export function CommandPaletteProvider({
       const viewportHeight = visualViewport?.height ?? window.innerHeight;
       const viewportRight = viewportLeft + viewportWidth;
       const viewportBottom = viewportTop + viewportHeight;
-      const gutter = viewportWidth < 768 ? 12 : 16;
-      const width = Math.min(
-        672,
-        Math.max(rect.width, Math.min(560, viewportWidth - gutter * 2)),
-      );
+      const isPhone = viewportWidth < 768;
+      const gutter = isPhone ? 12 : 16;
+      // Phones pin the panel to the field's own edges so it reads as the
+      // field opening downward; wider layouts may grow past a compact field.
+      const width = isPhone
+        ? Math.min(rect.width, viewportWidth - gutter * 2)
+        : Math.min(
+            672,
+            Math.max(rect.width, Math.min(560, viewportWidth - gutter * 2)),
+          );
       const centeredLeft = rect.left + rect.width / 2 - width / 2;
       const left = Math.min(
-        Math.max(viewportLeft + gutter, centeredLeft),
+        Math.max(viewportLeft + gutter, isPhone ? rect.left : centeredLeft),
         Math.max(viewportLeft + gutter, viewportRight - gutter - width),
       );
-      const top = Math.round(rect.bottom + 8);
+      const top = Math.round(rect.bottom + (isPhone ? 6 : 8));
       const dock = document.getElementById("app-bottom-nav");
       const dockTop =
         dock && dock.getClientRects().length
@@ -1462,7 +1467,7 @@ export function CommandPaletteProvider({
                 &ldquo;{query.trim()}&rdquo;
               </span>
             </span>
-            <kbd className="ml-auto shrink-0 rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+            <kbd className="ml-auto shrink-0 rounded border pointer-coarse:hidden border-border bg-card px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
               ↵
             </kbd>
           </CommandItem>
@@ -1490,7 +1495,12 @@ export function CommandPaletteProvider({
         </CommandGroup>
       )}
       {loading && (
-        <div className="flex items-center justify-center py-20 text-muted-foreground">
+        <div
+          className={cn(
+            "flex items-center justify-center text-muted-foreground",
+            inline ? "py-8" : "py-20",
+          )}
+        >
           <Loader2 className="loading-spinner h-4 w-4" />
         </div>
       )}
@@ -1502,7 +1512,17 @@ export function CommandPaletteProvider({
           <CommandEmpty>No results.</CommandEmpty>
         )}
       {!loading && !query && (
-        <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-xs leading-relaxed text-muted-foreground">
+        <div
+          className={cn(
+            "flex flex-1 items-center text-xs leading-relaxed text-muted-foreground",
+            inline
+              ? "gap-3 px-4 py-3.5 text-left"
+              : "justify-center px-6 py-12 text-center",
+          )}
+        >
+          {inline ? (
+            <Sparkles className="h-4 w-4 shrink-0 text-primary/80" aria-hidden />
+          ) : null}
           Find a title, search by cast, describe what you want to watch, or
           paste a link to pull titles from it.
         </div>
@@ -1619,7 +1639,7 @@ export function CommandPaletteProvider({
             role="region"
             aria-label="Find and add a title"
             className={cn(
-              "smart-search-inline-results fixed z-[85] overflow-hidden rounded-2xl border border-border bg-popover/96 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.58)] ring-1 ring-foreground/[0.04] backdrop-blur-2xl",
+              "smart-search-inline-results fixed z-[85] overflow-hidden rounded-[1.25rem] border border-border bg-popover/96 text-popover-foreground shadow-[0_24px_70px_-24px_rgba(0,0,0,0.58)] ring-1 ring-foreground/[0.04] backdrop-blur-2xl",
               mobileAddEntrySurfaceId === activeSurfaceId &&
                 "smart-search-mobile-results-enter",
             )}
@@ -1632,7 +1652,7 @@ export function CommandPaletteProvider({
           >
             <Command
               shouldFilter={false}
-              className="h-auto max-h-full rounded-2xl bg-transparent [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+              className="h-auto max-h-full rounded-[1.25rem] bg-transparent [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-1.5 [&_[cmdk-group]:first-child]:pt-1.5 [&_[cmdk-group]:last-child]:pb-1.5 [&_[cmdk-item]]:rounded-xl [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-2"
             >
               {renderStandardResults(true)}
             </Command>
