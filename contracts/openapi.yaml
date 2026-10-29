@@ -237,6 +237,28 @@ paths:
       operationId: removeTitle
       responses:
         '200': { description: Removed. }
+  /titles/{id}/progress:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    post:
+      summary: Report native playback progress; moves shelves and the episode resume pointer.
+      operationId: recordProgress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [completed]
+              properties:
+                season: { type: [integer, 'null'], minimum: 0 }
+                episode: { type: [integer, 'null'], minimum: 1 }
+                completed: { type: boolean }
+      responses:
+        '200': { description: Updated title. }
   /titles/{id}/lists:
     post:
       summary: Add a title to an existing list or create a list and add it.

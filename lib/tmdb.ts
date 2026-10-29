@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { type TitleRow } from "@/lib/supabase";
 import { getLibraryClient } from "@/lib/library-db";
 
@@ -475,6 +476,8 @@ export interface TmdbRecommendationOptions {
   rotationSeed?: string;
   /** Defaults to eight normally and six for the rotating previews path. */
   seedCount?: number;
+  /** Owner-scoped library client for callers without a web session (native API). */
+  db?: SupabaseClient;
 }
 
 /**
@@ -857,7 +860,7 @@ export async function getRecommendedFromWatched(
   options: TmdbRecommendationOptions = {},
 ): Promise<TmdbSearchResult[]> {
   try {
-    const db = await getLibraryClient();
+    const db = options.db ?? (await getLibraryClient());
     const libraryRequest = db
       .from("titles")
       .select("tmdb_id, media_type, rating, favorite, tmdb_rating, watched_at, added_at, status");
