@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { signIn } from "@/auth";
 import { AppleSignInButton } from "@/components/login/apple-sign-in-button";
 import { GoogleSignInButton } from "@/components/login/google-sign-in-button";
 import { EmailAuthForm } from "@/components/login/email-auth-form";
@@ -46,16 +45,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (redirectTo !== "/app") switchParams.set("next", redirectTo);
   const switchHref = `/login${switchParams.size ? `?${switchParams}` : ""}`;
 
-  async function continueWithGoogle() {
-    "use server";
-    await signIn("google", { redirectTo });
-  }
-
-  async function continueWithApple() {
-    "use server";
-    await signIn("apple", { redirectTo });
-  }
-
   return (
     <LoginOverlay
       className={styles.overlay}
@@ -81,18 +70,20 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </>
         ) : null}
 
-        <form action={continueWithGoogle} className={emailEnabled ? undefined : styles.form}>
+        <div className={emailEnabled ? undefined : styles.form}>
           <GoogleSignInButton
             label={creating ? "Sign up with Google" : "Sign in with Google"}
+            redirectTo={redirectTo}
           />
-        </form>
+        </div>
 
         {appleEnabled ? (
-          <form action={continueWithApple} className="mt-3">
+          <div className="mt-3">
             <AppleSignInButton
               label={creating ? "Sign up with Apple" : "Sign in with Apple"}
+              redirectTo={redirectTo}
             />
-          </form>
+          </div>
         ) : null}
 
         <p className={styles.switchMode}>

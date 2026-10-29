@@ -1,23 +1,28 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
 import { ArrowRight } from "lucide-react";
 import { captureAnalytics } from "@/lib/analytics";
+import { useProviderSignIn } from "./use-provider-sign-in";
 
 export function GoogleSignInButton({
   label = "Continue with Google",
+  redirectTo,
 }: {
   label?: string;
+  redirectTo: string;
 }) {
-  const { pending } = useFormStatus();
+  const { pending, start } = useProviderSignIn("google", redirectTo);
 
   return (
     <button
-      type="submit"
+      type="button"
       disabled={pending}
       aria-label={pending ? "Opening Google" : label}
       aria-describedby="google-sign-in-note"
-      onClick={() => captureAnalytics("auth_method_selected", { method: "google", stage: "started" })}
+      onClick={() => {
+        captureAnalytics("auth_method_selected", { method: "google", stage: "started" });
+        start();
+      }}
       data-analytics-action="continue_with_google"
       data-analytics-area="auth"
       className="group relative flex h-[58px] w-full items-center justify-center overflow-hidden rounded-2xl border border-white/[0.1] bg-[#1b1b1b] px-6 text-sm font-semibold text-white shadow-[0_18px_55px_rgba(0,0,0,0.38),inset_0_1px_rgba(255,255,255,0.04)] transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:border-white/[0.17] hover:bg-[#232323] active:translate-y-0 active:scale-[0.985] disabled:cursor-wait disabled:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ADEBB3] focus-visible:ring-offset-4 focus-visible:ring-offset-black"
