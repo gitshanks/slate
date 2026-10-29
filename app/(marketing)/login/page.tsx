@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
+import { AppleSignInButton } from "@/components/login/apple-sign-in-button";
 import { GoogleSignInButton } from "@/components/login/google-sign-in-button";
 import { EmailAuthForm } from "@/components/login/email-auth-form";
 import { LoginOverlay } from "@/components/login/login-overlay";
@@ -9,6 +10,7 @@ import { getAppSession } from "@/lib/app-access";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { safeRedirectPath } from "@/lib/email-auth-core";
 import { emailSignInConfigured } from "@/lib/email-auth";
+import { appleSignInConfigured } from "@/lib/apple-auth";
 import styles from "./login.module.css";
 
 export const metadata: Metadata = {
@@ -37,6 +39,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const redirectTo = safeRedirectPath(rawNext);
   if (session?.user?.id) redirect(redirectTo);
   const emailEnabled = emailSignInConfigured();
+  const appleEnabled = appleSignInConfigured();
   const error = rawError ? loginErrorMessage(rawError) : null;
   const switchParams = new URLSearchParams();
   if (!creating) switchParams.set("mode", "create");
@@ -46,6 +49,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   async function continueWithGoogle() {
     "use server";
     await signIn("google", { redirectTo });
+  }
+
+  async function continueWithApple() {
+    "use server";
+    await signIn("apple", { redirectTo });
   }
 
   return (
@@ -79,6 +87,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           />
         </form>
 
+        {appleEnabled ? (
+          <form action={continueWithApple} className="mt-3">
+            <AppleSignInButton
+              label={creating ? "Sign up with Apple" : "Sign in with Apple"}
+            />
+          </form>
+        ) : null}
+
         <p className={styles.switchMode}>
           {creating ? "Already have a slate?" : "New to slate?"}{" "}
           <Link href={switchHref} scroll={false}>
@@ -102,8 +118,8 @@ function LoginError({ title, body }: { title: string; body: string }) {
 function loginErrorMessage(error: string) {
   if (error === "AccessDenied") {
     return {
-      title: "Google couldn’t finish the sign-in.",
-      body: "Try again with the Google account you want to use for slate.",
+      title: "We couldn’t finish the sign-in.",
+      body: "Try again with the account you want to use for slate.",
     };
   }
 

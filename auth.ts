@@ -1,8 +1,11 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Apple from "next-auth/providers/apple";
 import Google from "next-auth/providers/google";
+import { appleClientCredentials } from "@/lib/apple-auth";
 import { ensureGoogleProfile, getProfileById } from "@/lib/profiles";
 import { belongsToAccount } from "@/lib/account-session";
+import { resolveNativeOwner } from "@/lib/native-api/account";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import {
   accountOwnerForEmail,
@@ -11,6 +14,15 @@ import {
 } from "@/lib/email-auth";
 
 const SESSION_MAX_AGE = 90 * 24 * 60 * 60;
+const appleCredentials = appleClientCredentials();
+
+// Apple returns to the callback with a cross-site form POST, which drops the
+// default SameSite=Lax check cookies. Only the short-lived OAuth check cookies
+// are relaxed; the session cookie keeps Auth.js defaults.
+const crossSiteCheckCookie = (name: string) => ({
+  name: `__Secure-authjs.${name}`,
+  options: { httpOnly: true, sameSite: "none" as const, path: "/", secure: true },
+});
 
 function googleOwnerId(providerAccountId: string) {
   return `google:${providerAccountId}`;
@@ -58,11 +70,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
       },
     }),
+    ...(appleCredentials ? [Apple(appleCredentials)] : []),
   ],
+  cookies: appleCredentials
+    ? {
+        state: crossSiteCheckCookie("state"),
+        nonce: crossSiteCheckCookie("nonce"),
+        pkceCodeVerifier: crossSiteCheckCookie("pkce.code_verifier"),
+      }
+    : undefined,
   callbacks: {
     async signIn({ account, profile, user }) {
       if (account?.provider === "email-code") {
         return Boolean(user.id && user.email);
+      }
+      if (account?.provider === "apple" && account.providerAccountId) {
+        // Same identity table as the iOS app, so one Apple ID is one slate
+        // on the web and on iPhone.
+        const email = typeof profile?.email === "string" ? profile.email : null;
+        // Apple sends email_verified as a boolean or as the string "true".
+        const emailVerified = String(profile?.email_verified) === "true";
+        user.id = await resolveNativeOwner({
+          provider: "apple",
+          subject: account.providerAccountId,
+          email,
+          emailVerified,
+          name: user.name && user.name !== email ? user.name : null,
+          avatarUrl: null,
+        });
+        return true;
       }
       if (account?.provider !== "google" || !account.providerAccountId) {
         return false;
