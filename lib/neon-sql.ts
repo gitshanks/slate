@@ -241,6 +241,8 @@ function buildRowsValues(
 function returningClause(state: BuilderState): string {
   if (!state.returning) return "";
   const cols = splitTopLevel(state.returning).map((c) => {
+    // `.select("*")` after a mutation (native API routes) means RETURNING *.
+    if (c === "*") return c;
     assertIdent(c);
     return c;
   });
