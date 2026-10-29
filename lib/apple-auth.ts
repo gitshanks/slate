@@ -12,14 +12,25 @@ function appleWebConfig() {
   const clientId = process.env.APPLE_SERVICE_ID?.trim();
   const teamId = process.env.APPLE_TEAM_ID?.trim();
   const keyId = process.env.APPLE_KEY_ID?.trim();
-  // Hosting dashboards often store the .p8 contents with escaped newlines.
-  const privateKey = process.env.APPLE_PRIVATE_KEY?.replace(/\\n/g, "\n").trim();
+  const privateKey = normalizePem(process.env.APPLE_PRIVATE_KEY);
   if (!clientId || !teamId || !keyId || !privateKey) return null;
   return { clientId, teamId, keyId, privateKey };
 }
 
+// Hosting dashboards store the .p8 contents with escaped newlines, spaces or
+// no line breaks at all, so rebuild the PEM from its base64 body.
+function normalizePem(raw: string | undefined): string | null {
+  const body = raw
+    ?.replace(/\\n/g, "\n")
+    .replace(/-----(BEGIN|END) [A-Z ]*PRIVATE KEY-----/g, "")
+    .replace(/[^A-Za-z0-9+/=]/g, "");
+  if (!body) return null;
+  const lines = body.match(/.{1,64}/g) ?? [];
+  return `-----BEGIN PRIVATE KEY-----\n${lines.join("\n")}\n-----END PRIVATE KEY-----\n`;
+}
+
 export function appleSignInConfigured(): boolean {
-  return appleWebConfig() !== null;
+  return appleClientCredentials() !== null;
 }
 
 function base64url(value: string | Buffer): string {
@@ -42,10 +53,17 @@ export function appleClientCredentials(): { clientId: string; clientSecret: stri
       sub: config.clientId,
     }),
   );
-  const signature = sign("sha256", Buffer.from(`${header}.${payload}`), {
-    key: createPrivateKey(config.privateKey),
-    dsaEncoding: "ieee-p1363",
-  });
+  let signature: Buffer;
+  try {
+    signature = sign("sha256", Buffer.from(`${header}.${payload}`), {
+      key: createPrivateKey(config.privateKey),
+      dsaEncoding: "ieee-p1363",
+    });
+  } catch (error) {
+    // A bad key should hide the Apple button, not take down every auth route.
+    console.error("[auth] APPLE_PRIVATE_KEY could not be used", error);
+    return null;
+  }
 
   return {
     clientId: config.clientId,
