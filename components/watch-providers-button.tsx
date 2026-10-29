@@ -3,7 +3,7 @@
 import { useId, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, ExternalLink, Play, Tv } from "lucide-react";
+import { ChevronDown, ExternalLink, Tv } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,6 @@ import {
 import type { TmdbProvider } from "@/lib/tmdb";
 import { TMDB_IMG } from "@/lib/tmdb-image";
 import { ActionRow } from "@/components/action-row";
-import { FrameXtvDialog, type FrameXtvTarget } from "@/components/framextv-button";
 
 // Maps TMDB provider_id → streaming service search URL template (title appended as query).
 const PROVIDER_URLS: Record<number, (t: string) => string> = {
@@ -49,29 +48,10 @@ function providerUrl(providerId: number, titleName: string, fallback: string): s
   return fn ? fn(encodeURIComponent(titleName)) : fallback;
 }
 
-/** frameXTV's mark: a quiet, last entry that plays inside Slate. */
-function FrameXtvLogo({ size }: { size: number }) {
-  return (
-    <span
-      aria-hidden
-      style={{ width: size, height: size }}
-      className="grid shrink-0 place-items-center rounded-md bg-muted text-muted-foreground ring-1 ring-border/45"
-    >
-      <Play
-        style={{ width: size * 0.5, height: size * 0.5 }}
-        className="translate-x-[6%] fill-current"
-      />
-    </span>
-  );
-}
-
 interface WatchProvidersButtonProps {
   providers: TmdbProvider[];
-  /** TMDB's full watch page; omitted when only frameXTV is listed. */
-  link?: string | null;
+  link: string;
   titleName: string;
-  /** Lists frameXTV last; it opens Slate's in-app player. */
-  frameXtv?: FrameXtvTarget;
   /** "pill" (default, desktop row) or "row" (mobile More sheet). */
   variant?: "pill" | "row";
   /** Keep title-card inspectors self-contained while full pages retain a dialog. */
@@ -84,25 +64,8 @@ export function WatchProvidersButton({
   titleName,
   variant = "pill",
   presentation = "dialog",
-  frameXtv,
 }: WatchProvidersButtonProps) {
   const [open, setOpen] = useState(false);
-  const [playerOpen, setPlayerOpen] = useState(false);
-  const fallbackLink = link ?? "";
-
-  const openPlayer = () => {
-    if (presentation === "dialog") setOpen(false);
-    setPlayerOpen(true);
-  };
-
-  const player = frameXtv ? (
-    <FrameXtvDialog
-      {...frameXtv}
-      titleName={titleName}
-      open={playerOpen}
-      onOpenChange={setPlayerOpen}
-    />
-  ) : null;
   const regionId = useId();
   const regionRef = useRef<HTMLDivElement>(null);
 
@@ -154,7 +117,6 @@ export function WatchProvidersButton({
         title="Where to watch"
       >
         <Tv className="h-3.5 w-3.5 text-muted-foreground" />
-        {providers.length === 0 ? <span>Where to watch</span> : null}
         <span className="flex items-center gap-1.5">
           {providers.slice(0, 4).map((p) => (
             <Image
@@ -212,23 +174,21 @@ export function WatchProvidersButton({
                   <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">
                     Where to watch
                   </span>
-                  {link ? (
-                    <a
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      All options
-                      <ExternalLink className="h-2.5 w-2.5" aria-hidden />
-                    </a>
-                  ) : null}
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    All options
+                    <ExternalLink className="h-2.5 w-2.5" aria-hidden />
+                  </a>
                 </div>
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                   {providers.map((provider) => (
                     <a
                       key={provider.provider_id}
-                      href={providerUrl(provider.provider_id, titleName, fallbackLink)}
+                      href={providerUrl(provider.provider_id, titleName, link)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group flex min-w-0 items-center gap-2 rounded-xl border border-border/80 bg-card/60 p-2 transition-[border-color,background-color,transform] hover:border-primary/30 hover:bg-card active:scale-[0.99]"
@@ -249,30 +209,11 @@ export function WatchProvidersButton({
                       />
                     </a>
                   ))}
-                  {frameXtv ? (
-                    <button
-                      type="button"
-                      data-analytics-action="watch_framextv"
-                      aria-label={`Watch ${titleName} on frameXTV`}
-                      onClick={openPlayer}
-                      className="group flex min-w-0 items-center gap-2 rounded-xl border border-border/80 bg-card/60 p-2 text-left transition-[border-color,background-color,transform] hover:border-primary/30 hover:bg-card active:scale-[0.99]"
-                    >
-                      <FrameXtvLogo size={30} />
-                      <span className="min-w-0 flex-1 truncate text-xs font-medium">
-                        frameXTV
-                      </span>
-                      <Play
-                        aria-hidden
-                        className="h-3 w-3 shrink-0 text-muted-foreground/55 transition-colors group-hover:text-primary"
-                      />
-                    </button>
-                  ) : null}
                 </div>
               </div>
             </motion.div>
           ) : null}
         </AnimatePresence>
-        {player}
       </div>
     );
   }
@@ -288,7 +229,7 @@ export function WatchProvidersButton({
             {providers.map((p) => (
               <a
                 key={p.provider_id}
-                href={providerUrl(p.provider_id, titleName, fallbackLink)}
+                href={providerUrl(p.provider_id, titleName, link)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 rounded-xl border border-border bg-card/50 px-3 py-2.5 transition-colors hover:border-primary/40 hover:bg-card"
@@ -303,22 +244,9 @@ export function WatchProvidersButton({
                 <span className="text-sm font-medium">{p.provider_name}</span>
               </a>
             ))}
-            {frameXtv ? (
-              <button
-                type="button"
-                data-analytics-action="watch_framextv"
-                aria-label={`Watch ${titleName} on frameXTV`}
-                onClick={openPlayer}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card/50 px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-card"
-              >
-                <FrameXtvLogo size={36} />
-                <span className="text-sm font-medium">frameXTV</span>
-              </button>
-            ) : null}
           </div>
         </DialogContent>
       </Dialog>
-      {player}
     </>
   );
 }

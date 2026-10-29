@@ -294,17 +294,13 @@ export default async function PublicTitlePage(props: Props) {
                   titleName={title.title}
                 />
               ) : null}
-              <WatchProvidersButton
-                providers={meta?.watchProviders?.providers ?? []}
-                link={meta?.watchProviders?.link}
-                titleName={title.title}
-                frameXtv={{
-                  type: title.media_type,
-                  tmdbId: title.tmdb_id,
-                  seasons: meta?.seasons,
-                  source: "shared_title",
-                }}
-              />
+              {meta?.watchProviders?.providers.length ? (
+                <WatchProvidersButton
+                  providers={meta.watchProviders.providers}
+                  link={meta.watchProviders.link}
+                  titleName={title.title}
+                />
+              ) : null}
             </div>
 
             <TitleDescription text={summary} />

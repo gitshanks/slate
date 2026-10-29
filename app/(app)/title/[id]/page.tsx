@@ -68,39 +68,28 @@ async function TitleTrailerAndProviders({
   type,
   tmdbId,
   titleName,
-  currentSeason,
-  currentEpisode,
-  libraryId,
   variant = "pill",
 }: {
   type: "movie" | "tv";
   tmdbId: number;
   titleName: string;
-  currentSeason?: number | null;
-  currentEpisode?: number | null;
-  libraryId?: string | null;
   variant?: "pill" | "row";
 }) {
   const meta = await getTitleMeta(type, tmdbId);
+  if (!meta.trailerKey && !meta.watchProviders) return null;
   const inner = (
     <>
       {meta.trailerKey && (
         <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} variant={variant} />
       )}
-      <WatchProvidersButton
-        providers={meta.watchProviders?.providers ?? []}
-        link={meta.watchProviders?.link}
-        titleName={titleName}
-        variant={variant}
-        frameXtv={{
-          type,
-          tmdbId,
-          seasons: meta.seasons,
-          currentSeason,
-          currentEpisode,
-          libraryId,
-        }}
-      />
+      {meta.watchProviders && meta.watchProviders.providers.length > 0 && (
+        <WatchProvidersButton
+          providers={meta.watchProviders.providers}
+          link={meta.watchProviders.link}
+          titleName={titleName}
+          variant={variant}
+        />
+      )}
     </>
   );
   // Row variant feeds straight into the More sheet's flex-col; pill variant
@@ -322,9 +311,6 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                     type={title.media_type}
                     tmdbId={title.tmdb_id}
                     titleName={title.title}
-                    currentSeason={title.current_season}
-                    currentEpisode={title.current_episode}
-                    libraryId={title.id}
                   />
                 </Suspense>
                 <AddTitleToListButton titleId={title.id} lists={userLists} />
@@ -345,9 +331,6 @@ export default async function TitleDetailPage(props: PageProps<"/title/[id]">) {
                       type={title.media_type}
                       tmdbId={title.tmdb_id}
                       titleName={title.title}
-                      currentSeason={title.current_season}
-                      currentEpisode={title.current_episode}
-                      libraryId={title.id}
                       variant="row"
                     />
                   </Suspense>

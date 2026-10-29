@@ -263,18 +263,13 @@ export default async function DiscoverTitlePage(
               {meta.trailerKey && (
                 <TrailerButton trailerKey={meta.trailerKey} titleName={titleName} />
               )}
-              <WatchProvidersButton
-                providers={meta.watchProviders?.providers ?? []}
-                link={meta.watchProviders?.link}
-                titleName={titleName}
-                frameXtv={{
-                  type,
-                  tmdbId,
-                  seasons: meta.seasons,
-                  libraryId: existing?.id ?? null,
-                  source: "discover_detail",
-                }}
-              />
+              {meta.watchProviders && meta.watchProviders.providers.length > 0 && (
+                <WatchProvidersButton
+                  providers={meta.watchProviders.providers}
+                  link={meta.watchProviders.link}
+                  titleName={titleName}
+                />
+              )}
             </div>
 
             <TitleDescription text={summary} />
