@@ -19,7 +19,7 @@ import {
   OwnerMenu,
 } from "@/components/owned-app-toolbar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { AmbientBackdrop, WatchingHero } from "@/components/watching-hero";
+import { AmbientBackdrop, WATCHING_FEATURED_ID, WatchingHero } from "@/components/watching-hero";
 import { ProfileShareButton } from "@/components/profile-share-button";
 import {
   useCommandPalette,
@@ -490,6 +490,7 @@ export function LibraryCollectionView({
             showWatchingHero ? (
               <WatchingHero
                 titles={visibleShelfTitles}
+                onOpen={openShelfTitle}
                 onFeature={setAmbientPath}
               />
             ) : visibleShelfTitles.length ? (
@@ -563,7 +564,9 @@ export function LibraryCollectionView({
           title={shelfTitle}
           detailSource={titleDetailSource}
           renderActions={renderActions}
-          anchorTitleId={shelfTitle.id}
+          // The Watching hero has no grid poster; the slab sits beside its card.
+          anchorTitleId={showWatchingHero ? undefined : shelfTitle.id}
+          anchorElementId={showWatchingHero ? WATCHING_FEATURED_ID : undefined}
           scrollContainerId="app-scroll-area"
           centerAfterId="library-collection-controls"
           onClose={closeShelfTitle}
