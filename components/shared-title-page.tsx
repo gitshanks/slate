@@ -21,8 +21,8 @@ export function SharedTitlePage({ title, trailerKey }: {
       {backdrop ? <div className={styles.heroBackdrop} aria-hidden><Image src={backdrop} alt="" fill sizes="100vw" loading="eager" className="object-cover object-top" /></div> : null}
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-6 sm:px-8 sm:py-8">
         <Link href="/" aria-label="Slate home" className="rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">
-          <Image src="/brand/logo-light.svg" alt="slate" width={72} height={20} className="hidden dark:block" />
-          <Image src="/brand/logo-dark.svg" alt="slate" width={72} height={20} className="dark:hidden" />
+          <Image src="/brand/wordmark-light.svg" alt="slate" width={56} height={20} className="hidden dark:block" />
+          <Image src="/brand/wordmark-dark.svg" alt="slate" width={56} height={20} className="dark:hidden" />
         </Link>
         <Link href={APP_ROOT} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">Open my slate <ArrowUpRight className="h-3.5 w-3.5" aria-hidden /></Link>
       </header>

@@ -69,17 +69,17 @@ export function OwnedAppToolbar({
           className="col-start-1 row-start-1 inline-flex items-center pl-0.5 outline-none transition-opacity hover:opacity-82 focus-visible:ring-1 focus-visible:ring-primary/60"
         >
           <Image
-            src="/brand/logo-light.svg"
+            src="/brand/wordmark-light.svg"
             alt="slate"
-            width={62}
+            width={47}
             height={17}
             loading="eager"
             className="hidden dark:block"
           />
           <Image
-            src="/brand/logo-dark.svg"
+            src="/brand/wordmark-dark.svg"
             alt="slate"
-            width={62}
+            width={47}
             height={17}
             loading="eager"
             className="dark:hidden"

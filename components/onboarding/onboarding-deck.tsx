@@ -145,9 +145,9 @@ export function OnboardingDeck({ titles, returnTo = "/app" }: { titles: Onboardi
       <header className={styles.header}>
         <Image
           className={styles.logo}
-          src="/brand/logo-light.svg"
+          src="/brand/wordmark-light.svg"
           alt="slate"
-          width={78}
+          width={61}
           height={22}
           priority
         />

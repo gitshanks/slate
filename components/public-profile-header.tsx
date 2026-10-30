@@ -10,17 +10,17 @@ export function PublicProfileHeader() {
       <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
         <Link href="/" aria-label="slate home" className="flex items-center">
           <Image
-            src="/brand/logo-light.svg"
+            src="/brand/wordmark-light.svg"
             alt="slate"
-            width={62}
+            width={47}
             height={17}
             priority
             className="hidden dark:block"
           />
           <Image
-            src="/brand/logo-dark.svg"
+            src="/brand/wordmark-dark.svg"
             alt="slate"
-            width={62}
+            width={47}
             height={17}
             priority
             className="dark:hidden"

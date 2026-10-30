@@ -18,7 +18,7 @@ export default function PrivacyPage() {
       <div className="mx-auto w-full max-w-5xl px-6 pb-16 pt-7 sm:px-10 sm:pt-9">
         <nav className="flex items-center justify-between" aria-label="Privacy page navigation">
           <Link href="/" aria-label="slate home">
-            <Image src="/brand/logo-light.svg" alt="slate" width={78} height={22} className="h-auto" priority />
+            <Image src="/brand/wordmark-light.svg" alt="slate" width={61} height={22} className="h-auto" priority />
           </Link>
           <Link href="/" className="inline-flex items-center gap-2 py-2 text-xs text-white/60 transition-colors hover:text-white">
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Back to Slate
