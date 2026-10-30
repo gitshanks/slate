@@ -199,6 +199,52 @@ paths:
           schema: { type: string, minLength: 1, maxLength: 200 }
       responses:
         '200': { description: Catalogue and people matches. }
+  /ai/suggest:
+    get:
+      summary: AI completions for a partly typed search.
+      operationId: aiSuggest
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string, maxLength: 200 }
+      responses:
+        '200': { description: '{ suggestions: string[] }; empty when AI is not configured or q is shorter than 2.' }
+  /ai/chat:
+    post:
+      summary: Ask Slate's AI, with the same tools as the web chat, over the signed-in library.
+      operationId: aiChat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                messages:
+                  type: array
+                  maxItems: 12
+                  items:
+                    type: object
+                    required: [role, content]
+                    properties:
+                      role: { type: string, enum: [user, assistant] }
+                      content: { type: string, maxLength: 2000 }
+                context:
+                  type: object
+                  description: The posters last shown, so follow-ups like "the second one" resolve.
+                  properties:
+                    results: { type: array, maxItems: 16, items: { type: object } }
+      responses:
+        '200':
+          description: >
+            NDJSON stream, one event per line: text {delta}, search_start,
+            search_result {intent, results}, error {message}, then done.
+          content:
+            application/x-ndjson: {}
+        '429': { description: Too many AI requests; retry shortly. }
+        '503': { description: AI is not configured on this server. }
   /titles:
     post:
       summary: Add a TMDB title to the signed-in library.

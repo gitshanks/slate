@@ -6,6 +6,7 @@ export type ApiErrorCode =
   | "not_authenticated"
   | "not_found"
   | "conflict"
+  | "rate_limited"
   | "configuration_error"
   | "internal_error";
 

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -77,7 +78,18 @@ export function libraryClientForOwner(ownerId: string): SupabaseClient {
   } as unknown as SupabaseClient;
 }
 
+// Native API requests authenticate with a bearer token, not the web session.
+// Shared code (AI chat tools, recommendations) that calls getLibraryClient()
+// runs inside runAsLibraryOwner so it reads that token's library instead.
+const nativeOwner = new AsyncLocalStorage<string>();
+
+export function runAsLibraryOwner<T>(ownerId: string, fn: () => T): T {
+  return nativeOwner.run(ownerId, fn);
+}
+
 export const getLibraryOwnerId = cache(async () => {
+  const native = nativeOwner.getStore();
+  if (native) return native;
   await requireAppAccess();
   if (!SLATE_HOSTED) return SELF_HOSTED_OWNER_ID;
   const session = await getAppSession();
@@ -89,6 +101,8 @@ export async function getLibraryClient(): Promise<SupabaseClient> {
   // Preserve the original single-user data contract exactly. In particular,
   // an existing Docker volume does not rerun schema.sql on upgrade, so it may
   // not have owner_id yet. Account scoping is a hosted-mode concern only.
+  const native = nativeOwner.getStore();
+  if (native) return libraryClientForOwner(native);
   if (!SLATE_HOSTED) {
     await requireAppAccess();
     return supabase;
