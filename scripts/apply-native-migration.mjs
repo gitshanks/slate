@@ -60,14 +60,14 @@ try {
       }),
     );
   } else {
-    const sql = readFileSync(
-      join(root, "supabase", "migrations", "20260805_native_identity_and_sessions.sql"),
-      "utf8",
-    );
+    // `--file <name>` applies a later native migration; the default is the original.
+    const fileArg = process.argv.indexOf("--file");
+    const file = fileArg > 0 ? process.argv[fileArg + 1] : "20260805_native_identity_and_sessions.sql";
+    const sql = readFileSync(join(root, "supabase", "migrations", file), "utf8");
     await client.query("begin");
     await client.query(sql);
     await client.query("commit");
-    console.log("Native identity and session migration applied.");
+    console.log(`Applied ${file}.`);
   }
 } catch (error) {
   await client.query("rollback").catch(() => undefined);

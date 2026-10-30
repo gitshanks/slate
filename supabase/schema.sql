@@ -272,8 +272,16 @@ create table if not exists device_sessions (
   created_at           timestamptz not null default now(),
   last_used_at         timestamptz not null default now(),
   expires_at           timestamptz not null,
-  revoked_at           timestamptz
+  revoked_at           timestamptz,
+  -- The token replaced by the last rotation, honoured briefly (see
+  -- REFRESH_GRACE_SECONDS) so a client that lost the reply isn't logged out.
+  previous_refresh_token_hash text,
+  rotated_at           timestamptz
 );
+
+create index if not exists device_sessions_previous_hash_idx
+  on device_sessions (previous_refresh_token_hash)
+  where previous_refresh_token_hash is not null;
 
 create index if not exists device_sessions_owner_idx
   on device_sessions (owner_id, revoked_at);

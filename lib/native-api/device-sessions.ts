@@ -20,6 +20,7 @@ interface DeviceSessionRow {
   refresh_token_hash: string;
   expires_at: string;
   revoked_at: string | null;
+  rotated_at: string | null;
 }
 
 export interface IssuedNativeSession {
@@ -62,20 +63,46 @@ export async function createDeviceSession(input: {
   };
 }
 
+/**
+ * How long the token replaced by a rotation keeps working. A client can lose
+ * the rotated token (killed after the server rotated, before it saved the
+ * reply); retrying with the previous one inside this window gets a fresh token
+ * instead of being logged out. Outside it, an old token is refused as before.
+ */
+export const REFRESH_GRACE_SECONDS = 60;
+
+const SESSION_COLUMNS =
+  "id, owner_id, platform, device_name, refresh_token_hash, expires_at, revoked_at, rotated_at";
+
 export async function rotateDeviceSession(
   refreshToken: string,
 ): Promise<IssuedNativeSession> {
-  const oldHash = hashRefreshToken(refreshToken);
+  const presentedHash = hashRefreshToken(refreshToken);
   const { data, error } = await supabase
     .from("device_sessions")
-    .select(
-      "id, owner_id, platform, device_name, refresh_token_hash, expires_at, revoked_at",
-    )
-    .eq("refresh_token_hash", oldHash)
+    .select(SESSION_COLUMNS)
+    .eq("refresh_token_hash", presentedHash)
     .maybeSingle();
   if (error) throw new Error(error.message);
 
-  const session = data as DeviceSessionRow | null;
+  let session = data as DeviceSessionRow | null;
+  // The current token, or the one just replaced (a retry inside the grace window).
+  let viaGrace = false;
+  if (!session) {
+    const { data: previous, error: previousError } = await supabase
+      .from("device_sessions")
+      .select(SESSION_COLUMNS)
+      .eq("previous_refresh_token_hash", presentedHash)
+      .maybeSingle();
+    if (previousError) throw new Error(previousError.message);
+    const candidate = previous as DeviceSessionRow | null;
+    const rotatedAt = candidate?.rotated_at ? new Date(candidate.rotated_at).getTime() : 0;
+    if (candidate && Date.now() - rotatedAt <= REFRESH_GRACE_SECONDS * 1000) {
+      session = candidate;
+      viaGrace = true;
+    }
+  }
+
   if (
     !session ||
     session.revoked_at ||
@@ -89,16 +116,30 @@ export async function rotateDeviceSession(
   }
 
   const next = createRefreshToken();
-  const { data: rotated, error: rotateError } = await supabase
-    .from("device_sessions")
-    .update({
-      refresh_token_hash: next.hash,
-      last_used_at: new Date().toISOString(),
-    })
-    .eq("id", session.id)
-    .eq("refresh_token_hash", oldHash)
-    .select("id")
-    .single();
+  const now = new Date().toISOString();
+  // A normal rotation remembers the token it replaces. A grace retry replaces
+  // only the lost token and keeps the original window (rotated_at unchanged),
+  // so the previous token can't be stretched beyond REFRESH_GRACE_SECONDS.
+  const { data: rotated, error: rotateError } = viaGrace
+    ? await supabase
+        .from("device_sessions")
+        .update({ refresh_token_hash: next.hash, last_used_at: now })
+        .eq("id", session.id)
+        .eq("previous_refresh_token_hash", presentedHash)
+        .select("id")
+        .single()
+    : await supabase
+        .from("device_sessions")
+        .update({
+          refresh_token_hash: next.hash,
+          previous_refresh_token_hash: presentedHash,
+          rotated_at: now,
+          last_used_at: now,
+        })
+        .eq("id", session.id)
+        .eq("refresh_token_hash", presentedHash)
+        .select("id")
+        .single();
   if (rotateError || !rotated) {
     throw new NativeApiError(
       401,
