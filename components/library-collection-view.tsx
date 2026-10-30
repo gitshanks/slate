@@ -490,7 +490,6 @@ export function LibraryCollectionView({
             showWatchingHero ? (
               <WatchingHero
                 titles={visibleShelfTitles}
-                onOpen={openShelfTitle}
                 onFeature={setAmbientPath}
               />
             ) : visibleShelfTitles.length ? (
