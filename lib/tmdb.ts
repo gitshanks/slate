@@ -855,6 +855,37 @@ function rotateRankedSeeds<T>(
  * /recommendations for each, merges by co-occurrence so titles surfaced
  * by multiple seeds rank higher, and strips anything already saved.
  */
+const RECOMMENDATION_MINIMUM = 12;
+const WIDELY_SEEN_VOTES = 300;
+const OLDEST_LONE_RECOMMENDATION_YEAR = 1990;
+// A title with few votes is pulled toward this average until it has earned its score.
+const AVERAGE_VOTE = 6.8;
+const VOTES_TO_TRUST = 500;
+
+function recommendationSeedWeight(seed: {
+  favorite?: boolean | null;
+  rating?: number | null;
+  status?: string | null;
+}): number {
+  if (seed.favorite || Number(seed.rating) >= 3) return 3;
+  if (Number(seed.rating) >= 2) return 2;
+  return 1;
+}
+
+function isWidelySeen(item: TmdbSearchResult): boolean {
+  const year = Number((item.release_date ?? item.first_air_date ?? "").slice(0, 4));
+  return (item.vote_count ?? 0) >= WIDELY_SEEN_VOTES && year >= OLDEST_LONE_RECOMMENDATION_YEAR;
+}
+
+function recommendationScore(entry: { item: TmdbSearchResult; taste: number }): number {
+  const votes = entry.item.vote_count ?? 0;
+  const earnedScore =
+    (votes * (entry.item.vote_average ?? 0) + VOTES_TO_TRUST * AVERAGE_VOTE) /
+    (votes + VOTES_TO_TRUST);
+  // Taste decides; the score only orders titles the library rates about equally.
+  return entry.taste * 2 + earnedScore;
+}
+
 export async function getRecommendedFromWatched(
   excludedKeys?: ReadonlySet<string>,
   options: TmdbRecommendationOptions = {},
@@ -940,7 +971,7 @@ export async function getRecommendedFromWatched(
     const seedCount = Math.floor(clampNumber(
       options.seedCount ?? (options.rotationSeed ? 6 : 8),
       1,
-      8,
+      16,
     ));
     const rankedActive = seeds
       .filter((seed) => seed.status !== "watched")
@@ -978,25 +1009,31 @@ export async function getRecommendedFromWatched(
       )
     );
 
-    // Merge by tmdb id, tallying co-occurrence so items recommended by
-    // multiple seeds float to the top.
-    const pool = new Map<string, { item: TmdbSearchResult; hits: number }>();
-    for (const list of fetched) {
+    // Merge by tmdb id, adding up how much the user likes each title that
+    // recommends it, so several loved titles agreeing outranks one loose link.
+    const pool = new Map<string, { item: TmdbSearchResult; hits: number; taste: number }>();
+    fetched.forEach((list, seedIndex) => {
+      const seedTaste = recommendationSeedWeight(topSeeds[seedIndex]);
       for (const item of list) {
         if (item.media_type !== "movie" && item.media_type !== "tv") continue;
         const key = `${item.media_type}:${item.id}`;
         if (savedKeys.has(key) || seedKeys.has(key)) continue;
         const prev = pool.get(key);
-        if (prev) prev.hits += 1;
-        else pool.set(key, { item, hits: 1 });
+        if (prev) {
+          prev.hits += 1;
+          prev.taste += seedTaste;
+        } else pool.set(key, { item, hits: 1, taste: seedTaste });
       }
-    }
+    });
 
-    return Array.from(pool.values())
-      .sort((a, b) => {
-        if (b.hits !== a.hits) return b.hits - a.hits;
-        return (b.item.vote_average ?? 0) - (a.item.vote_average ?? 0);
-      })
+    // TMDB's list for a single title reaches into obscure and very old shows,
+    // and a raw 9/10 from a dozen votes would otherwise win every tie. Those
+    // need a second title vouching for them to stay in.
+    const known = Array.from(pool.values()).filter(
+      (entry) => entry.hits > 1 || isWidelySeen(entry.item),
+    );
+    return (known.length >= RECOMMENDATION_MINIMUM ? known : Array.from(pool.values()))
+      .sort((a, b) => recommendationScore(b) - recommendationScore(a))
       .slice(0, 80)
       .map((e) => e.item);
   } catch {

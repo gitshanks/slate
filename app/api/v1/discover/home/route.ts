@@ -18,7 +18,8 @@ export async function GET(request: Request) {
     const db = libraryClientForOwner(claims.ownerId);
     const [{ data }, recommended, trending, nowPlaying] = await Promise.all([
       db.from("titles").select("tmdb_id, media_type"),
-      getRecommendedFromWatched(undefined, { db }),
+      // A wider read of the library than the default, for the TV's "Based on your library".
+      getRecommendedFromWatched(undefined, { db, seedCount: 14 }),
       getTrending(),
       getNowPlaying(),
     ]);
