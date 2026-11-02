@@ -21,25 +21,25 @@ function notEmpty(items: TmdbSearchResult[]) {
   return items;
 }
 const SHARED_RAIL_SECONDS = 6 * 60 * 60;
-const RECOMMENDED_SECONDS = 30 * 60;
 const cachedTrending = unstable_cache(async () => notEmpty(await getTrending()), ["discover-home-trending"], { revalidate: SHARED_RAIL_SECONDS });
 const cachedNowPlaying = unstable_cache(async () => notEmpty(await getNowPlaying()), ["discover-home-now-playing"], { revalidate: SHARED_RAIL_SECONDS });
 const cachedStreamingRail = unstable_cache(
-  (providerId: number) => getStreamingRail(providerId),
+  (providerId: string) => getStreamingRail(providerId),
   ["discover-home-streaming"],
   { revalidate: SHARED_RAIL_SECONDS },
 );
 
 // TMDB's watch provider ids.
 const STREAMING_SERVICES = [
-  { id: 8, slug: "netflix", name: "Netflix" },
-  { id: 9, slug: "prime", name: "Prime Video" },
-  { id: 337, slug: "disney", name: "Disney+" },
-  { id: 15, slug: "hulu", name: "Hulu" },
-  { id: 350, slug: "apple", name: "Apple TV" },
-  { id: 1899, slug: "max", name: "HBO Max" },
-  { id: 386, slug: "peacock", name: "Peacock" },
-  { id: 531, slug: "paramount", name: "Paramount+" },
+  { id: "8", slug: "netflix", name: "Netflix" },
+  { id: "9", slug: "prime", name: "Prime Video" },
+  { id: "337", slug: "disney", name: "Disney+" },
+  { id: "15", slug: "hulu", name: "Hulu" },
+  { id: "350", slug: "apple", name: "Apple TV" },
+  { id: "1899", slug: "max", name: "HBO Max" },
+  { id: "386", slug: "peacock", name: "Peacock" },
+  // Listed under its plans as well as the service.
+  { id: "531|2303|2616", slug: "paramount", name: "Paramount+" },
 ];
 
 /** The three rails of the web Discover page (components/discover-default.tsx), then one per streaming service. */
@@ -50,16 +50,11 @@ export async function GET(request: Request) {
     const streaming = Promise.all(
       STREAMING_SERVICES.map((service) => cachedStreamingRail(service.id).catch(() => [] as TmdbSearchResult[])),
     );
-    // Per person, and taken again for a change in taste within half an hour.
-    const cachedRecommended = unstable_cache(
-      // A wider read of the library than the default, for the TV's "Based on your library".
-      () => getRecommendedFromWatched(undefined, { db, seedCount: 14 }),
-      ["discover-home-recommended", claims.ownerId],
-      { revalidate: RECOMMENDED_SECONDS },
-    );
     const [{ data }, recommended, trending, nowPlaying, serviceRails] = await Promise.all([
       db.from("titles").select("tmdb_id, media_type"),
-      cachedRecommended(),
+      // Not in unstable_cache: this reads the library, which came back empty there. TVs only
+      // ask every few hours, so this costs little. A wider read of the library than the default.
+      getRecommendedFromWatched(undefined, { db, seedCount: 14 }),
       cachedTrending().catch(() => [] as TmdbSearchResult[]),
       cachedNowPlaying().catch(() => [] as TmdbSearchResult[]),
       streaming,

@@ -658,7 +658,7 @@ const STREAMING_NEW_DAYS = 120;
 const STREAMING_REGION = "US";
 
 /** What's new on one streaming service, then what's popular there, shows and films mixed. */
-export async function getStreamingRail(providerId: number): Promise<TmdbSearchResult[]> {
+export async function getStreamingRail(providerId: string): Promise<TmdbSearchResult[]> {
   const since = new Date(Date.now() - STREAMING_NEW_DAYS * 86_400_000).toISOString().slice(0, 10);
   const list = (type: "movie" | "tv", extra: Record<string, string>) =>
     tmdb<{ results: TmdbSearchResult[] }>(`/discover/${type}`, {
@@ -666,7 +666,7 @@ export async function getStreamingRail(providerId: number): Promise<TmdbSearchRe
       page: "1",
       sort_by: "popularity.desc",
       watch_region: STREAMING_REGION,
-      with_watch_providers: String(providerId),
+      with_watch_providers: providerId,
       ...extra,
     }, { revalidate: TMDB_CACHE_SECONDS.trending })
       .then((r) => r.results.map((item) => ({ ...item, media_type: type })))
