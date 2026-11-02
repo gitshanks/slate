@@ -652,6 +652,48 @@ export const getTitleMeta = cache(async (
 // ─── Discovery / catalogues ───────────────────────────────────────
 
 /** Trending titles across movies + tv for the past week (pages 1+2). */
+const STREAMING_RAIL_SIZE = 24;
+const STREAMING_NEW_FIRST = 6;
+const STREAMING_NEW_DAYS = 120;
+const STREAMING_REGION = "US";
+
+/** What's new on one streaming service, then what's popular there, shows and films mixed. */
+export async function getStreamingRail(providerId: number): Promise<TmdbSearchResult[]> {
+  const since = new Date(Date.now() - STREAMING_NEW_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const list = (type: "movie" | "tv", extra: Record<string, string>) =>
+    tmdb<{ results: TmdbSearchResult[] }>(`/discover/${type}`, {
+      language: "en-US",
+      page: "1",
+      sort_by: "popularity.desc",
+      watch_region: STREAMING_REGION,
+      with_watch_providers: String(providerId),
+      ...extra,
+    }, { revalidate: TMDB_CACHE_SECONDS.trending })
+      .then((r) => r.results.map((item) => ({ ...item, media_type: type })))
+      .catch(() => [] as TmdbSearchResult[]);
+  const [newShows, popularShows, popularMovies] = await Promise.all([
+    list("tv", { "first_air_date.gte": since, "vote_count.gte": "5" }),
+    list("tv", { "vote_count.gte": "100" }),
+    list("movie", { "vote_count.gte": "100" }),
+  ]);
+  // Thrown rather than returned empty, so a TMDB outage isn't cached for hours.
+  if (newShows.length + popularShows.length + popularMovies.length === 0) {
+    throw new Error(`No streaming titles for provider ${providerId}`);
+  }
+  const popular = [...popularShows, ...popularMovies].sort(
+    (a, b) => (b.popularity ?? 0) - (a.popularity ?? 0),
+  );
+  const seen = new Set<string>();
+  return [...newShows.slice(0, STREAMING_NEW_FIRST), ...popular]
+    .filter((item) => {
+      const key = `${item.media_type}:${item.id}`;
+      if (seen.has(key) || !item.poster_path) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, STREAMING_RAIL_SIZE);
+}
+
 export async function getTrending(): Promise<TmdbSearchResult[]> {
   try {
     const [p1, p2] = await Promise.all([
