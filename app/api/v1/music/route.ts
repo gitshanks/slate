@@ -11,12 +11,25 @@ const CHART_SECONDS = 6 * 60 * 60;
 const MUSIC_CATEGORY = "10";
 const RESULTS = "24";
 const CHART_REGION = "US";
+const PLAYLIST_SECONDS = 24 * 60 * 60;
+const PLAYLIST_ID = /^[A-Za-z0-9_-]{10,64}$/;
+const UNAVAILABLE = new Set(["Deleted video", "Private video"]);
+const COMMUNITY_SEARCHES = [
+  "top hits playlist",
+  "chill vibes playlist",
+  "bollywood hits playlist",
+  "workout music playlist",
+  "classic rock playlist",
+];
+const PER_COMMUNITY_SEARCH = "5";
 
 interface YoutubeItem {
-  id: string | { videoId?: string };
+  id: string | { videoId?: string; playlistId?: string };
   snippet?: {
     title?: string;
     channelTitle?: string;
+    videoOwnerChannelTitle?: string;
+    resourceId?: { videoId?: string };
     thumbnails?: { medium?: { url?: string } };
   };
 }
@@ -30,7 +43,7 @@ function decodeEntities(text: string): string {
     .replace(/&gt;/g, ">");
 }
 
-async function youtube(path: string, params: Record<string, string>, revalidate: number) {
+async function youtubeItems(path: string, params: Record<string, string>, revalidate: number) {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) throw new NativeApiError(503, "configuration_error", "Music search isn't set up.");
   const url = new URL(`${YOUTUBE}/${path}`);
@@ -39,13 +52,19 @@ async function youtube(path: string, params: Record<string, string>, revalidate:
   const res = await fetch(url, { cache: "force-cache", next: { revalidate } });
   if (!res.ok) throw new Error(`YouTube ${res.status} ${path}`);
   const body = (await res.json()) as { items?: YoutubeItem[] };
-  const tracks = (body.items ?? []).flatMap((item) => {
-    const videoId = typeof item.id === "string" ? item.id : item.id.videoId;
-    if (!videoId) return [];
+  return body.items ?? [];
+}
+
+async function youtube(path: string, params: Record<string, string>, revalidate: number) {
+  const items = await youtubeItems(path, params, revalidate);
+  const tracks = items.flatMap((item) => {
+    const videoId = item.snippet?.resourceId?.videoId
+      ?? (typeof item.id === "string" ? item.id : item.id.videoId);
+    if (!videoId || UNAVAILABLE.has(item.snippet?.title ?? "")) return [];
     return [{
       videoId,
       title: decodeEntities(item.snippet?.title ?? ""),
-      channel: decodeEntities(item.snippet?.channelTitle ?? ""),
+      channel: decodeEntities(item.snippet?.videoOwnerChannelTitle ?? item.snippet?.channelTitle ?? "").replace(/ - Topic$/, ""),
       thumbnail: item.snippet?.thumbnails?.medium?.url ?? null,
     }];
   });
@@ -82,11 +101,46 @@ const cachedChart = unstable_cache(
   { revalidate: CHART_SECONDS },
 );
 
-/** Songs for the TV's Music page: a search with `q`, otherwise what's popular. */
+// Five searches at 100 units each, once a week.
+const cachedCommunity = unstable_cache(
+  async () => {
+    const found = await Promise.all(COMMUNITY_SEARCHES.map((query) =>
+      youtubeItems("search", { part: "snippet", type: "playlist", maxResults: PER_COMMUNITY_SEARCH, q: query }, SEARCH_SECONDS)));
+    const playlists = found.flat().flatMap((item) => {
+      const id = typeof item.id === "string" ? null : item.id.playlistId;
+      if (!id) return [];
+      return [{
+        id,
+        title: decodeEntities(item.snippet?.title ?? ""),
+        channel: decodeEntities(item.snippet?.channelTitle ?? ""),
+        thumbnail: item.snippet?.thumbnails?.medium?.url ?? null,
+      }];
+    });
+    if (playlists.length === 0) throw new Error("YouTube returned no playlists");
+    return playlists;
+  },
+  ["music-community"],
+  { revalidate: SEARCH_SECONDS },
+);
+
+const cachedPlaylist = unstable_cache(
+  (id: string) => youtube("playlistItems", { part: "snippet", playlistId: id, maxResults: "50" }, PLAYLIST_SECONDS),
+  ["music-playlist"],
+  { revalidate: PLAYLIST_SECONDS },
+);
+
+/** The TV's Music page: a search with `q`, a public playlist, the list of those, or what's popular. */
 export async function GET(request: Request) {
   try {
     await authenticateNativeRequest(request);
-    const query = new URL(request.url).searchParams.get("q")?.trim().toLowerCase() ?? "";
+    const params = new URL(request.url).searchParams;
+    if (params.has("playlists")) return apiData({ playlists: await cachedCommunity() });
+    const playlist = params.get("playlist");
+    if (playlist !== null) {
+      if (!PLAYLIST_ID.test(playlist)) throw new NativeApiError(400, "bad_request", "That isn't a playlist.");
+      return apiData({ tracks: await cachedPlaylist(playlist) });
+    }
+    const query = params.get("q")?.trim().toLowerCase() ?? "";
     if (query.length > 200) {
       throw new NativeApiError(400, "bad_request", "That search is too long.");
     }
