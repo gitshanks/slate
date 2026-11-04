@@ -19,7 +19,6 @@ import {
   OwnerMenu,
 } from "@/components/owned-app-toolbar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { AmbientBackdrop, WATCHING_FEATURED_ID, WatchingHero } from "@/components/watching-hero";
 import { ProfileShareButton } from "@/components/profile-share-button";
 import {
   useCommandPalette,
@@ -398,15 +397,6 @@ export function LibraryCollectionView({
     [],
   );
 
-  // The Watching shelf is presented as a featured card + "Now watching" list
-  // (as on slate for TV) instead of a poster grid. It uses the same filtered,
-  // ordered titles, so sort, filters and search still apply.
-  const showWatchingHero =
-    mode === "shelf" &&
-    activeStatus === "watching" &&
-    visibleShelfTitles.length > 0;
-  const [ambientPath, setAmbientPath] = React.useState<string | null>(null);
-
   React.useEffect(() => {
     if (shelfTitle && !titles.some((title) => title.id === shelfTitle.id)) {
       closeShelfTitle();
@@ -421,7 +411,6 @@ export function LibraryCollectionView({
         mode === "space" && "h-full",
       )}
     >
-      {showWatchingHero ? <AmbientBackdrop path={ambientPath} /> : null}
       <OwnedAppToolbar
         id="library-collection-controls"
         ariaLabel="Your slate controls"
@@ -487,13 +476,7 @@ export function LibraryCollectionView({
           className="w-full flex-1 px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 md:px-5 lg:px-8 xl:px-10"
         >
           {titles.length ? (
-            showWatchingHero ? (
-              <WatchingHero
-                titles={visibleShelfTitles}
-                onOpen={openShelfTitle}
-                onFeature={setAmbientPath}
-              />
-            ) : visibleShelfTitles.length ? (
+            visibleShelfTitles.length ? (
               <MediaGrid
                 titles={visibleShelfTitles}
                 reorderContext={reorderContext}
@@ -564,9 +547,7 @@ export function LibraryCollectionView({
           title={shelfTitle}
           detailSource={titleDetailSource}
           renderActions={renderActions}
-          // The Watching hero has no grid poster; the slab sits beside its card.
-          anchorTitleId={showWatchingHero ? undefined : shelfTitle.id}
-          anchorElementId={showWatchingHero ? WATCHING_FEATURED_ID : undefined}
+          anchorTitleId={shelfTitle.id}
           scrollContainerId="app-scroll-area"
           centerAfterId="library-collection-controls"
           onClose={closeShelfTitle}
