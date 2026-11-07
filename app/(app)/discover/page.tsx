@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { runDiscoverForIntent } from "@/lib/ai-chat";
 import { savedAmong } from "@/lib/search";
-import { getLibraryClient } from "@/lib/library-db";
+import { getEditableListOptions } from "@/lib/shared-lists";
 import type { SearchIntent } from "@/lib/ai-search";
 import { DiscoverView } from "@/components/discover-view";
 import { DiscoverDefault } from "@/components/discover-default";
@@ -73,17 +73,11 @@ export default async function DiscoverPage(props: PageProps<"/discover">) {
     Boolean(intent.query_text) ||
     intent.sort_by != null;
 
-  const db = await getLibraryClient();
-  const [media, listsResult] = await Promise.all([
+  const [media, lists] = await Promise.all([
     hasIntent ? runDiscoverForIntent(intent) : Promise.resolve([]),
-    db.from("lists").select("id, name").order("name"),
+    getEditableListOptions(),
   ]);
-  if (listsResult.error) throw new Error(listsResult.error.message);
   const savedTmdbIds = await savedAmong(media.map((m) => m.id));
-  const lists = (listsResult.data ?? []).map((list) => ({
-    id: String(list.id),
-    name: String(list.name),
-  }));
 
   return (
     <DiscoverTitleOverlayProvider lists={lists}>

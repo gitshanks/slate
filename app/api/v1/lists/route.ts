@@ -1,10 +1,10 @@
 import { libraryClientForOwner } from "@/lib/library-db";
-import { listDTO } from "@/lib/native-api/dto";
+import { listDTO, titleDTO } from "@/lib/native-api/dto";
 import { apiData, apiError, NativeApiError, optionalString, readJsonObject } from "@/lib/native-api/http";
 import { authenticateNativeRequest } from "@/lib/native-api/tokens";
 import type { ListRow } from "@/lib/types";
 import { slugify } from "@/lib/utils";
-import { getAccessibleListsForOwner, getListCardRows } from "@/lib/shared-lists";
+import { getAccessibleListsForOwner, getListCardRows, getListTitles } from "@/lib/shared-lists";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +13,17 @@ export async function GET(request: Request) {
   try {
     const claims = await authenticateNativeRequest(request);
     const lists = await getAccessibleListsForOwner(claims.ownerId);
+    // `?titles=1` sends every list's titles too, so a TV's Home rails take
+    // one request instead of one per list.
+    if (new URL(request.url).searchParams.get("titles") === "1") {
+      const withTitles = await Promise.all(
+        lists.map(async (list) => {
+          const titles = (await getListTitles(list)).map(titleDTO);
+          return { ...listDTO(list), count: titles.length, titles };
+        }),
+      );
+      return apiData({ lists: withTitles });
+    }
     const ids = lists.map((list) => String(list.id));
     const summaries = new Map<string, { count: number; posterPaths: string[] }>();
     if (ids.length) {

@@ -1049,6 +1049,7 @@ export function CommandPaletteProvider({
             }));
             updateCachedDiscoverTitleSavedTitle(title, nextRecord);
           }}
+          lists={lists}
         />
       );
     },

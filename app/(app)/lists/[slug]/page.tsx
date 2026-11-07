@@ -19,7 +19,7 @@ import { SLATE_HOSTED } from "@/lib/public-mode";
 export const dynamic = "force-dynamic";
 
 export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) {
-  const { slug } = await props.params;
+  const [{ slug }, search] = await Promise.all([props.params, props.searchParams]);
   const db = await getLibraryClient();
   const list = await getAccessibleList(slug);
   if (!list) notFound();
@@ -82,14 +82,19 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
       </div>
 
       <div className="mb-10">
-        <AddToListPicker listId={list.id} candidates={candidates as TitleRow[]} />
+        <AddToListPicker
+          listId={list.id}
+          candidates={candidates as TitleRow[]}
+          inList={[...inThisCatalogue]}
+          defaultOpen={search.add === "1"}
+        />
       </div>
 
       {displayTitles.length === 0 ? (
         <EmptyState
           icon={<ListPlus className="h-6 w-6" />}
-          title="Empty list"
-          description="Add titles from your library above."
+          title="Nothing here yet"
+          description="Use Add titles to search any film or show. You can also add from any title's page, Discover or search."
         />
       ) : (
         <DiscoverTitleOverlayProvider lists={allLists}>

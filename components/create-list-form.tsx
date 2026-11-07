@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { createList } from "@/lib/actions";
+import { toast } from "sonner";
 import { captureAnalytics } from "@/lib/analytics";
 
 /**
@@ -22,17 +23,24 @@ export function CreateListForm() {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [pending, start] = React.useTransition();
+  const [name, setName] = React.useState("");
 
   function handleSubmit(fd: FormData) {
     start(async () => {
-      const hasDescription = Boolean(String(fd.get("description") ?? "").trim());
-      const { slug } = await createList(fd);
-      captureAnalytics("list_created", {
-        source: "lists_page",
-        has_description: hasDescription,
-      });
-      setOpen(false);
-      router.push(`/lists/${slug}`);
+      try {
+        const hasDescription = Boolean(String(fd.get("description") ?? "").trim());
+        const { slug } = await createList(fd);
+        captureAnalytics("list_created", {
+          source: "lists_page",
+          has_description: hasDescription,
+        });
+        setOpen(false);
+        setName("");
+        // Straight into adding titles, with the search open.
+        router.push(`/lists/${slug}?add=1`);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "The list couldn't be made.");
+      }
     });
   }
 
@@ -56,6 +64,9 @@ export function CreateListForm() {
             autoFocus
             name="name"
             required
+            maxLength={100}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="List name (e.g. Cozy winter)"
             className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground"
           />
@@ -74,8 +85,8 @@ export function CreateListForm() {
             >
               Cancel
             </Button>
-            <Button type="submit" size="sm" loading={pending}>
-              Create
+            <Button type="submit" size="sm" loading={pending} disabled={!name.trim()}>
+              Create and add titles
             </Button>
           </div>
         </form>

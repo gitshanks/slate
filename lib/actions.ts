@@ -470,12 +470,80 @@ export async function createListAndAddTitle(
   return list;
 }
 
+type ListTitleLink = {
+  list_id: string;
+  title_id: string;
+  titles: { tmdb_id: number; media_type: string } | { tmdb_id: number; media_type: string }[] | null;
+};
+
+function linkKey(link: ListTitleLink) {
+  const title = Array.isArray(link.titles) ? link.titles[0] : link.titles;
+  return title ? `${title.media_type}:${title.tmdb_id}` : null;
+}
+
+/** The links in these lists, with each title's catalogue key. */
+async function listLinks(lists: { id: string; owner_id?: string | null }[]) {
+  if (!lists.length) return [];
+  const db = SLATE_HOSTED ? supabase : await getLibraryClient();
+  const { data, error } = await db
+    .from("list_titles")
+    .select("list_id, title_id, titles(tmdb_id, media_type)")
+    .in("list_id", lists.map((list) => list.id));
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as ListTitleLink[];
+}
+
+/**
+ * Which of your lists already hold this film or show, matched by catalogue id
+ * so a shared list counts it whoever added it. `titleId` is the row in that
+ * list, which is what removing it needs.
+ */
+export async function getTitleListMemberships(
+  titleId: string,
+): Promise<{ listId: string; titleId: string }[]> {
+  const db = await getLibraryClient();
+  const { data: title } = await db
+    .from("titles")
+    .select("tmdb_id, media_type")
+    .eq("id", titleId)
+    .maybeSingle();
+  if (!title) return [];
+  const key = `${title.media_type}:${title.tmdb_id}`;
+  const { getAccessibleLists } = await import("@/lib/shared-lists");
+  const lists = await getAccessibleLists();
+  return (await listLinks(lists))
+    .filter((link) => linkKey(link) === key)
+    .map((link) => ({ listId: link.list_id, titleId: link.title_id }));
+}
+
+/**
+ * Add any film or show to a list, from search or anywhere else. A list holds
+ * library titles, so one you haven't saved goes into Up Next as well.
+ */
+export async function addCatalogueTitleToList(
+  listId: string,
+  tmdbId: number,
+  mediaType: "movie" | "tv",
+): Promise<{ titleId: string }> {
+  const row = await addTitle({ tmdbId, mediaType, status: "want" });
+  if (!row?.id) throw new Error("Title could not be added.");
+  await addTitleToList(listId, row.id);
+  return { titleId: row.id };
+}
+
 export async function addTitleToList(listId: string, titleId: string) {
   const ownerId = await getLibraryOwnerId();
   const db = await getLibraryClient();
   const list = await requireListAccessForOwner(ownerId, listId);
-  const { data: title } = await db.from("titles").select("id").eq("id", titleId).maybeSingle();
+  const { data: title } = await db
+    .from("titles")
+    .select("id, tmdb_id, media_type")
+    .eq("id", titleId)
+    .maybeSingle();
   if (!title) throw new Error("Title not found");
+  // Already there, perhaps added by someone else sharing the list.
+  const key = `${title.media_type}:${title.tmdb_id}`;
+  if ((await listLinks([list])).some((link) => linkKey(link) === key)) return;
   const listDb = SLATE_HOSTED ? supabase : db;
 
   let positionsQuery = listDb

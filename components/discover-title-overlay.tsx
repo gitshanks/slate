@@ -12,6 +12,7 @@ import {
 } from "@/components/discover-title-overlay-context";
 import { StatusPill } from "@/components/status-pill";
 import { LibraryTitleActions } from "@/components/library-title-actions";
+import { AddTitleToListButton } from "@/components/add-title-to-list-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -137,14 +138,20 @@ export function DiscoverTitleActions({
   savedFallback,
   savedState,
   onSaved,
+  lists,
 }: {
   title: TitleRow;
   detail: PublicSpatialTitleDetail | null;
   savedFallback: boolean;
   savedState: SavedState | undefined;
   onSaved: (record: PublicSpatialSavedTitle) => void;
+  /** Lists it can go into straight from here, which saves it to Up Next. */
+  lists?: { id: string; name: string }[];
 }) {
   const [isPending, startTransition] = React.useTransition();
+  // Saved by picking a list. Handed over once the list menu closes, since the
+  // full library controls replace this one and would close it mid-pick.
+  const savedForListRef = React.useRef<PublicSpatialSavedTitle | null>(null);
   const detailRecord = detail?.savedTitle ?? null;
   // When the caller hands us provider-owned state it is authoritative — an
   // explicit `{ saved: false, record: null }` after a removal must override a
@@ -199,6 +206,7 @@ export function DiscoverTitleActions({
   }
 
   return (
+    <>
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button
@@ -246,6 +254,28 @@ export function DiscoverTitleActions({
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+    {lists ? (
+      <AddTitleToListButton
+        lists={lists}
+        ensureTitleId={async () => {
+          const row = await addTitle({
+            tmdbId: title.tmdb_id,
+            mediaType: title.media_type,
+            status: "want",
+          });
+          if (!row?.id) throw new Error("Title could not be added.");
+          savedForListRef.current = { id: row.id, status: row.status ?? "want" };
+          return row.id;
+        }}
+        onOpenChange={(open) => {
+          const record = savedForListRef.current;
+          if (open || !record) return;
+          savedForListRef.current = null;
+          onSaved(record);
+        }}
+      />
+    ) : null}
+    </>
   );
 }
 
@@ -427,6 +457,7 @@ export function DiscoverTitleOverlayProvider({
           savedFallback={selection.savedFallback}
           savedState={state}
           onSaved={(nextRecord) => rememberSaved(title, nextRecord)}
+          lists={publicPreview ? undefined : lists}
         />
       );
     },

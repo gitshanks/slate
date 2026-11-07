@@ -5,7 +5,8 @@ import { BottomNav } from "@/components/bottom-nav";
 import { AppScrollArea } from "@/components/app-scroll-area";
 import { DemoBanner } from "@/components/demo-banner";
 import { aiSearchEnabled } from "@/lib/ai-search";
-import { getLibraryClient, getLibraryOwnerId } from "@/lib/library-db";
+import { getLibraryOwnerId } from "@/lib/library-db";
+import { getEditableListOptions } from "@/lib/shared-lists";
 import { getProfileById, profileAvatarUrl } from "@/lib/profiles";
 import { SLATE_HOSTED, SLATE_PUBLIC } from "@/lib/public-mode";
 import { getAppSession } from "@/lib/app-access";
@@ -16,19 +17,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // This layout and the data-access layer are the authorization boundary.
   // Keeping the check here avoids a billable Proxy invocation on every route.
   const ownerId = await getLibraryOwnerId();
-  const [profile, db, session] = await Promise.all([
+  const [profile, session] = await Promise.all([
     SLATE_HOSTED ? getProfileById(ownerId) : Promise.resolve(null),
-    getLibraryClient(),
     SLATE_HOSTED ? getAppSession() : Promise.resolve(null),
   ]);
-  const listsResult = await db.from("lists").select("id, name").order("name");
   if (SLATE_HOSTED && profile && !profile.onboarding_completed_at) {
     redirect("/onboarding");
   }
-  const lists = (listsResult.data ?? []).map((list) => ({
-    id: String(list.id),
-    name: String(list.name),
-  }));
+  // Lists you own and lists shared with you, for every add-to-list control.
+  const lists = await getEditableListOptions().catch(() => []);
 
   return (
     // AiConversationProvider wraps everything so the command palette and the
