@@ -565,6 +565,15 @@ export async function addTitleToList(listId: string, titleId: string) {
   revalidatePath("/lists");
 }
 
+/** Show a list on your TV's Home, or keep it off. Only changes your own TV. */
+export async function setListOnTv(listId: string, show: boolean) {
+  const ownerId = await getLibraryOwnerId();
+  await requireListAccessForOwner(ownerId, listId);
+  const { setListShownOnTv } = await import("@/lib/list-tv");
+  await setListShownOnTv(ownerId, listId, show);
+  revalidatePath("/lists", "layout");
+}
+
 export async function removeTitleFromList(listId: string, titleId: string) {
   const ownerId = await getLibraryOwnerId();
   const list = await requireListAccessForOwner(ownerId, listId);

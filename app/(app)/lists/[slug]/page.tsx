@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { ListPlus } from "lucide-react";
 import { type TitleRow } from "@/lib/supabase";
-import { getLibraryClient } from "@/lib/library-db";
+import { getLibraryClient, getLibraryOwnerId } from "@/lib/library-db";
 import { DiscoverTitleOverlayProvider } from "@/components/discover-title-overlay";
 import { ListTitlesOverlayGrid } from "@/components/list-titles-overlay-grid";
 import { EmptyState } from "@/components/empty-state";
@@ -9,6 +9,8 @@ import { AddToListPicker } from "@/components/add-to-list-picker";
 import { DeleteListButton } from "@/components/delete-list-button";
 import { ShareListButton } from "@/components/share-list-button";
 import { ListPeople } from "@/components/list-people";
+import { ListTvToggle } from "@/components/list-tv-toggle";
+import { getTvHiddenListIds } from "@/lib/list-tv";
 import {
   getAccessibleList,
   getEditableListOptions,
@@ -53,7 +55,10 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
     : titles;
 
   // Every list this person can edit, for the overlay's add-to-list picker.
-  const allLists = await getEditableListOptions();
+  const [allLists, hiddenOnTv] = await Promise.all([
+    getEditableListOptions(),
+    getLibraryOwnerId().then(getTvHiddenListIds).catch(() => new Set<string>()),
+  ]);
 
   return (
     <div>
@@ -75,7 +80,8 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
             </div>
           ) : null}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+          <ListTvToggle listId={list.id} onTv={!hiddenOnTv.has(list.id)} />
           {SLATE_HOSTED ? <ShareListButton listId={list.id} listName={list.name} owner={list.owner} members={list.members} isOwner={list.isOwner} /> : null}
           {list.isOwner ? <DeleteListButton listId={list.id} listName={list.name} /> : null}
         </div>
