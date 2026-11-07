@@ -589,6 +589,29 @@ export async function removeTitleFromList(listId: string, titleId: string) {
   revalidatePath("/lists");
 }
 
+/**
+ * Rename a list or change its description. Owner only, like deleting. The slug is kept,
+ * so links to the list still work after a rename.
+ */
+export async function updateListDetails(listId: string, name: string, description: string) {
+  const trimmedName = name.trim();
+  const trimmedDescription = description.trim();
+  if (!trimmedName) throw new Error("A list needs a name.");
+  if (trimmedName.length > 80) throw new Error("Keep the name under 80 characters.");
+  if (trimmedDescription.length > 280) throw new Error("Keep the description under 280 characters.");
+  const ownerId = await getLibraryOwnerId();
+  const list = await requireListAccessForOwner(ownerId, listId, true);
+  const db = SLATE_HOSTED ? supabase : await getLibraryClient();
+  let updateQuery = db
+    .from("lists")
+    .update({ name: trimmedName, description: trimmedDescription || null })
+    .eq("id", listId);
+  if (SLATE_HOSTED) updateQuery = updateQuery.eq("owner_id", list.owner_id ?? "");
+  const { error } = await updateQuery;
+  if (error) throw new Error(error.message);
+  revalidatePath("/lists", "layout");
+}
+
 export async function deleteList(listId: string) {
   const ownerId = await getLibraryOwnerId();
   const list = await requireListAccessForOwner(ownerId, listId, true);

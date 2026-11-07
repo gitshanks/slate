@@ -10,6 +10,7 @@ import { DeleteListButton } from "@/components/delete-list-button";
 import { ShareListButton } from "@/components/share-list-button";
 import { ListPeople } from "@/components/list-people";
 import { ListTvToggle } from "@/components/list-tv-toggle";
+import { ListHeader } from "@/components/list-header";
 import { getTvHiddenListIds } from "@/lib/list-tv";
 import {
   getAccessibleList,
@@ -62,30 +63,25 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
 
   return (
     <div>
-      <div className="mb-10 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-            {isShared ? "Shared list" : "List"}
-          </p>
-          <h1 className="mt-1 text-4xl font-semibold tracking-tight">{list.name}</h1>
-          {list.description && (
-            <p className="mt-2 max-w-2xl text-muted-foreground">
-              {list.description}
-            </p>
-          )}
-          {isShared ? (
-            <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-              <ListPeople people={people} />
-              <span>{list.isOwner ? `You and ${list.members.length} ${list.members.length === 1 ? "person" : "people"}` : `Shared by ${list.owner?.displayName ?? "the owner"}`}</span>
-            </div>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
-          <ListTvToggle listId={list.id} onTv={!hiddenOnTv.has(list.id)} />
-          {SLATE_HOSTED ? <ShareListButton listId={list.id} listName={list.name} owner={list.owner} members={list.members} isOwner={list.isOwner} /> : null}
-          {list.isOwner ? <DeleteListButton listId={list.id} listName={list.name} /> : null}
-        </div>
-      </div>
+      <ListHeader
+        listId={list.id}
+        name={list.name}
+        description={list.description}
+        canEdit={list.isOwner}
+        people={isShared ? (
+          <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+            <ListPeople people={people} />
+            <span>{list.isOwner ? `Shared with ${list.members.length} ${list.members.length === 1 ? "person" : "people"}` : `Shared by ${list.owner?.displayName ?? "the owner"}`}</span>
+          </div>
+        ) : null}
+        actions={
+          <>
+            <ListTvToggle listId={list.id} onTv={!hiddenOnTv.has(list.id)} />
+            {SLATE_HOSTED ? <ShareListButton listId={list.id} listName={list.name} owner={list.owner} members={list.members} isOwner={list.isOwner} /> : null}
+          </>
+        }
+        trailing={list.isOwner ? <DeleteListButton listId={list.id} listName={list.name} iconOnly className="h-9 w-9" /> : null}
+      />
 
       <div className="mb-10">
         <AddToListPicker

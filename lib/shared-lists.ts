@@ -174,10 +174,12 @@ export async function getAccessibleList(segment: string): Promise<AccessibleList
   const ownerId = await getLibraryOwnerId();
   if (!SLATE_HOSTED) {
     const db = await getLibraryClient();
-    const query = UUID.test(segment)
-      ? db.from("lists").select("*").eq("id", segment)
-      : db.from("lists").select("*").eq("slug", segment);
-    const { data } = await query.maybeSingle();
+    // Links use the id; the demo's ids aren't UUIDs, so an id that isn't one is still
+    // tried as an id before falling back to the slug.
+    const byId = await db.from("lists").select("*").eq("id", segment).maybeSingle();
+    const data = byId.data ?? (UUID.test(segment)
+      ? null
+      : (await db.from("lists").select("*").eq("slug", segment).maybeSingle()).data);
     if (!data) return null;
     return (await decorateLists([data as ListRow], ownerId, []))[0] ?? null;
   }

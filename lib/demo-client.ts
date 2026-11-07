@@ -31,6 +31,7 @@ interface DemoState {
   addedListTitles: DemoListTitle[];
   removedListTitleKeys: string[]; // "listId:titleId"
   listTitlePositions: Record<string, number>; // "listId:titleId" → position
+  listPatches?: Record<string, Partial<ListRow>>; // renamed lists, by id
 }
 
 function emptyState(): DemoState {
@@ -100,9 +101,9 @@ function allTitles(state: DemoState): TitleRow[] {
 }
 
 function allLists(state: DemoState): ListRow[] {
-  return [...DEMO_LISTS, ...state.addedLists].filter(
-    (l) => !state.deletedListIds.includes(l.id)
-  );
+  return [...DEMO_LISTS, ...state.addedLists]
+    .filter((l) => !state.deletedListIds.includes(l.id))
+    .map((l) => ({ ...l, ...(state.listPatches?.[l.id] ?? {}) }));
 }
 
 function allListTitles(state: DemoState): DemoListTitle[] {
@@ -565,6 +566,18 @@ async function execUpdate(
       },
     };
     await writeState(next);
+    return { data: null, error: null };
+  }
+
+  if (b.table === "lists") {
+    const eqFilter = b.filters.find((f) => f.kind === "eq" && f.col === "id");
+    if (!eqFilter) return { data: null, error: { message: "update requires .eq('id', ...)" } };
+    const id = String(eqFilter.val);
+    const listPatches = state.listPatches ?? {};
+    await writeState({
+      ...state,
+      listPatches: { ...listPatches, [id]: { ...(listPatches[id] ?? {}), ...patch } as Partial<ListRow> },
+    });
     return { data: null, error: null };
   }
 
