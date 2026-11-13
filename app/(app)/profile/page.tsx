@@ -9,6 +9,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PrivacyPreferencesButton } from "@/components/analytics/privacy-preferences-button";
 import { DeleteAccountSettings } from "@/components/delete-account-settings";
+import { getAppSession } from "@/lib/app-access";
+import { isAdminEmail } from "@/lib/admin-insights";
 
 export const metadata: Metadata = {
   title: "Profile · slate",
@@ -18,7 +20,7 @@ export const metadata: Metadata = {
 export default async function ProfilePage() {
   if (!SLATE_HOSTED) redirect(APP_ROOT);
   const ownerId = await getLibraryOwnerId();
-  const profile = await getProfileById(ownerId);
+  const [profile, session] = await Promise.all([getProfileById(ownerId), getAppSession()]);
 
   if (!profile) {
     return (
@@ -55,6 +57,23 @@ export default async function ProfilePage() {
           origin={origin}
           avatarUrl={avatarUrl}
         />
+
+        {isAdminEmail(session?.user?.email) ? (
+          <section className="mt-5 flex flex-col gap-4 rounded-[1.5rem] border border-border/70 bg-card/45 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div>
+              <h2 className="text-sm font-medium">Insights</h2>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Signups, usage and what people watch. Only admins see this.
+              </p>
+            </div>
+            <Link
+              href="/admin"
+              className="text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Open insights
+            </Link>
+          </section>
+        ) : null}
 
         <section className="mt-5 flex flex-col gap-4 rounded-[1.5rem] border border-border/70 bg-card/45 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>

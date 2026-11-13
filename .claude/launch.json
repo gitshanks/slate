@@ -14,6 +14,19 @@
       "runtimeArgs": ["-c", "[ -d node_modules ] || npm ci --prefer-offline --no-audit --no-fund; NEXT_PUBLIC_DEMO_MODE=1 npx next dev --port 3002"],
       "port": 3002,
       "autoPort": true
+    },
+    {
+      "name": "watchlist-win",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "npx next dev"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "watchlist-demo-win",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set NEXT_PUBLIC_DEMO_MODE=1&& npx next dev --port 3002"],
+      "port": 3002
     }
   ]
 }

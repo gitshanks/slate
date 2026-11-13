@@ -64,6 +64,9 @@ export default function PrivacyPage() {
                 Essential storage keeps you signed in and remembers your settings and privacy choice. If you accept analytics, additional identifiers connect visits and activity; the analytics cookie lasts up to 180 days.
               </p>
               <p>
+                When you first visit, a cookie notes how you arrived: the site or app that linked you here and any campaign tag in the link. It holds no identifier and lasts 30 days. If you create an account, that source is saved with it so we can see which posts bring people to Slate. It is skipped when your browser sends Global Privacy Control or Do Not Track, or when you decline analytics.
+              </p>
+              <p>
                 You can change your choice through Privacy choices in the footer or Profile settings. Turning analytics off stops new collection on that browser. We also respect Global Privacy Control and Do Not Track signals.
               </p>
             </PolicySection>

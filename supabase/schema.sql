@@ -318,3 +318,18 @@ drop trigger if exists list_titles_touch_updated_at on list_titles;
 create trigger list_titles_touch_updated_at
 before update on list_titles
 for each row execute function slate_touch_updated_at();
+
+-- First-touch signup attribution: where an account's first visit came from
+-- (UTM tags, referring site host, in-app browser). One row per account, written
+-- once at sign-up. Read by the admin insights page.
+create table if not exists signup_sources (
+  owner_id      text primary key references profiles(id) on delete cascade,
+  source        text not null,
+  medium        text,
+  campaign      text,
+  referrer_host text,
+  in_app        text,
+  landing_path  text,
+  first_seen_at timestamptz,
+  recorded_at   timestamptz not null default now()
+);

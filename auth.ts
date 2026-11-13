@@ -7,6 +7,7 @@ import { ensureGoogleProfile, getProfileById } from "@/lib/profiles";
 import { belongsToAccount } from "@/lib/account-session";
 import { resolveNativeOwner } from "@/lib/native-api/account";
 import { SLATE_HOSTED } from "@/lib/public-mode";
+import { recordSignupSource } from "@/lib/signup-source-server";
 import {
   accountOwnerForEmail,
   consumeEmailCode,
@@ -144,6 +145,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // refreshing an old cookie must never restore a deleted identity.
         if (!account && !belongsToAccount(token, currentProfile.created_at)) return null;
         token.accountCreatedAt = currentProfile.created_at;
+        if (account) {
+          try {
+            await recordSignupSource(token.userId);
+          } catch {
+            // Attribution is additive and must never block a sign-in.
+          }
+        }
       }
       if (!token.emailAccountLinked && token.userId && token.email) {
         try {

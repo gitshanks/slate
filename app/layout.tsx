@@ -7,6 +7,8 @@ import { AccentProvider } from "@/components/accent-provider";
 import { SonnerToaster } from "@/components/ui/sonner";
 import { UpdateBanner } from "@/components/update-banner";
 import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
+import { SignupSourceCapture } from "@/components/analytics/signup-source-capture";
+import { SLATE_HOSTED } from "@/lib/public-mode";
 import { ACCENT_STORAGE_KEY, DEFAULT_ACCENT } from "@/lib/accent-theme";
 import { siteOrigin } from "@/lib/site-url";
 import "./globals.css";
@@ -90,6 +92,7 @@ export default function RootLayout({
               <SonnerToaster />
               <UpdateBanner />
               <AnalyticsProvider />
+              {SLATE_HOSTED ? <SignupSourceCapture /> : null}
             </AccentProvider>
           </ThemeProvider>
         </MotionConfig>
