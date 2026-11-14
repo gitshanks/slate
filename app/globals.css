@@ -868,3 +868,72 @@ body:has(#app-bottom-nav)
   }
 
 }
+
+/* ─── Add from a link ──────────────────────────────────────────── */
+/* One hairline under the source carries the wait: a short run of the accent
+   crossing it. Selection lives on the poster itself: chosen titles stay at
+   full strength and the rest step back. */
+.link-import-scan {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 28%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--primary)),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: link-import-scan 1.15s var(--ease-ui-move) infinite;
+  will-change: transform;
+}
+
+@keyframes link-import-scan {
+  to { transform: translateX(460%); }
+}
+
+.link-import-press {
+  transition: transform 150ms var(--ease-ui-out);
+}
+
+.link-import-tile:not(:disabled):active .link-import-press {
+  transform: scale(0.97);
+}
+
+.link-import-art {
+  transition:
+    opacity 160ms ease,
+    filter 160ms ease;
+}
+
+.link-import-tile[data-state="off"] .link-import-art {
+  opacity: 0.36;
+  filter: saturate(0.5);
+}
+
+.link-import-tile[data-state="owned"] .link-import-art {
+  opacity: 0.5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .link-import-tile[data-state="off"]:hover .link-import-art {
+    opacity: 0.62;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link-import-scan {
+    width: 100%;
+    transform: none;
+    animation: loading-fade 1s ease-in-out infinite;
+  }
+
+  .link-import-press {
+    transition-duration: 0ms;
+  }
+
+  .link-import-tile:not(:disabled):active .link-import-press {
+    transform: none;
+  }
+}

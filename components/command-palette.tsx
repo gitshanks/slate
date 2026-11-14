@@ -1775,8 +1775,12 @@ export function CommandPaletteProvider({
                 Back to results
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <LinkImporter initialShare={linkInput ?? undefined} autoStart />
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [scrollbar-color:hsl(var(--border))_transparent] [scrollbar-width:thin]">
+              <LinkImporter
+                initialShare={linkInput ?? undefined}
+                autoStart
+                variant="embedded"
+              />
             </div>
           </div>
         ) : (
