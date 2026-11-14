@@ -1,23 +1,14 @@
 "use client";
 
 import * as React from "react";
-import type {
-  SharedLinkCandidate,
-  SharedLinkResolution,
-} from "@/lib/shared-link-resolver";
-
-/** What the importer needs to come back to after a title card closes. */
-export interface LinkPreviewSnapshot {
-  resolution: SharedLinkResolution;
-  selected: string[];
-}
+import type { SharedLinkCandidate } from "@/lib/shared-link-resolver";
 
 export interface LinkPreviewOptions {
-  snapshot: LinkPreviewSnapshot;
-  /** Called when the card closes while the importer stayed mounted. */
+  /** Called when the card closes, with whether the title was added from it. */
   onClose: (savedFromCard: boolean) => void;
 }
 
+/** Opens a title's card on top of the link results it was found in. */
 export type LinkPreviewHandler = (
   candidate: SharedLinkCandidate,
   options: LinkPreviewOptions,

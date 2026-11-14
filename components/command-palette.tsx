@@ -38,8 +38,8 @@ import {
   LinkPreviewContext,
   type LinkPreviewHandler,
   type LinkPreviewOptions,
-  type LinkPreviewSnapshot,
 } from "@/components/link-preview-context";
+import { LayerAboveDialog } from "@/components/layer-above-dialog";
 import {
   CollectionTitleDetailOverlay,
   type TitleDetailSource,
@@ -251,12 +251,11 @@ export function CommandPaletteProvider({
   const [aiMode, setAiMode] = React.useState(false);
   const [linkMode, setLinkMode] = React.useState(false);
   const [linkInput, setLinkInput] = React.useState<SharedLinkInput | null>(null);
-  // A title card opened from the link results. While it is up the dialog is
-  // closed, so the results it came from are kept here to reopen on.
-  const [linkRestore, setLinkRestore] =
-    React.useState<LinkPreviewSnapshot | null>(null);
+  // A title card opened from the link results. The results stay open
+  // underneath it; `cardOverDialog` is true while the card sits on the dialog.
+  const [cardOverDialog, setCardOverDialog] = React.useState(false);
   const linkPreviewRef = React.useRef<
-    (LinkPreviewOptions & { key: string; fromDialog: boolean }) | null
+    (LinkPreviewOptions & { key: string }) | null
   >(null);
   const [askReturnQuery, setAskReturnQuery] = React.useState("");
   const [results, setResults] = React.useState<SearchResult[]>([]);
@@ -691,10 +690,6 @@ export function CommandPaletteProvider({
   // provider) so it survives close and the modal → /discover page hop.
   React.useEffect(() => {
     if (!open && !activeSurfaceId) {
-      // Closed only to show a title card from the link results: keep the
-      // session so closing the card returns to the same selection.
-      if (linkPreviewRef.current?.fromDialog) return;
-      setLinkRestore(null);
       skipAutoFocusRef.current = false;
       setQuery("");
       setResults([]);
@@ -1187,7 +1182,6 @@ export function CommandPaletteProvider({
     setAiMode(false);
     setAskReturnQuery("");
     setLinkInput({ url: value, text: value });
-    setLinkRestore(null);
     setLinkMode(true);
     setOpen(true);
     inputRef.current?.blur();
@@ -1198,9 +1192,8 @@ export function CommandPaletteProvider({
       linkPreviewRef.current = {
         ...options,
         key: `${candidate.mediaType}-${candidate.tmdbId}`,
-        fromDialog: open,
       };
-      if (open) setOpen(false);
+      setCardOverDialog(open);
       setPaletteSlab({
         id: candidate.tmdbId,
         media_type: candidate.mediaType,
@@ -1220,32 +1213,8 @@ export function CommandPaletteProvider({
     const pending = linkPreviewRef.current;
     linkPreviewRef.current = null;
     setPaletteSlab(null);
-    if (!pending) return;
-    const savedFromCard =
-      Boolean(saved[pending.key]) || justAdded.has(pending.key);
-    if (!pending.fromDialog) {
-      pending.onClose(savedFromCard);
-      return;
-    }
-    const [mediaType, tmdbId] = pending.key.split("-");
-    const candidateKey = `${tmdbId}:${mediaType}`;
-    const { resolution, selected } = pending.snapshot;
-    setLinkRestore(
-      savedFromCard
-        ? {
-            resolution: {
-              ...resolution,
-              candidates: resolution.candidates.map((item) =>
-                `${item.tmdbId}:${item.mediaType}` === candidateKey
-                  ? { ...item, inLibrary: true }
-                  : item,
-              ),
-            },
-            selected: selected.filter((key) => key !== candidateKey),
-          }
-        : pending.snapshot,
-    );
-    setOpen(true);
+    setCardOverDialog(false);
+    pending?.onClose(Boolean(saved[pending.key]) || justAdded.has(pending.key));
   }, [justAdded, saved]);
 
   // Enter in Ask submits the input as a chat turn instead of letting cmdk
@@ -1736,7 +1705,13 @@ export function CommandPaletteProvider({
         preventOutsideDismiss
         // One stable canvas: mobile gets a dedicated full-height surface,
         // desktop keeps the same geometry across results and Ask.
-        contentClassName="h-[100dvh] rounded-none sm:h-[min(720px,calc(100dvh-2rem))] sm:max-w-2xl sm:rounded-2xl"
+        // While a title card is open over the results, the dialog steps below
+        // the card's layers instead of closing, so it is still there behind.
+        contentClassName={cn(
+          "h-[100dvh] rounded-none sm:h-[min(720px,calc(100dvh-2rem))] sm:max-w-2xl sm:rounded-2xl",
+          cardOverDialog && "z-[54]",
+        )}
+        overlayClassName={cardOverDialog ? "z-[53]" : undefined}
       >
         <div className="relative">
           {!linkMode ? (
@@ -1854,7 +1829,6 @@ export function CommandPaletteProvider({
                 initialShare={linkInput ?? undefined}
                 autoStart
                 variant="embedded"
-                restore={linkRestore}
               />
             </div>
           </div>
@@ -1870,7 +1844,14 @@ export function CommandPaletteProvider({
             renderActions={paletteRenderActions}
             scrollContainerId="app-scroll-area"
             centerWithinSelector="[data-title-overlay-safe-area]"
+            dimBackground={cardOverDialog}
             onClose={closePaletteSlab}
+          />
+        ) : null}
+        {paletteSlab && cardOverDialog ? (
+          <LayerAboveDialog
+            label={`${catalogueTitle(paletteSlab).title} details`}
+            onDismiss={closePaletteSlab}
           />
         ) : null}
         </LinkPreviewContext.Provider>

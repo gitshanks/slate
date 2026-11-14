@@ -981,9 +981,11 @@ function DetailRecommendations({
 function TitleDetailDismissLayer({
   onDismiss,
   style,
+  className,
 }: {
   onDismiss: () => void;
   style?: React.CSSProperties;
+  className?: string;
 }) {
   const consumeGesture = React.useCallback(
     (event: React.SyntheticEvent<HTMLDivElement>) => {
@@ -996,7 +998,12 @@ function TitleDetailDismissLayer({
     <div
       data-spatial-dismiss-layer
       aria-hidden
-      className="fixed inset-0 z-[55] cursor-default touch-none select-none"
+      // An open modal dialog turns pointer events off for the rest of the
+      // page; this layer and the card opt back in so they work above one.
+      className={cn(
+        "pointer-events-auto fixed inset-0 z-[55] cursor-default touch-none select-none",
+        className,
+      )}
       style={style}
       onPointerDown={consumeGesture}
       onPointerUp={consumeGesture}
@@ -1565,10 +1572,13 @@ export function CollectionTitleDetailOverlay({
   scrollContainerId,
   centerAfterId,
   centerWithinSelector,
+  dimBackground = false,
 }: {
   title: TitleRow;
   detailSource: TitleDetailSource;
   onClose: () => void;
+  /** Step what is behind the card back, e.g. results it was opened from. */
+  dimBackground?: boolean;
   /** The Shelf source card this slab should sit alongside. */
   anchorTitleId?: string;
   /** Exact source element for repeated catalogue titles in Discover rails. */
@@ -1994,7 +2004,14 @@ export function CollectionTitleDetailOverlay({
   const overlay = (
     <>
       {position ? (
-        <TitleDetailDismissLayer onDismiss={onClose} />
+        <TitleDetailDismissLayer
+          onDismiss={onClose}
+          className={
+            dimBackground
+              ? "bg-background/60 duration-200 animate-in fade-in-0 motion-reduce:animate-none"
+              : undefined
+          }
+        />
       ) : null}
       {position && dialogVisible ? (
         <div
@@ -2006,7 +2023,7 @@ export function CollectionTitleDetailOverlay({
           onKeyDown={trapTitleDialogFocus}
           data-spatial-slab
           className={cn(
-            "fixed z-[60] origin-center",
+            "pointer-events-auto fixed z-[60] origin-center",
             position.placement === "center"
               ? "left-1/2 w-[min(84vw,27rem)] -translate-x-1/2 -translate-y-1/2"
               : "-translate-y-1/2",

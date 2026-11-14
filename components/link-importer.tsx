@@ -33,10 +33,7 @@ import type {
   SharedLinkInput,
   SharedLinkResolution,
 } from "@/lib/shared-link-resolver";
-import {
-  useLinkPreview,
-  type LinkPreviewSnapshot,
-} from "@/components/link-preview-context";
+import { useLinkPreview } from "@/components/link-preview-context";
 import { DUR, EASE, fadeIn, fadeInUp, staggerContainer } from "@/lib/motion";
 import { posterUrl } from "@/lib/tmdb-image";
 import { APP_ROOT } from "@/lib/public-mode";
@@ -49,8 +46,6 @@ interface LinkImporterProps {
   /** "embedded" drops the outer padding model of the page and fills its
       scroll container, so the action bar can pin to the bottom of a dialog. */
   variant?: "page" | "embedded";
-  /** Results to reopen on, after a title card opened from here has closed. */
-  restore?: LinkPreviewSnapshot | null;
 }
 
 type Phase = "idle" | "resolving" | "review" | "saved";
@@ -102,25 +97,15 @@ export function LinkImporter({
   initialShare,
   autoStart = false,
   variant = "page",
-  restore = null,
 }: LinkImporterProps) {
   const embedded = variant === "embedded";
   const preview = useLinkPreview();
-  const startsResolving =
-    autoStart && !restore && Boolean(initialDraft(initialShare));
+  const startsResolving = autoStart && Boolean(initialDraft(initialShare));
   const [draft, setDraft] = useState(() => initialDraft(initialShare));
   const [submitted, setSubmitted] = useState(() => initialDraft(initialShare));
-  const [phase, setPhase] = useState<Phase>(
-    restore ? "review" : startsResolving ? "resolving" : "idle",
-  );
-  const [resolution, setResolution] = useState<SharedLinkResolution | null>(
-    restore?.resolution ?? null,
-  );
-  const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(restore?.selected ?? []),
-  );
-  // Coming back from a title card should not replay the entrance.
-  const [restored] = useState(Boolean(restore));
+  const [phase, setPhase] = useState<Phase>(startsResolving ? "resolving" : "idle");
+  const [resolution, setResolution] = useState<SharedLinkResolution | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [saveResult, setSaveResult] = useState<AddSharedTitlesResult | null>(null);
   const [saving, startSaving] = useTransition();
@@ -176,11 +161,10 @@ export function LinkImporter({
   }, []);
 
   useEffect(() => {
-    if (restore) return;
     if (!autoStart || autoStarted.current || !initialDraft(initialShare)) return;
     autoStarted.current = true;
     void resolveShare(initialShare ?? {});
-  }, [autoStart, initialShare, resolveShare, restore]);
+  }, [autoStart, initialShare, resolveShare]);
 
   const selectedCandidates = useMemo(() => {
     return (resolution?.candidates ?? []).filter((candidate) =>
@@ -231,7 +215,6 @@ export function LinkImporter({
     if (!preview || !resolution) return;
     const key = candidateKey(candidate);
     preview(candidate, {
-      snapshot: { resolution, selected: [...selected] },
       // A title added from its card is in slate now, so it leaves the
       // selection here instead of being added twice.
       onClose: (savedFromCard) => {
@@ -374,7 +357,6 @@ export function LinkImporter({
           saving={saving}
           onToggle={toggleCandidate}
           onPreview={preview ? previewCandidate : undefined}
-          animateIn={!restored}
           onSelectAll={setAllSelected}
           onSave={saveSelected}
         />
@@ -691,7 +673,6 @@ function ReviewState({
   saving,
   onToggle,
   onPreview,
-  animateIn,
   onSelectAll,
   onSave,
 }: {
@@ -703,7 +684,6 @@ function ReviewState({
   saving: boolean;
   onToggle: (candidate: SharedLinkCandidate) => void;
   onPreview?: (candidate: SharedLinkCandidate) => void;
-  animateIn: boolean;
   onSelectAll: (on: boolean) => void;
   onSave: () => void;
 }) {
@@ -730,7 +710,7 @@ function ReviewState({
     return (
       <motion.div
         className={cn("py-5", className)}
-        initial={animateIn ? "hidden" : false}
+        initial="hidden"
         animate="visible"
         variants={fadeIn}
       >
@@ -820,7 +800,7 @@ function ReviewState({
 
         <motion.div
           className={cn(GRID, !embedded && "lg:grid-cols-5")}
-          initial={animateIn ? "hidden" : false}
+          initial="hidden"
           animate="visible"
           variants={container}
         >
