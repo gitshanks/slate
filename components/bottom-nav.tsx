@@ -8,6 +8,7 @@ import {
   useCommandPalette,
   useSmartSearchSession,
 } from "@/components/command-palette";
+import { DockMercury } from "@/components/dock-mercury";
 import { cn } from "@/lib/utils";
 import { APP_ROOT } from "@/lib/public-mode";
 import { PRIMARY_TAB_TRANSITION } from "@/lib/motion";
@@ -132,18 +133,7 @@ export function BottomNav() {
             backdropFilter: "blur(8px) saturate(1.08)",
           }}
         >
-          <li
-            aria-hidden
-            className="pointer-events-none absolute inset-1 z-0 overflow-hidden rounded-full"
-          >
-            <span
-              className="absolute inset-y-0 left-0 w-1/4 rounded-full border border-primary/20 bg-primary/[0.14] transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform [backface-visibility:hidden] motion-reduce:transition-opacity motion-reduce:duration-150"
-              style={{
-                opacity: visualActiveIndex === -1 ? 0 : 1,
-                transform: `translate3d(${Math.max(visualActiveIndex, 0) * 100}%, 0, 0)`,
-              }}
-            />
-          </li>
+          <DockMercury index={visualActiveIndex} slots={TABS.length} />
 
           {TABS.map((t) => {
             const active = t.href === visualActiveHref;
@@ -168,8 +158,10 @@ export function BottomNav() {
                   data-analytics-area="primary_navigation"
                   className={cn(
                     "relative isolate grid h-full touch-manipulation grid-rows-[20px_11px] content-center justify-items-center gap-[5px] overflow-hidden rounded-full px-1 text-[11px] font-medium tracking-tight outline-none transition-[color,transform] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97] max-[359px]:px-0 max-[359px]:text-[10px] motion-reduce:transition-colors motion-reduce:active:scale-100",
+                    // The label waits a beat so it turns as the bead arrives,
+                    // not while the tab is still bare.
                     active
-                      ? "text-primary"
+                      ? "text-[hsl(var(--mercury-ink))] delay-100 motion-reduce:delay-0"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
