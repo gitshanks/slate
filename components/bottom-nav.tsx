@@ -8,7 +8,7 @@ import {
   useCommandPalette,
   useSmartSearchSession,
 } from "@/components/command-palette";
-import { DockMercury } from "@/components/dock-mercury";
+import { DockLiquid } from "@/components/dock-liquid";
 import { cn } from "@/lib/utils";
 import { APP_ROOT } from "@/lib/public-mode";
 import { PRIMARY_TAB_TRANSITION } from "@/lib/motion";
@@ -50,6 +50,9 @@ export function BottomNav() {
   const { inlineOpen, resultsListId } = useSmartSearchSession();
   const [rememberedTab, setRememberedTab] = React.useState<string | null>(null);
   const [optimisticTab, setOptimisticTab] = React.useState<string | null>(null);
+  // The selector sits above the links, so it draws the keyboard focus ring
+  // for whichever tab holds it.
+  const [focusedTab, setFocusedTab] = React.useState<string | null>(null);
 
   // Hydrate from sessionStorage on mount so a hard reload on a detail
   // route still highlights the last tab from the previous session.
@@ -133,10 +136,13 @@ export function BottomNav() {
             backdropFilter: "blur(8px) saturate(1.08)",
           }}
         >
-          <DockMercury index={visualActiveIndex} slots={TABS.length} />
+          <DockLiquid
+            index={visualActiveIndex}
+            items={TABS}
+            focusedIndex={TABS.findIndex((tab) => tab.href === focusedTab)}
+          />
 
           {TABS.map((t) => {
-            const active = t.href === visualActiveHref;
             const current = t.href === activeHref;
             const Icon = t.icon;
             return (
@@ -148,6 +154,12 @@ export function BottomNav() {
                   // always-visible dock entered the viewport.
                   prefetch={t.href === "/previews" ? false : true}
                   onNavigate={() => setOptimisticTab(t.href)}
+                  onFocus={(event) => {
+                    if (event.currentTarget.matches(":focus-visible")) {
+                      setFocusedTab(t.href);
+                    }
+                  }}
+                  onBlur={() => setFocusedTab(null)}
                   transitionTypes={
                     isExactPrimaryTab && pathname !== t.href
                       ? [PRIMARY_TAB_TRANSITION]
@@ -156,22 +168,11 @@ export function BottomNav() {
                   aria-current={current ? "page" : undefined}
                   data-analytics-action={`navigate_${t.label.toLowerCase()}`}
                   data-analytics-area="primary_navigation"
-                  className={cn(
-                    "relative isolate grid h-full touch-manipulation grid-rows-[20px_11px] content-center justify-items-center gap-[5px] overflow-hidden rounded-full px-1 text-[11px] font-medium tracking-tight outline-none transition-[color,transform] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97] max-[359px]:px-0 max-[359px]:text-[10px] motion-reduce:transition-colors motion-reduce:active:scale-100",
-                    // The label waits a beat so it turns as the bead arrives,
-                    // not while the tab is still bare.
-                    active
-                      ? "text-[hsl(var(--mercury-ink))] delay-100 motion-reduce:delay-0"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
+                  // The ink-coloured label of the current tab is drawn by the
+                  // selector itself, in step with the bead.
+                  className="relative isolate grid h-full touch-manipulation grid-rows-[20px_11px] content-center justify-items-center gap-[5px] overflow-hidden rounded-full px-1 text-[11px] font-medium tracking-tight text-muted-foreground outline-none transition-[color,transform] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset active:scale-[0.97] max-[359px]:px-0 max-[359px]:text-[10px] motion-reduce:transition-colors motion-reduce:active:scale-100"
                 >
-                  <Icon
-                    className={cn(
-                      "h-5 w-5 shrink-0 transition-transform duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none motion-reduce:scale-100",
-                      active && "scale-[1.04]",
-                    )}
-                    aria-hidden
-                  />
+                  <Icon className="h-5 w-5 shrink-0" aria-hidden />
                   <span className="max-w-full truncate leading-[11px]">
                     {t.label}
                   </span>

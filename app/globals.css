@@ -966,20 +966,3 @@ body:has(#app-bottom-nav)
     animation: none;
   }
 }
-
-/* ─── Dock selector ─────────────────────────────────────────────── */
-/* Liquid metal: bright silver on the dark theme, black chrome on the light
-   one, with the label ink that reads on each. */
-:root {
-  --mercury-top: 220 9% 36%;
-  --mercury-mid: 224 14% 13%;
-  --mercury-bottom: 220 10% 27%;
-  --mercury-ink: 220 30% 98%;
-}
-
-.dark {
-  --mercury-top: 210 22% 97%;
-  --mercury-mid: 214 12% 66%;
-  --mercury-bottom: 210 16% 86%;
-  --mercury-ink: 240 8% 5%;
-}
