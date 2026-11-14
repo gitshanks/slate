@@ -897,7 +897,7 @@ body:has(#app-bottom-nav)
   transition: transform 150ms var(--ease-ui-out);
 }
 
-.link-import-tile:not(:disabled):active .link-import-press {
+.link-import-toggle:not(:disabled):active .link-import-press {
   transform: scale(0.97);
 }
 
@@ -933,7 +933,53 @@ body:has(#app-bottom-nav)
     transition-duration: 0ms;
   }
 
-  .link-import-tile:not(:disabled):active .link-import-press {
+  .link-import-toggle:not(:disabled):active .link-import-press {
     transform: none;
   }
+}
+
+/* ─── Profile ───────────────────────────────────────────────────── */
+/* The page arrives in order: who you are, your shelves, then the settings. */
+.profile-rise {
+  animation: profile-rise 360ms var(--ease-ui-out) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.profile-reveal {
+  animation: profile-reveal 220ms var(--ease-ui-out) both;
+}
+
+@keyframes profile-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes profile-reveal {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-rise,
+  .profile-reveal {
+    animation: none;
+  }
+}
+
+/* ─── Dock selector ─────────────────────────────────────────────── */
+/* Liquid metal: bright silver on the dark theme, black chrome on the light
+   one, with the label ink that reads on each. */
+:root {
+  --mercury-top: 220 9% 36%;
+  --mercury-mid: 224 14% 13%;
+  --mercury-bottom: 220 10% 27%;
+  --mercury-ink: 220 30% 98%;
+}
+
+.dark {
+  --mercury-top: 210 22% 97%;
+  --mercury-mid: 214 12% 66%;
+  --mercury-bottom: 210 16% 86%;
+  --mercury-ink: 240 8% 5%;
 }

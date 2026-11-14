@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { deleteAccount } from "@/lib/account-actions";
 import { resetAnalyticsIdentity } from "@/lib/analytics";
+import { settingsRowClass } from "@/components/settings-group";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 
 export function DeleteAccountSettings() {
@@ -30,17 +31,20 @@ export function DeleteAccountSettings() {
   }, [state.ok]);
 
   return (
-    <section className="mt-5 flex flex-col gap-4 rounded-[1.5rem] border border-border/70 bg-card/45 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-      <div>
-        <h2 className="text-sm font-medium">Delete account</h2>
-        <p className="mt-1 max-w-md text-xs leading-5 text-muted-foreground">
+    <div className={settingsRowClass}>
+      <div className="min-w-0 flex-1">
+        <h2 className="text-[15px] font-medium leading-tight">Delete account</h2>
+        <p className="mt-1 max-w-md text-[13px] leading-snug text-muted-foreground">
           Permanently remove your profile, library, and lists you own.
         </p>
       </div>
       <Dialog open={open} onOpenChange={(next) => { if (!pending) { setOpen(next); setConfirmation(""); } }}>
         <DialogTrigger asChild>
-          <button type="button" className="shrink-0 rounded-full border border-destructive/30 px-4 py-2.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10">
-            Delete account
+          <button
+            type="button"
+            className="inline-flex h-9 shrink-0 items-center rounded-xl px-3.5 text-[13px] font-medium text-destructive outline-none transition-[transform,background-color] duration-150 ease-[var(--ease-ui-out)] hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/60 active:scale-[0.97]"
+          >
+            Delete…
           </button>
         </DialogTrigger>
         <DialogContent className="max-h-[100dvh] overflow-y-auto sm:max-w-md" onEscapeKeyDown={(event) => { if (pending) event.preventDefault(); }} onPointerDownOutside={(event) => { if (pending) event.preventDefault(); }}>
@@ -69,6 +73,6 @@ export function DeleteAccountSettings() {
           </form>
         </DialogContent>
       </Dialog>
-    </section>
+    </div>
   );
 }

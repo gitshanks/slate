@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { LogOut } from "lucide-react";
 import { signOut } from "@/auth";
-import { getLibraryOwnerId } from "@/lib/library-db";
+import { getLibraryClient, getLibraryOwnerId } from "@/lib/library-db";
 import { getProfileById, profileAvatarUrl } from "@/lib/profiles";
-import { ProfileSettingsForm } from "@/components/profile-settings-form";
+import {
+  ProfileScreen,
+  type ProfileShelfCounts,
+} from "@/components/profile-screen";
 import { APP_ROOT, SLATE_HOSTED } from "@/lib/public-mode";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { PrivacyPreferencesButton } from "@/components/analytics/privacy-preferences-button";
-import { DeleteAccountSettings } from "@/components/delete-account-settings";
 import { getAppSession } from "@/lib/app-access";
 import { isAdminEmail } from "@/lib/admin-insights";
 
@@ -17,10 +16,37 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// The shelf counts are a nicety: if they cannot be read the page still opens.
+async function shelfCounts(): Promise<ProfileShelfCounts | null> {
+  try {
+    const db = await getLibraryClient();
+    const { data, error } = await db.from("titles").select("status");
+    if (error || !data) return null;
+    const counts: ProfileShelfCounts = { upNext: 0, watching: 0, watched: 0 };
+    for (const row of data) {
+      if (row.status === "want") counts.upNext += 1;
+      else if (row.status === "watching") counts.watching += 1;
+      else if (row.status === "watched") counts.watched += 1;
+    }
+    return counts;
+  } catch {
+    return null;
+  }
+}
+
+async function signOutAction() {
+  "use server";
+  await signOut({ redirectTo: "/" });
+}
+
 export default async function ProfilePage() {
   if (!SLATE_HOSTED) redirect(APP_ROOT);
   const ownerId = await getLibraryOwnerId();
-  const [profile, session] = await Promise.all([getProfileById(ownerId), getAppSession()]);
+  const [profile, session, counts] = await Promise.all([
+    getProfileById(ownerId),
+    getAppSession(),
+    shelfCounts(),
+  ]);
 
   if (!profile) {
     return (
@@ -36,80 +62,27 @@ export default async function ProfilePage() {
   const origin =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
     "https://www.s1ate.space";
-  const avatarUrl = profileAvatarUrl(profile);
+  const created = new Date(profile.created_at);
+  const joined = Number.isNaN(created.getTime())
+    ? null
+    : created.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      });
 
   return (
-    <div className="mx-auto w-full max-w-3xl pb-4 sm:pb-8">
-      <header className="max-w-2xl">
-        <h1 className="text-[2.5rem] font-semibold leading-none tracking-[-0.05em] sm:text-5xl">
-          Profile
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-[15px]">
-          Manage how you appear on slate and what friends can see.
-        </p>
-      </header>
-
-      <div className="mt-7 min-w-0 sm:mt-9">
-        <ProfileSettingsForm
-          displayName={profile.display_name}
-          username={profile.username}
-          isPublic={profile.is_public}
-          origin={origin}
-          avatarUrl={avatarUrl}
-        />
-
-        {isAdminEmail(session?.user?.email) ? (
-          <section className="mt-5 flex flex-col gap-4 rounded-[1.5rem] border border-border/70 bg-card/45 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-            <div>
-              <h2 className="text-sm font-medium">Insights</h2>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Signups, usage and what people watch. Only admins see this.
-              </p>
-            </div>
-            <Link
-              href="/admin"
-              className="text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Open insights
-            </Link>
-          </section>
-        ) : null}
-
-        <section className="mt-5 flex flex-col gap-4 rounded-[1.5rem] border border-border/70 bg-card/45 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-          <div>
-            <h2 className="text-sm font-medium">Data and privacy</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Review what slate collects or change optional analytics.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/privacy" className="text-xs font-medium text-muted-foreground hover:text-foreground">
-              Read details
-            </Link>
-            <PrivacyPreferencesButton compact />
-          </div>
-        </section>
-
-        <DeleteAccountSettings />
-
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/" });
-          }}
-          className="mt-5 flex justify-end"
-          data-analytics-reset="true"
-          data-analytics-form="sign_out"
-        >
-          <button
-            type="submit"
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border/70 bg-card/35 px-4 text-xs font-medium text-muted-foreground transition-[background-color,border-color,color,transform] hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive active:scale-[0.98] sm:w-auto"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Sign out
-          </button>
-        </form>
-      </div>
-    </div>
+    <ProfileScreen
+      displayName={profile.display_name}
+      username={profile.username}
+      isPublic={profile.is_public}
+      origin={origin}
+      avatarUrl={profileAvatarUrl(profile)}
+      email={session?.user?.email ?? null}
+      joined={joined}
+      counts={counts}
+      isAdmin={isAdminEmail(session?.user?.email)}
+      signOutAction={signOutAction}
+    />
   );
 }

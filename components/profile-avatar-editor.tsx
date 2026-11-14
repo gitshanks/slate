@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle, UserRound } from "lucide-react";
+import { Camera, LoaderCircle, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { captureAnalytics } from "@/lib/analytics";
@@ -187,14 +187,14 @@ export function ProfileAvatarEditor({
   }
 
   return (
-    <div className="shrink-0">
+    <div className="group/avatar relative shrink-0">
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
         aria-label={currentAvatar ? "Change profile photo" : "Add profile photo"}
         title={currentAvatar ? "Change profile photo" : "Add profile photo"}
-        className="relative h-[5.25rem] w-[5.25rem] overflow-hidden rounded-[1.55rem] border border-border/80 bg-background text-muted-foreground outline-none transition-[border-color,opacity,transform] hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-[0.98] disabled:pointer-events-none sm:h-24 sm:w-24 sm:rounded-[1.75rem]"
+        className="relative block h-[5.5rem] w-[5.5rem] overflow-hidden rounded-[1.6rem] bg-card text-muted-foreground outline-none ring-1 ring-foreground/10 transition-[box-shadow,transform] duration-150 ease-[var(--ease-ui-out)] hover:ring-foreground/25 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none sm:h-28 sm:w-28 sm:rounded-[2rem]"
       >
         {currentAvatar ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -206,7 +206,13 @@ export function ProfileAvatarEditor({
           />
         ) : (
           <span className="flex h-full w-full items-center justify-center">
-            <UserRound className="h-8 w-8" />
+            {displayName.trim() ? (
+              <span className="text-[2.25rem] font-semibold leading-none tracking-[-0.04em] text-foreground/80 sm:text-[2.75rem]">
+                {displayName.trim().slice(0, 1).toLocaleUpperCase()}
+              </span>
+            ) : (
+              <UserRound className="h-8 w-8" />
+            )}
           </span>
         )}
         {uploading ? (
@@ -215,6 +221,12 @@ export function ProfileAvatarEditor({
           </span>
         ) : null}
       </button>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full bg-foreground text-background ring-4 ring-background transition-transform duration-150 ease-[var(--ease-ui-out)] group-hover/avatar:scale-105"
+      >
+        <Camera className="h-3.5 w-3.5" strokeWidth={2.25} />
+      </span>
 
       <input
         ref={inputRef}

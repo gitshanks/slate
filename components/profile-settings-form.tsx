@@ -15,6 +15,11 @@ import {
   type ProfileActionState,
 } from "@/lib/profile-actions";
 import { ProfileAvatarEditor } from "@/components/profile-avatar-editor";
+import {
+  SettingsGroup,
+  settingsButtonClass,
+  settingsRowClass,
+} from "@/components/settings-group";
 import { cn } from "@/lib/utils";
 import { captureAnalytics } from "@/lib/analytics";
 
@@ -30,12 +35,17 @@ export function ProfileSettingsForm({
   isPublic,
   origin,
   avatarUrl,
+  joined,
+  shelves,
 }: {
   displayName: string;
   username: string;
   isPublic: boolean;
   origin: string;
   avatarUrl: string | null;
+  joined: string | null;
+  /** Rendered between the identity and the sharing settings. */
+  shelves?: React.ReactNode;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const lastAttemptRef = useRef("");
@@ -151,51 +161,40 @@ export function ProfileSettingsForm({
     }
   }
 
+  const status = pending
+    ? "Saving…"
+    : !hasChanges
+      ? null
+      : !draftIsValid
+        ? "Finish editing"
+        : saveFailed
+          ? "Couldn't save"
+          : "Saving…";
+  const field =
+    "rounded-xl border border-transparent transition-[border-color,background-color,box-shadow] duration-150 hover:bg-foreground/[0.045] focus-within:border-border focus-within:bg-card focus-within:ring-4 focus-within:ring-primary/10";
+
   return (
-    <form ref={formRef} action={action} className="space-y-5" data-analytics-form="profile_settings" data-analytics-private>
-      <section className="rounded-[1.75rem] border border-border/70 bg-card/55 p-5 shadow-[0_24px_80px_-62px_hsl(var(--foreground)/0.5)] sm:p-7">
-        <div className="flex items-center gap-4 sm:gap-6">
-          <ProfileAvatarEditor
-            avatarUrl={avatarUrl}
-            displayName={draftDisplayName || displayName}
-          />
+    <form
+      ref={formRef}
+      action={action}
+      className="space-y-9"
+      data-analytics-form="profile_settings"
+      data-analytics-private
+    >
+      <section
+        className="profile-rise flex items-center gap-5 pt-1 sm:gap-7 sm:pt-3"
+        style={{ "--i": 0 } as React.CSSProperties}
+      >
+        <ProfileAvatarEditor
+          avatarUrl={avatarUrl}
+          displayName={draftDisplayName || displayName}
+        />
 
-          <div className="min-w-0 flex-1">
-            <div className="mb-1.5 flex min-h-4 items-center justify-between gap-3">
-              <span className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    "h-1.5 w-1.5 shrink-0 rounded-full",
-                    publicEnabled ? "bg-success" : "bg-muted-foreground/55"
-                  )}
-                  aria-hidden
-                />
-                <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                  {publicEnabled ? "Public" : "Private"}
-                </span>
-              </span>
-              {pending || hasChanges ? (
-                <span
-                  className="inline-flex shrink-0 items-center gap-1.5 text-[10px] text-muted-foreground"
-                  aria-live="polite"
-                >
-                  {pending || (draftIsValid && !saveFailed) ? (
-                    <LoaderCircle className="loading-spinner h-3 w-3" />
-                  ) : null}
-                  {pending
-                    ? "Saving…"
-                    : draftIsValid
-                      ? saveFailed
-                        ? "Couldn't save"
-                        : "Saving…"
-                      : "Finish editing"}
-                </span>
-              ) : null}
-            </div>
-
-            <label htmlFor="display-name" className="sr-only">
-              Display name
-            </label>
+        <div className="min-w-0 flex-1">
+          <label htmlFor="display-name" className="sr-only">
+            Display name
+          </label>
+          <div className={cn(field, "-mx-2.5")}>
             <input
               id="display-name"
               name="displayName"
@@ -220,67 +219,90 @@ export function ProfileSettingsForm({
               required
               autoComplete="name"
               aria-label="Display name"
-              className="-mx-2 block h-10 w-[calc(100%+1rem)] truncate rounded-lg border border-transparent bg-transparent px-2 text-[1.65rem] font-semibold leading-none tracking-[-0.045em] outline-none transition-[border-color,background-color,box-shadow] hover:bg-background/35 focus:border-border/80 focus:bg-background/65 focus:ring-2 focus:ring-primary/10 sm:h-12 sm:text-[2rem]"
+              className="block h-11 w-full truncate bg-transparent px-2.5 text-[1.75rem] font-semibold leading-none tracking-[-0.045em] outline-none sm:h-14 sm:text-[2.5rem]"
             />
-
-            <label htmlFor="username" className="sr-only">
-              Username
-            </label>
-            <div className="-mx-2 mt-0.5 flex h-8 max-w-full items-center rounded-lg border border-transparent px-2 text-muted-foreground transition-[border-color,background-color,box-shadow] focus-within:border-border/80 focus-within:bg-background/65 focus-within:ring-2 focus-within:ring-primary/10 hover:bg-background/35 sm:mt-1">
-              <span className="shrink-0 font-mono text-sm" aria-hidden>
-                @
-              </span>
-              <input
-                id="username"
-                name="username"
-                value={draftUsername}
-                onChange={(event) =>
-                  setDraftUsername(
-                    event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")
-                  )
-                }
-                onBlur={(event) => {
-                  const nextUsername = event.currentTarget.value;
-                  const valid =
-                    normalizedDisplayName.length >= 2 &&
-                    normalizedDisplayName.length <= 60 &&
-                    USERNAME.test(nextUsername);
-                  const snapshot = JSON.stringify([
-                    normalizedDisplayName,
-                    nextUsername,
-                    publicEnabled,
-                  ]);
-                  requestSave(event.currentTarget.form, snapshot, valid);
-                }}
-                minLength={3}
-                maxLength={30}
-                pattern="[a-z0-9][a-z0-9-]{2,29}"
-                required
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                aria-label="Username"
-                className="min-w-0 flex-1 bg-transparent font-mono text-sm text-muted-foreground outline-none"
-              />
-            </div>
           </div>
+
+          <label htmlFor="username" className="sr-only">
+            Username
+          </label>
+          <div
+            className={cn(
+              field,
+              "-mx-2.5 mt-0.5 flex h-9 items-center px-2.5 text-muted-foreground",
+            )}
+          >
+            <span className="shrink-0 font-mono text-sm" aria-hidden>
+              @
+            </span>
+            <input
+              id="username"
+              name="username"
+              value={draftUsername}
+              onChange={(event) =>
+                setDraftUsername(
+                  event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")
+                )
+              }
+              onBlur={(event) => {
+                const nextUsername = event.currentTarget.value;
+                const valid =
+                  normalizedDisplayName.length >= 2 &&
+                  normalizedDisplayName.length <= 60 &&
+                  USERNAME.test(nextUsername);
+                const snapshot = JSON.stringify([
+                  normalizedDisplayName,
+                  nextUsername,
+                  publicEnabled,
+                ]);
+                requestSave(event.currentTarget.form, snapshot, valid);
+              }}
+              minLength={3}
+              maxLength={30}
+              pattern="[a-z0-9][a-z0-9-]{2,29}"
+              required
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-label="Username"
+              className="min-w-0 flex-1 bg-transparent font-mono text-sm text-muted-foreground outline-none focus:text-foreground"
+            />
+          </div>
+
+          <p className="mt-2 flex min-h-5 flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              {publicEnabled ? (
+                <Globe2 className="h-3.5 w-3.5" aria-hidden />
+              ) : (
+                <Lock className="h-3.5 w-3.5" aria-hidden />
+              )}
+              {publicEnabled ? "Public" : "Private"}
+            </span>
+            {joined ? <span>Joined {joined}</span> : null}
+            {status ? (
+              <span
+                className="inline-flex items-center gap-1.5"
+                aria-live="polite"
+              >
+                {status === "Saving…" ? (
+                  <LoaderCircle className="loading-spinner h-3 w-3" />
+                ) : null}
+                {status}
+              </span>
+            ) : null}
+          </p>
         </div>
       </section>
 
-      <section id="profile-sharing" className="scroll-mt-44 overflow-hidden rounded-[1.5rem] border border-primary/20 bg-card/45">
-        <label className="flex cursor-pointer items-center gap-3 p-5 sm:gap-4 sm:p-6">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-            {publicEnabled ? (
-              <Globe2 className="h-[18px] w-[18px]" />
-            ) : (
-              <Lock className="h-[18px] w-[18px]" />
-            )}
-          </span>
+      {shelves}
+
+      <SettingsGroup label="Sharing" id="profile-sharing" index={2}>
+        <label className={cn(settingsRowClass, "cursor-pointer")}>
           <span className="min-w-0 flex-1">
-            <span className="block text-base font-semibold tracking-tight">
+            <span className="block text-[15px] font-medium leading-tight">
               Public profile
             </span>
-            <span className="mt-1 block text-[11px] leading-5 text-muted-foreground sm:text-xs">
+            <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
               {publicEnabled
                 ? "Anyone with the link can browse your shelves."
                 : "Only you can see your shelves."}
@@ -303,61 +325,51 @@ export function ProfileSettingsForm({
               }}
               className="peer sr-only"
             />
-            <span className="h-6 w-10 rounded-full bg-muted shadow-inner transition-colors duration-200 peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background" />
-            <span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-4" />
+            <span className="h-7 w-12 rounded-full bg-foreground/15 transition-colors duration-200 peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background" />
+            <span className="absolute left-[3px] top-[3px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200 ease-[var(--ease-ui-out)] peer-checked:translate-x-5 peer-active:scale-95 motion-reduce:transition-none" />
           </span>
         </label>
 
-        {savedPublic && publicEnabled ? <div className="border-t border-border/60 p-3 sm:p-4">
-          {savedPublic ? <p className="mb-3 flex items-center gap-2 px-1 text-xs text-muted-foreground"><Globe2 className="h-3.5 w-3.5 shrink-0" aria-hidden /><span className="truncate">{publicUrl.replace(/^https?:\/\/(?:www\.)?/, "")}</span></p> : null}
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={copyLink}
-              disabled={!savedPublic || !publicEnabled || pending}
-              aria-label={
-                copied ? "Public profile link copied" : "Copy public profile link"
-              }
-              className={cn(
-                "inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-full px-3.5 text-xs font-semibold transition-[background-color,opacity,transform] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring",
-                savedPublic
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-muted text-muted-foreground"
-              )}
-            >
-              {copied ? (
-                <Check className="h-3.5 w-3.5 shrink-0" />
-              ) : (
-                <Copy className="h-3.5 w-3.5 shrink-0" />
-              )}
-              <span aria-live="polite">
-                {copied ? "Link copied" : "Copy link"}
+        {savedPublic && publicEnabled ? (
+          <div className={cn(settingsRowClass, "profile-reveal flex-wrap")}>
+            <p className="flex min-w-0 flex-1 basis-full items-center gap-2 text-sm text-muted-foreground sm:basis-0">
+              <Globe2 className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">
+                {publicUrl.replace(/^https?:\/\/(?:www\.)?/, "")}
               </span>
-            </button>
-            {savedPublic && publicEnabled && !pending ? (
-              <a
-                href={`/u/${savedUsername}`}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Open public profile"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border bg-background/55 px-3 text-xs font-medium transition-[background-color,transform] hover:bg-background active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            </p>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={copyLink}
+                disabled={pending}
+                aria-label={
+                  copied ? "Public profile link copied" : "Copy public profile link"
+                }
+                className={settingsButtonClass}
               >
-                View profile
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            ) : (
-              <span
-                aria-hidden
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border px-3 text-xs text-muted-foreground opacity-45"
-              >
-                View profile
-                <Lock className="h-3.5 w-3.5" />
-              </span>
-            )}
+                {copied ? (
+                  <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5 shrink-0" />
+                )}
+                <span aria-live="polite">{copied ? "Copied" : "Copy link"}</span>
+              </button>
+              {pending ? null : (
+                <a
+                  href={`/u/${savedUsername}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={settingsButtonClass}
+                >
+                  View
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
+            </div>
           </div>
-        </div> : null}
-      </section>
-
+        ) : null}
+      </SettingsGroup>
     </form>
   );
 }
