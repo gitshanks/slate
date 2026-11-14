@@ -35,6 +35,12 @@ import type { TitleStatus } from "@/lib/supabase";
 import { AiChatPanel } from "@/components/ai-chat-panel";
 import { LinkImporter } from "@/components/link-importer";
 import {
+  LinkPreviewContext,
+  type LinkPreviewHandler,
+  type LinkPreviewOptions,
+  type LinkPreviewSnapshot,
+} from "@/components/link-preview-context";
+import {
   CollectionTitleDetailOverlay,
   type TitleDetailSource,
   type TitleDetailActionsRenderer,
@@ -245,6 +251,13 @@ export function CommandPaletteProvider({
   const [aiMode, setAiMode] = React.useState(false);
   const [linkMode, setLinkMode] = React.useState(false);
   const [linkInput, setLinkInput] = React.useState<SharedLinkInput | null>(null);
+  // A title card opened from the link results. While it is up the dialog is
+  // closed, so the results it came from are kept here to reopen on.
+  const [linkRestore, setLinkRestore] =
+    React.useState<LinkPreviewSnapshot | null>(null);
+  const linkPreviewRef = React.useRef<
+    (LinkPreviewOptions & { key: string; fromDialog: boolean }) | null
+  >(null);
   const [askReturnQuery, setAskReturnQuery] = React.useState("");
   const [results, setResults] = React.useState<SearchResult[]>([]);
   const [library, setLibrary] = React.useState<LibraryHit[]>([]);
@@ -678,6 +691,10 @@ export function CommandPaletteProvider({
   // provider) so it survives close and the modal → /discover page hop.
   React.useEffect(() => {
     if (!open && !activeSurfaceId) {
+      // Closed only to show a title card from the link results: keep the
+      // session so closing the card returns to the same selection.
+      if (linkPreviewRef.current?.fromDialog) return;
+      setLinkRestore(null);
       skipAutoFocusRef.current = false;
       setQuery("");
       setResults([]);
@@ -1170,10 +1187,66 @@ export function CommandPaletteProvider({
     setAiMode(false);
     setAskReturnQuery("");
     setLinkInput({ url: value, text: value });
+    setLinkRestore(null);
     setLinkMode(true);
     setOpen(true);
     inputRef.current?.blur();
   }, [dismissInline, query]);
+
+  const previewLinkTitle = React.useCallback<LinkPreviewHandler>(
+    (candidate, options) => {
+      linkPreviewRef.current = {
+        ...options,
+        key: `${candidate.mediaType}-${candidate.tmdbId}`,
+        fromDialog: open,
+      };
+      if (open) setOpen(false);
+      setPaletteSlab({
+        id: candidate.tmdbId,
+        media_type: candidate.mediaType,
+        ...(candidate.mediaType === "tv"
+          ? { name: candidate.title }
+          : { title: candidate.title }),
+        poster_path: candidate.posterPath,
+        backdrop_path: null,
+        overview: candidate.overview ?? undefined,
+        vote_average: candidate.voteAverage ?? undefined,
+      });
+    },
+    [open],
+  );
+
+  const closePaletteSlab = React.useCallback(() => {
+    const pending = linkPreviewRef.current;
+    linkPreviewRef.current = null;
+    setPaletteSlab(null);
+    if (!pending) return;
+    const savedFromCard =
+      Boolean(saved[pending.key]) || justAdded.has(pending.key);
+    if (!pending.fromDialog) {
+      pending.onClose(savedFromCard);
+      return;
+    }
+    const [mediaType, tmdbId] = pending.key.split("-");
+    const candidateKey = `${tmdbId}:${mediaType}`;
+    const { resolution, selected } = pending.snapshot;
+    setLinkRestore(
+      savedFromCard
+        ? {
+            resolution: {
+              ...resolution,
+              candidates: resolution.candidates.map((item) =>
+                `${item.tmdbId}:${item.mediaType}` === candidateKey
+                  ? { ...item, inLibrary: true }
+                  : item,
+              ),
+            },
+            selected: selected.filter((key) => key !== candidateKey),
+          }
+        : pending.snapshot,
+    );
+    setOpen(true);
+  }, [justAdded, saved]);
 
   // Enter in Ask submits the input as a chat turn instead of letting cmdk
   // navigate (there is no command list in that state).
@@ -1629,6 +1702,7 @@ export function CommandPaletteProvider({
   return (
     <Ctx.Provider value={contextValue}>
       <SessionCtx.Provider value={sessionValue}>
+        <LinkPreviewContext.Provider value={previewLinkTitle}>
         {children}
         {activeSurfaceId && inlineGeometry && !open ? (
           <div
@@ -1780,6 +1854,7 @@ export function CommandPaletteProvider({
                 initialShare={linkInput ?? undefined}
                 autoStart
                 variant="embedded"
+                restore={linkRestore}
               />
             </div>
           </div>
@@ -1795,9 +1870,10 @@ export function CommandPaletteProvider({
             renderActions={paletteRenderActions}
             scrollContainerId="app-scroll-area"
             centerWithinSelector="[data-title-overlay-safe-area]"
-            onClose={() => setPaletteSlab(null)}
+            onClose={closePaletteSlab}
           />
         ) : null}
+        </LinkPreviewContext.Provider>
       </SessionCtx.Provider>
     </Ctx.Provider>
   );

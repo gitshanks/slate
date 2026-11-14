@@ -6,6 +6,7 @@ import {
   AlertCircle,
   ArrowUp,
   Check,
+  ChevronRight,
   ExternalLink,
   Link2,
   Pencil,
@@ -32,6 +33,10 @@ import type {
   SharedLinkInput,
   SharedLinkResolution,
 } from "@/lib/shared-link-resolver";
+import {
+  useLinkPreview,
+  type LinkPreviewSnapshot,
+} from "@/components/link-preview-context";
 import { DUR, EASE, fadeIn, fadeInUp, staggerContainer } from "@/lib/motion";
 import { posterUrl } from "@/lib/tmdb-image";
 import { APP_ROOT } from "@/lib/public-mode";
@@ -44,6 +49,8 @@ interface LinkImporterProps {
   /** "embedded" drops the outer padding model of the page and fills its
       scroll container, so the action bar can pin to the bottom of a dialog. */
   variant?: "page" | "embedded";
+  /** Results to reopen on, after a title card opened from here has closed. */
+  restore?: LinkPreviewSnapshot | null;
 }
 
 type Phase = "idle" | "resolving" | "review" | "saved";
@@ -95,14 +102,25 @@ export function LinkImporter({
   initialShare,
   autoStart = false,
   variant = "page",
+  restore = null,
 }: LinkImporterProps) {
   const embedded = variant === "embedded";
-  const startsResolving = autoStart && Boolean(initialDraft(initialShare));
+  const preview = useLinkPreview();
+  const startsResolving =
+    autoStart && !restore && Boolean(initialDraft(initialShare));
   const [draft, setDraft] = useState(() => initialDraft(initialShare));
   const [submitted, setSubmitted] = useState(() => initialDraft(initialShare));
-  const [phase, setPhase] = useState<Phase>(startsResolving ? "resolving" : "idle");
-  const [resolution, setResolution] = useState<SharedLinkResolution | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [phase, setPhase] = useState<Phase>(
+    restore ? "review" : startsResolving ? "resolving" : "idle",
+  );
+  const [resolution, setResolution] = useState<SharedLinkResolution | null>(
+    restore?.resolution ?? null,
+  );
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(restore?.selected ?? []),
+  );
+  // Coming back from a title card should not replay the entrance.
+  const [restored] = useState(Boolean(restore));
   const [error, setError] = useState<string | null>(null);
   const [saveResult, setSaveResult] = useState<AddSharedTitlesResult | null>(null);
   const [saving, startSaving] = useTransition();
@@ -158,10 +176,11 @@ export function LinkImporter({
   }, []);
 
   useEffect(() => {
+    if (restore) return;
     if (!autoStart || autoStarted.current || !initialDraft(initialShare)) return;
     autoStarted.current = true;
     void resolveShare(initialShare ?? {});
-  }, [autoStart, initialShare, resolveShare]);
+  }, [autoStart, initialShare, resolveShare, restore]);
 
   const selectedCandidates = useMemo(() => {
     return (resolution?.candidates ?? []).filter((candidate) =>
@@ -205,6 +224,34 @@ export function LinkImporter({
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
+    });
+  }
+
+  function previewCandidate(candidate: SharedLinkCandidate) {
+    if (!preview || !resolution) return;
+    const key = candidateKey(candidate);
+    preview(candidate, {
+      snapshot: { resolution, selected: [...selected] },
+      // A title added from its card is in slate now, so it leaves the
+      // selection here instead of being added twice.
+      onClose: (savedFromCard) => {
+        if (!savedFromCard) return;
+        setResolution((current) =>
+          current
+            ? {
+                ...current,
+                candidates: current.candidates.map((item) =>
+                  candidateKey(item) === key ? { ...item, inLibrary: true } : item,
+                ),
+              }
+            : current,
+        );
+        setSelected((current) => {
+          const next = new Set(current);
+          next.delete(key);
+          return next;
+        });
+      },
     });
   }
 
@@ -326,6 +373,8 @@ export function LinkImporter({
           selected={selected}
           saving={saving}
           onToggle={toggleCandidate}
+          onPreview={preview ? previewCandidate : undefined}
+          animateIn={!restored}
           onSelectAll={setAllSelected}
           onSave={saveSelected}
         />
@@ -641,6 +690,8 @@ function ReviewState({
   selected,
   saving,
   onToggle,
+  onPreview,
+  animateIn,
   onSelectAll,
   onSave,
 }: {
@@ -651,6 +702,8 @@ function ReviewState({
   selected: Set<string>;
   saving: boolean;
   onToggle: (candidate: SharedLinkCandidate) => void;
+  onPreview?: (candidate: SharedLinkCandidate) => void;
+  animateIn: boolean;
   onSelectAll: (on: boolean) => void;
   onSave: () => void;
 }) {
@@ -677,7 +730,7 @@ function ReviewState({
     return (
       <motion.div
         className={cn("py-5", className)}
-        initial="hidden"
+        initial={animateIn ? "hidden" : false}
         animate="visible"
         variants={fadeIn}
       >
@@ -710,9 +763,9 @@ function ReviewState({
                 {candidate.overview}
               </p>
             ) : null}
-            <div className="mt-4 sm:mt-auto sm:pt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-auto sm:pt-4">
               {candidate.inLibrary ? (
-                <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <p className="mr-2 inline-flex items-center gap-2 text-sm text-muted-foreground">
                   <Check className="h-4 w-4 text-primary" />
                   Already in slate
                 </p>
@@ -721,12 +774,22 @@ function ReviewState({
                   type="button"
                   onClick={onSave}
                   loading={saving}
-                  className="w-full rounded-xl transition-[transform,background-color] active:scale-[0.97] sm:w-auto"
+                  className="rounded-xl transition-[transform,background-color] active:scale-[0.97]"
                   leftIcon={<Plus className="h-4 w-4" />}
                 >
                   {saving ? "Adding…" : "Add to Up Next"}
                 </Button>
               )}
+              {onPreview ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onPreview(candidate)}
+                  className="rounded-xl transition-[transform,background-color] active:scale-[0.97]"
+                >
+                  View details
+                </Button>
+              ) : null}
             </div>
           </div>
         </div>
@@ -757,7 +820,7 @@ function ReviewState({
 
         <motion.div
           className={cn(GRID, !embedded && "lg:grid-cols-5")}
-          initial="hidden"
+          initial={animateIn ? "hidden" : false}
           animate="visible"
           variants={container}
         >
@@ -770,60 +833,66 @@ function ReviewState({
                 ? "on"
                 : "off";
             return (
-              <motion.button
-                type="button"
+              <motion.div
                 key={key}
                 variants={fadeInUp}
-                onClick={() => onToggle(candidate)}
-                disabled={candidate.inLibrary}
-                aria-pressed={candidate.inLibrary ? undefined : checked}
                 data-state={state}
-                className="link-import-tile group text-left outline-none disabled:cursor-default"
+                className="link-import-tile group"
               >
-                <div className="link-import-press">
-                  <motion.div
-                    layoutId={`${layoutScope}-${key}`}
-                    transition={GATHER}
-                    style={{ borderRadius: 12 }}
-                    className="relative aspect-[2/3] overflow-hidden bg-muted ring-1 ring-inset ring-foreground/10 group-focus-visible:ring-2 group-focus-visible:ring-ring"
-                  >
-                    <div className="link-import-art absolute inset-0">
-                      <Poster
-                        candidate={candidate}
-                        eager={index < 8}
-                        sizes="(max-width: 640px) 30vw, 160px"
-                      />
-                    </div>
-                    {candidate.inLibrary ? (
-                      <span className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-lg bg-black/70 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-md">
-                        <Check className="h-3 w-3" />
-                        In slate
-                      </span>
-                    ) : (
-                      <span
-                        aria-hidden
-                        className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/50 text-white ring-1 ring-inset ring-white/30 backdrop-blur-md transition-[background-color,color,box-shadow] duration-150 group-data-[state=on]:bg-primary group-data-[state=on]:text-primary-foreground group-data-[state=on]:ring-transparent [&>*]:col-start-1 [&>*]:row-start-1 [&>*]:transition-[opacity,transform] [&>*]:duration-150 [&>*]:ease-[var(--ease-ui-out)]"
-                      >
-                        <Check
-                          className="h-3.5 w-3.5 group-data-[state=off]:scale-75 group-data-[state=off]:opacity-0"
-                          strokeWidth={2.75}
+                <button
+                  type="button"
+                  onClick={() => onToggle(candidate)}
+                  disabled={candidate.inLibrary}
+                  aria-pressed={candidate.inLibrary ? undefined : checked}
+                  aria-label={
+                    candidate.inLibrary
+                      ? `${candidate.title}, already in slate`
+                      : `Add ${candidate.title}`
+                  }
+                  className="link-import-toggle group/toggle block w-full text-left outline-none disabled:cursor-default"
+                >
+                  <div className="link-import-press">
+                    <motion.div
+                      layoutId={`${layoutScope}-${key}`}
+                      transition={GATHER}
+                      style={{ borderRadius: 12 }}
+                      className="relative aspect-[2/3] overflow-hidden bg-muted ring-1 ring-inset ring-foreground/10 group-focus-visible/toggle:ring-2 group-focus-visible/toggle:ring-ring"
+                    >
+                      <div className="link-import-art absolute inset-0">
+                        <Poster
+                          candidate={candidate}
+                          eager={index < 8}
+                          sizes="(max-width: 640px) 30vw, 160px"
                         />
-                        <Plus
-                          className="h-3.5 w-3.5 group-data-[state=on]:scale-75 group-data-[state=on]:opacity-0"
-                          strokeWidth={2.25}
-                        />
-                      </span>
-                    )}
-                  </motion.div>
-                </div>
-                <h3 className="mt-2.5 truncate text-[13px] font-medium leading-tight text-foreground transition-colors duration-150 group-data-[state=off]:text-muted-foreground group-data-[state=owned]:text-muted-foreground">
-                  {candidate.title}
-                </h3>
-                <p className="mt-1 flex gap-1.5 truncate text-[11px] leading-tight text-muted-foreground">
-                  {candidate.year ? <span>{candidate.year}</span> : null}
-                  <span>{mediaLabel(candidate)}</span>
-                </p>
-              </motion.button>
+                      </div>
+                      {candidate.inLibrary ? (
+                        <span className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-lg bg-black/70 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-md">
+                          <Check className="h-3 w-3" />
+                          In slate
+                        </span>
+                      ) : (
+                        <span
+                          aria-hidden
+                          className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/50 text-white ring-1 ring-inset ring-white/30 backdrop-blur-md transition-[background-color,color,box-shadow] duration-150 group-data-[state=on]:bg-primary group-data-[state=on]:text-primary-foreground group-data-[state=on]:ring-transparent [&>*]:col-start-1 [&>*]:row-start-1 [&>*]:transition-[opacity,transform] [&>*]:duration-150 [&>*]:ease-[var(--ease-ui-out)]"
+                        >
+                          <Check
+                            className="h-3.5 w-3.5 group-data-[state=off]:scale-75 group-data-[state=off]:opacity-0"
+                            strokeWidth={2.75}
+                          />
+                          <Plus
+                            className="h-3.5 w-3.5 group-data-[state=on]:scale-75 group-data-[state=on]:opacity-0"
+                            strokeWidth={2.25}
+                          />
+                        </span>
+                      )}
+                    </motion.div>
+                  </div>
+                </button>
+                <TileCaption
+                  candidate={candidate}
+                  onPreview={onPreview ? () => onPreview(candidate) : undefined}
+                />
+              </motion.div>
             );
           })}
         </motion.div>
@@ -865,6 +934,46 @@ function ReviewState({
         </Button>
       </div>
     </>
+  );
+}
+
+function TileCaption({
+  candidate,
+  onPreview,
+}: {
+  candidate: SharedLinkCandidate;
+  onPreview?: () => void;
+}) {
+  const body = (
+    <>
+      <span className="flex items-center gap-0.5">
+        <span className="truncate text-[13px] font-medium leading-tight text-foreground transition-colors duration-150 group-data-[state=off]:text-muted-foreground group-data-[state=owned]:text-muted-foreground">
+          {candidate.title}
+        </span>
+        {onPreview ? (
+          <ChevronRight
+            aria-hidden
+            className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70 transition-[transform,color] duration-150 ease-[var(--ease-ui-out)] group-hover/caption:translate-x-0.5 group-hover/caption:text-foreground"
+          />
+        ) : null}
+      </span>
+      <span className="mt-1 flex gap-1.5 truncate text-[11px] leading-tight text-muted-foreground">
+        {candidate.year ? <span>{candidate.year}</span> : null}
+        <span>{mediaLabel(candidate)}</span>
+      </span>
+    </>
+  );
+
+  if (!onPreview) return <div className="mt-2.5">{body}</div>;
+  return (
+    <button
+      type="button"
+      onClick={onPreview}
+      aria-label={`View details for ${candidate.title}`}
+      className="group/caption -mx-1 mt-1.5 block w-[calc(100%+0.5rem)] rounded-lg px-1 py-1 text-left outline-none transition-[transform,background-color] duration-150 ease-[var(--ease-ui-out)] hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]"
+    >
+      {body}
+    </button>
   );
 }
 
