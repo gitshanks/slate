@@ -3,6 +3,7 @@ import { AiConversationProvider } from "@/components/ai-conversation";
 import { TopNav } from "@/components/top-nav";
 import { BottomNav } from "@/components/bottom-nav";
 import { AppScrollArea } from "@/components/app-scroll-area";
+import { ImageArrival } from "@/components/image-arrival";
 import { DemoBanner } from "@/components/demo-banner";
 import { aiSearchEnabled } from "@/lib/ai-search";
 import { getLibraryOwnerId } from "@/lib/library-db";
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // AiConversationProvider wraps everything so the command palette and the
     // /discover page share one live AI thread across client-side navigation.
     <AiConversationProvider>
+      <ImageArrival />
       {SLATE_HOSTED ? (
         <AnalyticsIdentity
           id={ownerId}

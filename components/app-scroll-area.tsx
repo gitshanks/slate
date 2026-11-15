@@ -18,34 +18,11 @@ export function AppScrollArea({ children }: { children: React.ReactNode }) {
   const scrollArea = React.useRef<HTMLElement>(null);
   const immersiveLibrary = pathname === APP_ROOT;
   const immersivePreviews = pathname === "/previews";
-  const [supportsNativeTransition, setSupportsNativeTransition] =
-    React.useState<boolean | null>(null);
-  const [settledPathname, setSettledPathname] = React.useState(pathname);
-
-  React.useEffect(() => {
-    setSupportsNativeTransition(
-      typeof document.startViewTransition === "function",
-    );
-  }, []);
-
-  // Native View Transitions hold the current page while the ready destination
-  // dissolves over it. Older browsers get a full-opacity, transform-only
-  // settle instead: no duplicated poster grids, no scroll reset on an outgoing
-  // layer, and no translucent frame that can expose the app background.
-  const useFallbackEntrance =
-    supportsNativeTransition === false &&
-    settledPathname !== pathname &&
-    PRIMARY_TABS.has(pathname);
-
-  React.useEffect(() => {
-    if (!useFallbackEntrance) return;
-
-    const timeout = window.setTimeout(() => {
-      setSettledPathname(pathname);
-    }, 180);
-
-    return () => window.clearTimeout(timeout);
-  }, [pathname, useFallbackEntrance]);
+  // Sibling tabs swap in place. The arriving screen fades up from the page
+  // background in a fifth of a second, so a tab change reads as one soft
+  // handoff instead of a hard cut. The wrapper below is keyed by route, so the
+  // animation simply plays each time a tab mounts.
+  const arrives = PRIMARY_TABS.has(pathname);
 
   React.useLayoutEffect(() => {
     if (previousPathname.current === pathname) return;
@@ -87,7 +64,7 @@ export function AppScrollArea({ children }: { children: React.ReactNode }) {
           !immersivePreviews && "bg-background",
           immersiveLibrary && "h-full min-h-0",
           immersivePreviews && "h-full min-h-0 overflow-hidden bg-[#050608]",
-          useFallbackEntrance && "app-primary-tab-fallback",
+          arrives && "app-tab-arrive",
         )}
       >
         {children}

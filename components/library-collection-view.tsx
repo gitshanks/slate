@@ -135,6 +135,21 @@ export function LibraryCollectionView({
       ].join("\u001f"),
     [activeStatus, filterParams],
   );
+  // A filter swaps the whole shelf at once, so the new set fades up the same
+  // way a tab does instead of cutting in.
+  const shelfRef = React.useRef<HTMLDivElement>(null);
+  const shownFilterKey = React.useRef(filterTransitionKey);
+  React.useLayoutEffect(() => {
+    if (shownFilterKey.current === filterTransitionKey) return;
+    shownFilterKey.current = filterTransitionKey;
+    const shelf = shelfRef.current;
+    if (!shelf || reducedMotion || typeof shelf.animate !== "function") return;
+    // Part-way up, not from nothing: see `.app-tab-arrive` in globals.css.
+    shelf.animate([{ opacity: 0.45 }, { opacity: 1 }], {
+      duration: 220,
+      easing: "cubic-bezier(0.33, 1, 0.68, 1)",
+    });
+  }, [filterTransitionKey, reducedMotion]);
   const filteredTitles = React.useMemo(() => {
     const scopedTitles = activeStatus
       ? titles.filter((title) => title.status === activeStatus)
@@ -421,6 +436,7 @@ export function LibraryCollectionView({
           }}
           className="w-full flex-1 px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 md:px-5 lg:px-8 xl:px-10"
         >
+          <div ref={shelfRef}>
           {titles.length ? (
             visibleShelfTitles.length ? (
               <MediaGrid
@@ -460,6 +476,7 @@ export function LibraryCollectionView({
               />
             </div>
           )}
+          </div>
         </motion.main>
       ) : (
         <motion.div

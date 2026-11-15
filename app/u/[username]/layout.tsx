@@ -1,3 +1,4 @@
+import { ImageArrival } from "@/components/image-arrival";
 import { PublicProfileHeader } from "@/components/public-profile-header";
 
 export default function PublicProfileLayout({
@@ -7,6 +8,7 @@ export default function PublicProfileLayout({
 }) {
   return (
     <>
+      <ImageArrival />
       <PublicProfileHeader />
       {children}
     </>
