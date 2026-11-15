@@ -211,10 +211,31 @@ export function LinkImporter({
     });
   }
 
+  // Fetch every found title's details quietly once the results are in, two at
+  // a time, so opening one shows the finished card instead of a loading one.
+  const prefetch = preview?.prefetch;
+  useEffect(() => {
+    if (phase !== "review" || !resolution || !prefetch) return;
+    const queue = [...resolution.candidates];
+    let stopped = false;
+    const next = () => {
+      if (stopped) return;
+      const candidate = queue.shift();
+      if (candidate) prefetch(candidate);
+    };
+    const start = window.setTimeout(next, 350);
+    const drip = window.setInterval(next, 450);
+    return () => {
+      stopped = true;
+      window.clearTimeout(start);
+      window.clearInterval(drip);
+    };
+  }, [phase, prefetch, resolution]);
+
   function previewCandidate(candidate: SharedLinkCandidate) {
     if (!preview || !resolution) return;
     const key = candidateKey(candidate);
-    preview(candidate, {
+    preview.open(candidate, {
       // A title added from its card is in slate now, so it leaves the
       // selection here instead of being added twice.
       onClose: (savedFromCard) => {
@@ -357,6 +378,7 @@ export function LinkImporter({
           saving={saving}
           onToggle={toggleCandidate}
           onPreview={preview ? previewCandidate : undefined}
+          onIntent={prefetch}
           onSelectAll={setAllSelected}
           onSave={saveSelected}
         />
@@ -673,6 +695,7 @@ function ReviewState({
   saving,
   onToggle,
   onPreview,
+  onIntent,
   onSelectAll,
   onSave,
 }: {
@@ -684,6 +707,8 @@ function ReviewState({
   saving: boolean;
   onToggle: (candidate: SharedLinkCandidate) => void;
   onPreview?: (candidate: SharedLinkCandidate) => void;
+  /** The pointer or focus reached a title: a good moment to fetch ahead. */
+  onIntent?: (candidate: SharedLinkCandidate) => void;
   onSelectAll: (on: boolean) => void;
   onSave: () => void;
 }) {
@@ -764,6 +789,8 @@ function ReviewState({
                 <Button
                   type="button"
                   variant="outline"
+                  onPointerEnter={() => onIntent?.(candidate)}
+                  onFocus={() => onIntent?.(candidate)}
                   onClick={() => onPreview(candidate)}
                   className="rounded-xl transition-[transform,background-color] active:scale-[0.97]"
                 >
@@ -871,6 +898,7 @@ function ReviewState({
                 <TileCaption
                   candidate={candidate}
                   onPreview={onPreview ? () => onPreview(candidate) : undefined}
+                  onIntent={onIntent ? () => onIntent(candidate) : undefined}
                 />
               </motion.div>
             );
@@ -920,9 +948,11 @@ function ReviewState({
 function TileCaption({
   candidate,
   onPreview,
+  onIntent,
 }: {
   candidate: SharedLinkCandidate;
   onPreview?: () => void;
+  onIntent?: () => void;
 }) {
   const body = (
     <>
@@ -949,6 +979,9 @@ function TileCaption({
     <button
       type="button"
       onClick={onPreview}
+      onPointerEnter={onIntent}
+      onPointerDown={onIntent}
+      onFocus={onIntent}
       aria-label={`View details for ${candidate.title}`}
       className="group/caption -mx-1 mt-1.5 block w-[calc(100%+0.5rem)] rounded-lg px-1 py-1 text-left outline-none transition-[transform,background-color] duration-150 ease-[var(--ease-ui-out)] hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]"
     >

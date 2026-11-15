@@ -36,7 +36,7 @@ import { AiChatPanel } from "@/components/ai-chat-panel";
 import { LinkImporter } from "@/components/link-importer";
 import {
   LinkPreviewContext,
-  type LinkPreviewHandler,
+  type LinkPreview,
   type LinkPreviewOptions,
 } from "@/components/link-preview-context";
 import { LayerAboveDialog } from "@/components/layer-above-dialog";
@@ -254,6 +254,8 @@ export function CommandPaletteProvider({
   // A title card opened from the link results. The results stay open
   // underneath it; `cardOverDialog` is true while the card sits on the dialog.
   const [cardOverDialog, setCardOverDialog] = React.useState(false);
+  // True for the moment a title card plays out before it is removed.
+  const [cardLeaving, setCardLeaving] = React.useState(false);
   const linkPreviewRef = React.useRef<
     (LinkPreviewOptions & { key: string }) | null
   >(null);
@@ -1187,35 +1189,61 @@ export function CommandPaletteProvider({
     inputRef.current?.blur();
   }, [dismissInline, query]);
 
-  const previewLinkTitle = React.useCallback<LinkPreviewHandler>(
-    (candidate, options) => {
-      linkPreviewRef.current = {
-        ...options,
-        key: `${candidate.mediaType}-${candidate.tmdbId}`,
-      };
-      setCardOverDialog(open);
-      setPaletteSlab({
-        id: candidate.tmdbId,
-        media_type: candidate.mediaType,
-        ...(candidate.mediaType === "tv"
-          ? { name: candidate.title }
-          : { title: candidate.title }),
-        poster_path: candidate.posterPath,
-        backdrop_path: null,
-        overview: candidate.overview ?? undefined,
-        vote_average: candidate.voteAverage ?? undefined,
-      });
-    },
+  const linkPreview = React.useMemo<LinkPreview>(
+    () => ({
+      open: (candidate, options) => {
+        linkPreviewRef.current = {
+          ...options,
+          key: `${candidate.mediaType}-${candidate.tmdbId}`,
+        };
+        // The year is all the link results know of the date; the card shows
+        // only the year, and the full details replace it when they load.
+        const date = candidate.year ? `${candidate.year}-01-01` : undefined;
+        setCardLeaving(false);
+        setCardOverDialog(open);
+        setPaletteSlab({
+          id: candidate.tmdbId,
+          media_type: candidate.mediaType,
+          ...(candidate.mediaType === "tv"
+            ? { name: candidate.title, first_air_date: date }
+            : { title: candidate.title, release_date: date }),
+          poster_path: candidate.posterPath,
+          backdrop_path: null,
+          overview: candidate.overview ?? undefined,
+          vote_average: candidate.voteAverage ?? undefined,
+        });
+      },
+      prefetch: (candidate) => {
+        void loadDiscoverTitleDetail({
+          media_type: candidate.mediaType,
+          tmdb_id: candidate.tmdbId,
+        }).catch(() => {
+          // The card reports its own loading error if this title is opened.
+        });
+      },
+    }),
     [open],
   );
 
+  // Closing plays the card out first; the teardown follows once it has gone.
   const closePaletteSlab = React.useCallback(() => {
-    const pending = linkPreviewRef.current;
-    linkPreviewRef.current = null;
-    setPaletteSlab(null);
-    setCardOverDialog(false);
-    pending?.onClose(Boolean(saved[pending.key]) || justAdded.has(pending.key));
-  }, [justAdded, saved]);
+    setCardLeaving(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!cardLeaving) return;
+    const done = window.setTimeout(() => {
+      const pending = linkPreviewRef.current;
+      linkPreviewRef.current = null;
+      setPaletteSlab(null);
+      setCardOverDialog(false);
+      setCardLeaving(false);
+      pending?.onClose(
+        Boolean(saved[pending.key]) || justAdded.has(pending.key),
+      );
+    }, 160);
+    return () => window.clearTimeout(done);
+  }, [cardLeaving, justAdded, saved]);
 
   // Enter in Ask submits the input as a chat turn instead of letting cmdk
   // navigate (there is no command list in that state).
@@ -1671,7 +1699,7 @@ export function CommandPaletteProvider({
   return (
     <Ctx.Provider value={contextValue}>
       <SessionCtx.Provider value={sessionValue}>
-        <LinkPreviewContext.Provider value={previewLinkTitle}>
+        <LinkPreviewContext.Provider value={linkPreview}>
         {children}
         {activeSurfaceId && inlineGeometry && !open ? (
           <div
@@ -1845,6 +1873,9 @@ export function CommandPaletteProvider({
             scrollContainerId="app-scroll-area"
             centerWithinSelector="[data-title-overlay-safe-area]"
             dimBackground={cardOverDialog}
+            entry={cardOverDialog ? "rise" : "slide"}
+            steady
+            leaving={cardLeaving}
             onClose={closePaletteSlab}
           />
         ) : null}

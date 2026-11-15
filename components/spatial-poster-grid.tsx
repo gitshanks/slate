@@ -540,23 +540,30 @@ function SpatialPosterWorld({
   );
 }
 
-function DetailLoading() {
+function DetailLoading({ withText = true }: { withText?: boolean }) {
   return (
-    <div className="mt-7 space-y-5" aria-label="Loading title details">
-      <div className="h-3 w-4/5 animate-pulse rounded-full bg-muted" />
-      <div className="space-y-2">
-        <div className="h-2.5 w-full animate-pulse rounded-full bg-muted" />
-        <div className="h-2.5 w-[92%] animate-pulse rounded-full bg-muted" />
-        <div className="h-2.5 w-[68%] animate-pulse rounded-full bg-muted" />
-      </div>
-      <div className="flex gap-3 pt-2">
-        {Array.from({ length: 4 }, (_, index) => (
-          <div key={index} className="space-y-2">
-            <div className="h-12 w-12 animate-pulse rounded-xl bg-muted" />
-            <div className="h-2 w-12 animate-pulse rounded-full bg-muted" />
+    <div className="mt-7 space-y-6" aria-label="Loading title details">
+      {withText ? (
+        <div className="space-y-2.5">
+          <div className="skeleton h-2.5 w-full rounded-full" />
+          <div className="skeleton h-2.5 w-[92%] rounded-full" />
+          <div className="skeleton h-2.5 w-[68%] rounded-full" />
+        </div>
+      ) : null}
+      <div className="skeleton h-2.5 w-2/5 rounded-full" />
+      {[0, 1].map((rail) => (
+        <div key={rail} className="space-y-3">
+          <div className="skeleton h-2 w-12 rounded-full" />
+          <div className="flex gap-3">
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className="space-y-2">
+                <div className="skeleton h-14 w-14 rounded-2xl" />
+                <div className="skeleton h-2 w-12 rounded-full" />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1024,6 +1031,46 @@ function TitleDetailDismissLayer({
   );
 }
 
+/**
+ * The picture behind the card's header. The card can open on one picture and
+ * learn of a better one when its details arrive; the new one fades in over
+ * the old once it has loaded, so the swap is never a flash.
+ */
+function SlabBackdrop({ src }: { src: string }) {
+  const [layers, setLayers] = React.useState([{ src, ready: true }]);
+  const newest = layers[layers.length - 1];
+  if (newest.src !== src) {
+    setLayers([newest, { src, ready: false }]);
+  }
+
+  return layers.map((layer, index) => {
+    const covered = index < layers.length - 1 && newest.ready;
+    return (
+      <Image
+        key={layer.src}
+        src={layer.src}
+        alt=""
+        fill
+        sizes="(max-width: 639px) 84vw, 27rem"
+        loading="eager"
+        // This image crossfades itself; the app-wide fade would double it.
+        data-image-arrival="off"
+        onLoad={() =>
+          setLayers((current) =>
+            current.map((item) =>
+              item.src === layer.src ? { ...item, ready: true } : item,
+            ),
+          )
+        }
+        className={cn(
+          "scale-[1.015] object-cover object-center saturate-[1.08] transition-opacity duration-300 ease-out motion-reduce:transition-none",
+          layer.ready && !covered ? "opacity-60" : "opacity-0",
+        )}
+      />
+    );
+  });
+}
+
 function TitleDetailSlab({
   title,
   detail,
@@ -1035,6 +1082,9 @@ function TitleDetailSlab({
   contentClassName,
   entryOffsetX = 28,
   maxContentHeight,
+  entry = "slide",
+  steady = false,
+  leaving = false,
 }: {
   title: TitleRow;
   detail: PublicSpatialTitleDetail | null;
@@ -1046,6 +1096,13 @@ function TitleDetailSlab({
   contentClassName?: string;
   entryOffsetX?: number;
   maxContentHeight?: number;
+  /** "slide" comes in from the side; "rise" lifts in place, for a card that
+      opens over other content it was opened from. */
+  entry?: "slide" | "rise";
+  /** Ease from the loading size to the loaded one instead of snapping. */
+  steady?: boolean;
+  /** Play the card out; the owner unmounts it once that has finished. */
+  leaving?: boolean;
 }) {
   const resolvedTitle = detail?.resolvedTitle
     ? { ...title, ...detail.resolvedTitle }
@@ -1069,6 +1126,66 @@ function TitleDetailSlab({
     source: "Cast" | "Crew";
   } | null>(null);
   const returnFocusRef = React.useRef<HTMLButtonElement | null>(null);
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const focusWithin = React.useRef(false);
+  const pendingHeight = React.useRef<number | null>(null);
+
+  // A steady card changes size once, when its details arrive, and it eases
+  // there instead of snapping: the frame is pinned at the loading height and
+  // moved to the loaded one while the two layers crossfade. This is the one
+  // place the card animates its height; a transform cannot do it, because the
+  // border, the shadow and the scroll area all have to follow the edge.
+  React.useLayoutEffect(() => {
+    const content = contentRef.current;
+    const frame = content?.parentElement;
+    if (!steady || !content || !frame) return;
+    if (loading) {
+      pendingHeight.current = frame.offsetHeight;
+      return;
+    }
+    const from = pendingHeight.current;
+    pendingHeight.current = null;
+    if (from === null) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const styles = window.getComputedStyle(frame);
+    const limit = parseFloat(styles.maxHeight);
+    const natural =
+      content.offsetHeight +
+      parseFloat(styles.paddingTop) +
+      parseFloat(styles.paddingBottom);
+    const to = Number.isFinite(limit) ? Math.min(natural, limit) : natural;
+    if (Math.abs(to - from) < 2) return;
+
+    frame.style.height = `${from}px`;
+    // Read once so the starting height is committed before it changes.
+    void frame.offsetHeight;
+    frame.style.transition = "height 300ms cubic-bezier(0.32, 0.72, 0, 1)";
+    frame.style.height = `${to}px`;
+    const release = window.setTimeout(() => {
+      frame.style.transition = "";
+      frame.style.height = "";
+    }, 340);
+    return () => {
+      window.clearTimeout(release);
+      frame.style.transition = "";
+      frame.style.height = "";
+    };
+  }, [loading, steady]);
+
+  // The loading and loaded states are separate layers that crossfade. If
+  // focus sat on a control in the layer that left, hand it to the new one.
+  const restoreFocus = React.useCallback(() => {
+    if (!focusWithin.current) return;
+    const active = document.activeElement;
+    if (active && active !== document.body && active.isConnected) return;
+    const root = rootRef.current;
+    if (!root) return;
+    (titleDialogFocusableElements(root)[0] ?? root).focus({
+      preventScroll: true,
+    });
+  }, []);
 
   const openPerson = React.useCallback(
     (
@@ -1106,15 +1223,62 @@ function TitleDetailSlab({
     };
   }, [returnToTitle, selectedPerson]);
 
+  const facts = (
+    <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+      {runtime ? <span className="text-foreground/85">{runtime}</span> : null}
+      {year ? <span>{year}</span> : null}
+      {resolvedTitle.genres?.slice(0, 2).map((genre) => (
+        <span key={genre.id}>{genre.name}</span>
+      ))}
+    </div>
+  );
+  const description = summary ? (
+    <div className="mt-6 space-y-3 text-[13px] leading-relaxed text-foreground/75">
+      {summary.split(/\n{2,}/).map((paragraph, index) => (
+        <p key={index}>{paragraph}</p>
+      ))}
+    </div>
+  ) : null;
+  const rise = entry === "rise";
+
   return (
     <motion.div
+      ref={rootRef}
       data-spatial-control
-      initial={{ opacity: 0, x: entryOffsetX, rotateY: -5 }}
-      animate={{ opacity: 1, x: 0, rotateY: -1.5 }}
+      tabIndex={-1}
+      onFocusCapture={() => {
+        focusWithin.current = true;
+      }}
+      onBlurCapture={(event) => {
+        // Focus moving to something outside the card; a control being
+        // removed from under it (no destination) does not count.
+        const next = event.relatedTarget;
+        if (next instanceof Node && !event.currentTarget.contains(next)) {
+          focusWithin.current = false;
+        }
+      }}
+      initial={
+        rise
+          ? { opacity: 0, y: 14, scale: 0.965, rotateY: -1.5 }
+          : { opacity: 0, x: entryOffsetX, rotateY: -5 }
+      }
+      animate={
+        leaving
+          ? { opacity: 0, y: rise ? 8 : 0, scale: 0.975, rotateY: -1.5 }
+          : rise
+            ? { opacity: 1, y: 0, scale: 1, rotateY: -1.5 }
+            : { opacity: 1, x: 0, scale: 1, rotateY: -1.5 }
+      }
       exit={{ opacity: 0, x: entryOffsetX * 0.7 }}
-      transition={{ type: "spring", stiffness: 260, damping: 28, mass: 0.8 }}
+      transition={
+        leaving
+          ? { duration: 0.15, ease: [0.32, 0.72, 0, 1] }
+          : rise
+            ? { type: "spring", duration: 0.36, bounce: 0.14 }
+            : { type: "spring", stiffness: 260, damping: 28, mass: 0.8 }
+      }
       className={cn(
-        "pointer-events-auto relative isolate w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-border bg-card text-left text-card-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06),0_40px_110px_-34px_rgba(15,23,42,0.34)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_40px_110px_-34px_rgba(0,0,0,0.98)]",
+        "pointer-events-auto relative isolate w-[min(84vw,27rem)] overflow-hidden rounded-[1.65rem] border border-border bg-card text-left text-card-foreground outline-none shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06),0_40px_110px_-34px_rgba(15,23,42,0.34)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_40px_110px_-34px_rgba(0,0,0,0.98)]",
         className,
       )}
       style={{ transformStyle: "preserve-3d" }}
@@ -1124,16 +1288,7 @@ function TitleDetailSlab({
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-[21rem] overflow-hidden"
       >
-        {backdrop ? (
-          <Image
-            src={backdrop}
-            alt=""
-            fill
-            sizes="(max-width: 639px) 84vw, 27rem"
-            loading="eager"
-            className="scale-[1.015] object-cover object-center opacity-60 saturate-[1.08]"
-          />
-        ) : null}
+        {backdrop ? <SlabBackdrop src={backdrop} /> : null}
         <div
           className="absolute inset-0"
           style={{
@@ -1192,6 +1347,7 @@ function TitleDetailSlab({
             : "min(69dvh, 43rem)",
         }}
       >
+        <div ref={contentRef} className="relative">
         <div className="min-w-0 pr-14 md:pr-0">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/75">
             {resolvedTitle.media_type === "movie" ? "Film" : "Series"}
@@ -1201,142 +1357,159 @@ function TitleDetailSlab({
           </h3>
         </div>
 
-        {detail?.tagline ? (
-          <p className="mt-3 text-sm italic leading-relaxed text-muted-foreground">
-            {detail.tagline}
-          </p>
-        ) : null}
-
-        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-          {runtime ? <span className="text-foreground/85">{runtime}</span> : null}
-          {year ? <span>{year}</span> : null}
-          {resolvedTitle.genres?.slice(0, 2).map((genre) => (
-            <span key={genre.id}>{genre.name}</span>
-          ))}
-        </div>
-
-        {(imdb || rt || metacritic) && (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {imdb ? (
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] text-foreground/85">
-                <ImdbBadge className="h-3 w-auto" />
-                <span className="font-mono">{imdb}</span>
-              </span>
-            ) : null}
-            {rt ? (
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] text-foreground/85">
-                <RottenTomatoesBadge score={resolvedTitle.rt_score} className="h-3 w-auto" />
-                <span className="font-mono">{rt}</span>
-              </span>
-            ) : null}
-            {metacritic ? (
-              <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] text-foreground/85">
-                <MetacriticBadge score={resolvedTitle.metacritic_score} className="h-3 w-auto" />
-                <span className="font-mono">{metacritic}</span>
-              </span>
-            ) : null}
-          </div>
-        )}
-
-        <div className="mt-5 flex flex-wrap gap-2">
-          {renderActions ? (
-            renderActions(resolvedTitle, detail)
+        <AnimatePresence
+          mode="popLayout"
+          initial={false}
+          onExitComplete={restoreFocus}
+        >
+          {loading ? (
+            <motion.div
+              key="pending"
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
+            >
+              {facts}
+              <div className="mt-5 flex flex-wrap gap-2">
+                {renderActions ? renderActions(resolvedTitle, null) : null}
+                <TitleShareButton title={resolvedTitle} />
+              </div>
+              {description}
+              <DetailLoading withText={!description} />
+            </motion.div>
           ) : (
-            <>
-              <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground">
-                <ShelfIcon className="h-3.5 w-3.5" />
-                {shelf.label}
-              </span>
-              {sentiment && SentimentIcon ? (
-                <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-background/55 px-3 text-[11px] font-medium text-foreground/85">
-                  <SentimentIcon
-                    className={cn("h-3.5 w-3.5", sentiment.className)}
-                  />
-                  {sentiment.label}
-                </span>
+            <motion.div
+              key="ready"
+              initial={{ opacity: 0, y: 6, filter: "blur(3px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
+              transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+            >
+            {detail?.tagline ? (
+              <p className="mt-3 text-sm italic leading-relaxed text-muted-foreground">
+                {detail.tagline}
+              </p>
+            ) : null}
+
+              {facts}
+
+            {(imdb || rt || metacritic) && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {imdb ? (
+                  <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] text-foreground/85">
+                    <ImdbBadge className="h-3 w-auto" />
+                    <span className="font-mono">{imdb}</span>
+                  </span>
+                ) : null}
+                {rt ? (
+                  <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] text-foreground/85">
+                    <RottenTomatoesBadge score={resolvedTitle.rt_score} className="h-3 w-auto" />
+                    <span className="font-mono">{rt}</span>
+                  </span>
+                ) : null}
+                {metacritic ? (
+                  <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-background/55 px-2.5 text-[11px] text-foreground/85">
+                    <MetacriticBadge score={resolvedTitle.metacritic_score} className="h-3 w-auto" />
+                    <span className="font-mono">{metacritic}</span>
+                  </span>
+                ) : null}
+              </div>
+            )}
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {renderActions ? (
+                renderActions(resolvedTitle, detail)
+              ) : (
+                <>
+                  <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[11px] font-medium text-primary-foreground">
+                    <ShelfIcon className="h-3.5 w-3.5" />
+                    {shelf.label}
+                  </span>
+                  {sentiment && SentimentIcon ? (
+                    <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-background/55 px-3 text-[11px] font-medium text-foreground/85">
+                      <SentimentIcon
+                        className={cn("h-3.5 w-3.5", sentiment.className)}
+                      />
+                      {sentiment.label}
+                    </span>
+                  ) : null}
+                </>
+              )}
+              <TitleShareButton title={resolvedTitle} />
+              {detail?.trailerKey ? (
+                <TrailerButton
+                  trailerKey={detail.trailerKey}
+                  titleName={resolvedTitle.title}
+                />
               ) : null}
-            </>
+              {detail?.watchProviders?.providers.length ? (
+                <WatchProvidersButton
+                  providers={detail.watchProviders.providers.map((provider) => ({
+                    provider_id: provider.id,
+                    provider_name: provider.name,
+                    logo_path: provider.logoPath,
+                  }))}
+                  link={detail.watchProviders.link}
+                  titleName={resolvedTitle.title}
+                  presentation="inline"
+                />
+              ) : null}
+            </div>
+
+            {error ? (
+              <p className="mt-6 rounded-xl border border-border bg-muted/60 p-3 text-sm text-muted-foreground">
+                {error}
+              </p>
+            ) : null}
+
+              {!error ? description : null}
+
+            {!loading && detail?.directedBy.length ? (
+              <p className="mt-5 text-xs text-muted-foreground">
+                <span className="text-foreground/85">
+                  {resolvedTitle.media_type === "movie"
+                    ? "Directed by"
+                    : "Created by"}
+                </span>{" "}
+                {detail.directedBy.join(", ")}
+              </p>
+            ) : null}
+
+            {!loading && detail?.cast.length ? (
+              <DetailPeopleRail
+                label="Cast"
+                people={detail.cast}
+                onSelect={openPerson}
+              />
+            ) : null}
+
+            {!loading && detail?.crew.length ? (
+              <DetailPeopleRail
+                label="Crew"
+                people={detail.crew}
+                onSelect={openPerson}
+              />
+            ) : null}
+
+            {resolvedTitle.review ? (
+              <section className="mt-7 rounded-2xl border border-border bg-muted/40 p-4">
+                <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Note
+                </h4>
+                <p className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/75">
+                  {resolvedTitle.review}
+                </p>
+              </section>
+            ) : null}
+
+            {!loading && detail?.recommendations?.length ? (
+              <DetailRecommendations
+                title={resolvedTitle.title}
+                items={detail.recommendations}
+              />
+            ) : null}
+            </motion.div>
           )}
-          <TitleShareButton title={resolvedTitle} />
-          {detail?.trailerKey ? (
-            <TrailerButton
-              trailerKey={detail.trailerKey}
-              titleName={resolvedTitle.title}
-            />
-          ) : null}
-          {detail?.watchProviders?.providers.length ? (
-            <WatchProvidersButton
-              providers={detail.watchProviders.providers.map((provider) => ({
-                provider_id: provider.id,
-                provider_name: provider.name,
-                logo_path: provider.logoPath,
-              }))}
-              link={detail.watchProviders.link}
-              titleName={resolvedTitle.title}
-              presentation="inline"
-            />
-          ) : null}
+        </AnimatePresence>
         </div>
-
-        {loading ? <DetailLoading /> : null}
-        {error ? (
-          <p className="mt-6 rounded-xl border border-border bg-muted/60 p-3 text-sm text-muted-foreground">
-            {error}
-          </p>
-        ) : null}
-
-        {!loading && !error && summary ? (
-          <div className="mt-6 space-y-3 text-[13px] leading-relaxed text-foreground/75">
-            {summary.split(/\n{2,}/).map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
-            ))}
-          </div>
-        ) : null}
-
-        {!loading && detail?.directedBy.length ? (
-          <p className="mt-5 text-xs text-muted-foreground">
-            <span className="text-foreground/85">
-              {resolvedTitle.media_type === "movie"
-                ? "Directed by"
-                : "Created by"}
-            </span>{" "}
-            {detail.directedBy.join(", ")}
-          </p>
-        ) : null}
-
-        {!loading && detail?.cast.length ? (
-          <DetailPeopleRail
-            label="Cast"
-            people={detail.cast}
-            onSelect={openPerson}
-          />
-        ) : null}
-
-        {!loading && detail?.crew.length ? (
-          <DetailPeopleRail
-            label="Crew"
-            people={detail.crew}
-            onSelect={openPerson}
-          />
-        ) : null}
-
-        {resolvedTitle.review ? (
-          <section className="mt-7 rounded-2xl border border-border bg-muted/40 p-4">
-            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Note
-            </h4>
-            <p className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/75">
-              {resolvedTitle.review}
-            </p>
-          </section>
-        ) : null}
-
-        {!loading && detail?.recommendations?.length ? (
-          <DetailRecommendations
-            title={resolvedTitle.title}
-            items={detail.recommendations}
-          />
-        ) : null}
       </motion.div>
 
       <AnimatePresence initial={false}>
@@ -1573,12 +1746,20 @@ export function CollectionTitleDetailOverlay({
   centerAfterId,
   centerWithinSelector,
   dimBackground = false,
+  entry = "slide",
+  steady = false,
+  leaving = false,
 }: {
   title: TitleRow;
   detailSource: TitleDetailSource;
   onClose: () => void;
   /** Step what is behind the card back, e.g. results it was opened from. */
   dimBackground?: boolean;
+  entry?: "slide" | "rise";
+  /** Ease the card from its loading size to its loaded one. */
+  steady?: boolean;
+  /** Play the card and its backdrop out before the owner unmounts them. */
+  leaving?: boolean;
   /** The Shelf source card this slab should sit alongside. */
   anchorTitleId?: string;
   /** Exact source element for repeated catalogue titles in Discover rails. */
@@ -2008,7 +2189,10 @@ export function CollectionTitleDetailOverlay({
           onDismiss={onClose}
           className={
             dimBackground
-              ? "bg-background/60 duration-200 animate-in fade-in-0 motion-reduce:animate-none"
+              ? cn(
+                  "bg-background/60 transition-opacity duration-200 ease-out starting:opacity-0",
+                  leaving && "opacity-0 duration-150",
+                )
               : undefined
           }
         />
@@ -2049,6 +2233,9 @@ export function CollectionTitleDetailOverlay({
             className="w-full"
             entryOffsetX={28}
             maxContentHeight={position.maxContentHeight}
+            entry={entry}
+            steady={steady}
+            leaving={leaving}
           />
         </div>
       ) : null}

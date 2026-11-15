@@ -8,16 +8,15 @@ export interface LinkPreviewOptions {
   onClose: (savedFromCard: boolean) => void;
 }
 
-/** Opens a title's card on top of the link results it was found in. */
-export type LinkPreviewHandler = (
-  candidate: SharedLinkCandidate,
-  options: LinkPreviewOptions,
-) => void;
+export interface LinkPreview {
+  /** Open a title's card on top of the link results it was found in. */
+  open: (candidate: SharedLinkCandidate, options: LinkPreviewOptions) => void;
+  /** Fetch a title's details ahead of time, so its card opens complete. */
+  prefetch: (candidate: SharedLinkCandidate) => void;
+}
 
-export const LinkPreviewContext = React.createContext<LinkPreviewHandler | null>(
-  null,
-);
+export const LinkPreviewContext = React.createContext<LinkPreview | null>(null);
 
-export function useLinkPreview(): LinkPreviewHandler | null {
+export function useLinkPreview(): LinkPreview | null {
   return React.useContext(LinkPreviewContext);
 }
