@@ -5,15 +5,14 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowUpRight,
-  Box,
   Film,
-  LayoutGrid,
   Search,
   X,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
+import { ViewSwitcher } from "@/components/view-switcher";
 import { MediaGrid } from "@/components/media-grid";
 import {
   PublicTitleDetailOverlay,
@@ -23,7 +22,6 @@ import { extractGenres, filterAndSort } from "@/lib/filter-utils";
 import { loadPublicTitleDetail } from "@/lib/public-title-detail-cache";
 import { PublicProfileTitleActions } from "@/components/public-profile-title-actions";
 import type { PublicSpatialTitleDetail } from "@/lib/public-spatial-detail-types";
-import { cn } from "@/lib/utils";
 import type { TitleRow } from "@/lib/types";
 
 const loadSpatialPosterGrid = () => import("@/components/spatial-poster-grid");
@@ -305,51 +303,13 @@ export function PublicProfileCollectionView({
           </div>
 
           <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">
-            <div
-              className="relative grid h-10 w-[5.25rem] shrink-0 grid-cols-2 rounded-full border border-white/12 bg-white/[0.055] p-0.5"
-              role="group"
-              aria-label="Collection view"
-            >
-              <span
-                aria-hidden
-                className={cn(
-                  "pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-0.125rem)] rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.18)] transition-[transform,background-color] duration-[240ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
-                  mode === "shelf"
-                    ? "translate-x-0 bg-primary"
-                    : "translate-x-full bg-primary",
-                )}
-              />
-              <button
-                type="button"
-                onClick={() => selectMode("shelf")}
-                aria-pressed={mode === "shelf"}
-                aria-label="Shelf view"
-                disabled={isSwitching}
-                className={cn(
-                  "relative z-10 inline-flex w-10 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none",
-                  mode === "shelf"
-                    ? "text-primary-foreground"
-                    : "text-white/52 hover:text-white",
-                )}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => selectMode("space")}
-                aria-pressed={mode === "space"}
-                aria-label="Space view"
-                disabled={isSwitching}
-                className={cn(
-                  "relative z-10 inline-flex w-10 items-center justify-center rounded-full transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] outline-none active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none",
-                  mode === "space"
-                    ? "text-primary-foreground"
-                    : "text-white/52 hover:text-white",
-                )}
-              >
-                <Box className="h-3.5 w-3.5" />
-              </button>
-            </div>
+            <ViewSwitcher
+              mode={mode}
+              disabled={isSwitching}
+              onSelect={selectMode}
+              label="Collection view"
+              tone="glass"
+            />
             <button
               type="button"
               onClick={() => router.push("/login")}
@@ -449,7 +409,7 @@ export function PublicProfileCollectionView({
                 idPrefix="shared"
                 popoverClassName="z-[80]"
                 groupControls
-                className="mb-0 w-max flex-nowrap gap-2 md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segment:first-child]:px-3.5 [&_.filter-segmented]:h-10 [&_[data-filter-clear]]:px-3 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden md:max-lg:[&_.filter-chip]:px-1.5 md:max-lg:[&_.filter-chip]:text-[10px] md:max-lg:[&_.filter-chip_.lucide-chevron-down]:hidden md:max-lg:[&_.filter-control-group]:gap-0.5 md:max-lg:[&_.filter-segment]:px-1 md:max-lg:[&_.filter-segment]:text-[10px] md:max-lg:[&_[data-filter-sentiment]]:w-10 md:max-lg:[&_[data-filter-sentiment]]:justify-center md:max-lg:[&_[data-filter-sentiment]]:px-0 md:max-lg:[&_[data-filter-sentiment-label]]:hidden lg:[&_[data-filter-clear-label]]:inline lg:[&_.filter-segment]:px-2.5"
+                className="mb-0 w-max flex-nowrap gap-2 md:gap-1 [&_.filter-chip]:h-10 [&_.filter-chip]:border-white/12 [&_.filter-chip]:bg-white/[0.065] [&_.filter-chip]:text-white/60 [&_.filter-chip:hover]:text-white [&_.filter-chip[data-active=true]]:border-primary/45 [&_.filter-chip[data-active=true]]:bg-primary/15 [&_.filter-chip[data-active=true]]:text-primary [&_.filter-segment]:whitespace-nowrap [&_.filter-segment]:px-2.5 [&_.filter-segment:first-child]:px-3.5 [&_.filter-segmented]:h-10 [&_[data-filter-clear]]:px-3 md:[&_.filter-chip]:gap-1 md:[&_.filter-chip]:px-2 md:[&_.filter-segment]:px-1.5 md:[&_[data-filter-clear]]:w-10 md:[&_[data-filter-clear]]:justify-center md:[&_[data-filter-clear-label]]:hidden md:max-lg:[&_.filter-chip]:px-1.5 md:max-lg:[&_.filter-chip]:text-[10px] md:max-lg:[&_.filter-chip_.lucide-chevron-down]:hidden md:max-lg:[&_.filter-control-group]:gap-0.5 md:max-lg:[&_.filter-segment]:px-1 md:max-lg:[&_.filter-segment]:text-[10px] md:max-lg:[&_.filter-segment-ink]:text-[10px] md:max-lg:[&_[data-filter-sentiment]]:w-10 md:max-lg:[&_[data-filter-sentiment]]:justify-center md:max-lg:[&_[data-filter-sentiment]]:px-0 md:max-lg:[&_[data-filter-sentiment-label]]:hidden lg:[&_[data-filter-clear-label]]:inline lg:[&_.filter-segment]:px-2.5"
               />
             </div>
           </div>

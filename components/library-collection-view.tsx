@@ -4,14 +4,13 @@ import * as React from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import {
-  Box,
   Film,
-  LayoutGrid,
   Plus,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
+import { ViewSwitcher } from "@/components/view-switcher";
 import { LibraryTitleActions } from "@/components/library-title-actions";
 import { MediaGrid, type MediaGridReorderContext } from "@/components/media-grid";
 import {
@@ -72,64 +71,6 @@ interface LibraryCollectionViewProps {
   avatarUrl: string | null;
   lists: { id: string; name: string }[];
   shareProfile?: { username: string; isPublic: boolean } | null;
-}
-
-function ViewSwitcher({
-  mode,
-  disabled,
-  onSelect,
-}: {
-  mode: ViewMode;
-  disabled: boolean;
-  onSelect: (mode: ViewMode) => void;
-}) {
-  return (
-    <div
-      className="relative grid h-10 w-[5.25rem] shrink-0 grid-cols-2 rounded-full border border-border bg-foreground/[0.055] p-0.5"
-      role="group"
-      aria-label="Library view"
-    >
-      <span
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-0.125rem)] rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.18)] transition-[transform,background-color] duration-[240ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
-          mode === "shelf"
-            ? "translate-x-0 bg-primary"
-            : "translate-x-full bg-primary",
-        )}
-      />
-      <button
-        type="button"
-        onClick={() => onSelect("shelf")}
-        aria-pressed={mode === "shelf"}
-        aria-label="Shelf view"
-        disabled={disabled}
-        className={cn(
-          "relative z-10 inline-flex w-10 items-center justify-center rounded-full outline-none transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none",
-          mode === "shelf"
-            ? "text-primary-foreground"
-            : "text-muted-foreground hover:text-foreground",
-        )}
-      >
-        <LayoutGrid className="h-3.5 w-3.5" />
-      </button>
-      <button
-        type="button"
-        onClick={() => onSelect("space")}
-        aria-pressed={mode === "space"}
-        aria-label="Space view"
-        disabled={disabled}
-        className={cn(
-          "relative z-10 inline-flex w-10 items-center justify-center rounded-full outline-none transition-[color,transform] duration-200 ease-[cubic-bezier(0.65,0,0.35,1)] active:scale-[0.97] focus-visible:ring-1 focus-visible:ring-primary/60 disabled:pointer-events-none",
-          mode === "space"
-            ? "text-primary-foreground"
-            : "text-muted-foreground hover:text-foreground",
-        )}
-      >
-        <Box className="h-3.5 w-3.5" />
-      </button>
-    </div>
-  );
 }
 
 export function LibraryCollectionView({
@@ -452,7 +393,12 @@ export function LibraryCollectionView({
         }
         actions={
           <>
-            <ViewSwitcher mode={mode} disabled={isSwitching} onSelect={selectMode} />
+            <ViewSwitcher
+              mode={mode}
+              disabled={isSwitching}
+              onSelect={selectMode}
+              label="Library view"
+            />
             <ThemeToggle className="h-10 w-10 shrink-0 border border-border bg-foreground/[0.055] text-muted-foreground hover:bg-foreground/[0.09] hover:text-foreground md:hidden lg:inline-flex" />
             {shareProfile?.isPublic ? (
               <ProfileShareButton username={shareProfile.username} displayName={displayName} avatarUrl={avatarUrl} titles={titles} />

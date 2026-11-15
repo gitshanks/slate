@@ -53,6 +53,7 @@ export function BottomNav() {
   // The selector sits above the links, so it draws the keyboard focus ring
   // for whichever tab holds it.
   const [focusedTab, setFocusedTab] = React.useState<string | null>(null);
+  const tabLinks = React.useRef<(HTMLAnchorElement | null)[]>([]);
 
   // Hydrate from sessionStorage on mount so a hard reload on a detail
   // route still highlights the last tab from the previous session.
@@ -126,7 +127,9 @@ export function BottomNav() {
         }}
       >
         <ul
-          className="pointer-events-auto relative z-10 grid min-w-0 grid-cols-4 overflow-hidden rounded-full border border-foreground/[0.12] bg-background/[0.58] p-1 ring-1 ring-foreground/[0.05]"
+          // The selector can be dragged along the dock, so sideways touches
+          // belong to it; vertical ones still scroll the page.
+          className="pointer-events-auto relative z-10 grid min-w-0 touch-pan-y select-none grid-cols-4 overflow-hidden rounded-full border border-foreground/[0.12] bg-background/[0.58] p-1 ring-1 ring-foreground/[0.05] [-webkit-touch-callout:none]"
           style={{
             background:
               "linear-gradient(180deg, hsl(var(--foreground) / 0.12) 0%, hsl(var(--foreground) / 0.035) 42%, transparent 72%), hsl(var(--background) / 0.58)",
@@ -140,14 +143,21 @@ export function BottomNav() {
             index={visualActiveIndex}
             items={TABS}
             focusedIndex={TABS.findIndex((tab) => tab.href === focusedTab)}
+            // Releasing a drag on a tab goes through that tab's own link, so
+            // it navigates exactly as a tap would.
+            onSelect={(position) => tabLinks.current[position]?.click()}
           />
 
-          {TABS.map((t) => {
+          {TABS.map((t, position) => {
             const current = t.href === activeHref;
             const Icon = t.icon;
             return (
-              <li key={t.href} className="relative z-10 min-w-0">
+              <li key={t.href} data-liquid-item className="relative z-10 min-w-0">
                 <Link
+                  ref={(node) => {
+                    tabLinks.current[position] = node;
+                  }}
+                  draggable={false}
                   href={t.href}
                   // Previews performs account reads and bounded TMDB trailer
                   // hydration. Do not pay that cost merely because the

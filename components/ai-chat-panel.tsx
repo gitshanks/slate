@@ -18,6 +18,7 @@ import {
 import { posterUrl } from "@/lib/tmdb-image";
 import { formatTmdbScore, cn } from "@/lib/utils";
 import { RailScroller } from "@/components/rail-scroller";
+import { SegmentedFilter } from "@/components/segmented-filter";
 import { addTitle } from "@/lib/actions";
 import { toast } from "sonner";
 import {
@@ -404,6 +405,7 @@ function ResultRail({
   isAdded?: (item: ChatResultItem) => boolean;
 }) {
   const [type, setType] = React.useState<"" | "movie" | "tv">("");
+  const railId = React.useId();
   // Only offer the filter when a single answer actually mixes films and
   // series — otherwise the AI already committed to one type and chips are noise.
   const mixed =
@@ -419,23 +421,14 @@ function ResultRail({
     // on desktop even though it panned fine on touch.
     <div className="ml-8 -mr-4">
       {mixed && (
-        <div className="mb-2 inline-flex items-center rounded-full border border-border bg-card p-0.5">
-          {RAIL_TYPES.map(({ value, label }) => (
-            <button
-              key={value || "all"}
-              type="button"
-              onClick={() => setType(value)}
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors",
-                type === value
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <SegmentedFilter
+          id={`${railId}-type`}
+          options={RAIL_TYPES}
+          value={type}
+          onValueChange={(value) => setType(value as "" | "movie" | "tv")}
+          size="sm"
+          className="mb-2"
+        />
       )}
       <RailScroller>
         {shown.map((item) => {

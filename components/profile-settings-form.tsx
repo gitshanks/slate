@@ -326,6 +326,9 @@ export function ProfileSettingsForm({
               className="peer sr-only"
             />
             <span className="h-7 w-12 rounded-full bg-foreground/15 transition-colors duration-200 peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background" />
+            {/* The thumb is two discs: one crosses quickly and the other
+                follows, so it stretches on the way and closes up on arrival. */}
+            <span className="absolute left-[3px] top-[3px] h-[22px] w-[22px] rounded-full bg-white transition-transform duration-[320ms] ease-[var(--ease-ui-move)] peer-checked:translate-x-5 peer-active:scale-95 motion-reduce:transition-none" />
             <span className="absolute left-[3px] top-[3px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200 ease-[var(--ease-ui-out)] peer-checked:translate-x-5 peer-active:scale-95 motion-reduce:transition-none" />
           </span>
         </label>
