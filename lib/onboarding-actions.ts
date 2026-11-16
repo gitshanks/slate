@@ -20,7 +20,9 @@ export async function completeOnboarding(
   const ownerId = await getLibraryOwnerId();
   const profile = await getProfileById(ownerId);
   if (!profile) return { ok: false, message: "Your profile could not be loaded." };
-  if (profile.onboarding_completed_at) return { ok: true, message: "Your slate is ready.", savedCount: 0 };
+  // `more` is a second round of picks from the Library, for small libraries.
+  const more = formData.get("more") === "1";
+  if (profile.onboarding_completed_at && !more) return { ok: true, message: "Your slate is ready.", savedCount: 0 };
 
   const selections = parseSelections(formData.get("selections"));
   if (!selections) {
@@ -47,8 +49,10 @@ export async function completeOnboarding(
 
     // New accounts are normally empty. Explicit positions also make a retry
     // idempotent and preserve the order in which the person kept the titles.
+    // A second round leaves existing titles where they are; addTitle already
+    // placed the new ones at the end of Up Next.
     const db = await getLibraryClient();
-    await Promise.all(
+    if (!more) await Promise.all(
       saved.map(async (row, index) => {
         const { error } = await db
           .from("titles")
@@ -61,12 +65,14 @@ export async function completeOnboarding(
       }),
     );
 
-    const now = new Date().toISOString();
-    const { error } = await supabase
-      .from("profiles")
-      .update({ onboarding_completed_at: now, updated_at: now })
-      .eq("id", ownerId);
-    if (error) throw new Error(error.message);
+    if (!profile.onboarding_completed_at) {
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from("profiles")
+        .update({ onboarding_completed_at: now, updated_at: now })
+        .eq("id", ownerId);
+      if (error) throw new Error(error.message);
+    }
 
     revalidatePath("/", "layout");
     revalidatePath("/app", "layout");

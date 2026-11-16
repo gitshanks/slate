@@ -2,6 +2,7 @@
  * Minimal CSV parser for library imports. Supports:
  * - Letterboxd `watched.csv` and `diary.csv` (columns: Name, Year, Watched Date, …)
  * - Trakt CSV exports                        (columns: title, year, tmdb_id, watched_at, …)
+ * - IMDb ratings and list exports            (columns: Const, Title, Year, Title Type, Date Rated, …)
  * - Any CSV with a Title/Name column and optionally Year + Date + tmdb_id
  *
  * Hand-rolled splitter — no papaparse. Handles double-quoted fields and
@@ -21,6 +22,8 @@ export interface ParsedRow {
   date?: string;
   /** Trakt exports include this — skip TMDB search entirely when we have it. */
   tmdbId?: number;
+  /** IMDb exports carry the tt id in `Const`; matched exactly before any search. */
+  imdbId?: string;
   /** Explicit source hint that beats the isEpisode fallback. */
   mediaHint?: "movie" | "tv";
   /** True if the raw title looked like "Show: Season 1: Episode 3". */
@@ -46,6 +49,8 @@ export function parseCsv(raw: string): ParsedRow[] {
         cols.date != null ? cells[cols.date]?.trim() || undefined : undefined;
       const tmdbId =
         cols.tmdbId != null ? parseIntLoose(cells[cols.tmdbId]) : undefined;
+      const imdbRaw = cols.imdbId != null ? cells[cols.imdbId]?.trim() : undefined;
+      const imdbId = imdbRaw && /^tt\d{5,12}$/.test(imdbRaw) ? imdbRaw : undefined;
       const explicitHint =
         cols.mediaType != null ? parseMediaHint(cells[cols.mediaType]) : undefined;
       const { cleaned, isEpisode } = stripEpisode(rawTitle);
@@ -55,6 +60,7 @@ export function parseCsv(raw: string): ParsedRow[] {
         year,
         date,
         tmdbId,
+        imdbId,
         mediaHint: explicitHint ?? (isEpisode ? "tv" : undefined),
         isEpisode,
       };
@@ -85,24 +91,26 @@ interface ColumnIndex {
   date: number | null;
   tmdbId: number | null;
   mediaType: number | null;
+  imdbId: number | null;
 }
 
 function defaultColumns(): ColumnIndex {
-  return { title: 0, year: null, date: null, tmdbId: null, mediaType: null };
+  return { title: 0, year: null, date: null, tmdbId: null, mediaType: null, imdbId: null };
 }
 
 function mapColumns(header: string[]): ColumnIndex {
-  const idx: ColumnIndex = { title: null, year: null, date: null, tmdbId: null, mediaType: null };
+  const idx: ColumnIndex = { title: null, year: null, date: null, tmdbId: null, mediaType: null, imdbId: null };
   header.forEach((cell, i) => {
     const h = cell.trim().toLowerCase();
     if (idx.title == null && /^(title|name|movie|show|film)$/.test(h)) idx.title = i;
     else if (idx.year == null && /^(year|release year|released)$/.test(h)) idx.year = i;
     else if (
       idx.date == null &&
-      /(watched[\s_]*(date|at)|last[\s_]*(seen|watched(?:_at)?))|^date$/.test(h)
+      /(watched[\s_]*(date|at)|last[\s_]*(seen|watched(?:_at)?))|^date( rated)?$/.test(h)
     ) idx.date = i;
     else if (idx.tmdbId == null && /^tmdb[\s_]*id$/.test(h)) idx.tmdbId = i;
-    else if (idx.mediaType == null && /^(type|media[\s_]*type|kind)$/.test(h)) idx.mediaType = i;
+    else if (idx.mediaType == null && /^(type|title[\s_]*type|media[\s_]*type|kind)$/.test(h)) idx.mediaType = i;
+    else if (idx.imdbId == null && /^(const|imdb[\s_]*id|tconst)$/.test(h)) idx.imdbId = i;
   });
   if (idx.title == null) idx.title = 0;
   return idx;
@@ -112,7 +120,7 @@ function looksLikeHeader(cells: string[]): boolean {
   if (cells.length === 0) return false;
   const anyDigits = cells.some((c) => /\d/.test(c));
   const hasKeyword = cells.some((c) =>
-    /^(title|name|movie|show|film|year|date|watched|rating|type|tmdb[\s_]*id)$/i.test(c.trim())
+    /^(title|name|movie|show|film|year|date|watched|rating|type|title type|const|tmdb[\s_]*id)$/i.test(c.trim())
   );
   // Header rows have keyword-like cells and no bare numbers like "2024".
   return hasKeyword && !anyDigits;
@@ -137,6 +145,9 @@ function parseMediaHint(s: string | undefined): "movie" | "tv" | undefined {
   const h = s.trim().toLowerCase();
   if (h === "movie" || h === "film") return "movie";
   if (h === "tv" || h === "show" || h === "series" || h === "episode") return "tv";
+  // IMDb's Title Type: "TV Series", "TV Mini Series", "TV Movie", "Short"…
+  if (h === "tv movie" || h === "short" || h === "video") return "movie";
+  if (h.startsWith("tv ")) return "tv";
   return undefined;
 }
 

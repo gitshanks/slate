@@ -2,6 +2,7 @@
 
 import {
   searchMultiWithFallback,
+  findByImdbId,
   getMovie,
   getTv,
   normalizeForStorage,
@@ -157,6 +158,17 @@ async function matchRow(row: ParsedRow): Promise<MatchOutcome> {
           ? new Date().toISOString()
           : null,
     };
+  }
+
+  // IMDb rows carry the tt id: resolve it to a TMDB id exactly, then take
+  // the same fast path as Trakt.
+  if (row.tmdbId == null && row.imdbId) {
+    try {
+      const found = await findByImdbId(row.imdbId);
+      if (found) row = { ...row, tmdbId: found.id, mediaHint: found.media_type };
+    } catch {
+      // Fall through to title search.
+    }
   }
 
   // Fast path: Trakt rows carry a tmdb_id + type. Skip search, fetch detail.

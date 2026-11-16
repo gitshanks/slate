@@ -26,6 +26,7 @@ export type AnalyticsEvent =
   | "list_invite_created"
   | "list_member_removed"
   | "list_title_added"
+  | "nudge_dismissed"
   | "onboarding_completed"
   | "onboarding_skipped"
   | "onboarding_started"

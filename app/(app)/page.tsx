@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { Film } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { LibraryCollectionView } from "@/components/library-collection-view";
@@ -8,6 +9,7 @@ import { getEditableListOptions } from "@/lib/shared-lists";
 import { getProfileById, profileAvatarUrl } from "@/lib/profiles";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { fetchTitlesByStatus } from "@/lib/title-filters";
+import { getNewEpisodes, suggestList } from "@/lib/library-nudges";
 import type { TitleRow } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -56,9 +58,18 @@ export default async function LibraryPage() {
     watching.titles,
     watched.titles,
   ]);
+  // Only when nothing shared or owned exists yet: the first list is the nudge.
+  const listSuggestion = lists.length ? null : suggestList(titles);
+  const hiddenNudges = ((await cookies()).get("slate_nudges_hidden")?.value ?? "").split(".");
+  const newEpisodes = await getNewEpisodes(ownerId, watching.titles).catch(() => []);
+
   return (
     <Suspense fallback={null}>
       <LibraryCollectionView
+        newEpisodes={newEpisodes}
+        hiddenNudges={hiddenNudges}
+        listSuggestion={listSuggestion}
+        canPickMore={SLATE_HOSTED}
         titles={titles}
         displayName={profile?.display_name || "You"}
         avatarUrl={profile ? profileAvatarUrl(profile) : null}

@@ -100,7 +100,7 @@ test('save failures stay retryable and never report success', async () => {
   assert.ok(!result.destination);
 });
 
-function onboardingFixture(completed = false) {
+function onboardingFixture(completed = false, saved = []) {
   const deck = [{ tmdbId: 5, mediaType: 'tv' }, { tmdbId: 42, mediaType: 'movie' }, { tmdbId: 42, mediaType: 'tv' }];
   let lookups = 0;
   const page = load('app/onboarding/page.tsx', {
@@ -114,8 +114,16 @@ function onboardingFixture(completed = false) {
     '@/lib/title-sharing': helpers,
     '@/lib/onboarding-titles': { getOnboardingTitles: async () => deck },
     '@/lib/shared-title-data': { getSharedTitle: async () => { lookups++; return { tmdb_id: 42, media_type: 'movie', title: 'A recommendation', overview: 'A plot', genres: [] }; } },
+    '@/lib/library-nudges': {
+      SMALL_LIBRARY_TITLES: 5,
+      savedTitleKeys: async () => new Set(saved),
+      countLibraryTitles: async () => saved.length,
+    },
   });
-  return { render: next => page.default({ searchParams: Promise.resolve({ next }) }), lookups: () => lookups };
+  return {
+    render: (next, more) => page.default({ searchParams: Promise.resolve({ next, more }) }),
+    lookups: () => lookups,
+  };
 }
 
 test('onboarding starts with the shared title exactly once and keeps its return destination', async () => {
@@ -137,4 +145,18 @@ test('onboarding rejects arbitrary destinations and completed accounts return wi
   const completed = onboardingFixture(true);
   await assert.rejects(completed.render('/t/tv/42'), /redirect:\/t\/tv\/42/);
   assert.equal(completed.lookups(), 0);
+});
+
+test('a small library can come back for more picks, without titles it already has', async () => {
+  const fixture = onboardingFixture(true, ['tv:5']);
+  const element = await fixture.render(undefined, '1');
+  const props = element.props.children.find(child => child.type === 'deck').props;
+  assert.equal(props.more, true);
+  assert.equal(props.returnTo, '/app');
+  assert.ok(!props.titles.some(title => title.tmdbId === 5 && title.mediaType === 'tv'));
+});
+
+test('a library of five or more is sent back instead of shown more picks', async () => {
+  const fixture = onboardingFixture(true, ['tv:1', 'tv:2', 'tv:3', 'tv:4', 'tv:5']);
+  await assert.rejects(fixture.render(undefined, '1'), /redirect:\/app/);
 });

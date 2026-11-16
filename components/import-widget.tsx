@@ -103,7 +103,7 @@ export function ImportWidget() {
               Drop a CSV, or click to choose one
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              Letterboxd · Trakt · any CSV with a Title/Name column
+              Letterboxd, IMDb, Trakt, or any CSV with a Title column
             </div>
           </>
         )}

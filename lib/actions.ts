@@ -428,6 +428,51 @@ export async function createList(formData: FormData) {
 }
 
 /**
+ * Make a list from titles already in the library, in the order given. Used by
+ * the list the Library suggests once someone has ten titles and no list.
+ */
+export async function createListFromTitles(
+  name: string,
+  titleIds: string[],
+): Promise<{ id: string }> {
+  const db = await getLibraryClient();
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.length > 80) throw new Error("A list needs a name under 80 characters.");
+  const ids = [...new Set(titleIds)].slice(0, 50);
+  if (!ids.length) throw new Error("Pick at least one title.");
+
+  // Only titles this account owns; anything else is dropped.
+  const { data: owned, error: ownedError } = await db
+    .from("titles")
+    .select("id")
+    .in("id", ids);
+  if (ownedError) throw new Error(ownedError.message);
+  const ownedIds = new Set(((owned ?? []) as { id: string }[]).map((row) => row.id));
+  const kept = ids.filter((id) => ownedIds.has(id));
+  if (!kept.length) throw new Error("Those titles are no longer in your library.");
+
+  const slug = slugify(trimmed);
+  const { data, error } = await db
+    .from("lists")
+    .insert({ name: trimmed, slug, description: null })
+    .select("id, slug")
+    .single();
+  if (error) throw new Error(error.message);
+  const list = data as { id: string; slug: string };
+
+  // One row per insert: not every backend behind getLibraryClient takes arrays.
+  for (const [position, titleId] of kept.entries()) {
+    const { error: linkError } = await db
+      .from("list_titles")
+      .insert({ list_id: list.id, title_id: titleId, position });
+    if (linkError && !linkError.message.includes("duplicate")) throw new Error(linkError.message);
+  }
+  revalidatePath("/lists", "layout");
+  revalidateLibrary();
+  return { id: list.id };
+}
+
+/**
  * Create a new list and add a title to it in one step. Used by the
  * "Create new list" affordance inside the Add-to-list popover on the
  * title detail page, where we want to stay on the title page rather

@@ -18,3 +18,9 @@ Rules learned from corrections on this project. Read this before any UI work. Ea
   - A control answers the tap before the work it triggers: the selector moves at once and the heavy re-render follows (`SegmentedFilter` hands the change to its owner one frame later).
   Why: "loading of all screens could be better. They just flash right now."
   <!-- 2026-11-14: "Also, loading of all screens could be better. They just flash right now." Measured before the fix: tab switches and filter changes were single-frame cuts, and posters appeared in one frame as each finished downloading. -->
+
+## Interaction
+
+- **A card's actions sit in one row, and it is dismissed from its top-right corner.** On a phone, two or three actions share one row in equal widths (`grid grid-cols-2`), and a single action takes the whole row; from `sm` up they sit at their own width beside the text. Buttons are 44px tall on a phone (`h-11`), 40px from `sm` up (`h-10`). A card that can be dismissed has its close button (a 36px X) pinned to the top-right corner with the text padded clear of it; a card without an X gets a "Not now" text button in the action row instead. Never let buttons wrap onto a second line, centre them in a left-aligned card, or leave a close button floating beside them. `NudgeCard` and `ActionRow` in `components/library-nudges.tsx` follow this.
+  Why: "Just basic UX stuff." Wrapped, centred buttons and a stray X made a card read as unfinished.
+  <!-- 2026-11-15: "The buttons should be in one row. If there's one button, it can take the full row. The close button should be at top right corner. If we don't want to add a close button, add a not now button. Just basic UX stuff. I think you did a good job, but very mediocre. You can do better." (on the Library prompt cards at phone width) -->

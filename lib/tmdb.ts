@@ -112,6 +112,13 @@ export interface TmdbTvDetail {
   // TMDB returns one entry per season including the special "Season 0" specials
   // bucket — caller filters as needed.
   seasons: { season_number: number; episode_count: number; name: string }[];
+  /** The newest episode that has aired; null before a premiere. */
+  last_episode_to_air?: {
+    air_date: string | null;
+    season_number: number;
+    episode_number: number;
+    name: string;
+  } | null;
 }
 
 // ─── API ────────────────────────────────────────────────────────────

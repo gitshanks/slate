@@ -17,7 +17,7 @@ export default function ImportPage() {
           Bring it into slate
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Move an existing watch history over from Letterboxd or Trakt.
+          Move an existing watch history over from Letterboxd, IMDb or Trakt.
         </p>
       </div>
 
@@ -39,11 +39,16 @@ export default function ImportPage() {
         <p className="mb-3 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
           Exporting from
         </p>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           <ExportHint
             service="Letterboxd"
             href="https://letterboxd.com/settings/data/"
             steps="Settings → Data → Export your data → unzip → upload watched.csv"
+          />
+          <ExportHint
+            service="IMDb"
+            href="https://www.imdb.com/list/ratings"
+            steps="Your ratings → the ⋯ menu → Export → upload the CSV"
           />
           <ExportHint
             service="Trakt"

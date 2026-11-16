@@ -32,7 +32,7 @@ interface Decision {
   choice: Choice;
 }
 
-export function OnboardingDeck({ titles, returnTo = "/app" }: { titles: OnboardingTitle[]; returnTo?: string }) {
+export function OnboardingDeck({ titles, returnTo = "/app", more = false }: { titles: OnboardingTitle[]; returnTo?: string; more?: boolean }) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const [trailerOpen, setTrailerOpen] = React.useState(false);
@@ -205,6 +205,7 @@ export function OnboardingDeck({ titles, returnTo = "/app" }: { titles: Onboardi
               kept={kept}
               passed={decisions.filter((item) => item.choice === "pass").map((item) => item.title)}
               hasMore={cursor < titles.length}
+              more={more}
               pending={pending}
               error={state.message}
               action={action}

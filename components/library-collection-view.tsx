@@ -10,6 +10,12 @@ import {
 import { motion, useReducedMotion } from "motion/react";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
+import {
+  LibraryNudges,
+  SmallLibraryActions,
+  type ListSuggestionNudge,
+  type NewEpisodeNudge,
+} from "@/components/library-nudges";
 import { ViewSwitcher } from "@/components/view-switcher";
 import { LibraryTitleActions } from "@/components/library-title-actions";
 import { MediaGrid, type MediaGridReorderContext } from "@/components/media-grid";
@@ -71,6 +77,10 @@ interface LibraryCollectionViewProps {
   avatarUrl: string | null;
   lists: { id: string; name: string }[];
   shareProfile?: { username: string; isPublic: boolean } | null;
+  newEpisodes?: NewEpisodeNudge[];
+  listSuggestion?: ListSuggestionNudge | null;
+  canPickMore?: boolean;
+  hiddenNudges?: string[];
 }
 
 export function LibraryCollectionView({
@@ -79,6 +89,10 @@ export function LibraryCollectionView({
   avatarUrl,
   lists,
   shareProfile,
+  newEpisodes = [],
+  listSuggestion = null,
+  canPickMore = false,
+  hiddenNudges = [],
 }: LibraryCollectionViewProps) {
   const searchParams = useSearchParams();
   const { activate: activateSmartSearch } = useCommandPalette();
@@ -436,6 +450,20 @@ export function LibraryCollectionView({
           }}
           className="w-full flex-1 px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 md:px-5 lg:px-8 xl:px-10"
         >
+          {titles.length && !normalizedQuery ? (
+            <LibraryNudges
+              titleCount={titles.length}
+              canPickMore={canPickMore}
+              hiddenNudges={hiddenNudges}
+              savedPosters={titles.slice(0, 5).map((title) => title.poster_path)}
+              newEpisodes={newEpisodes}
+              listSuggestion={listSuggestion}
+              onOpenTitle={(titleId) => {
+                const title = titles.find((item) => item.id === titleId);
+                if (title) openShelfTitle(title);
+              }}
+            />
+          ) : null}
           <div ref={shelfRef}>
           {titles.length ? (
             visibleShelfTitles.length ? (
@@ -462,16 +490,20 @@ export function LibraryCollectionView({
               <EmptyState
                 icon={<Film className="h-6 w-6" />}
                 title="Your slate is empty"
-                description="Add the first title you do not want to forget."
+                description="Add the first title you do not want to forget, pick from a few, or bring your history over."
                 action={
-                  <button
-                    type="button"
-                    onClick={() => activateSmartSearch()}
-                    className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground transition-transform active:scale-[0.97]"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Add a title
-                  </button>
+                  <div className="flex w-[min(20rem,calc(100vw-3rem))] flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => activateSmartSearch()}
+                      className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add a title
+                    </button>
+                    {/* Kept a grid at every width so both rows stay the same width. */}
+                    <SmallLibraryActions canPickMore={canPickMore} secondary className="sm:grid [&>a]:sm:w-full" />
+                  </div>
                 }
               />
             </div>

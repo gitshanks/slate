@@ -6,6 +6,7 @@ import { getAppSession } from "@/lib/app-access";
 import { getOnboardingTitles } from "@/lib/onboarding-titles";
 import { getProfileById } from "@/lib/profiles";
 import { SLATE_HOSTED } from "@/lib/public-mode";
+import { countLibraryTitles, savedTitleKeys, SMALL_LIBRARY_TITLES } from "@/lib/library-nudges";
 import { getSharedTitle } from "@/lib/shared-title-data";
 import { sharedTitleFromPath, sharedTitleLoginPath, titleSharePath } from "@/lib/title-sharing";
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ next?: string | string[] }> }) {
+export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ next?: string | string[]; more?: string | string[] }> }) {
   if (!SLATE_HOSTED) redirect("/");
   const query = await searchParams;
   const recommendation = sharedTitleFromPath(query.next);
@@ -24,9 +25,19 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   if (!session?.user?.id) redirect(recommendation ? sharedTitleLoginPath(recommendation.mediaType, recommendation.tmdbId) : "/login?mode=create");
   const profile = await getProfileById(session.user.id);
   if (!profile) redirect("/login?error=Configuration");
-  if (profile.onboarding_completed_at) redirect(returnTo);
+  // People who finished onboarding can come back for more picks while their
+  // library is still small (the Library offers it under five titles).
+  const more = query.more === "1" && Boolean(profile.onboarding_completed_at);
+  if (profile.onboarding_completed_at && !(more && (await countLibraryTitles(profile.id)) < SMALL_LIBRARY_TITLES)) {
+    redirect(returnTo);
+  }
   const [deck, shared] = await Promise.all([
-    getOnboardingTitles(profile.id),
+    // A second visit deals a different deck than the first one did.
+    getOnboardingTitles(more ? `${profile.id}:more:${new Date().toISOString().slice(0, 10)}` : profile.id).then(async (titles) => {
+      if (!more) return titles;
+      const saved = await savedTitleKeys(profile.id);
+      return titles.filter((title) => !saved.has(`${title.mediaType}:${title.tmdbId}`));
+    }),
     recommendation ? getSharedTitle(recommendation.mediaType, String(recommendation.tmdbId)).catch(() => null) : Promise.resolve(null),
   ]);
   // The recommendation is the first card, with the same explicit Keep/Pass
@@ -50,7 +61,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
         displayName={profile.display_name}
         createdAt={profile.created_at}
       />
-      <OnboardingDeck titles={titles} returnTo={returnTo} />
+      <OnboardingDeck titles={titles} returnTo={returnTo} more={more} />
     </>
   );
 }

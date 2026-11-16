@@ -12,11 +12,12 @@ import styles from "./onboarding-deck.module.css";
 const shelfCache = new Map<string, OnboardingTitle[]>();
 
 export function StarterShelf({
-  kept, passed, hasMore, pending, error, action, onBack, onSubmit,
+  kept, passed, hasMore, more = false, pending, error, action, onBack, onSubmit,
 }: {
   kept: OnboardingTitle[];
   passed: OnboardingPick[];
   hasMore: boolean;
+  more?: boolean;
   pending: boolean;
   error: string;
   action: (payload: FormData) => void;
@@ -66,7 +67,7 @@ export function StarterShelf({
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
     >
       <p className={styles.eyebrow}>Your first shelf</p>
-      <h1>{kept.length ? "A good beginning." : "Begin with a blank slate."}</h1>
+      <h1>{kept.length ? (more ? "A fuller slate." : "A good beginning.") : more ? "Nothing caught your eye." : "Begin with a blank slate."}</h1>
       <p className={styles.reviewCopy}>
         {kept.length
           ? "Start with your picks, or find a few more to look forward to."
@@ -74,6 +75,7 @@ export function StarterShelf({
       </p>
       <form action={action} className={`${styles.reviewActions} ${styles.shelfActions}`} onSubmit={onSubmit}>
         <input type="hidden" name="selections" value={JSON.stringify(selections)} />
+        {more ? <input type="hidden" name="more" value="1" /> : null}
         {error ? <p className={styles.error} role="alert">{error}</p> : null}
         <button type="submit" className={styles.openButton} disabled={pending}
           data-analytics-action="onboarding_save_taste" data-analytics-area="taste_builder">
