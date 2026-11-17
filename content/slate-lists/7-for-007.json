@@ -1,0 +1,14 @@
+{
+  "slug": "7-for-007",
+  "name": "7 for 007",
+  "description": "Robert Pattinson is the next James Bond. Seven films to watch first, from Cedric Diggory to the director who cast him.",
+  "titles": [
+    { "tmdbId": 674, "mediaType": "movie", "title": "Harry Potter and the Goblet of Fire" },
+    { "tmdbId": 8966, "mediaType": "movie", "title": "Twilight" },
+    { "tmdbId": 429200, "mediaType": "movie", "title": "Good Time" },
+    { "tmdbId": 503919, "mediaType": "movie", "title": "The Lighthouse" },
+    { "tmdbId": 577922, "mediaType": "movie", "title": "Tenet" },
+    { "tmdbId": 414906, "mediaType": "movie", "title": "The Batman" },
+    { "tmdbId": 1170608, "mediaType": "movie", "title": "Dune: Part Three" }
+  ]
+}

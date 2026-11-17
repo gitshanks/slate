@@ -38,6 +38,8 @@ interface PosterCardProps {
   highlighted?: boolean;
   /** Public-profile shelf cards use the same visual language as Space. */
   presentation?: "default" | "profile";
+  /** Profile cards name the owner's shelf under the title; a list by Slate has no shelf to name. */
+  showStatus?: boolean;
   /** Hide inline quick actions when the surrounding inspector owns edits. */
   showActions?: boolean;
 }
@@ -78,6 +80,7 @@ export function PosterCard({
   compactMobile = false,
   highlighted = false,
   presentation = "default",
+  showStatus = true,
   showActions = true,
 }: PosterCardProps) {
   const src = posterUrl(title.poster_path, "w500");
@@ -233,8 +236,10 @@ export function PosterCard({
               compactMobile && "mt-0.5 gap-1 text-[8px] leading-tight",
             )}
           >
-            <span>{profileStatus?.label}</span>
-            {year ? <span className="ml-auto text-muted-foreground/70">{year}</span> : null}
+            {showStatus ? <span>{profileStatus?.label}</span> : null}
+            {year ? (
+              <span className={cn("text-muted-foreground/70", showStatus && "ml-auto")}>{year}</span>
+            ) : null}
           </div>
         </div>
       ) : (

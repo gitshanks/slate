@@ -62,6 +62,8 @@ interface MediaGridProps {
   activeTitleId?: string | null;
   /** Applies the Space card treatment to a public Shelf grid. */
   presentation?: "default" | "profile";
+  /** Profile cards only: show the owner's shelf under each title. */
+  showStatus?: boolean;
   /** Keeps mutation controls in the inspector while retaining sortable cards. */
   showCardActions?: boolean;
   /** Keep the collection to one horizontally scrollable poster row. */
@@ -229,6 +231,7 @@ function OrderedMediaGrid(props: MediaGridProps) {
             compactMobile={props.compactMobile}
             highlighted={props.activeTitleId === title.id}
             presentation={props.presentation}
+            showStatus={props.showStatus}
             showActions={props.showCardActions}
             onOpen={
               props.onTitleSelect
@@ -259,6 +262,7 @@ function MediaGridState({
   onTitleSelect,
   activeTitleId,
   presentation = "default",
+  showStatus = true,
   showCardActions = true,
   horizontal = false,
   compactMobile = false,
@@ -451,6 +455,7 @@ function MediaGridState({
               compactMobile={compactMobile}
               highlighted={activeTitleId === title.id}
               presentation={presentation}
+              showStatus={showStatus}
               showActions={showCardActions}
               onOpen={onTitleSelect ? () => onTitleSelect(title) : undefined}
               href={

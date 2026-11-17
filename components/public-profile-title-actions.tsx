@@ -38,11 +38,14 @@ export function PublicProfileTitleActions({
   detail,
   username,
   viewerSignedIn,
+  showOwnerShelf = true,
 }: {
   title: TitleRow;
   detail: PublicSpatialTitleDetail | null;
   username: string;
   viewerSignedIn: boolean;
+  /** A list by Slate has no owner shelf worth naming. */
+  showOwnerShelf?: boolean;
 }) {
   const [isPending, startTransition] = React.useTransition();
   const [savedRecord, setSavedRecord] =
@@ -157,12 +160,14 @@ export function PublicProfileTitleActions({
 
   return (
     <>
-      <span
-        title="On their slate"
-        className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-xs font-medium text-primary-foreground"
-      >
-        {ownerShelfLabel}
-      </span>
+      {showOwnerShelf ? (
+        <span
+          title="On their slate"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-xs font-medium text-primary-foreground"
+        >
+          {ownerShelfLabel}
+        </span>
+      ) : null}
       {viewerControl}
     </>
   );

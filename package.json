@@ -14,7 +14,8 @@
     "db:migrate:episodes": "node scripts/apply-watched-episodes-migration.mjs",
     "db:migrate:email-auth": "node scripts/apply-email-auth-migration.mjs",
     "db:migrate:onboarding": "node scripts/apply-onboarding-migration.mjs",
-    "db:backfill:omdb": "node scripts/backfill-omdb-plots.mjs"
+    "db:backfill:omdb": "node scripts/backfill-omdb-plots.mjs",
+    "lists:publish": "node scripts/publish-slate-list.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
