@@ -61,6 +61,7 @@ export default async function PublicListPage({
   return (
     <main className="dark min-h-dvh w-full bg-[#080a09] text-foreground">
       <PublicListView
+        slug={found.list.slug}
         name={found.list.name}
         description={found.list.description}
         curator={found.curator}
