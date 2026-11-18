@@ -144,35 +144,38 @@ function simulate(from: Sample, target: Slot, springs: LiquidSprings): Sample[] 
   return samples;
 }
 
-// The shape of each piece at one instant. The bead keeps its volume: as it
-// is pulled out between two options both ends slim down and the waist between
-// them narrows, but never to a thread. It should read as one thick body
-// being stretched, not as two balls on a string.
+// The shape of each piece at one instant. The bead is drawn from three pieces
+// (two ends and the span between their centres), and they must never be told
+// apart: all three always share one height, so their outline is a single
+// capsule with nothing narrower in the middle. The bead keeps its volume by
+// slimming as a whole while it is pulled out, never by thinning its middle.
 function stretch(sample: Sample, unit: number) {
   return smooth(Math.abs(sample.lead - sample.tail) / (unit * 1.4));
 }
 
-// `base` is the width the piece is laid out at; `held` is 1 while a finger is
-// on the bead, which flattens it a little.
+// The one height every piece is drawn at. `held` is 1 while a finger is on
+// the bead, which flattens it a little.
+function tall(sample: Sample, unit: number, held = 0) {
+  const speed = clamp01(Math.abs(sample.leadVelocity) / (unit * 18.75));
+  return (1 - speed * 0.04 - stretch(sample, unit) * 0.14 - held * 0.06).toFixed(4);
+}
+
+// `base` is the width the piece is laid out at.
 function leadTransform(sample: Sample, base: number, unit: number, held = 0) {
   const speed = clamp01(Math.abs(sample.leadVelocity) / (unit * 18.75));
-  const pulled = stretch(sample, unit);
   const wide = (sample.width / base) * (1 + speed * 0.07 + held * 0.035);
-  const tall = 1 - speed * 0.05 - pulled * 0.07 - held * 0.06;
-  return `translate3d(${(sample.lead - base / 2).toFixed(2)}px, 0, 0) scale(${wide.toFixed(4)}, ${tall.toFixed(4)})`;
+  return `translate3d(${(sample.lead - base / 2).toFixed(2)}px, 0, 0) scale(${wide.toFixed(4)}, ${tall(sample, unit, held)})`;
 }
 
-function tailTransform(sample: Sample, base: number, unit: number) {
-  const pulled = stretch(sample, unit);
-  const wide = (sample.tailWidth / base) * (1 - pulled * 0.3);
-  return `translate3d(${(sample.tail - base / 2).toFixed(2)}px, 0, 0) scale(${wide.toFixed(4)}, ${(1 - pulled * 0.2).toFixed(4)})`;
+function tailTransform(sample: Sample, base: number, unit: number, held = 0) {
+  const wide = sample.tailWidth / base;
+  return `translate3d(${(sample.tail - base / 2).toFixed(2)}px, 0, 0) scale(${wide.toFixed(4)}, ${tall(sample, unit, held)})`;
 }
 
-// The waist runs from the lead's centre back to the tail's.
-function waistTransform(sample: Sample, unit: number) {
+// The span runs from the lead's centre back to the tail's, flush with both.
+function waistTransform(sample: Sample, unit: number, held = 0) {
   const reach = sample.tail - sample.lead;
-  const thickness = 0.58 + 0.3 / (1 + (Math.abs(reach) / unit) * 1.2);
-  return `translate3d(${sample.lead.toFixed(2)}px, 0, 0) scale(${(reach / WAIST_BASE).toFixed(4)}, ${thickness.toFixed(4)})`;
+  return `translate3d(${sample.lead.toFixed(2)}px, 0, 0) scale(${(reach / WAIST_BASE).toFixed(4)}, ${tall(sample, unit, held)})`;
 }
 
 /** How much of an option the lead is sitting on. */
@@ -371,8 +374,8 @@ export function LiquidSelector({
     const waist = waistRef.current;
     if (!lead || !tail || !waist) return;
     lead.style.transform = leadTransform(sample, base.current, shape.unit, press);
-    tail.style.transform = tailTransform(sample, base.current, shape.unit);
-    waist.style.transform = waistTransform(sample, shape.unit);
+    tail.style.transform = tailTransform(sample, base.current, shape.unit, press);
+    waist.style.transform = waistTransform(sample, shape.unit, press);
     inkRefs.current.forEach((ink, position) => {
       const slot = shape.slots[position];
       if (ink && slot) ink.style.opacity = String(cover(sample, slot));
