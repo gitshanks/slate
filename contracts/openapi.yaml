@@ -164,6 +164,13 @@ paths:
           required: false
           schema:
             $ref: '#/components/schemas/TitleStatus'
+        - in: query
+          name: nudges
+          required: false
+          description: >-
+            Pass 1 to also receive newEpisodes: shows on the Watching shelf whose
+            latest episode aired in the last 14 days and is not marked watched.
+          schema: { type: string, enum: ['1'] }
       responses:
         '200':
           description: Account-scoped library snapshot.
@@ -188,6 +195,41 @@ paths:
                       serverTime:
                         type: string
                         format: date-time
+                      newEpisodes:
+                        type: array
+                        items:
+                          type: object
+                          required: [titleId, title, season, episode, episodeName, airDate]
+                          properties:
+                            titleId: { type: string }
+                            title: { type: string }
+                            posterPath: { type: string, nullable: true }
+                            season: { type: integer }
+                            episode: { type: integer }
+                            episodeName: { type: string }
+                            airDate: { type: string, format: date }
+  /slate-lists/{slug}:
+    parameters:
+      - in: path
+        name: slug
+        required: true
+        schema: { type: string }
+    get:
+      summary: Read a public list made by Slate (the web's /l/<slug>), with saved state per title.
+      operationId: getSlateList
+      responses:
+        '200':
+          description: The list, its curator and its titles in order.
+        '404':
+          $ref: '#/components/responses/ApiError'
+    post:
+      summary: Copy the list into the signed-in library (titles to Up Next, plus a list of the same name). Idempotent.
+      operationId: addSlateListToLibrary
+      responses:
+        '200':
+          description: How many titles the list holds and the id of the list in this library.
+        '404':
+          $ref: '#/components/responses/ApiError'
   /search:
     get:
       summary: Search films, series, cast, and crew, including saved state.

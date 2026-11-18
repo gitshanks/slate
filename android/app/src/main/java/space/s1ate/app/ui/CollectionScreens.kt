@@ -6,26 +6,39 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
@@ -50,6 +63,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -68,6 +83,11 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -113,10 +133,9 @@ fun ProfileAvatarButton(profile: SlateProfile?, data: ByteArray? = null, onClick
 @Composable
 fun ListsScreenAdvanced(
     model: SlateViewModel,
-    profile: SlateProfile?,
-    avatarBytes: ByteArray?,
+    refreshKey: Int,
     onOpenTitle: (String) -> Unit,
-    onProfile: () -> Unit,
+    bottomInset: PaddingValues = PaddingValues(),
     modifier: Modifier = Modifier,
 ) {
     var summaries by remember { mutableStateOf<List<SlateListSummary>>(emptyList()) }
@@ -132,44 +151,47 @@ fun ListsScreenAdvanced(
             .onFailure { model.showMessage(it.message ?: "Lists could not be loaded.") }
         loading = false
     }
-    LaunchedEffect(Unit) { load() }
+    LaunchedEffect(refreshKey) { load() }
 
     if (selectedId != null) {
         BackHandler { selectedId = null }
-        ListDetailScreen(model, selectedId!!, onBack = { selectedId = null }, onOpenTitle = onOpenTitle)
+        ListDetailScreen(model, selectedId!!, onBack = { selectedId = null }, onOpenTitle = onOpenTitle, bottomInset = bottomInset)
         return
     }
 
     Column(modifier.fillMaxSize().background(SlateBackground)) {
-        SlateSectionHeader(
-            eyebrow = "Collections",
-            title = "Lists",
-            modifier = Modifier.padding(horizontal = 18.dp).padding(top = 20.dp, bottom = 26.dp),
+        SlateScreenTitle(
+            "Lists",
+            modifier = Modifier.padding(horizontal = SlateGutter).padding(top = 4.dp, bottom = 20.dp),
             trailing = {
                 Row(
                     Modifier
+                        .height(40.dp)
+                        .pressable { createDialog = true }
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.055f))
-                        .clickable { createDialog = true }
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                        .background(SlateFill)
+                        .border(1.dp, SlateBorder, CircleShape)
+                        .padding(start = 12.dp, end = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Outlined.Add, null, Modifier.size(17.dp), tint = Color.White.copy(alpha = 0.82f))
-                    Text("New list", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = 0.82f))
+                    Icon(Icons.Outlined.Add, null, Modifier.size(16.dp), tint = Color.White)
+                    Text("New list", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White)
                 }
             },
         )
         when {
-            loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(strokeWidth = 2.dp) }
-            summaries.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("No lists yet", fontWeight = FontWeight.SemiBold)
-                    Text("Group titles for a mood, trip, or movie night.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            loading -> Box(Modifier.fillMaxSize())
+            summaries.isEmpty() -> Box(Modifier.fillMaxSize().padding(bottom = bottomInset.calculateBottomPadding()), Alignment.Center) {
+                Column(Modifier.widthIn(max = 320.dp).padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    EmptyMessage("No lists yet", "Group titles for a mood, a trip or a film night.")
+                    Spacer(Modifier.height(20.dp))
+                    SlatePrimaryButton("Make a list", Modifier.fillMaxWidth()) { createDialog = true }
                 }
             }
             else -> LazyColumn(
-                Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                Modifier.fillMaxSize().arriveOn(summaries.size),
+                contentPadding = PaddingValues(start = SlateGutter, end = SlateGutter, bottom = bottomInset.calculateBottomPadding()),
                 verticalArrangement = Arrangement.spacedBy(28.dp),
             ) {
                 items(summaries, key = { it.id }) { list ->
@@ -233,7 +255,7 @@ private fun ListSummaryCard(
     ) {
         Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(15.dp)).background(Color.White.copy(0.04f))) {
             if (list.posters.isEmpty()) {
-                Icon(Icons.Outlined.Download, null, Modifier.align(Alignment.Center), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Empty so far", Modifier.align(Alignment.Center), color = SlateMutedText, fontSize = 13.sp)
             } else {
                 Row(Modifier.align(Alignment.Center), horizontalArrangement = Arrangement.spacedBy((-29).dp)) {
                     list.posters.take(4).forEach { url ->
@@ -261,7 +283,7 @@ private fun ListSummaryCard(
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(list.name, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            Text("${list.count}", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if (list.count == 1) "1 title" else "${list.count} titles", fontSize = 13.sp, color = SlateMutedText)
         }
         list.description?.let { Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
     }
@@ -274,6 +296,7 @@ private fun ListDetailScreen(
     listId: String,
     onBack: () -> Unit,
     onOpenTitle: (String) -> Unit,
+    bottomInset: PaddingValues = PaddingValues(),
 ) {
     var detail by remember(listId) { mutableStateOf<SlateListDetailPayload?>(null) }
     var menu by remember { mutableStateOf(false) }
@@ -289,7 +312,9 @@ private fun ListDetailScreen(
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBar(
-            title = { Text(detail?.list?.name ?: "List", fontWeight = FontWeight.Bold, maxLines = 1) },
+            title = { Text(detail?.list?.name.orEmpty(), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            windowInsets = WindowInsets(0),
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = SlateBackground),
             navigationIcon = { IconButton(onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
             actions = {
                 IconButton({ add = true }) { Icon(Icons.Outlined.Add, "Add title") }
@@ -307,12 +332,20 @@ private fun ListDetailScreen(
         }
         val titles = detail?.titles
         if (titles == null) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(strokeWidth = 2.dp) }
+            Box(Modifier.fillMaxSize())
         } else if (titles.isEmpty()) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) { Text("Empty list", fontWeight = FontWeight.SemiBold) }
+            Box(Modifier.fillMaxSize().padding(bottom = bottomInset.calculateBottomPadding()), Alignment.Center) {
+                Column(Modifier.widthIn(max = 320.dp).padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    EmptyMessage("Nothing in this list yet", "Add titles from your library.")
+                    Spacer(Modifier.height(20.dp))
+                    SlatePrimaryButton("Add a title", Modifier.fillMaxWidth()) { add = true }
+                }
+            }
         } else {
             ReorderableLibraryGrid(
                 source = titles,
+                modifier = Modifier.arriveOn(listId),
+                contentPadding = PaddingValues(start = SlateGutter, end = SlateGutter, top = 8.dp, bottom = bottomInset.calculateBottomPadding() + 16.dp),
                 onOpen = { onOpenTitle(it.id) },
                 onCommit = { ordered ->
                     detail = detail?.copy(titles = ordered)
@@ -397,13 +430,17 @@ private fun ListEditorDialog(title: String, initialName: String, initialDescript
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Profile: who you are as the headline, what is on each shelf, then the
+ * settings in one group (the web's `components/profile-screen.tsx`).
+ */
 @Composable
 fun ProfileScreenAdvanced(
     state: SlateUiState,
     model: SlateViewModel,
     onClose: () -> Unit,
     onSignOut: () -> Unit,
+    bottomInset: PaddingValues = PaddingValues(),
 ) {
     val profile = state.profile
     val context = LocalContext.current
@@ -438,95 +475,124 @@ fun ProfileScreenAdvanced(
             .onFailure { model.showMessage(it.message ?: "Profile could not be saved.") }
     }
 
-    Column(Modifier.fillMaxSize().background(SlateBackground)) {
-        LazyColumn(
-            Modifier.fillMaxSize().padding(horizontal = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            item {
-                SlateSectionHeader(
-                    eyebrow = "Your slate",
-                    title = "Profile",
-                    modifier = Modifier.padding(top = 20.dp),
-                )
-                Text(
-                    "Edit what friends see and choose whether your slate can be shared.",
-                    color = SlateMuted,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 26.dp),
-                )
-
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SlateSurface).padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(18.dp),
+    LazyColumn(
+        Modifier.fillMaxSize().background(SlateBackground),
+        contentPadding = PaddingValues(
+            start = SlateGutter,
+            end = SlateGutter,
+            top = 8.dp,
+            bottom = bottomInset.calculateBottomPadding() + 24.dp,
+        ),
+    ) {
+        item {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Box(
+                    Modifier.size(72.dp).pressable { photoPicker.launch("image/*") }.clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                 ) {
-                    Box(Modifier.size(82.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).clickable { photoPicker.launch("image/*") }) {
-                        val savedBitmap = remember(state.avatarBytes) {
-                            state.avatarBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
-                        }
-                        (preview ?: savedBitmap)?.let {
-                            androidx.compose.foundation.Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                        } ?: AsyncImage(profile?.avatarUrl, profile?.displayName, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    val savedBitmap = remember(state.avatarBytes) {
+                        state.avatarBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
                     }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Text(
-                            if (isPublic) "PUBLIC" else "PRIVATE",
-                            color = SlateAccent,
-                            fontSize = 10.sp,
-                            letterSpacing = 1.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = FontFamily.Monospace,
-                        )
+                    (preview ?: savedBitmap)?.let {
+                        androidx.compose.foundation.Image(it.asImageBitmap(), "Change your photo", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    } ?: AsyncImage(profile?.avatarUrl, "Change your photo", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    BasicTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.6).sp),
+                        cursorBrush = SolidColor(SlateAccent),
+                        singleLine = true,
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("@", color = SlateMutedText, fontSize = 15.sp)
                         BasicTextField(
-                            value = name,
-                            onValueChange = { name = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.7).sp),
+                            value = username,
+                            onValueChange = { value -> username = value.lowercase().filter { char -> char.isLetterOrDigit() || char == '-' } },
+                            modifier = Modifier.weight(1f),
+                            textStyle = androidx.compose.ui.text.TextStyle(color = SlateMutedText, fontSize = 15.sp),
                             cursorBrush = SolidColor(SlateAccent),
                             singleLine = true,
                         )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("@", color = SlateMuted, fontFamily = FontFamily.Monospace, fontSize = 14.sp)
-                            BasicTextField(
-                                value = username,
-                                onValueChange = { value -> username = value.lowercase().filter { char -> char.isLetterOrDigit() || char == '-' } },
-                                modifier = Modifier.weight(1f),
-                                textStyle = androidx.compose.ui.text.TextStyle(color = SlateMuted, fontSize = 14.sp, fontFamily = FontFamily.Monospace),
-                                cursorBrush = SolidColor(SlateAccent),
-                                singleLine = true,
-                            )
-                        }
                     }
                 }
-                Column(
-                    Modifier.padding(top = 18.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SlateSurface),
-                ) {
-                    Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(if (isPublic) Icons.Outlined.Public else Icons.Outlined.Lock, null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(14.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text("Share your slate", fontWeight = FontWeight.SemiBold)
-                            Text(if (isPublic) "Anyone with your link can browse it." else "Your slate is private by default.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(isPublic, { isPublic = it })
+            }
+
+            // What is on each shelf, in the Library's own words.
+            Row(
+                Modifier.fillMaxWidth().padding(top = 24.dp).clip(RoundedCornerShape(16.dp)).background(SlateSurface)
+                    .border(1.dp, SlateBorder, RoundedCornerShape(16.dp)).padding(vertical = 16.dp),
+            ) {
+                listOf(
+                    "Up Next" to space.s1ate.app.model.LibraryStatus.want,
+                    "Watching" to space.s1ate.app.model.LibraryStatus.watching,
+                    "Watched" to space.s1ate.app.model.LibraryStatus.watched,
+                ).forEach { (label, status) ->
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("${state.titles.count { it.status == status }}", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                        Text(label, color = SlateMutedText, fontSize = 12.sp)
                     }
-                    if (isPublic) {
-                        HorizontalDivider(color = Color.White.copy(0.08f))
-                        Row(Modifier.fillMaxWidth().clickable {
+                }
+            }
+
+            Column(
+                Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(SlateSurface)
+                    .border(1.dp, SlateBorder, RoundedCornerShape(16.dp)),
+            ) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(if (isPublic) Icons.Outlined.Public else Icons.Outlined.Lock, null, tint = SlateMutedText, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Share your slate", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            if (isPublic) "Anyone with your link can browse it." else "Only you can see it.",
+                            fontSize = 13.sp,
+                            color = SlateMutedText,
+                        )
+                    }
+                    Switch(
+                        isPublic,
+                        { isPublic = it },
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = SlateAccent,
+                            checkedThumbColor = SlateOnAccent,
+                            uncheckedTrackColor = Color.White.copy(alpha = 0.08f),
+                            uncheckedThumbColor = SlateMutedText,
+                            uncheckedBorderColor = Color.Transparent,
+                        ),
+                    )
+                }
+                if (isPublic) {
+                    HorizontalDivider(color = SlateBorder)
+                    Row(
+                        Modifier.fillMaxWidth().pressable {
                             val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                                 type = "text/plain"; putExtra(android.content.Intent.EXTRA_TEXT, "https://www.s1ate.space/u/$username")
                             }
                             context.startActivity(android.content.Intent.createChooser(send, "Share your slate"))
-                        }.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.Share, null)
-                            Spacer(Modifier.width(14.dp))
-                            Text("s1ate.space/u/$username", fontSize = 13.sp, fontFamily = FontFamily.Monospace, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
+                        }.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Outlined.Share, null, tint = SlateMutedText, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(14.dp))
+                        Text("s1ate.space/u/$username", color = Color.White, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
-                TextButton(onSignOut, Modifier.padding(top = 34.dp).padding(bottom = 24.dp)) { Text("Sign out", color = MaterialTheme.colorScheme.error) }
+                HorizontalDivider(color = SlateBorder)
+                Row(
+                    Modifier.fillMaxWidth().pressable(onClick = onSignOut).padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.Logout, null, tint = Color(0xFFFF6B7A), modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(14.dp))
+                    Text("Sign out", color = Color(0xFFFF6B7A), fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                }
             }
         }
     }
@@ -547,87 +613,163 @@ private fun Bitmap.slateAvatarBytes(): ByteArray {
     return value
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Add from a link: paste, look, pick. One field, the source it read, and the
+ * titles it found as posters that show their own state (a tick once saved).
+ */
 @Composable
-fun ImportScreen(model: SlateViewModel, profile: SlateProfile?, avatarBytes: ByteArray?, initialText: String?, onProfile: () -> Unit, modifier: Modifier = Modifier) {
+fun ImportScreen(
+    model: SlateViewModel,
+    initialText: String?,
+    onClose: () -> Unit,
+    onOpenTitle: (space.s1ate.app.model.MediaType, Int) -> Unit,
+) {
     var text by remember(initialText) { mutableStateOf(initialText.orEmpty()) }
     var resolution by remember { mutableStateOf<SharedLinkResolution?>(null) }
     var resolving by remember { mutableStateOf(false) }
     var added by remember { mutableStateOf(setOf<String>()) }
+    var adding by remember { mutableStateOf(setOf<String>()) }
     val scope = rememberCoroutineScope()
+    val keyboard = LocalSoftwareKeyboardController.current
 
     suspend fun resolve() {
+        if (text.isBlank() || resolving) return
+        keyboard?.hide()
         resolving = true
         runCatching { model.resolveSharedText(text) }.onSuccess { resolution = it }
-            .onFailure { model.showMessage(it.message ?: "Shared link could not be read.") }
+            .onFailure { model.showMessage(it.message ?: "That link could not be read.") }
         resolving = false
     }
     suspend fun add(candidate: SharedLinkCandidate) {
-        if (candidate.inLibrary || candidate.id in added) return
+        if (candidate.inLibrary || candidate.id in added || candidate.id in adding) return
+        adding = adding + candidate.id
         runCatching { model.addCatalogTitle(candidate.tmdbId, candidate.mediaType) }
             .onSuccess { added = added + candidate.id }
             .onFailure { model.showMessage(it.message ?: "Title could not be added.") }
+        adding = adding - candidate.id
     }
     LaunchedEffect(initialText) { if (!initialText.isNullOrBlank()) resolve() }
 
-    Column(modifier.fillMaxSize().background(SlateBackground)) {
-        LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
-            item {
-                SlateSectionHeader(
-                    eyebrow = "Import",
-                    title = "Bring it into slate",
-                    modifier = Modifier.padding(top = 20.dp),
-                )
-                Text("Move recommendations from links or another service into your slate.", color = SlateMuted, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 10.dp))
-                Text("FROM ANYWHERE ON THE WEB", fontSize = 11.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace, color = SlateMuted, modifier = Modifier.padding(top = 34.dp))
-                Text("Add from a link", fontSize = 24.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.7).sp, modifier = Modifier.padding(top = 7.dp))
-                Text("Paste an Instagram, TikTok, YouTube, IMDb, Letterboxd, or article link. Slate finds the films and shows mentioned inside it.", color = SlateMuted, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 8.dp))
-                Column(
-                    Modifier.fillMaxWidth().padding(top = 20.dp).clip(RoundedCornerShape(18.dp)).background(SlateSurface).padding(14.dp),
-                ) {
-                    OutlinedTextField(text, { text = it }, Modifier.fillMaxWidth().height(112.dp), placeholder = { Text("Paste a link or recommendation text") })
-                    Button(
-                        { scope.launch { resolve() } },
-                        enabled = text.isNotBlank() && !resolving,
-                        modifier = Modifier.fillMaxWidth().padding(top = 11.dp).height(52.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.Black),
-                        shape = RoundedCornerShape(16.dp),
-                    ) { if (resolving) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.Black) else Text("Find titles", fontWeight = FontWeight.SemiBold) }
-                }
-                resolution?.warning?.let { Text(it, color = Color(0xFFFFB36B), fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp)) }
-            }
-            resolution?.let { result ->
-                item {
-                    Row(Modifier.padding(top = 30.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("FOUND ${result.candidates.size} TITLES", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                        TextButton({ scope.launch { result.candidates.forEach { add(it) } } }) { Text("Add all") }
+    val candidates = resolution?.candidates.orEmpty()
+    val pending = candidates.filterNot { it.inLibrary || it.id in added }
+
+    Column(Modifier.fillMaxSize().background(SlateBackground).imePadding()) {
+        LazyVerticalGrid(
+            columns = SlatePosterCells,
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(start = SlateGutter, end = SlateGutter, bottom = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(SlatePosterGap),
+            verticalArrangement = Arrangement.spacedBy(SlatePosterGap),
+        ) {
+            fullWidthItem("header") {
+                Column(Modifier.padding(bottom = 10.dp)) {
+                    SlateScreenTitle(
+                        "Add from a link",
+                        trailing = {
+                            Box(Modifier.offset(x = 12.dp).size(48.dp).pressable(onClick = onClose), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Outlined.Close, contentDescription = "Close", tint = Color.White)
+                            }
+                        },
+                    )
+                    Text(
+                        "Paste a post, video, article or list. Slate finds the films and series mentioned in it.",
+                        color = SlateMutedText,
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = 16.dp).height(52.dp).clip(CircleShape).background(SlateFill)
+                            .border(1.dp, SlateBorder, CircleShape).padding(start = 18.dp, end = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                            if (text.isEmpty()) Text("Paste a link", color = SlateMutedText, fontSize = 15.sp)
+                            BasicTextField(
+                                value = text,
+                                onValueChange = { text = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontSize = 15.sp),
+                                cursorBrush = SolidColor(SlateAccent),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Search),
+                                keyboardActions = KeyboardActions(onSearch = { scope.launch { resolve() } }),
+                            )
+                        }
+                        Box(
+                            Modifier.padding(start = 8.dp).height(44.dp).widthIn(min = 72.dp)
+                                .pressable(enabled = text.isNotBlank() && !resolving) { scope.launch { resolve() } }
+                                .clip(CircleShape)
+                                .background(SlateAccent.copy(alpha = if (text.isNotBlank()) 1f else 0.35f))
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (resolving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = SlateOnAccent)
+                            else Text("Find", color = SlateOnAccent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    resolution?.let { result ->
+                        val source = result.source.title ?: result.source.hostname
+                        Text(
+                            when {
+                                result.candidates.isEmpty() -> "Nothing found in that link."
+                                source != null -> "${result.candidates.size} found in $source"
+                                else -> "${result.candidates.size} found"
+                            },
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 24.dp),
+                        )
+                        result.warning?.let {
+                            Text(it, color = SlateMutedText, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 4.dp))
+                        }
                     }
                 }
-                items(result.candidates.size, key = { result.candidates[it].id }) { index ->
-                    val candidate = result.candidates[index]
-                    ImportCandidate(candidate, candidate.inLibrary || candidate.id in added) { scope.launch { add(candidate) } }
+            }
+            gridItems(candidates, key = { it.id }) { candidate ->
+                val isSaved = candidate.inLibrary || candidate.id in added
+                PosterFrame(
+                    candidate.posterUrl,
+                    candidate.title,
+                    Modifier.pressable {
+                        if (isSaved) onOpenTitle(candidate.mediaType, candidate.tmdbId) else scope.launch { add(candidate) }
+                    }.semantics {
+                        contentDescription = if (isSaved) "${candidate.title}, on your slate" else "Add ${candidate.title}"
+                    },
+                ) {
+                    Box(
+                        Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp).clip(CircleShape)
+                            .background(if (isSaved) SlateAccent else Color.Black.copy(alpha = 0.62f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            if (isSaved) Icons.Outlined.Check else Icons.Outlined.Add,
+                            contentDescription = null,
+                            tint = if (isSaved) SlateOnAccent else Color.White,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
                 }
             }
-            item { Spacer(Modifier.height(28.dp)) }
         }
-    }
-}
-
-@Composable
-private fun ImportCandidate(candidate: SharedLinkCandidate, added: Boolean, onAdd: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(16.dp)).background(Color.White.copy(0.04f)).padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AsyncImage(candidate.posterUrl, candidate.title, Modifier.width(62.dp).height(93.dp).clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.Crop)
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(candidate.title, fontWeight = FontWeight.SemiBold, maxLines = 2)
-            Text(candidate.year ?: candidate.mediaType.name, fontSize = 12.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(candidate.sourceTitle, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-        }
-        IconButton(onAdd, enabled = !added) {
-            Icon(if (added) Icons.Outlined.Check else Icons.Outlined.Add, null, tint = if (added) Color.White else MaterialTheme.colorScheme.primary)
+        if (candidates.isNotEmpty()) {
+            SlatePrimaryButton(
+                label = when {
+                    pending.isEmpty() -> "All on your slate. Done"
+                    pending.size == 1 -> "Add 1 title"
+                    else -> "Add all ${pending.size} titles"
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = SlateGutter)
+                    .padding(top = 8.dp)
+                    .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp),
+            ) {
+                if (pending.isEmpty()) onClose() else scope.launch { pending.forEach { add(it) } }
+            }
         }
     }
 }

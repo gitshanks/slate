@@ -5,6 +5,7 @@ import { authenticateNativeRequest } from "@/lib/native-api/tokens";
 import type { TitleRow, TitleStatus } from "@/lib/types";
 import { getAccessibleListsForOwner, getListTitles } from "@/lib/shared-lists";
 import { getTvHiddenListIds } from "@/lib/list-tv";
+import { getNewEpisodes } from "@/lib/library-nudges";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,9 @@ export async function GET(request: Request) {
     // A TV asks for each list's titles with the library, so its list rails
     // stay as fresh as Up Next without a request of their own.
     const withListTitles = params.get("listTitles") === "1";
+    // A phone asks for the Library prompts that need the server: shows on the
+    // Watching shelf with an episode out that is not marked watched.
+    const withNudges = params.get("nudges") === "1";
     if (statusParam && !STATUSES.has(statusParam as TitleStatus)) {
       throw new NativeApiError(400, "bad_request", "Unknown library status.");
     }
@@ -40,8 +44,14 @@ export async function GET(request: Request) {
       ? await getTvHiddenListIds(claims.ownerId).catch(() => new Set<string>())
       : new Set<string>();
 
+    const rows = (titles ?? []) as TitleRow[];
+    const newEpisodes = withNudges
+      ? await getNewEpisodes(claims.ownerId, rows).catch(() => [])
+      : undefined;
+
     return apiData({
-      titles: ((titles ?? []) as TitleRow[]).map(titleDTO),
+      titles: rows.map(titleDTO),
+      ...(newEpisodes ? { newEpisodes } : {}),
       // The TV gets only the lists you've left on for it.
       lists: withListTitles
         ? await Promise.all(

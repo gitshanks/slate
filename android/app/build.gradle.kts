@@ -1,8 +1,18 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
+}
+
+// Release signing is read from android/keystore.properties, which is never
+// committed (see docs/native-apps.md). Without it the release build still
+// compiles, unsigned, so the build can be checked on any machine.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use(::load)
 }
 
 android {
@@ -13,14 +23,35 @@ android {
         applicationId = "space.s1ate.app"
         minSdk = 23
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        // Every upload to Play or Firebase needs a higher code: -PSLATE_VERSION_CODE=3
+        versionCode = providers.gradleProperty("SLATE_VERSION_CODE").orNull?.toInt() ?: 2
+        versionName = "0.2.0"
 
         buildConfigField("String", "SLATE_API_BASE_URL", "\"https://www.s1ate.space/api/v1/\"")
         val googleServerClientId = providers.gradleProperty("SLATE_GOOGLE_SERVER_CLIENT_ID")
             .orElse("")
             .get()
         buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
+    }
+
+    signingConfigs {
+        if (keystoreProperties.isNotEmpty()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Not shrunk yet: the first tester builds favour matching the
+            // debug app exactly over a smaller download.
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
+        }
     }
 
     buildFeatures {
@@ -31,6 +62,19 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // java.time on Android 6 and 7 (the Library's "out Tue" labels).
+        isCoreLibraryDesugaringEnabled = true
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all {
+                it.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+                // Always write the PNGs; nothing is compared against a baseline.
+                it.systemProperty("roborazzi.test.record", "true")
+            }
+        }
     }
 
     packaging {
@@ -65,8 +109,19 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:3.5.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.5.0")
 
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    testImplementation(composeBom)
     testImplementation("junit:junit:4.13.2")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    // Screens rendered to PNG on the JVM, so layout can be checked at phone
+    // sizes without an emulator: ./gradlew :app:testDebugUnitTest
+    testImplementation("org.robolectric:robolectric:4.18.1")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi:1.79.0")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi-compose:1.79.0")
+    testImplementation("io.coil-kt.coil3:coil-test:3.5.0")
 }
 
 ksp {

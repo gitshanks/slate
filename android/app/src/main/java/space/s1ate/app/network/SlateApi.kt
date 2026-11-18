@@ -13,7 +13,10 @@ import space.s1ate.app.BuildConfig
 import space.s1ate.app.model.LibrarySnapshot
 import space.s1ate.app.model.LandingBackdrop
 import space.s1ate.app.model.CatalogSearchPayload
+import space.s1ate.app.model.CuratedList
+import space.s1ate.app.model.CuratedListAdded
 import space.s1ate.app.model.DiscoverDetailPayload
+import space.s1ate.app.model.DiscoverHomePayload
 import space.s1ate.app.model.LibraryStatus
 import space.s1ate.app.model.ListsPayload
 import space.s1ate.app.model.MediaType
@@ -92,8 +95,25 @@ class SlateApi {
     )
 
     suspend fun library(accessToken: String): LibrarySnapshot = request(
-        path = "library",
+        path = "library?nudges=1",
         accessToken = accessToken,
+    )
+
+    suspend fun discoverHome(accessToken: String): DiscoverHomePayload = request(
+        path = "discover/home",
+        accessToken = accessToken,
+    )
+
+    suspend fun curatedList(accessToken: String, slug: String): CuratedList = request(
+        path = "slate-lists/$slug",
+        accessToken = accessToken,
+    )
+
+    suspend fun addCuratedList(accessToken: String, slug: String): CuratedListAdded = request(
+        path = "slate-lists/$slug",
+        method = "POST",
+        accessToken = accessToken,
+        body = "{}",
     )
 
     suspend fun landing(): LandingBackdrop = request(path = "landing")

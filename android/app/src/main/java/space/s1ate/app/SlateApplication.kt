@@ -8,6 +8,7 @@ import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.request.CachePolicy
+import coil3.request.crossfade
 import okio.Path.Companion.toOkioPath
 import space.s1ate.app.data.AppDatabase
 import space.s1ate.app.data.LibraryCache
@@ -43,6 +44,8 @@ class SlateApplication : Application(), SingletonImageLoader.Factory {
         .memoryCachePolicy(CachePolicy.ENABLED)
         .diskCachePolicy(CachePolicy.ENABLED)
         .networkCachePolicy(CachePolicy.ENABLED)
+        // Posters and backdrops fade in once decoded instead of popping.
+        .crossfade(200)
         .build()
 }
 

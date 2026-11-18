@@ -7,11 +7,17 @@ Slate now has first-party native clients for both platforms:
 - `app/api/v1/`: a versioned account API shared by both clients.
 - `contracts/openapi.yaml`: the checked-in wire contract for the native clients.
 
-Both apps sign in to the existing Slate account, restore the session across launches, load cached data immediately, and refresh from Neon. They preserve Slate's poster-first library, dark cinematic presentation, purple accent, and fixed five-tab navigation while using native controls and navigation on each platform.
+Both apps sign in to the existing Slate account, restore the session across launches, load cached data immediately, and refresh from Neon. They follow the web app's phone layout: a dark, poster-first library, mint as the only accent, and a floating dock.
 
-The native feature set includes:
+Android was rebuilt in November 2026 to match the web app. iOS still has the August layout (five tabs, chip filters) apart from the removal of frameXTV; `docs/ios-port-handover.md` lists what to port and how, and it has to be done on a Mac.
 
-- Watchlist, Watching, and Watched shelves with media, genre, year, sentiment, and sort filters
+The Android feature set includes:
+
+- One Library with a shelf selector (All, Up Next, Watching, Watched) and one Filters button that opens a sheet: Format, Genre, Year, Reaction, Sort
+- A dock with Library, Discover and Lists, plus a button that finds and adds a title; every selector is the liquid selector from the web
+- Library prompts: new episodes of shows you are watching, a nudge for small libraries, and a suggested first list
+- Discover rails (recommended, trending, now playing, one per streaming service)
+- Lists made by Slate, opened from `s1ate.space/l/<slug>` links
 - Long-press drag and drop ordering with immediate local settlement and an asynchronous server save
 - Full title pages with cast, crew, providers, trailers, recommendations, ratings, notes, list membership, and status controls
 - Search across films, series, cast, and crew, with catalogue previews before a title is added
@@ -106,6 +112,51 @@ cd android
 ```
 
 The debug APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+Check the layout without a phone or emulator:
+
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+This renders the Library, the Filters sheet and Discover at 320, 360, 412 and 800 dp wide into `android/app/build/shots/`.
+
+## Release Android to testers
+
+Google Play's internal testing track is Android's TestFlight: up to 100 testers by email, installs and updates through the Play Store, no review wait.
+
+1. Make an upload key once, and keep the file and its passwords somewhere safe outside the repository:
+
+   ```bash
+   keytool -genkeypair -v -keystore slate-upload.jks -alias slate -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+2. Create `android/keystore.properties` (ignored by git):
+
+   ```properties
+   storeFile=../slate-upload.jks
+   storePassword=<the keystore password>
+   keyAlias=slate
+   keyPassword=<the key password>
+   ```
+
+   `storeFile` is read relative to `android/`, so `../slate-upload.jks` is a file beside the `android` folder; use any path you like.
+
+3. Build the signed bundle. Every upload needs a higher version code:
+
+   ```bash
+   ./gradlew :app:bundleRelease -PSLATE_VERSION_CODE=2
+   ```
+
+   The bundle is written to `android/app/build/outputs/bundle/release/app-release.aab`.
+
+4. In Play Console, create the app (package `space.s1ate.app`), open Testing > Internal testing, create a release, upload the bundle, add testers' Google addresses and send them the opt-in link.
+
+5. Google sign-in only works for builds whose signing certificate Google knows. In Play Console open Test and release > Setup > App signing, copy the SHA-1 of the **app signing key**, and add it to the Android OAuth client in Google Cloud (see "Google Cloud setup"). Without this, testers see the sign-in sheet fail.
+
+6. For `s1ate.space/l/<slug>` links to open the app, serve `/.well-known/assetlinks.json` from the site with the same key's SHA-256. Until then the links open in the browser, and `slate://l/<slug>` opens the app.
+
+Firebase App Distribution is the alternative when testers are needed before a Play developer account is verified: build `./gradlew :app:assembleRelease`, upload the APK in the Firebase console, and invite testers by email. It skips the store, so testers must allow installs from the Firebase tester app, and the upload key's SHA-1 (not Play's) goes on the OAuth client.
 
 ## Account compatibility
 
