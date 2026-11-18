@@ -1,0 +1,37 @@
+{
+  "slug": "thanksgiving-peace-treaty",
+  "name": "The Thanksgiving peace treaty",
+  "description": "Five films the whole table can agree on, one for each person who usually objects.",
+  "titles": [
+    {
+      "tmdbId": 346648,
+      "mediaType": "movie",
+      "title": "Paddington 2",
+      "line": "For whoever says kids' films are for kids"
+    },
+    {
+      "tmdbId": 546554,
+      "mediaType": "movie",
+      "title": "Knives Out",
+      "line": "For the cousin who has seen everything"
+    },
+    {
+      "tmdbId": 324857,
+      "mediaType": "movie",
+      "title": "Spider-Man: Into the Spider-Verse",
+      "line": "For the teenager on their phone"
+    },
+    {
+      "tmdbId": 2493,
+      "mediaType": "movie",
+      "title": "The Princess Bride",
+      "line": "For the grandparents"
+    },
+    {
+      "tmdbId": 2609,
+      "mediaType": "movie",
+      "title": "Planes, Trains and Automobiles",
+      "line": "For after the kids are in bed"
+    }
+  ]
+}

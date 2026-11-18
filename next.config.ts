@@ -21,6 +21,9 @@ const BUILD_ID =
   String(Date.now());
 
 const nextConfig: NextConfig = {
+  // A second dev server in this folder (for example hosted mode beside demo
+  // mode) needs its own build directory; Next allows one per directory.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // Produce a minimal self-contained server bundle for docker-compose /
   // self-host deploys. On Vercel this flag is a no-op.
   output: "standalone",

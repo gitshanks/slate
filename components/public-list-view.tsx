@@ -1,39 +1,49 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { MediaGrid } from "@/components/media-grid";
+import { Check, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { PublicTitleDetailOverlay } from "@/components/spatial-poster-grid";
 import { PublicProfileTitleActions } from "@/components/public-profile-title-actions";
 import { SlateListTitle } from "@/components/slate-list-title";
 import { addSlateListToLibrary } from "@/lib/slate-list-actions";
-import { toast } from "sonner";
 import { loadPublicTitleDetail } from "@/lib/public-title-detail-cache";
+import { backdropUrl, posterUrl } from "@/lib/tmdb-image";
+import { cn } from "@/lib/utils";
 import type { PublicSpatialTitleDetail } from "@/lib/public-spatial-detail-types";
+import type { SlateListExtras } from "@/lib/slate-list-content";
 import type { TitleRow } from "@/lib/types";
 
 interface PublicListViewProps {
   slug: string;
   name: string;
   description: string | null;
-  curator: string;
   username: string;
   titles: TitleRow[];
+  extras: SlateListExtras;
   viewerSignedIn?: boolean;
 }
 
-// One action, so it takes the whole row on a phone (DESIGN.md, Interaction).
+// The page's one action is a quiet pill in the top bar, so the still, the
+// name and the list read as one piece (DESIGN.md, Interaction).
 const ACTION =
-  "inline-flex h-11 w-full items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-[background-color,transform] duration-150 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.97] disabled:opacity-70 sm:h-10 sm:w-auto";
+  "inline-flex h-9 items-center gap-1.5 rounded-full bg-background/55 px-3.5 text-[13px] font-semibold text-primary ring-1 ring-inset ring-primary/35 backdrop-blur-md transition-[background-color,transform] duration-150 hover:bg-background/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.97] disabled:opacity-70 sm:h-10 sm:px-4 sm:text-sm";
 
-/** A list made by Slate, readable by anyone: its name, why it exists, and the posters. */
+/**
+ * A list made by Slate. A still from one of its films runs across the top
+ * with the list's name over it. The films are a ranked list: a very large,
+ * faint number half behind each poster, the title, and whatever that list says
+ * about each film (a large value at the right, or a line under the title).
+ */
 export function PublicListView({
   slug,
   name,
   description,
-  curator,
   username,
   titles,
+  extras,
   viewerSignedIn = false,
 }: PublicListViewProps) {
   const [openTitle, setOpenTitle] = React.useState<TitleRow | null>(null);
@@ -75,10 +85,16 @@ export function PublicListView({
     [username, viewerSignedIn],
   );
 
-  const count = `${titles.length} ${titles.length === 1 ? "title" : "titles"}`;
+  const hero = backdropUrl(
+    extras.hero ?? titles.find((title) => title.backdrop_path)?.backdrop_path,
+    "original",
+  );
+  const lede = extras.description ?? description;
+  // From `lg` up the list runs down two columns: 1 to 5 beside 6 to 10.
+  const rowsPerColumn = Math.ceil(titles.length / 2);
 
   return (
-    <div className="app-tab-arrive mx-auto w-full max-w-[1600px] px-4 pb-16 pt-8 sm:px-6 sm:pt-12 lg:px-10">
+    <div className="app-tab-arrive relative">
       <span
         data-title-overlay-safe-area
         aria-hidden
@@ -89,43 +105,115 @@ export function PublicListView({
           paddingLeft: "env(safe-area-inset-left, 0px)",
         }}
       />
-      <header id="public-list-header" className="mb-8 max-w-2xl sm:mb-12">
-        <p className="text-sm text-primary">A list by {curator}</p>
-        <h1 className="mt-2 text-balance text-4xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">
-          <SlateListTitle slug={slug} name={name} />
-        </h1>
-        {description ? (
-          <p className="mt-3 text-pretty text-base leading-relaxed text-white/62">
-            {description}
-          </p>
-        ) : null}
-        <div className="mt-6 flex items-center gap-4">
+
+      {hero ? (
+        <div aria-hidden className="absolute inset-x-0 top-0 h-[330px] overflow-hidden lg:h-[470px]">
+          <Image
+            src={hero}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+            style={{ objectPosition: extras.heroPosition ?? "50% 35%" }}
+          />
+          {/* Fades into the page below, and from `lg` darkens the left so the name reads on any still. */}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(8_10_9/0.55)_0%,rgb(8_10_9/0)_30%,rgb(8_10_9/0.2)_60%,rgb(8_10_9)_100%)]" />
+          <div className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgb(8_10_9/0.72)_0%,rgb(8_10_9/0)_62%)] lg:block" />
+        </div>
+      ) : null}
+
+      <div className="relative mx-auto w-full max-w-[1264px] px-5 pb-24 sm:px-8">
+        <div className="flex h-14 items-center justify-between lg:h-[72px]">
+          <Link href="/" aria-label="slate home" className="flex items-center">
+            <Image src="/brand/wordmark-light.svg" alt="slate" width={64} height={23} priority />
+          </Link>
           {!viewerSignedIn ? (
             <Link href="/login" className={ACTION}>
+              <Plus aria-hidden className="size-4" />
               Add to your slate
             </Link>
           ) : saved ? (
             <Link href="/lists" className={ACTION}>
-              On your slate. Open your lists
+              <Check aria-hidden className="size-4" />
+              On your slate
             </Link>
           ) : (
             <button type="button" onClick={addList} disabled={isSaving} className={ACTION}>
+              <Plus aria-hidden className="size-4" />
               {isSaving ? "Adding" : "Add to your slate"}
             </button>
           )}
-          <span className="hidden text-sm text-white/45 sm:inline">{count}</span>
         </div>
-      </header>
 
-      <MediaGrid
-        titles={titles}
-        readOnly
-        titleHrefBase={`/u/${username}/title`}
-        activeTitleId={openTitle?.id}
-        presentation="profile"
-        showStatus={false}
-        onTitleSelect={open}
-      />
+        <header id="public-list-header" className={hero ? "pt-[206px] lg:pt-[248px]" : "pt-16 lg:pt-24"}>
+          <h1 className="text-balance text-[34px] font-bold leading-[38px] tracking-[-0.03em] text-white lg:text-[64px] lg:leading-[68px]">
+            <SlateListTitle slug={slug} name={name} />
+          </h1>
+          {lede ? (
+            <p className="mt-2.5 max-w-2xl text-balance text-[15px] leading-[22px] text-white/60 lg:mt-4 lg:text-xl lg:leading-[30px]">
+              {lede}
+            </p>
+          ) : null}
+        </header>
+
+        <ol
+          className="mt-5 grid gap-y-1 lg:mt-9 lg:grid-flow-col lg:grid-cols-2 lg:gap-x-32 lg:gap-y-0 lg:[grid-template-rows:repeat(var(--rows),auto)]"
+          style={{ "--rows": rowsPerColumn } as React.CSSProperties}
+        >
+          {titles.map((title, index) => {
+            const extra = extras.items[`${title.media_type}:${title.tmdb_id}`];
+            const poster = posterUrl(title.poster_path, "w185");
+            return (
+              <li key={title.id} id={`shelf-title-${title.id}`} data-shelf-title-id={title.id}>
+                <button
+                  type="button"
+                  onClick={() => open(title)}
+                  aria-label={`${index + 1}. ${title.title}${extra?.value ? `, ${extra.value}` : ""}`}
+                  className={cn(
+                    "group grid h-[92px] w-full grid-cols-[14px_50px_minmax(0,1fr)_auto] items-center gap-3.5 rounded-xl text-left",
+                    "transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                    "lg:h-[100px] lg:grid-cols-[22px_56px_minmax(0,1fr)_auto] lg:gap-5",
+                    openTitle && openTitle.id !== title.id && "opacity-60",
+                  )}
+                >
+                  {/* The rank: very large and faint, right-aligned so the poster covers about half of it. */}
+                  <span
+                    aria-hidden
+                    className="-mr-[30px] justify-self-end whitespace-nowrap text-right text-[76px] font-extrabold leading-[76px] tracking-[-0.06em] text-white/[0.13] tabular-nums lg:-mr-[38px] lg:text-[104px] lg:leading-[100px]"
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="relative block h-[75px] w-[50px] overflow-hidden rounded-lg bg-card transition-transform duration-200 ease-out hoverable:group-hover:scale-[1.04] lg:h-[84px] lg:w-14">
+                    {poster ? <Image src={poster} alt="" fill sizes="56px" className="object-cover" /> : null}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-balance text-base font-semibold leading-[21px] tracking-[-0.01em] text-white lg:truncate lg:text-xl lg:leading-7">
+                      {title.title}
+                    </span>
+                    {extra?.line ? (
+                      <span className="mt-0.5 block truncate text-[13px] leading-5 text-white/60 lg:text-[15px]">
+                        {extra.line}
+                      </span>
+                    ) : null}
+                  </span>
+                  {extra?.value ? (
+                    <span className="text-[46px] font-light leading-[46px] tracking-[-0.05em] text-primary tabular-nums lg:pl-5 lg:text-[60px] lg:leading-[60px]">
+                      {extra.value}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+
+        {extras.note ? (
+          <p className="mt-8 text-[13px] leading-5 text-white/60 lg:mt-10 lg:text-sm">{extras.note}</p>
+        ) : null}
+      </div>
 
       {openTitle ? (
         <PublicTitleDetailOverlay

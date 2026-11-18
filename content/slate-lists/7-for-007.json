@@ -3,12 +3,47 @@
   "name": "7 for 007",
   "description": "Robert Pattinson is the next James Bond. Seven films to watch first, from Cedric Diggory to the director who cast him.",
   "titles": [
-    { "tmdbId": 674, "mediaType": "movie", "title": "Harry Potter and the Goblet of Fire" },
-    { "tmdbId": 8966, "mediaType": "movie", "title": "Twilight" },
-    { "tmdbId": 429200, "mediaType": "movie", "title": "Good Time" },
-    { "tmdbId": 503919, "mediaType": "movie", "title": "The Lighthouse" },
-    { "tmdbId": 577922, "mediaType": "movie", "title": "Tenet" },
-    { "tmdbId": 414906, "mediaType": "movie", "title": "The Batman" },
-    { "tmdbId": 1170608, "mediaType": "movie", "title": "Dune: Part Three" }
+    {
+      "tmdbId": 674,
+      "mediaType": "movie",
+      "title": "Harry Potter and the Goblet of Fire",
+      "line": "2005, as Cedric Diggory"
+    },
+    {
+      "tmdbId": 8966,
+      "mediaType": "movie",
+      "title": "Twilight",
+      "line": "2008, as Edward Cullen"
+    },
+    {
+      "tmdbId": 429200,
+      "mediaType": "movie",
+      "title": "Good Time",
+      "line": "2017, as Connie Nikas"
+    },
+    {
+      "tmdbId": 503919,
+      "mediaType": "movie",
+      "title": "The Lighthouse",
+      "line": "2019, as Ephraim Winslow"
+    },
+    {
+      "tmdbId": 577922,
+      "mediaType": "movie",
+      "title": "Tenet",
+      "line": "2020, as Neil"
+    },
+    {
+      "tmdbId": 414906,
+      "mediaType": "movie",
+      "title": "The Batman",
+      "line": "2022, as Bruce Wayne"
+    },
+    {
+      "tmdbId": 1170608,
+      "mediaType": "movie",
+      "title": "Dune: Part Three",
+      "line": "In cinemas 18 December, as Scytale"
+    }
   ]
 }

@@ -45,7 +45,7 @@
       "runtimeExecutable": "cmd",
       "runtimeArgs": [
         "/c",
-        "set NEXT_PUBLIC_SLATE_HOSTED=1&& npx next dev --port 3107"
+        "set NEXT_PUBLIC_SLATE_HOSTED=1&& set NEXT_DIST_DIR=.next-hosted&& npx next dev --port 3107"
       ],
       "port": 3107
     }

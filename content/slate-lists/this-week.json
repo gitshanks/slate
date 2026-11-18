@@ -1,0 +1,69 @@
+{
+  "slug": "this-week",
+  "name": "What to watch this week",
+  "description": "This week's ten most popular films, ranked by their reviews.",
+  "titles": [
+    {
+      "tmdbId": 791523,
+      "mediaType": "movie",
+      "title": "Wildwood",
+      "value": "92"
+    },
+    {
+      "tmdbId": 1368337,
+      "mediaType": "movie",
+      "title": "The Odyssey",
+      "value": "89"
+    },
+    {
+      "tmdbId": 891621,
+      "mediaType": "movie",
+      "title": "Wild Horse Nine",
+      "value": "87"
+    },
+    {
+      "tmdbId": 1339713,
+      "mediaType": "movie",
+      "title": "Obsession",
+      "value": "86"
+    },
+    {
+      "tmdbId": 1423191,
+      "mediaType": "movie",
+      "title": "Resident Evil",
+      "value": "85"
+    },
+    {
+      "tmdbId": 969681,
+      "mediaType": "movie",
+      "title": "Spider-Man: Brand New Day",
+      "value": "85"
+    },
+    {
+      "tmdbId": 1381071,
+      "mediaType": "movie",
+      "title": "Godzilla Minus Zero",
+      "value": "85"
+    },
+    {
+      "tmdbId": 1286656,
+      "mediaType": "movie",
+      "title": "I Play Rocky",
+      "value": "84"
+    },
+    {
+      "tmdbId": 1263337,
+      "mediaType": "movie",
+      "title": "Heart of the Beast",
+      "value": "78"
+    },
+    {
+      "tmdbId": 1375441,
+      "mediaType": "movie",
+      "title": "Primetime",
+      "value": "78"
+    }
+  ],
+  "note": "Score: Rotten Tomatoes and IMDb, averaged.",
+  "heroPosition": "50% 30%"
+}

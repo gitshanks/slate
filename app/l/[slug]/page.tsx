@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PublicListView } from "@/components/public-list-view";
 import { getAppSession } from "@/lib/app-access";
 import { siteOrigin } from "@/lib/site-url";
+import { getSlateListExtras } from "@/lib/slate-list-content";
 import { getSlateList } from "@/lib/slate-lists";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,9 @@ export async function generateMetadata({
   const origin = siteOrigin();
   const canonical = `${origin}/l/${found.list.slug}`;
   const description =
-    found.list.description ?? `${found.titles.length} titles picked by ${found.curator}.`;
+    getSlateListExtras(found.list.slug).description ??
+    found.list.description ??
+    `${found.titles.length} titles picked by ${found.curator}.`;
 
   return {
     metadataBase: new URL(origin),
@@ -64,9 +67,9 @@ export default async function PublicListPage({
         slug={found.list.slug}
         name={found.list.name}
         description={found.list.description}
-        curator={found.curator}
         username={found.username}
         titles={found.titles}
+        extras={getSlateListExtras(found.list.slug)}
         viewerSignedIn={viewerSignedIn}
       />
     </main>
