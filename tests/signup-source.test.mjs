@@ -44,3 +44,13 @@ test('cookie round-trips and rejects junk', () => {
   assert.equal(decodeSignupSource(encodeURIComponent('{"source":""}')), null);
   assert.equal(decodeSignupSource(encodeURIComponent(JSON.stringify({ source: 'x'.repeat(500) }))).source.length, 80);
 });
+
+test('a list made by Slate is its own campaign unless a UTM campaign is given', () => {
+  const ig = { ...base, userAgent: 'Mozilla/5.0 (iPhone) Instagram 300.0.0' };
+  const untagged = resolveSignupSource({ ...ig, path: '/l/7-for-007' });
+  assert.equal(untagged.source, 'instagram');
+  assert.equal(untagged.campaign, '7-for-007');
+  assert.equal(untagged.landingPath, '/l/7-for-007');
+  assert.equal(resolveSignupSource({ ...ig, path: '/l/7-for-007', search: '?utm_campaign=bio' }).campaign, 'bio');
+  assert.equal(resolveSignupSource({ ...ig, path: '/lists' }).campaign, null);
+});

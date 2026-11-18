@@ -78,6 +78,10 @@ export function inAppBrowserFor(userAgent: string): string | null {
   return IN_APP_AGENTS.find(([pattern]) => pattern.test(userAgent))?.[1] ?? null;
 }
 
+function slateListCampaign(path: string): string | null {
+  return /^\/l\/([a-z0-9][a-z0-9-]{0,79})\/?$/.exec(path)?.[1] ?? null;
+}
+
 /** Resolve one visit into a source. UTM tags win, then the in-app browser,
  * then the referring site; anything else is a direct visit. */
 export function resolveSignupSource(input: {
@@ -105,7 +109,10 @@ export function resolveSignupSource(input: {
   return {
     source,
     medium: clean(params.get("utm_medium")),
-    campaign: clean(params.get("utm_campaign")),
+    // A list made by Slate is its own campaign: an untagged link to
+    // /l/7-for-007 shows up in Insights as "7-for-007" on whatever source
+    // the visit came from. An explicit utm_campaign still wins.
+    campaign: clean(params.get("utm_campaign")) ?? slateListCampaign(input.path),
     referrerHost,
     inApp,
     landingPath: clean(input.path, 120),
