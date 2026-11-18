@@ -68,7 +68,7 @@ export function ThemeToggle({ className }: { className?: string }) {
           type="button"
           aria-label="Appearance"
           className={cn(
-            "inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground outline-none transition-[color,background-color,transform] duration-150 ease-[var(--ease-ui-out)] hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.94] data-[state=open]:text-foreground",
+            "inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground outline-none transition-[color,background-color,transform] duration-150 ease-[var(--ease-ui-out)] hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.94] data-[state=open]:text-foreground data-[state=open]:[view-transition-name:theme-trigger]",
             className,
           )}
         >

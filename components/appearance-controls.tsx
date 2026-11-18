@@ -14,10 +14,21 @@ export const THEME_MODES = [
   { value: "dark", label: "Dark", icon: Moon },
 ] as const;
 
+/** Whether choosing `next` would change what the page looks like. */
+export function changesLook(next: string) {
+  const dark =
+    next === "system"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+      : next === "dark";
+  return dark !== document.documentElement.classList.contains("dark");
+}
+
 /**
- * Changes the theme behind one short crossfade instead of letting every colour
- * on the page snap at once. Falls back to a plain change where view
- * transitions are missing or reduced motion is asked for.
+ * Changes the theme behind one crossfade instead of letting every colour on
+ * the page snap at once. The fade is a view transition: two flat images on the
+ * compositor, which stays smooth on a phone where transitioning the colour of
+ * every element would not. A choice that looks the same (Dark to System on a
+ * dark phone) changes nothing on screen, so it gets no fade at all.
  */
 export function useThemeSwitch() {
   const { theme, setTheme } = useTheme();
@@ -26,25 +37,27 @@ export function useThemeSwitch() {
     (next: string) => {
       if (next === theme) return;
       const doc = document as Document & {
-        startViewTransition?: (options: {
-          update: () => void;
-          types?: string[];
-        }) => unknown;
+        startViewTransition?: (update: () => void) => {
+          finished: Promise<void>;
+        };
       };
       const reduce = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches;
-      if (!doc.startViewTransition || reduce) {
+      if (!doc.startViewTransition || reduce || !changesLook(next)) {
         setTheme(next);
         return;
       }
+      // Scoped by a class rather than a view-transition type, which older
+      // Safari does not know; the callback form works everywhere it exists.
+      const root = document.documentElement;
+      root.classList.add("theme-fading");
       try {
-        doc.startViewTransition({
-          update: () => flushSync(() => setTheme(next)),
-          types: ["theme-change"],
-        });
+        doc
+          .startViewTransition(() => flushSync(() => setTheme(next)))
+          .finished.finally(() => root.classList.remove("theme-fading"));
       } catch {
-        // Older engines take only a callback and know no types.
+        root.classList.remove("theme-fading");
         setTheme(next);
       }
     },
@@ -53,6 +66,11 @@ export function useThemeSwitch() {
 
   return { theme, switchTheme };
 }
+
+// How long the thumb is given to land before the page changes. The crossfade
+// freezes a picture of the page; taken while the thumb is still moving, the
+// thumb would show twice for the length of the fade.
+const LAND_BEFORE_FADE = 300;
 
 /**
  * Light, System and Dark as stops on one track. The thumb is Slate's liquid
@@ -66,22 +84,24 @@ export function ThemeSlider({ className }: { className?: string }) {
   React.useEffect(() => setMounted(true), []);
   const [focused, setFocused] = React.useState(-1);
 
-  // The thumb answers at once; the theme (a whole-page re-render and a
-  // crossfade) follows a frame later, so the throw is never held up.
+  // The thumb answers at once. The page follows once the thumb has landed:
+  // first the thumb arrives, then the light changes, never both at once.
   const [chosen, setChosen] = React.useState<string | null>(null);
   const value = mounted ? (theme ?? "system") : "";
   if (chosen && chosen === value) setChosen(null);
   const shown = chosen ?? value;
+  const pending = React.useRef(0);
+  React.useEffect(() => () => window.clearTimeout(pending.current), []);
 
   const choose = (next: string) => {
+    window.clearTimeout(pending.current);
     if (next === value) {
       setChosen(null);
       return;
     }
     setChosen(next);
-    window.requestAnimationFrame(() => {
-      window.setTimeout(() => switchTheme(next), 0);
-    });
+    const wait = changesLook(next) ? LAND_BEFORE_FADE : 0;
+    pending.current = window.setTimeout(() => switchTheme(next), wait);
   };
 
   return (

@@ -978,21 +978,33 @@ body:has(#app-bottom-nav)
 }
 
 /* ─── Theme change (components/appearance-controls.tsx) ────────── */
-/* One short crossfade: the new theme fades in over the old one, which stays
-   opaque underneath, so the page never dips through transparency. Scoped to
-   its own type and specific enough to beat the motionless defaults above. */
-html:active-view-transition-type(theme-change)::view-transition-group(*) {
+/* The new theme fades in over a still picture of the old one, which stays
+   opaque underneath, so the page never dips through transparency. An even
+   curve and a little more time than a control gets: the whole screen changes
+   brightness, and a fast start reads as a flash. Scoped by a class (older
+   Safari has no view-transition types) and specific enough to beat the
+   motionless mobile defaults above. */
+html.theme-fading::view-transition-group(*) {
   animation: none !important;
 }
-html:active-view-transition-type(theme-change)::view-transition-old(*),
-html:active-view-transition-type(theme-change)::view-transition-old(root) {
-  animation: theme-hold 200ms linear both !important;
+html.theme-fading::view-transition-old(*),
+html.theme-fading::view-transition-old(root) {
+  animation: theme-hold 320ms linear both !important;
   mix-blend-mode: normal;
 }
-html:active-view-transition-type(theme-change)::view-transition-new(*),
-html:active-view-transition-type(theme-change)::view-transition-new(root) {
-  animation: theme-fade-in 200ms cubic-bezier(0.23, 1, 0.32, 1) both !important;
+html.theme-fading::view-transition-new(*),
+html.theme-fading::view-transition-new(root) {
+  animation: theme-fade-in 320ms cubic-bezier(0.45, 0, 0.25, 1) both !important;
   mix-blend-mode: normal;
+}
+/* The open theme button stays live above the fade: its new icon turns in on
+   its own instead of crossfading over a frozen copy of the old one. */
+html.theme-fading::view-transition-old(theme-trigger) {
+  animation: none !important;
+  opacity: 0;
+}
+html.theme-fading::view-transition-new(theme-trigger) {
+  animation: none !important;
 }
 @keyframes theme-hold {
   from, to { opacity: 1; }
