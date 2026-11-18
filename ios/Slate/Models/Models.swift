@@ -10,7 +10,7 @@ enum LibraryStatus: String, Codable, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .want: "Watchlist"
+        case .want: "Up Next"
         case .watching: "Watching"
         case .watched: "Watched"
         case .dropped: "Dropped"
@@ -327,6 +327,87 @@ struct LibrarySnapshot: Codable {
     let titles: [SlateTitle]
     let lists: [SlateList]
     let serverTime: String
+    /// Present when the library is asked for with `nudges=1`.
+    let newEpisodes: [NewEpisode]?
+}
+
+/// A show on the Watching shelf with an episode out that is not marked watched.
+struct NewEpisode: Codable, Identifiable, Hashable {
+    var id: String { titleId }
+    let titleId: String
+    let title: String
+    let posterPath: String?
+    let season: Int
+    let episode: Int
+    let episodeName: String?
+    let airDate: String
+
+    var posterURL: URL? {
+        guard let posterPath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w342\(posterPath)")
+    }
+}
+
+struct DiscoverRailItem: Codable, Identifiable, Hashable {
+    var id: String { "\(mediaType.rawValue)-\(tmdbId)" }
+    let tmdbId: Int
+    let mediaType: MediaType
+    let title: String
+    let posterPath: String?
+    let releaseDate: String?
+    let saved: Bool
+
+    var posterURL: URL? {
+        guard let posterPath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/w342\(posterPath)")
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case tmdbId, mediaType, title, posterPath, releaseDate, saved
+    }
+
+    init(tmdbId: Int, mediaType: MediaType, title: String, posterPath: String?, releaseDate: String?, saved: Bool) {
+        self.tmdbId = tmdbId
+        self.mediaType = mediaType
+        self.title = title
+        self.posterPath = posterPath
+        self.releaseDate = releaseDate
+        self.saved = saved
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        tmdbId = try values.decode(Int.self, forKey: .tmdbId)
+        mediaType = try values.decode(MediaType.self, forKey: .mediaType)
+        title = try values.decode(String.self, forKey: .title)
+        posterPath = try values.decodeIfPresent(String.self, forKey: .posterPath)
+        releaseDate = try values.decodeIfPresent(String.self, forKey: .releaseDate)
+        saved = try values.decodeIfPresent(Bool.self, forKey: .saved) ?? false
+    }
+}
+
+struct DiscoverRail: Codable, Identifiable, Hashable {
+    let id: String
+    let title: String
+    let items: [DiscoverRailItem]
+}
+
+struct DiscoverHomePayload: Codable {
+    let rails: [DiscoverRail]
+}
+
+/// A public list made by Slate, the web's /l/<slug>.
+struct CuratedList: Codable, Hashable {
+    let slug: String
+    let name: String
+    let description: String?
+    let curator: String
+    let titles: [DiscoverRailItem]
+}
+
+struct CuratedListAdded: Codable {
+    let added: Int
+    let listId: String?
 }
 
 struct LandingBackdrop: Codable {

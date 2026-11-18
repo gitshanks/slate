@@ -22,17 +22,34 @@ final class AppModel: ObservableObject {
     @Published private(set) var avatarData: Data?
     @Published var presentedError: String?
     @Published var inboundSharedText: String?
+    @Published private(set) var newEpisodes: [NewEpisode] = []
+    /// Discover's rails. Nil until first asked for; kept for the session, so
+    /// coming back to the tab is instant.
+    @Published private(set) var discoverRails: [DiscoverRail]?
+    /// A link to a list made by Slate (s1ate.space/l/<slug>) opened the app.
+    @Published var pendingListSlug: String?
 
     private let api = APIClient()
     private let keychain = KeychainStore()
     private let localStore = try? LocalLibraryStore()
     private var tokens: TokenPayload?
     private var didBootstrap = false
+    private var loadingDiscover = false
 
     func bootstrap() async {
         guard !didBootstrap else { return }
         didBootstrap = true
         Task { await refreshLandingBackdrop() }
+        #if DEBUG
+        if SlatePreview.isOn {
+            profile = SlatePreview.profile
+            titles = SlatePreview.titles
+            newEpisodes = SlatePreview.newEpisodes
+            discoverRails = SlatePreview.rails
+            state = .signedIn
+            return
+        }
+        #endif
         titles = (try? localStore?.titles()) ?? []
 
         guard
@@ -212,7 +229,10 @@ final class AppModel: ObservableObject {
     }
 
     func listSummaries() async throws -> [SlateListSummary] {
-        try await authenticated { try await api.listSummaries(accessToken: $0).lists }
+        #if DEBUG
+        if SlatePreview.isOn { return [] }
+        #endif
+        return try await authenticated { try await api.listSummaries(accessToken: $0).lists }
     }
 
     func listDetail(id: String) async throws -> SlateListDetailPayload {
@@ -294,19 +314,81 @@ final class AppModel: ObservableObject {
     }
 
     func resolveSharedText(_ text: String) async throws -> SharedLinkResolution {
-        try await authenticated { try await api.resolveSharedText(text, accessToken: $0) }
+        #if DEBUG
+        if SlatePreview.isOn { return SlatePreview.linkResolution }
+        #endif
+        return try await authenticated { try await api.resolveSharedText(text, accessToken: $0) }
     }
 
     func handleOpenURL(_ url: URL) {
-        guard url.scheme == "slate", url.host == "share" else { return }
-        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        inboundSharedText = components?.queryItems?.first(where: { $0.name == "text" })?.value
+        if url.scheme == "slate", url.host == "share" {
+            let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            inboundSharedText = components?.queryItems?.first(where: { $0.name == "text" })?.value
+            return
+        }
+        // slate://l/<slug>, or s1ate.space/l/<slug> once universal links are set up.
+        let segments = url.pathComponents.filter { $0 != "/" }
+        let slug: String?
+        if url.scheme == "slate", url.host == "l" {
+            slug = segments.first
+        } else if url.scheme == "https", url.host?.hasSuffix("s1ate.space") == true,
+                  segments.count >= 2, segments[0] == "l" {
+            slug = segments[1]
+        } else {
+            slug = nil
+        }
+        guard let clean = slug?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+              clean.range(of: #"^[a-z0-9][a-z0-9-]{0,79}$"#, options: .regularExpression) != nil
+        else { return }
+        pendingListSlug = clean
+    }
+
+    func loadDiscover(force: Bool = false) async {
+        #if DEBUG
+        if SlatePreview.isOn { return }
+        #endif
+        guard !loadingDiscover, force || discoverRails == nil else { return }
+        loadingDiscover = true
+        defer { loadingDiscover = false }
+        do {
+            let payload: DiscoverHomePayload = try await authenticated { try await api.discoverHome(accessToken: $0) }
+            discoverRails = payload.rails.filter { !$0.items.isEmpty }
+        } catch {
+            if discoverRails == nil { discoverRails = [] }
+        }
+    }
+
+    func curatedList(slug: String) async throws -> CuratedList {
+        #if DEBUG
+        if SlatePreview.isOn { return SlatePreview.curatedList }
+        #endif
+        return try await authenticated { try await api.curatedList(slug: slug, accessToken: $0) }
+    }
+
+    func addCuratedList(slug: String) async throws -> Int {
+        let result: CuratedListAdded = try await authenticated {
+            try await api.addCuratedList(slug: slug, accessToken: $0)
+        }
+        await refreshLibrary()
+        return result.added
+    }
+
+    /// A first list made from titles already saved (the Library's list prompt).
+    func createListFromTitles(name: String, titleIds: [String]) async throws {
+        let summary = try await createList(name: name, description: "")
+        for titleId in titleIds {
+            try? await addTitleToList(listId: summary.id, titleId: titleId)
+        }
     }
 
     func signOut() async {
         let accessToken = tokens?.accessToken
         clearLocalSession()
         if let accessToken { try? await api.logout(accessToken: accessToken) }
+    }
+
+    func hasSaved(_ item: DiscoverRailItem) -> Bool {
+        titles.contains { $0.tmdbId == item.tmdbId && $0.mediaType == item.mediaType }
     }
 
     func titles(in status: LibraryStatus) -> [SlateTitle] {
@@ -378,6 +460,7 @@ final class AppModel: ObservableObject {
     private func apply(_ snapshot: LibrarySnapshot) {
         titles = snapshot.titles
         lists = snapshot.lists
+        newEpisodes = snapshot.newEpisodes ?? []
         try? localStore?.replace(with: snapshot.titles)
     }
 
@@ -393,6 +476,9 @@ final class AppModel: ObservableObject {
         avatarData = nil
         titles = []
         lists = []
+        newEpisodes = []
+        discoverRails = nil
+        pendingListSlug = nil
         try? keychain.clear()
         try? localStore?.clear()
         state = .signedOut

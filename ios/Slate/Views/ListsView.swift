@@ -11,36 +11,40 @@ struct ListsScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                SlateSectionHeader(
-                    eyebrow: "Collections",
-                    title: "Lists",
-                    trailing: AnyView(
-                        Button { creating = true } label: {
-                            Label("New list", systemImage: "plus")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.82))
-                                .padding(.horizontal, 14)
-                                .frame(height: 38)
-                                .background(.white.opacity(0.055), in: .capsule)
-                                .overlay { Capsule().stroke(SlatePalette.hairline, lineWidth: 0.7) }
+                SlateScreenTitle(title: "Lists") {
+                    Button { creating = true } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus").font(.system(size: 13, weight: .semibold))
+                            Text("New list").font(.system(size: 13, weight: .medium))
                         }
-                        .buttonStyle(SlatePressStyle())
-                    )
-                )
-                .padding(.horizontal, 18)
-                .padding(.top, 20)
-                .padding(.bottom, 26)
+                        .foregroundStyle(.white)
+                        .padding(.leading, 12)
+                        .padding(.trailing, 14)
+                        .frame(height: 40)
+                        .background(SlatePalette.fill, in: .capsule)
+                        .overlay { Capsule().stroke(SlatePalette.border, lineWidth: 1) }
+                        .contentShape(.capsule)
+                    }
+                    .buttonStyle(SlatePressStyle())
+                }
+                .padding(.horizontal, SlateMetrics.gutter)
+                .padding(.top, 4)
+                .padding(.bottom, 20)
 
                 if loading && summaries.isEmpty {
-                    ProgressView().tint(.white).frame(maxWidth: .infinity).padding(.top, 100)
+                    Color.clear.frame(height: 1)
                 } else if summaries.isEmpty {
-                    ContentUnavailableView(
-                        "No lists yet",
-                        systemImage: "square.stack.3d.up",
-                        description: Text("Group titles for a mood, trip, or movie night.")
-                    )
+                    VStack(spacing: 20) {
+                        SlateEmptyMessage(
+                            title: "No lists yet",
+                            message: "Group titles for a mood, a trip or a film night."
+                        )
+                        SlatePrimaryButton("Make a list") { creating = true }
+                    }
+                    .padding(.horizontal, 24)
+                    .frame(maxWidth: 320)
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 70)
+                    .padding(.top, 120)
                 } else {
                     LazyVStack(spacing: 28) {
                         ForEach(summaries) { list in
@@ -67,8 +71,11 @@ struct ListsScreen: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 36)
+                    .padding(.horizontal, SlateMetrics.gutter)
+                    .padding(.bottom, 24)
+                    .frame(maxWidth: 720)
+                    .frame(maxWidth: .infinity)
+                    .slateArrive(on: summaries.count)
                 }
             }
         }
@@ -157,7 +164,7 @@ private struct ListSummaryCard: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(list.name).font(.system(size: 18, weight: .semibold)).lineLimit(1)
                 Spacer()
-                Text("\(list.count)").font(.caption.monospaced()).foregroundStyle(.secondary)
+                Text("\(list.count)").font(.caption).foregroundStyle(.secondary)
             }
             if let description = list.description, !description.isEmpty {
                 Text(description).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -176,33 +183,31 @@ private struct ListDetailView: View {
     @State private var adding = false
     @State private var deleting = false
 
-    private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
-
     var body: some View {
+        GeometryReader { proxy in
         ScrollView {
             if let detail {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("LIST").font(.caption.monospaced().weight(.semibold)).tracking(1.3).foregroundStyle(.secondary)
-                    Text(detail.list.name).font(.system(size: 38, weight: .bold)).tracking(-1.4)
+                    Text(detail.list.name).font(.system(size: 30, weight: .bold)).tracking(-0.8)
                     if let description = detail.list.description, !description.isEmpty {
                         Text(description).foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 18)
-                .padding(.bottom, 22)
+                .padding(.horizontal, SlateMetrics.gutter)
+                .padding(.bottom, 20)
 
                 if detail.titles.isEmpty {
-                    ContentUnavailableView("Empty list", systemImage: "film", description: Text("Add a title from your library."))
+                    SlateEmptyMessage(title: "This list is empty", message: "Add a title from your library.")
                         .padding(.top, 70)
                 } else {
-                    LazyVGrid(columns: columns, spacing: 24) {
+                    LazyVGrid(columns: SlateMetrics.posterColumns(for: proxy.size.width), spacing: SlateMetrics.posterGap) {
                         ForEach(detail.titles) { title in
                             NavigationLink { TitleDetailView(title: title) } label: {
-                                PosterCard(title: title)
+                                PosterTile(title: title)
                                     .opacity(dragging?.id == title.id ? 0.3 : 1)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(SlatePressStyle())
                             .onDrag {
                                 dragging = title
                                 return NSItemProvider(object: title.id as NSString)
@@ -226,14 +231,15 @@ private struct ListDetailView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 18)
+                    .padding(.horizontal, SlateMetrics.gutter)
                     .padding(.bottom, 40)
                     .animation(.smooth(duration: 0.22), value: detail.titles.map(\.id))
                 }
-            } else {
-                ProgressView().tint(.white).padding(.top, 160)
             }
         }
+        }
+        .background(SlatePalette.background)
+        .slateHidesChrome()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {

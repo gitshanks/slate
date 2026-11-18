@@ -32,11 +32,11 @@ struct TitleDetailView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        metadata
                         Text(currentTitle.title)
                             .font(.system(size: 32, weight: .semibold))
-                            .tracking(-1.1)
-                            .padding(.top, 8)
+                            .tracking(-0.9)
+                        metadata
+                            .padding(.top, 10)
 
                         actions
                             .padding(.top, 22)
@@ -77,6 +77,7 @@ struct TitleDetailView: View {
         .preferredColorScheme(.dark)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .slateHidesChrome()
         .task(id: title.id) { await load() }
         .sheet(item: $presentedSheet) { sheet in
             switch sheet {
@@ -163,12 +164,14 @@ struct TitleDetailView: View {
     private var metadata: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                if let runtime = currentTitle.runtime {
-                    metadataText(runtimeLabel(runtime))
-                    separator
-                }
+                metadataText(currentTitle.mediaType == .movie ? "Film" : "Series")
                 if let year = currentTitle.year {
+                    separator
                     metadataText(year)
+                }
+                if let runtime = currentTitle.runtime {
+                    separator
+                    metadataText(runtimeLabel(runtime))
                 }
                 if let imdb = currentTitle.imdbRating {
                     separator
@@ -183,7 +186,7 @@ struct TitleDetailView: View {
                 }
                 ForEach((currentTitle.genres ?? []).prefix(3), id: \.id) { genre in
                     separator
-                    metadataText(genre.name.uppercased())
+                    metadataText(genre.name)
                 }
             }
         }
@@ -193,7 +196,7 @@ struct TitleDetailView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 9) {
                 Menu {
-                    statusButton(.want, label: "Want", icon: "clock")
+                    statusButton(.want, label: "Up Next", icon: "clock")
                     statusButton(.watching, label: "Watching", icon: "eye")
                     statusButton(.watched, label: "Watched", icon: "checkmark")
                 } label: {
@@ -246,10 +249,9 @@ struct TitleDetailView: View {
 
     private func noteCard(_ review: String) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("YOUR NOTE")
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .tracking(0.9)
-                .foregroundStyle(.white.opacity(0.48))
+            Text("Your note")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
             Text(review)
                 .font(.system(size: 15))
                 .foregroundStyle(.white.opacity(0.84))
@@ -347,7 +349,7 @@ struct TitleDetailView: View {
                                     .lineLimit(1)
                                 if let year = recommendation.year {
                                     Text(year)
-                                        .font(.system(size: 11, design: .monospaced))
+                                        .font(.system(size: 11))
                                         .foregroundStyle(.white.opacity(0.48))
                                 }
                             }
@@ -361,10 +363,10 @@ struct TitleDetailView: View {
 
     private var ratingLabel: String {
         switch currentTitle.rating {
-        case 3: "Love"
-        case 2: "Like"
-        case 1: "Dislike"
-        default: "Rate"
+        case 3: "Loved"
+        case 2: "Liked"
+        case 1: "Disliked"
+        default: "React"
         }
     }
 
@@ -430,7 +432,7 @@ struct TitleDetailView: View {
 
     private func metadataText(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .medium, design: .monospaced))
+            .font(.system(size: 12))
             .foregroundStyle(.white.opacity(0.66))
     }
 
@@ -439,7 +441,7 @@ struct TitleDetailView: View {
             Text(label).fontWeight(.bold)
             Text(value)
         }
-        .font(.system(size: 10, design: .monospaced))
+        .font(.system(size: 11))
         .foregroundStyle(.white.opacity(0.8))
         .padding(.horizontal, 7)
         .frame(height: 22)
@@ -448,7 +450,7 @@ struct TitleDetailView: View {
     }
 
     private func runtimeLabel(_ minutes: Int) -> String {
-        minutes >= 60 ? "\(minutes / 60)H \(minutes % 60)M" : "\(minutes)M"
+        minutes >= 60 ? "\(minutes / 60)h \(minutes % 60)m" : "\(minutes)m"
     }
 
     private func initials(_ name: String) -> String {
