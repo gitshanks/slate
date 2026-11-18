@@ -1,7 +1,8 @@
 "use client";
 
 import { useAccent } from "@/components/accent-provider";
-import { AccentSwatches, ThemeSlider } from "@/components/appearance-controls";
+import { AccentSlider } from "@/components/accent-slider";
+import { ThemeSlider } from "@/components/appearance-controls";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import { ACCENTS } from "@/lib/accent-theme";
 
@@ -20,7 +21,7 @@ export function ProfileAppearance({ index }: { index: number }) {
         }
         className="flex-wrap"
       >
-        <AccentSwatches />
+        <AccentSlider className="w-[13.5rem]" />
       </SettingsRow>
     </SettingsGroup>
   );

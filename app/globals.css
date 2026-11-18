@@ -9,6 +9,8 @@
 :root {
   --ease-ui-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-ui-move: cubic-bezier(0.32, 0.72, 0, 1);
+  /* A thumb lifted off a coloured track (components/accent-slider.tsx). */
+  --shadow-thumb: 0 1px 2px rgb(0 0 0 / 0.25), 0 6px 16px -4px rgb(0 0 0 / 0.35);
 
   /* Light mode — cool, paper-like. Cards lift off the background, type
      reads as deep navy rather than flat black. */

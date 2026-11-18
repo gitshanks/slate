@@ -3,10 +3,8 @@
 import * as React from "react";
 import { useTheme } from "next-themes";
 import { flushSync } from "react-dom";
-import { Check, Monitor, Moon, Sun } from "lucide-react";
-import { useAccent } from "@/components/accent-provider";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { LIQUID_SLIDER, LiquidSelector } from "@/components/liquid-selector";
-import { ACCENTS } from "@/lib/accent-theme";
 import { cn } from "@/lib/utils";
 
 // System sits between the two fixed modes, so the control reads as a scale.
@@ -159,59 +157,6 @@ export function ThemeSlider({ className }: { className?: string }) {
           );
         }}
       />
-    </div>
-  );
-}
-
-export function AccentSwatches({
-  ringOffsetClassName = "ring-offset-card",
-  className,
-}: {
-  /** Matches the surface the swatches sit on. */
-  ringOffsetClassName?: string;
-  className?: string;
-}) {
-  const { accent, setAccent } = useAccent();
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
-
-  return (
-    <div
-      role="radiogroup"
-      aria-label="Accent colour"
-      className={cn("flex gap-2", className)}
-    >
-      {ACCENTS.map((item) => {
-        const active = mounted && item.id === accent;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            aria-label={item.label}
-            title={item.label}
-            onClick={() => setAccent(item.id)}
-            style={{ backgroundColor: item.swatch }}
-            className={cn(
-              "grid h-8 w-8 shrink-0 place-items-center rounded-full outline-none ring-offset-2 transition-[transform,box-shadow] duration-150 ease-[var(--ease-ui-out)] focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.92]",
-              ringOffsetClassName,
-              active
-                ? "ring-2 ring-foreground/70"
-                : "[@media(hover:hover)_and_(pointer:fine)]:hover:ring-2 [@media(hover:hover)_and_(pointer:fine)]:hover:ring-foreground/20",
-            )}
-          >
-            <Check
-              aria-hidden
-              strokeWidth={3}
-              className={cn(
-                "h-3.5 w-3.5 text-black/75 transition-[opacity,transform] duration-150 ease-[var(--ease-ui-out)]",
-                active ? "opacity-100" : "scale-75 opacity-0",
-              )}
-            />
-          </button>
-        );
-      })}
     </div>
   );
 }

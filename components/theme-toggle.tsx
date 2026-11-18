@@ -9,11 +9,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  AccentSwatches,
-  THEME_MODES,
-  ThemeSlider,
-} from "@/components/appearance-controls";
+import { AccentSlider } from "@/components/accent-slider";
+import { THEME_MODES, ThemeSlider } from "@/components/appearance-controls";
 
 // The arriving icon turns in from a quarter turn back, slightly small and soft,
 // so the change reads as one object turning rather than two icons swapping.
@@ -85,11 +82,10 @@ export function ThemeToggle({ className }: { className?: string }) {
         aria-label="Appearance"
         className="w-[16.5rem] rounded-[1.375rem] p-2 shadow-lg"
       >
-        <ThemeSlider />
-        <AccentSwatches
-          ringOffsetClassName="ring-offset-popover"
-          className="justify-between px-1.5 pb-1 pt-3"
-        />
+        <div className="flex flex-col gap-2">
+          <ThemeSlider />
+          <AccentSlider />
+        </div>
       </PopoverContent>
     </Popover>
   );
