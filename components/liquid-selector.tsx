@@ -20,6 +20,12 @@ export const LIQUID_DOCK: LiquidSprings = {
   lead: { stiffness: 250, damping: 23 },
   tail: { stiffness: 150, damping: 21 },
 };
+// A slider is something you throw: the front lands with a visible overshoot
+// and settles, so letting go reads as a release rather than a stop.
+export const LIQUID_SLIDER: LiquidSprings = {
+  lead: { stiffness: 320, damping: 20 },
+  tail: { stiffness: 210, damping: 21 },
+};
 // Small controls are used far more often, so the same motion plays quicker.
 export const LIQUID_CONTROL: LiquidSprings = {
   lead: { stiffness: 380, damping: 29 },

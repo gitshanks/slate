@@ -15,6 +15,10 @@ Rules learned from corrections on this project. Read this before any UI work. Ea
   Why: not given yet.
   <!-- 2026-11-14: "Can we add the gooey motion and behavior to everywhere on Slate?" -->
 
+- **A choice among a few ordered settings is a slider you can throw.** When the options lie on a scale (Light, System, Dark), render them as stops on one track: icon-only stops, the chosen one's name shown only inside the thumb, a grab cursor, and the thumb follows a drag and is thrown to the nearest stop on release, landing with a visible overshoot (`LIQUID_SLIDER` springs on `LiquidSelector`). `ThemeSlider` in `components/appearance-controls.tsx` is the model. Plain tab-like choices (filters, views) stay segmented controls.
+  Why: it should feel "more like smoother or polished", and a row of labelled segments did not say it could be slid.
+  <!-- 2026-11-18: "Wondering if we could make it like a slider which goes through different stuff, like a horizontal slider, and add some like release nice motion, so it feels like a more like smoother or polished experience." (on the theme switcher's Light / System / Dark segmented control) -->
+
 - **Nothing arrives in a single frame.** Three parts, all already wired app-wide:
   - Images (posters, backdrops, covers, avatars) fade in once loaded and decoded. `ImageArrival` (`components/image-arrival.tsx`, mounted in the app and public-profile layouts) does this for every `<img>`; never add a per-component image pop or a second fade on top (opt out with `data-image-arrival="off"` only when an image runs its own crossfade).
   - A screen or a whole result set that replaces another fades up over about 220 ms starting from 45% opacity (`.app-tab-arrive`), never from 0: a new screen's first frame is its slowest, and starting from nothing shows an empty page for that long.
@@ -23,6 +27,10 @@ Rules learned from corrections on this project. Read this before any UI work. Ea
   <!-- 2026-11-14: "Also, loading of all screens could be better. They just flash right now." Measured before the fix: tab switches and filter changes were single-frame cuts, and posters appeared in one frame as each finished downloading. -->
 
 ## Interaction
+
+- **An icon button for a setting shows the setting chosen, not its effect.** Every choice must visibly change the closed button: the theme button shows a monitor for System, never the sun or moon System resolves to. The new icon turns into place (WAAPI, about 320 ms, `--ease-ui-out`).
+  Why: picking System left the icon as it was, which read as broken.
+  <!-- 2026-11-18: "when I'm setting the theme to system, it's the icon is not updating in the collapse state or like the button thing" -->
 
 - **A card's actions sit in one row, and it is dismissed from its top-right corner.** On a phone, two or three actions share one row in equal widths (`grid grid-cols-2`), and a single action takes the whole row; from `sm` up they sit at their own width beside the text. Buttons are 44px tall on a phone (`h-11`), 40px from `sm` up (`h-10`). A card that can be dismissed has its close button (a 36px X) pinned to the top-right corner with the text padded clear of it; a card without an X gets a "Not now" text button in the action row instead. Never let buttons wrap onto a second line, centre them in a left-aligned card, or leave a close button floating beside them. `NudgeCard` and `ActionRow` in `components/library-nudges.tsx` follow this.
   Why: "Just basic UX stuff." Wrapped, centred buttons and a stray X made a card read as unfinished.

@@ -294,6 +294,7 @@ body:has([data-public-profile-index]) {
 /* Until the liquid selector has measured a control (server render, first
    paint), the chosen option paints its own plain pill. */
 .filter-segmented:not([data-liquid-ready]) .filter-segment[aria-pressed="true"],
+.filter-segmented:not([data-liquid-ready]) .filter-segment[aria-checked="true"],
 .view-switcher:not([data-liquid-ready]) .view-switcher-option[aria-pressed="true"] {
   background-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));

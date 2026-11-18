@@ -2,18 +2,17 @@
 
 import * as React from "react";
 import { useTheme } from "next-themes";
-import { Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { SegmentedFilter } from "@/components/segmented-filter";
 import {
   AccentSwatches,
   THEME_MODES,
-  useThemeSwitch,
+  ThemeSlider,
 } from "@/components/appearance-controls";
 
 // The arriving icon turns in from a quarter turn back, slightly small and soft,
@@ -24,44 +23,47 @@ const ICON_ARRIVAL: Keyframe[] = [
 ];
 
 /**
- * The trigger shows what the page looks like right now (sun or moon), never a
- * monitor: System is a preference, not something you see. Both icons are in
- * the markup and CSS picks one, so the first paint is already right.
+ * The trigger shows the mode that was chosen, System included, so every
+ * choice visibly changes it. Before the stored choice is known (first paint)
+ * it shows the sun or moon the page is in, picked by CSS, so nothing flashes.
  */
 function ModeIcon() {
-  const { resolvedTheme } = useTheme();
-  const sun = React.useRef<SVGSVGElement>(null);
-  const moon = React.useRef<SVGSVGElement>(null);
+  const { theme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  const icon = React.useRef<SVGSVGElement>(null);
   const previous = React.useRef<string | undefined>(undefined);
+  const chosen = mounted ? (theme ?? "system") : undefined;
 
   React.useEffect(() => {
     const before = previous.current;
-    previous.current = resolvedTheme;
-    if (!before || !resolvedTheme || before === resolvedTheme) return;
+    previous.current = chosen;
+    if (!before || !chosen || before === chosen) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const arriving = resolvedTheme === "dark" ? moon.current : sun.current;
-    arriving?.animate(ICON_ARRIVAL, {
+    icon.current?.animate(ICON_ARRIVAL, {
       duration: 320,
       easing: "cubic-bezier(0.23, 1, 0.32, 1)",
     });
-  }, [resolvedTheme]);
+  }, [chosen]);
 
+  if (!chosen) {
+    return (
+      <span aria-hidden className="grid h-4 w-4 place-items-center">
+        <Sun className="col-start-1 row-start-1 h-4 w-4 dark:hidden" />
+        <Moon className="col-start-1 row-start-1 hidden h-4 w-4 dark:block" />
+      </span>
+    );
+  }
+  const Icon =
+    THEME_MODES.find((mode) => mode.value === chosen)?.icon ?? Monitor;
   return (
-    <span aria-hidden className="relative grid h-4 w-4 place-items-center">
-      <Sun ref={sun} className="col-start-1 row-start-1 h-4 w-4 dark:hidden" />
-      <Moon
-        ref={moon}
-        className="col-start-1 row-start-1 hidden h-4 w-4 dark:block"
-      />
+    <span aria-hidden className="grid h-4 w-4 place-items-center">
+      <Icon ref={icon} className="h-4 w-4" />
     </span>
   );
 }
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { theme, switchTheme } = useThemeSwitch();
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
-
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -81,15 +83,9 @@ export function ThemeToggle({ className }: { className?: string }) {
         align="end"
         sideOffset={8}
         aria-label="Appearance"
-        className="w-auto rounded-[1.375rem] p-2 shadow-lg"
+        className="w-[16.5rem] rounded-[1.375rem] p-2 shadow-lg"
       >
-        <SegmentedFilter
-          id="nav-theme"
-          options={THEME_MODES}
-          value={mounted ? (theme ?? "system") : ""}
-          onValueChange={switchTheme}
-          className="flex w-full shadow-none [&>button]:flex-1"
-        />
+        <ThemeSlider />
         <AccentSwatches
           ringOffsetClassName="ring-offset-popover"
           className="justify-between px-1.5 pb-1 pt-3"
