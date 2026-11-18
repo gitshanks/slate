@@ -28,15 +28,7 @@ struct ProfileView: View {
         }
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                SlateSectionHeader(eyebrow: "Your slate", title: "Profile")
-                    .padding(.bottom, 8)
-                Text("Edit what friends see and choose whether your slate can be shared.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(SlatePalette.muted)
-                    .lineSpacing(3)
-                    .padding(.bottom, 26)
-
-                HStack(spacing: 18) {
+                HStack(spacing: 16) {
                     PhotosPicker(selection: $selectedPhoto, matching: .images) {
                         Group {
                             if let imageData = shownAvatarData,
@@ -46,27 +38,24 @@ struct ProfileView: View {
                                 remoteAvatar
                             }
                         }
-                        .frame(width: 82, height: 82)
+                        .frame(width: 72, height: 72)
                         .clipShape(.circle)
                         .overlay { Circle().stroke(.white.opacity(0.13), lineWidth: 0.8) }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Change profile photo")
+                    .buttonStyle(SlatePressStyle())
+                    .accessibilityLabel("Change your photo")
 
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(isPublic ? "PUBLIC" : "PRIVATE")
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .tracking(1.5)
-                            .foregroundStyle(SlatePalette.accent)
-                        TextField("Display name", text: $displayName)
-                            .font(.system(size: 25, weight: .bold))
-                            .tracking(-0.7)
+                    VStack(alignment: .leading, spacing: 2) {
+                        TextField("Your name", text: $displayName)
+                            .font(.system(size: 26, weight: .bold))
+                            .tracking(-0.6)
+                            .foregroundStyle(.white)
                             .textInputAutocapitalization(.words)
                             .focused($focused, equals: .displayName)
                             .submitLabel(.done)
                             .onSubmit { scheduleSave(immediate: true) }
                         HStack(spacing: 0) {
-                            Text("@").foregroundStyle(.secondary)
+                            Text("@")
                             TextField("username", text: $username)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
@@ -74,59 +63,88 @@ struct ProfileView: View {
                                 .submitLabel(.done)
                                 .onSubmit { scheduleSave(immediate: true) }
                         }
-                        .font(.system(size: 14, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 15))
+                        .foregroundStyle(SlatePalette.mutedText)
                     }
                 }
-                .padding(18)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(SlatePalette.surface, in: .rect(cornerRadius: 18))
-                .overlay { RoundedRectangle(cornerRadius: 18).stroke(SlatePalette.hairline, lineWidth: 0.7) }
+
+                // What is on each shelf, in the Library's own words.
+                HStack(spacing: 0) {
+                    shelfCount("Up Next", .want)
+                    shelfCount("Watching", .watching)
+                    shelfCount("Watched", .watched)
+                }
+                .padding(.vertical, 16)
+                .background(SlatePalette.surface, in: .rect(cornerRadius: 16))
+                .overlay { RoundedRectangle(cornerRadius: 16).stroke(SlatePalette.border, lineWidth: 1) }
+                .padding(.top, 24)
 
                 VStack(spacing: 0) {
                     HStack(spacing: 14) {
-                        Image(systemName: isPublic ? "globe" : "lock.fill")
+                        Image(systemName: isPublic ? "globe" : "lock")
+                            .font(.system(size: 17))
+                            .foregroundStyle(SlatePalette.mutedText)
                             .frame(width: 22)
-                            .foregroundStyle(SlatePalette.accent)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Share your slate").font(.headline)
-                            Text(isPublic ? "Anyone with your link can browse it." : "Your slate is private by default.")
-                                .font(.caption).foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Share your slate")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(.white)
+                            Text(isPublic ? "Anyone with your link can browse it." : "Only you can see it.")
+                                .font(.system(size: 13))
+                                .foregroundStyle(SlatePalette.mutedText)
                         }
                         Spacer()
-                        Toggle("", isOn: $isPublic).labelsHidden().tint(SlatePalette.accent)
+                        Toggle("Share your slate", isOn: $isPublic).labelsHidden().tint(SlatePalette.accent)
                     }
-                    .padding(18)
+                    .padding(16)
 
                     if isPublic, let url = publicURL {
-                        Divider().overlay(SlatePalette.hairline).padding(.leading, 54)
+                        Divider().overlay(SlatePalette.border)
                         ShareLink(item: url, subject: Text("\(displayName)'s slate")) {
                             HStack(spacing: 14) {
-                                Image(systemName: "link").frame(width: 22)
-                                Text(url.absoluteString.replacingOccurrences(of: "https://www.", with: ""))
-                                    .font(.system(size: 13, design: .monospaced)).lineLimit(1)
-                                Spacer()
-                                Image(systemName: "square.and.arrow.up").font(.caption.bold()).foregroundStyle(.tertiary)
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 17))
+                                    .foregroundStyle(SlatePalette.mutedText)
+                                    .frame(width: 22)
+                                Text("s1ate.space/u/\(username)")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(.white)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                Spacer(minLength: 0)
                             }
-                            .foregroundStyle(.primary)
-                            .padding(18)
+                            .padding(16)
+                            .contentShape(.rect)
                         }
+                        .buttonStyle(SlatePressStyle())
                     }
-                }
-                .background(SlatePalette.surface, in: .rect(cornerRadius: 18))
-                .overlay { RoundedRectangle(cornerRadius: 18).stroke(SlatePalette.hairline, lineWidth: 0.7) }
-                .padding(.top, 18)
 
-                Button("Sign out", role: .destructive) {
-                    Task { await model.signOut(); dismiss() }
+                    Divider().overlay(SlatePalette.border)
+                    Button {
+                        Task { await model.signOut(); dismiss() }
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 17))
+                                .frame(width: 22)
+                            Text("Sign out").font(.system(size: 15, weight: .medium))
+                            Spacer(minLength: 0)
+                        }
+                        .foregroundStyle(SlatePalette.danger)
+                        .padding(16)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(SlatePressStyle())
                 }
-                .font(.body.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.top, 30)
-                .padding(.bottom, 34)
+                .background(SlatePalette.surface, in: .rect(cornerRadius: 16))
+                .overlay { RoundedRectangle(cornerRadius: 16).stroke(SlatePalette.border, lineWidth: 1) }
+                .padding(.top, 12)
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 20)
+            .padding(.horizontal, SlateMetrics.gutter)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+            .frame(maxWidth: 560)
+            .frame(maxWidth: .infinity)
         }
         .background(SlatePalette.background)
         .toolbar(.hidden, for: .navigationBar)
@@ -145,6 +163,19 @@ struct ProfileView: View {
         .onChange(of: focused) { old, new in
             if old != nil && new == nil { scheduleSave(immediate: true) }
         }
+    }
+
+    private func shelfCount(_ label: String, _ status: LibraryStatus) -> some View {
+        VStack(spacing: 2) {
+            Text("\(model.titles.filter { $0.status == status }.count)")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white)
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundStyle(SlatePalette.mutedText)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
     }
 
     private var publicURL: URL? {

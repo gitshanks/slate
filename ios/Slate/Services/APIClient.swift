@@ -79,7 +79,29 @@ actor APIClient {
     }
 
     func library(accessToken: String) async throws -> LibrarySnapshot {
-        try await send(path: "library", accessToken: accessToken)
+        try await send(
+            path: "library",
+            queryItems: [URLQueryItem(name: "nudges", value: "1")],
+            accessToken: accessToken
+        )
+    }
+
+    func discoverHome(accessToken: String) async throws -> DiscoverHomePayload {
+        try await send(path: "discover/home", accessToken: accessToken)
+    }
+
+    func curatedList(slug: String, accessToken: String) async throws -> CuratedList {
+        try await send(path: "slate-lists/\(slug)", accessToken: accessToken)
+    }
+
+    func addCuratedList(slug: String, accessToken: String) async throws -> CuratedListAdded {
+        struct Body: Encodable {}
+        return try await send(
+            path: "slate-lists/\(slug)",
+            method: "POST",
+            accessToken: accessToken,
+            body: Body()
+        )
     }
 
     func landing() async throws -> LandingBackdrop {

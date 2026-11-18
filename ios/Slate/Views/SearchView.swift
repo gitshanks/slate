@@ -3,6 +3,7 @@ import SwiftUI
 struct SearchView: View {
     @EnvironmentObject private var model: AppModel
     let onClose: () -> Void
+    var onAddFromLink: () -> Void = {}
     @State private var query = ""
     @State private var payload: CatalogSearchPayload?
     @State private var loading = false
@@ -49,17 +50,17 @@ struct SearchView: View {
 
                     ScrollView {
                         if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            VStack(alignment: .leading, spacing: 7) {
-                                Text("Search your library or add from TMDB.")
-                                    .font(.system(size: 14, weight: .medium))
-                                Text("Type a title, actor, or filmmaker to get started.")
-                                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Search a title, an actor or a filmmaker. What you already saved shows with a tick.")
+                                    .font(.system(size: 14))
+                                    .lineSpacing(3)
+                                    .foregroundStyle(SlatePalette.mutedText)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                SlateSecondaryButton("Add from a link instead", action: onAddFromLink)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(16)
-                            .background(SlatePalette.surface, in: .rect(cornerRadius: 14))
-                            .overlay { RoundedRectangle(cornerRadius: 14).stroke(SlatePalette.hairline, lineWidth: 0.7) }
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, SlateMetrics.gutter)
+                            .padding(.top, 8)
                         } else if loading && payload == nil {
                             ProgressView().tint(.white).padding(.top, 80)
                         } else if let payload {
@@ -124,7 +125,7 @@ private struct SearchPeopleRail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
-            Text("PEOPLE").font(.caption.monospaced().weight(.semibold)).tracking(1.2).foregroundStyle(.secondary)
+            Text("People").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
                 .padding(.horizontal, 18)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
@@ -165,17 +166,17 @@ struct CatalogPosterCard: View {
                 .overlay { RoundedRectangle(cornerRadius: 15).stroke(.white.opacity(0.1), lineWidth: 0.7) }
                 if title.saved != nil {
                     Image(systemName: "checkmark")
-                        .font(.caption.bold()).foregroundStyle(.black)
-                        .frame(width: 28, height: 28).background(.white.opacity(0.92), in: .circle)
+                        .font(.caption.bold()).foregroundStyle(SlatePalette.onAccent)
+                        .frame(width: 28, height: 28).background(SlatePalette.accent, in: .circle)
                         .padding(9)
                 }
             }
             Text(title.title).font(.body.weight(.semibold)).lineLimit(1)
             HStack(spacing: 7) {
-                Text(title.year ?? title.mediaType.rawValue.capitalized)
+                Text(title.year ?? (title.mediaType == .movie ? "Film" : "Series"))
                 if let rating = title.tmdbRating, rating > 0 { Text("·"); Text(String(format: "%.1f", rating)) }
             }
-            .font(.caption.monospaced()).foregroundStyle(.secondary)
+            .font(.caption).foregroundStyle(.secondary)
         }
     }
 }
@@ -203,16 +204,16 @@ struct DiscoverTitleView: View {
                 ScrollView {
                     if let detail {
                         VStack(alignment: .leading, spacing: 0) {
-                            DiscoverMetadata(title: detail.title)
-                            Text(detail.title.title).font(.system(size: 32, weight: .semibold)).tracking(-1.1).padding(.top, 8)
+                            Text(detail.title.title).font(.system(size: 32, weight: .semibold)).tracking(-0.9)
+                            DiscoverMetadata(title: detail.title).padding(.top, 8)
                             HStack(spacing: 9) {
                                 if let saved = detail.savedTitle {
                                     NavigationLink { TitleDetailView(title: saved) } label: {
-                                        DiscoverPill("In your \(saved.status.label.lowercased())", icon: "checkmark", highlighted: true)
+                                        DiscoverPill(saved.status.label, icon: "checkmark", highlighted: true)
                                     }
                                 } else {
                                     Menu {
-                                        addButton(.want, "Want")
+                                        addButton(.want, "Up Next")
                                         addButton(.watching, "Watching")
                                         addButton(.watched, "Watched")
                                     } label: { DiscoverPill(adding ? "Adding…" : "Add to slate", icon: "plus", highlighted: true) }
@@ -250,6 +251,7 @@ struct DiscoverTitleView: View {
         .preferredColorScheme(.dark)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .slateHidesChrome()
         .task { await load() }
         .fullScreenCover(item: $trailer) { trailer in
             TrailerPlayerView(trailer: trailer)
@@ -281,13 +283,13 @@ private struct DiscoverMetadata: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                Text(title.mediaType == .movie ? "FILM" : "SERIES")
+                Text(title.mediaType == .movie ? "Film" : "Series")
                 if let year = title.year { Text("·"); Text(year) }
-                if let runtime = title.runtime { Text("·"); Text(runtime >= 60 ? "\(runtime / 60)H \(runtime % 60)M" : "\(runtime)M") }
-                ForEach(title.genres.prefix(3), id: \.id) { genre in Text("·"); Text(genre.name.uppercased()) }
+                if let runtime = title.runtime { Text("·"); Text(runtime >= 60 ? "\(runtime / 60)h \(runtime % 60)m" : "\(runtime)m") }
+                ForEach(title.genres.prefix(3), id: \.id) { genre in Text("·"); Text(genre.name) }
                 if let imdb = title.imdbRating { Text("·"); Text("IMDb \(String(format: "%.1f", imdb))") }
             }
-            .font(.system(size: 11, design: .monospaced)).foregroundStyle(.white.opacity(0.64))
+            .font(.system(size: 13)).foregroundStyle(.white.opacity(0.66))
         }
     }
 }
@@ -343,7 +345,7 @@ private struct DiscoverRecommendations: View {
                                 CachedAsyncImage(url: title.posterURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
                                     .aspectRatio(2 / 3, contentMode: .fit).clipShape(.rect(cornerRadius: 13))
                                 Text(title.title).font(.system(size: 12, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                                Text(title.year ?? "").font(.system(size: 11, design: .monospaced)).foregroundStyle(.white.opacity(0.48))
+                                Text(title.year ?? "").font(.system(size: 11)).foregroundStyle(.white.opacity(0.48))
                             }
                         }.buttonStyle(.plain)
                     }
@@ -366,9 +368,9 @@ struct PersonView: View {
                         CachedAsyncImage(url: person.profileURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
                             .frame(width: 128, height: 192).clipShape(.rect(cornerRadius: 18))
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(person.knownForDepartment.uppercased()).font(.caption.monospaced()).foregroundStyle(.secondary)
-                            Text(person.name).font(.system(size: 32, weight: .bold)).tracking(-1)
-                            if let birthday = person.birthday { Text(birthday.prefix(4)).font(.caption.monospaced()).foregroundStyle(.secondary) }
+                            Text(person.name).font(.system(size: 30, weight: .bold)).tracking(-0.8)
+                            Text(person.knownForDepartment).font(.system(size: 13)).foregroundStyle(.secondary)
+                            if let birthday = person.birthday { Text(birthday.prefix(4)).font(.caption).foregroundStyle(.secondary) }
                             if let place = person.placeOfBirth { Text(place).font(.caption).foregroundStyle(.secondary) }
                         }
                     }
@@ -391,6 +393,7 @@ struct PersonView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .slateHidesChrome()
         .task {
             do { person = try await model.person(id: personId) }
             catch { model.presentedError = error.localizedDescription }
