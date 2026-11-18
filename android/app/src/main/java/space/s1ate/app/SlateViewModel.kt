@@ -11,7 +11,10 @@ import kotlinx.coroutines.launch
 import space.s1ate.app.model.LibraryStatus
 import space.s1ate.app.model.LandingBackdrop
 import space.s1ate.app.model.CatalogSearchPayload
+import space.s1ate.app.model.CuratedList
 import space.s1ate.app.model.DiscoverDetailPayload
+import space.s1ate.app.model.DiscoverRail
+import space.s1ate.app.model.NewEpisode
 import space.s1ate.app.model.MediaType
 import space.s1ate.app.model.PersonDetailPayload
 import space.s1ate.app.model.PersistedSession
@@ -37,6 +40,9 @@ data class SlateUiState(
     val sharedText: String? = null,
     val posterColumns: List<List<String>> = LandingBackdrop.fallback.posterColumns,
     val avatarBytes: ByteArray? = null,
+    val newEpisodes: List<NewEpisode> = emptyList(),
+    val discoverRails: List<DiscoverRail>? = null,
+    val pendingListSlug: String? = null,
 )
 
 class SlateViewModel(private val graph: AppGraph) : ViewModel() {
@@ -95,11 +101,60 @@ class SlateViewModel(private val graph: AppGraph) : ViewModel() {
     fun receiveSharedText(text: String?) {
         val clean = text?.trim()?.takeIf(String::isNotEmpty) ?: return
         mutableState.update {
-            it.copy(
-                sharedText = clean,
-                message = "Ready to find titles in the shared link.",
-            )
+            it.copy(sharedText = clean)
         }
+    }
+
+    /** A link to a list made by Slate (s1ate.space/l/<slug>) opened the app. */
+    fun receiveListSlug(slug: String?) {
+        val clean = slug?.trim()?.lowercase()?.takeIf { Regex("^[a-z0-9][a-z0-9-]{0,79}$").matches(it) } ?: return
+        mutableState.update { it.copy(pendingListSlug = clean) }
+    }
+
+    fun clearListSlug() {
+        mutableState.update { it.copy(pendingListSlug = null) }
+    }
+
+    fun clearSharedText() {
+        mutableState.update { it.copy(sharedText = null) }
+    }
+
+    /** Discover's rails. Kept for the session, so coming back to the tab is instant. */
+    fun loadDiscover(force: Boolean = false) {
+        if (!force && state.value.discoverRails != null) return
+        viewModelScope.launch {
+            runCatching { withAuthenticatedToken { graph.api.discoverHome(it) } }
+                .onSuccess { payload ->
+                    mutableState.update { it.copy(discoverRails = payload.rails.filter { rail -> rail.items.isNotEmpty() }) }
+                }
+                .onFailure { error ->
+                    mutableState.update {
+                        it.copy(
+                            discoverRails = it.discoverRails ?: emptyList(),
+                            message = error.message ?: "Discover could not be loaded.",
+                        )
+                    }
+                }
+        }
+    }
+
+    suspend fun curatedList(slug: String): CuratedList = withAuthenticatedToken {
+        graph.api.curatedList(it, slug)
+    }
+
+    suspend fun addCuratedList(slug: String): Int {
+        val result = withAuthenticatedToken { graph.api.addCuratedList(it, slug) }
+        refreshLibraryInternal()
+        return result.added
+    }
+
+    /** A first list made from titles already saved (the Library's list prompt). */
+    suspend fun createListFromTitles(name: String, titleIds: List<String>): SlateListSummary {
+        val summary = createList(name, "")
+        titleIds.forEach { titleId ->
+            runCatching { addTitleToList(summary.id, titleId) }
+        }
+        return summary
     }
 
     fun clearMessage() {
@@ -313,7 +368,7 @@ class SlateViewModel(private val graph: AppGraph) : ViewModel() {
             val snapshot = graph.api.library(current.accessToken)
             graph.libraryCache.replace(snapshot.titles)
             mutableState.update {
-                it.copy(titles = snapshot.titles, lists = snapshot.lists)
+                it.copy(titles = snapshot.titles, lists = snapshot.lists, newEpisodes = snapshot.newEpisodes)
             }
         } catch (error: ApiException) {
             if (error.status == 401) {
@@ -326,7 +381,7 @@ class SlateViewModel(private val graph: AppGraph) : ViewModel() {
                     val snapshot = graph.api.library(refreshed.accessToken)
                     graph.libraryCache.replace(snapshot.titles)
                     mutableState.update {
-                        it.copy(titles = snapshot.titles, lists = snapshot.lists)
+                        it.copy(titles = snapshot.titles, lists = snapshot.lists, newEpisodes = snapshot.newEpisodes)
                     }
                 } catch (refreshError: ApiException) {
                     if (refreshError.status == 401) clearSession()

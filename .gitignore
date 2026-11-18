@@ -25,6 +25,11 @@
 /android/app/build/
 /android/build/
 /android/local.properties
+/android/keystore.properties
+*.jks
+*.keystore
+*.p8
+*.mobileprovision
 /ios/build/
 /ios/DerivedData/
 *.xcuserstate

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -79,6 +80,7 @@ fun SearchScreen(
     onOpenTitle: (MediaType, Int) -> Unit,
     onOpenSaved: (String) -> Unit,
     onOpenPerson: (Int) -> Unit,
+    onAddFromLink: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<CatalogSearchPayload?>(null) }
@@ -115,11 +117,16 @@ fun SearchScreen(
         when {
             query.isBlank() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 Column(
-                    Modifier.fillMaxWidth().padding(horizontal = 14.dp).clip(RoundedCornerShape(14.dp)).background(SlateSurface).padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(7.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = SlateGutter).padding(top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Text("Search your library or add from TMDB.", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                    Text("Type a title, actor, or filmmaker to get started.", fontSize = 12.sp, color = SlateMuted)
+                    Text(
+                        "Search a title, an actor or a filmmaker. What you already saved shows with a tick.",
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        color = SlateMutedText,
+                    )
+                    SlateSecondaryButton("Add from a link instead", Modifier.fillMaxWidth(), onClick = onAddFromLink)
                 }
             }
             loading && result == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -165,7 +172,7 @@ fun SearchScreen(
 @Composable
 private fun PeopleSearchRail(people: List<CatalogPerson>, onOpen: (Int) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("PEOPLE", Modifier.padding(horizontal = 18.dp), fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("People", Modifier.padding(horizontal = 18.dp), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
         Row(
             Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -201,7 +208,7 @@ fun CatalogTileCard(title: CatalogTitle, modifier: Modifier = Modifier, onClick:
             }
         }
         Text(title.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(title.year ?: title.mediaType.name.replaceFirstChar(Char::uppercase), fontSize = 12.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(title.year ?: if (title.mediaType == MediaType.movie) "Film" else "Series", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -237,13 +244,21 @@ fun DiscoverScreen(
             Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(0.82f), Color.Black.copy(0.22f)))))
             LazyColumn(Modifier.fillMaxSize()) {
                 item {
-                    Column(Modifier.padding(horizontal = 18.dp).padding(top = 30.dp, bottom = 48.dp)) {
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(if (mediaType == MediaType.movie) "FILM" else "SERIES", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = Color.White.copy(0.62f))
-                            current.title.year?.let { Text("· $it", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = Color.White.copy(0.62f)) }
-                            current.title.runtime?.let { Text("· ${if (it >= 60) "${it / 60}H ${it % 60}M" else "${it}M"}", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = Color.White.copy(0.62f)) }
+                    Column(Modifier.windowInsetsPadding(WindowInsets.statusBars).padding(horizontal = 18.dp).padding(bottom = 48.dp)) {
+                        Box(Modifier.padding(top = 4.dp, bottom = 18.dp).offset(x = (-12).dp).size(48.dp).pressable(onClick = onBack), contentAlignment = Alignment.Center) {
+                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back", tint = Color.White)
                         }
-                        Text(current.title.title, color = Color.White, fontSize = 32.sp, lineHeight = 34.sp, letterSpacing = (-1.1).sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+                        Text(current.title.title, color = Color.White, fontSize = 32.sp, lineHeight = 34.sp, letterSpacing = (-0.9).sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            listOfNotNull(
+                                if (mediaType == MediaType.movie) "Film" else "Series",
+                                current.title.year,
+                                current.title.runtime?.let { if (it >= 60) "${it / 60}h ${it % 60}m" else "${it}m" },
+                            ).joinToString(" · "),
+                            color = Color.White.copy(0.66f),
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
                         Row(Modifier.padding(top = 22.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                             current.savedTitle?.let { saved ->
                                 DiscoveryPill("In your ${saved.status.label.lowercase()}", Icons.Outlined.Check, true) { onOpenSaved(saved.id) }
@@ -346,7 +361,7 @@ fun PersonScreen(model: SlateViewModel, personId: Int, onBack: () -> Unit, onOpe
     }
     LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         item {
-            Row(Modifier.fillMaxWidth().padding(top = 12.dp, start = 8.dp, end = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars).padding(top = 4.dp, start = 8.dp, end = 18.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
                 Spacer(Modifier.weight(1f))
             }
@@ -357,8 +372,8 @@ fun PersonScreen(model: SlateViewModel, personId: Int, onBack: () -> Unit, onOpe
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.Top) {
                         AsyncImage(value.profileUrl, value.name, Modifier.width(128.dp).height(192.dp).clip(RoundedCornerShape(18.dp)), contentScale = ContentScale.Crop)
                         Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                            Text(value.knownForDepartment.uppercase(), fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(value.name, fontSize = 32.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold)
+                            Text(value.name, fontSize = 30.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold)
+                            Text(value.knownForDepartment, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             value.birthday?.let { Text(it.take(4), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                             value.placeOfBirth?.let { Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         }

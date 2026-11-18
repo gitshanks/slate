@@ -14,6 +14,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -141,17 +145,22 @@ fun TitleDetailScreen(
         )
         LazyColumn(Modifier.fillMaxSize()) {
             item {
-                Column(Modifier.padding(start = 18.dp, top = 30.dp, end = 18.dp, bottom = 24.dp)) {
-                    Metadata(current)
+                Column(Modifier.windowInsetsPadding(WindowInsets.statusBars).padding(start = 18.dp, end = 18.dp, bottom = 24.dp)) {
+                    Box(
+                        Modifier.padding(top = 4.dp, bottom = 18.dp).offset(x = (-12).dp).size(48.dp).pressable(onClick = onBack),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
                     Text(
                         current.title,
-                        modifier = Modifier.padding(top = 8.dp),
                         color = Color.White,
                         fontSize = 32.sp,
                         lineHeight = 34.sp,
-                        letterSpacing = (-1.1).sp,
+                        letterSpacing = (-0.9).sp,
                         fontWeight = FontWeight.SemiBold,
                     )
+                    Box(Modifier.padding(top = 10.dp)) { Metadata(current) }
                     Row(
                         Modifier.padding(top = 22.dp).horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(9.dp),
@@ -162,7 +171,7 @@ fun TitleDetailScreen(
                             }
                             DropdownMenu(expanded = statusMenu, onDismissRequest = { statusMenu = false }) {
                                 listOf(
-                                    Triple(LibraryStatus.want, "Want", Icons.Outlined.Schedule),
+                                    Triple(LibraryStatus.want, "Up Next", Icons.Outlined.Schedule),
                                     Triple(LibraryStatus.watching, "Watching", Icons.Outlined.Visibility),
                                     Triple(LibraryStatus.watched, "Watched", Icons.Outlined.Check),
                                 ).forEach { (status, label, icon) ->
@@ -287,10 +296,6 @@ fun TitleDetailScreen(
                         providerSheet = true
                     }
                 }
-                SheetAction("Watch on frameXTV", Icons.Outlined.PlayArrow) {
-                    moreSheet = false
-                    launchUrl(frameXtvUrl(current.tmdbId, current.mediaType, current.currentSeason, current.currentEpisode))
-                }
                 SheetAction("Add to list", Icons.AutoMirrored.Outlined.PlaylistAdd) {
                     moreSheet = false
                     listSheet = true
@@ -412,18 +417,18 @@ private fun Metadata(title: SlateTitle) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        title.runtime?.let { MetaText(if (it >= 60) "${it / 60}H ${it % 60}M" else "${it}M") }
+        title.runtime?.let { MetaText(if (it >= 60) "${it / 60}h ${it % 60}m" else "${it}m") }
         title.year?.let { MetaText(it) }
         title.imdbRating?.let { RatingChip("IMDb", String.format("%.1f", it)) }
         title.rottenTomatoesScore?.let { RatingChip("RT", "$it%") }
             ?: title.metacriticScore?.let { RatingChip("MC", "$it") }
-        title.genres.orEmpty().take(3).forEach { MetaText(it.name.uppercase()) }
+        title.genres.orEmpty().take(3).forEach { MetaText(it.name) }
     }
 }
 
 @Composable
 private fun MetaText(value: String) {
-    Text(value, color = Color.White.copy(alpha = 0.62f), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+    Text(value, color = Color.White.copy(alpha = 0.66f), fontSize = 12.sp)
 }
 
 @Composable
@@ -460,7 +465,7 @@ private fun NoteCard(review: String) {
             .background(Color.White.copy(alpha = 0.055f)).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("YOUR NOTE", color = Color.White.copy(alpha = 0.46f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace)
+        Text("Your note", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Text(review, color = Color.White.copy(alpha = 0.84f), fontSize = 15.sp, lineHeight = 22.sp)
     }
 }
@@ -597,15 +602,6 @@ private fun statusIcon(status: LibraryStatus) = when (status) {
 
 private fun ratingLabel(rating: Double?) = when (rating) { 3.0 -> "Love"; 2.0 -> "Like"; 1.0 -> "Dislike"; else -> "Rate" }
 private fun ratingIcon(rating: Double?) = when (rating) { 3.0 -> Icons.Outlined.Favorite; 2.0 -> Icons.Outlined.ThumbUp; 1.0 -> Icons.Outlined.ThumbDown; else -> Icons.Outlined.Close }
-
-private fun frameXtvUrl(tmdbId: Int, mediaType: MediaType, season: Int?, episode: Int?): String {
-    return if (mediaType == MediaType.tv && season != null && episode != null)
-        "https://framextv.xyz/watch/$tmdbId/$season/$episode"
-    else if (mediaType == MediaType.tv)
-        "https://framextv.xyz/tv/$tmdbId"
-    else
-        "https://framextv.xyz/watch/$tmdbId"
-}
 
 private fun providerUrl(provider: TitleWatchProvider, title: String, fallback: String?): String {
     val query = Uri.encode(title)

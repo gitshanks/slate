@@ -11,7 +11,7 @@ enum class LibraryStatus {
 
     val label: String
         get() = when (this) {
-            want -> "Watchlist"
+            want -> "Up Next"
             watching -> "Watching"
             watched -> "Watched"
             dropped -> "Dropped"
@@ -301,7 +301,58 @@ data class LibrarySnapshot(
     val titles: List<SlateTitle>,
     val lists: List<SlateList>,
     val serverTime: String,
+    val newEpisodes: List<NewEpisode> = emptyList(),
 )
+
+/** A show on the Watching shelf with an episode out that is not marked watched. */
+@Serializable
+data class NewEpisode(
+    val titleId: String,
+    val title: String,
+    val posterPath: String? = null,
+    val season: Int,
+    val episode: Int,
+    val episodeName: String = "",
+    val airDate: String,
+) {
+    val posterUrl: String? get() = posterPath?.let { "https://image.tmdb.org/t/p/w342$it" }
+}
+
+@Serializable
+data class DiscoverRailItem(
+    val tmdbId: Int,
+    val mediaType: MediaType,
+    val title: String,
+    val posterPath: String? = null,
+    val releaseDate: String? = null,
+    val saved: Boolean = false,
+) {
+    val id: String get() = "${mediaType.name}-$tmdbId"
+    val posterUrl: String? get() = posterPath?.let { "https://image.tmdb.org/t/p/w342$it" }
+}
+
+@Serializable
+data class DiscoverRail(
+    val id: String,
+    val title: String,
+    val items: List<DiscoverRailItem> = emptyList(),
+)
+
+@Serializable
+data class DiscoverHomePayload(val rails: List<DiscoverRail> = emptyList())
+
+/** A public list made by Slate, the web's /l/<slug>. */
+@Serializable
+data class CuratedList(
+    val slug: String,
+    val name: String,
+    val description: String? = null,
+    val curator: String,
+    val titles: List<DiscoverRailItem> = emptyList(),
+)
+
+@Serializable
+data class CuratedListAdded(val added: Int, val listId: String? = null)
 
 @Serializable
 data class LandingBackdrop(val posterColumns: List<List<String>>) {
