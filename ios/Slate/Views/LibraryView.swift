@@ -197,6 +197,9 @@ struct LibraryScreen: View {
     /// The order on screen while a poster is being moved and until the server
     /// has it.
     @State private var moved: [SlateTitle]?
+    /// SwiftUI asks for the drag item once more just after a drop; that
+    /// second call must not start a new move.
+    @State private var lastDrop = Date.distantPast
 
     private struct GridKey: Hashable {
         let shelf: Shelf
@@ -313,8 +316,10 @@ struct LibraryScreen: View {
                 if reorderable {
                     link
                         .onDrag {
-                            if moved == nil { moved = titles }
-                            dragging = title
+                            if Date().timeIntervalSince(lastDrop) > 1.5 {
+                                if moved == nil { moved = titles }
+                                dragging = title
+                            }
                             return NSItemProvider(object: title.id as NSString)
                         } preview: {
                             PosterDragPreview(title: title)
@@ -337,11 +342,14 @@ struct LibraryScreen: View {
     }
 
     private func commitOrder(_ values: [SlateTitle]) {
+        lastDrop = Date()
+        dragging = nil
         guard let status = shelf.status else { moved = nil; return }
         Task {
             do { try await model.reorder(status: status, titles: values) }
             catch { model.presentedError = error.localizedDescription }
             moved = nil
+            dragging = nil
         }
     }
 }

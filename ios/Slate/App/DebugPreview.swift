@@ -7,7 +7,8 @@ import Foundation
 /// `-slateTab discover|lists|profile`, `-slateShelf all|watching|watched`,
 /// `-slateCount <n>` (library size), `-slateSheet filters`,
 /// `-slateFormat movie|tv`, `-slateMoveShelf <index>` (move the shelf selector
-/// after a moment) and `-slateSlowLiquid <factor>` (slow the selector down).
+/// after a moment), `-slateSlowLiquid <factor>` (slow the selector down) and
+/// `-slateFailReorder 1` (make saving a new order fail).
 enum SlatePreview {
     private static var defaults: UserDefaults { .standard }
 
@@ -19,6 +20,7 @@ enum SlatePreview {
     static var moveShelf: Int? {
         isOn && defaults.object(forKey: "slateMoveShelf") != nil ? defaults.integer(forKey: "slateMoveShelf") : nil
     }
+    static var failsReorder: Bool { defaults.bool(forKey: "slateFailReorder") }
     static let liquidSlowdown: Double = {
         let value = defaults.double(forKey: "slateSlowLiquid")
         return isOn && value > 1 ? value : 1

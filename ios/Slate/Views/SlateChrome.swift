@@ -58,20 +58,7 @@ enum SlateMetrics {
     }
 }
 
-/// A screen pushed over a tab (a title, a person, a list) asks for the top bar
-/// and the dock to step aside.
-struct SlateChromeHidden: PreferenceKey {
-    static let defaultValue = false
-    static func reduce(value: inout Bool, nextValue: () -> Bool) {
-        value = value || nextValue()
-    }
-}
-
 extension View {
-    func slateHidesChrome() -> some View {
-        preference(key: SlateChromeHidden.self, value: true)
-    }
-
     /// A screen or a whole result set that replaces another fades up over
     /// 220 ms from 45% opacity, never from nothing (DESIGN.md, Motion).
     func slateArrive<Key: Equatable>(on key: Key) -> some View {
@@ -96,44 +83,6 @@ private struct SlateArrive<Key: Equatable>: ViewModifier {
                     withAnimation(.timingCurve(0.33, 1, 0.68, 1, duration: 0.22)) { opacity = 1 }
                 }
             }
-    }
-}
-
-struct SlateChrome<Content: View>: View {
-    @EnvironmentObject private var model: AppModel
-    @Binding var selection: SlateTab
-    let profileIsOpen: Bool
-    let onLogo: () -> Void
-    let onAdd: () -> Void
-    let onProfile: () -> Void
-    @ViewBuilder let content: () -> Content
-
-    @State private var chromeHidden = false
-
-    var body: some View {
-        VStack(spacing: 0) {
-            if !chromeHidden {
-                SlateTopBar(
-                    profile: model.profile,
-                    avatarData: model.avatarData,
-                    profileIsOpen: profileIsOpen,
-                    onLogo: onLogo,
-                    onProfile: onProfile
-                )
-            }
-
-            content()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .onPreferenceChange(SlateChromeHidden.self) { hidden in
-                    if hidden != chromeHidden { chromeHidden = hidden }
-                }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    if !chromeHidden {
-                        SlateDock(selection: $selection, onAdd: onAdd)
-                    }
-                }
-        }
-        .background(SlatePalette.background.ignoresSafeArea())
     }
 }
 

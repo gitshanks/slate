@@ -19,33 +19,46 @@ struct MainTabView: View {
     var body: some View {
         let screenKey = showProfile ? "profile" : selection.rawValue
         ZStack {
-            SlateChrome(
-                selection: Binding(
-                    get: { selection },
-                    set: { tab in
-                        showProfile = false
-                        showSearch = false
-                        selection = tab
-                    }
-                ),
-                profileIsOpen: showProfile,
-                onLogo: {
-                    showProfile = false
-                    selection = .library
-                },
-                onAdd: { withAnimation(.smooth(duration: 0.24)) { showSearch = true } },
-                onProfile: { showProfile.toggle() }
-            ) {
-                NavigationStack {
+            // The top bar and the dock belong to the tab screens, so a pushed
+            // screen (a title, a person, a list) covers them like any other.
+            NavigationStack {
+                Group {
                     if showProfile {
                         ProfileView()
                     } else {
                         rootScreen
                     }
                 }
-                .id(screenKey)
                 .slateArrive(on: screenKey)
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    SlateTopBar(
+                        profile: model.profile,
+                        avatarData: model.avatarData,
+                        profileIsOpen: showProfile,
+                        onLogo: {
+                            showProfile = false
+                            selection = .library
+                        },
+                        onProfile: { showProfile.toggle() }
+                    )
+                }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    SlateDock(
+                        selection: Binding(
+                            get: { selection },
+                            set: { tab in
+                                showProfile = false
+                                showSearch = false
+                                selection = tab
+                            }
+                        ),
+                        onAdd: { withAnimation(.smooth(duration: 0.24)) { showSearch = true } }
+                    )
+                }
+                .background(SlatePalette.background.ignoresSafeArea())
+                .toolbar(.hidden, for: .navigationBar)
             }
+            .background(SlatePalette.background.ignoresSafeArea())
 
             if showSearch {
                 SearchView(
