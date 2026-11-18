@@ -2,101 +2,99 @@
 
 import * as React from "react";
 import { useTheme } from "next-themes";
-import { Moon, Sun, Monitor, Check } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useAccent } from "@/components/accent-provider";
-import { ACCENTS } from "@/lib/accent-theme";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { SegmentedFilter } from "@/components/segmented-filter";
+import {
+  AccentSwatches,
+  THEME_MODES,
+  useThemeSwitch,
+} from "@/components/appearance-controls";
 
-// Single combined dropdown: mode (System/Light/Dark) + accent swatches.
+// The arriving icon turns in from a quarter turn back, slightly small and soft,
+// so the change reads as one object turning rather than two icons swapping.
+const ICON_ARRIVAL: Keyframe[] = [
+  { transform: "rotate(-90deg) scale(0.6)", opacity: 0, filter: "blur(2px)" },
+  { transform: "rotate(0deg) scale(1)", opacity: 1, filter: "blur(0px)" },
+];
 
-const MODES = [
-  { value: "system", label: "System", icon: Monitor },
-  { value: "light",  label: "Light",  icon: Sun },
-  { value: "dark",   label: "Dark",   icon: Moon },
-] as const;
+/**
+ * The trigger shows what the page looks like right now (sun or moon), never a
+ * monitor: System is a preference, not something you see. Both icons are in
+ * the markup and CSS picks one, so the first paint is already right.
+ */
+function ModeIcon() {
+  const { resolvedTheme } = useTheme();
+  const sun = React.useRef<SVGSVGElement>(null);
+  const moon = React.useRef<SVGSVGElement>(null);
+  const previous = React.useRef<string | undefined>(undefined);
 
-function modeIcon(theme: string | undefined) {
-  if (theme === "light") return Sun;
-  if (theme === "dark") return Moon;
-  return Monitor;
+  React.useEffect(() => {
+    const before = previous.current;
+    previous.current = resolvedTheme;
+    if (!before || !resolvedTheme || before === resolvedTheme) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const arriving = resolvedTheme === "dark" ? moon.current : sun.current;
+    arriving?.animate(ICON_ARRIVAL, {
+      duration: 320,
+      easing: "cubic-bezier(0.23, 1, 0.32, 1)",
+    });
+  }, [resolvedTheme]);
+
+  return (
+    <span aria-hidden className="relative grid h-4 w-4 place-items-center">
+      <Sun ref={sun} className="col-start-1 row-start-1 h-4 w-4 dark:hidden" />
+      <Moon
+        ref={moon}
+        className="col-start-1 row-start-1 hidden h-4 w-4 dark:block"
+      />
+    </span>
+  );
 }
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { theme, setTheme } = useTheme();
-  const { accent, setAccent } = useAccent();
+  const { theme, switchTheme } = useThemeSwitch();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  const Icon = mounted ? modeIcon(theme) : Moon;
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label="Customize appearance"
+          aria-label="Appearance"
           className={cn(
-            "inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground hover:bg-accent",
-            className
+            "inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground outline-none transition-[color,background-color,transform] duration-150 ease-[var(--ease-ui-out)] hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.94] data-[state=open]:text-foreground",
+            className,
           )}
         >
-          <Icon className="h-4 w-4" />
+          <ModeIcon />
         </button>
-      </DropdownMenuTrigger>
+      </PopoverTrigger>
 
-      <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-          Appearance
-        </DropdownMenuLabel>
-
-        {MODES.map(({ value, label, icon: ItemIcon }) => (
-          <DropdownMenuItem
-            key={value}
-            onClick={() => setTheme(value)}
-            className="flex items-center gap-2"
-          >
-            <ItemIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span>{label}</span>
-            {mounted && theme === value && (
-              <Check className="ml-auto h-3.5 w-3.5 shrink-0" />
-            )}
-          </DropdownMenuItem>
-        ))}
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-          Color
-        </DropdownMenuLabel>
-
-        {/* Color swatches — plain buttons so clicking doesn't close the menu */}
-        <div className="flex gap-1.5 px-2 pb-2 pt-0.5">
-          {ACCENTS.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              title={a.label}
-              aria-label={a.label}
-              onClick={() => mounted && setAccent(a.id)}
-              className={cn(
-                "h-5 w-5 rounded-full ring-offset-2 ring-offset-popover transition-all",
-                mounted && accent === a.id
-                  ? "ring-2 ring-foreground scale-110"
-                  : "hover:scale-110 hover:ring-2 hover:ring-foreground/30"
-              )}
-              style={{ background: a.swatch }}
-            />
-          ))}
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        aria-label="Appearance"
+        className="w-auto rounded-[1.375rem] p-2 shadow-lg"
+      >
+        <SegmentedFilter
+          id="nav-theme"
+          options={THEME_MODES}
+          value={mounted ? (theme ?? "system") : ""}
+          onValueChange={switchTheme}
+          className="flex w-full shadow-none [&>button]:flex-1"
+        />
+        <AccentSwatches
+          ringOffsetClassName="ring-offset-popover"
+          className="justify-between px-1.5 pb-1 pt-3"
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

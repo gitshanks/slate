@@ -973,3 +973,28 @@ body:has(#app-bottom-nav)
     animation: none;
   }
 }
+
+/* ─── Theme change (components/appearance-controls.tsx) ────────── */
+/* One short crossfade: the new theme fades in over the old one, which stays
+   opaque underneath, so the page never dips through transparency. Scoped to
+   its own type and specific enough to beat the motionless defaults above. */
+html:active-view-transition-type(theme-change)::view-transition-group(*) {
+  animation: none !important;
+}
+html:active-view-transition-type(theme-change)::view-transition-old(*),
+html:active-view-transition-type(theme-change)::view-transition-old(root) {
+  animation: theme-hold 200ms linear both !important;
+  mix-blend-mode: normal;
+}
+html:active-view-transition-type(theme-change)::view-transition-new(*),
+html:active-view-transition-type(theme-change)::view-transition-new(root) {
+  animation: theme-fade-in 200ms cubic-bezier(0.23, 1, 0.32, 1) both !important;
+  mix-blend-mode: normal;
+}
+@keyframes theme-hold {
+  from, to { opacity: 1; }
+}
+@keyframes theme-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
