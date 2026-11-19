@@ -1031,3 +1031,32 @@ html.theme-fading::view-transition-new(theme-trigger) {
     animation: profile-reveal 200ms ease both;
   }
 }
+
+/* ─── System theme icon (components/appearance-controls.tsx) ───── */
+/* System follows the device, so it is drawn as the device. A touch screen
+   that is narrow (or short, a phone on its side) is a phone; a larger touch
+   screen is a tablet; anything with a fine pointer is a computer. */
+.system-icon > * {
+  grid-area: 1 / 1;
+}
+.system-icon-tablet,
+.system-icon-phone {
+  display: none;
+}
+@media (pointer: coarse) {
+  .system-icon-desktop {
+    display: none;
+  }
+  .system-icon-tablet {
+    display: block;
+  }
+}
+@media (pointer: coarse) and (max-width: 767px),
+  (pointer: coarse) and (max-height: 520px) {
+  .system-icon-tablet {
+    display: none;
+  }
+  .system-icon-phone {
+    display: block;
+  }
+}

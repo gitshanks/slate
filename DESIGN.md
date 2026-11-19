@@ -36,9 +36,10 @@ Rules learned from corrections on this project. Read this before any UI work. Ea
 
 ## Interaction
 
-- **An icon button for a setting shows the setting chosen, not its effect.** Every choice must visibly change the closed button: the theme button shows a monitor for System, never the sun or moon System resolves to. The new icon turns into place (WAAPI, about 320 ms, `--ease-ui-out`).
+- **An icon button for a setting shows the setting chosen, not its effect.** Every choice must visibly change the closed button: the theme button shows the device for System (a phone on phones, a tablet on tablets, a monitor on computers, `SystemIcon` in `components/appearance-controls.tsx`, chosen by CSS so the first paint is right), never the sun or moon System resolves to. The new icon turns into place (WAAPI, about 320 ms, `--ease-ui-out`).
   Why: picking System left the icon as it was, which read as broken.
   <!-- 2026-11-18: "when I'm setting the theme to system, it's the icon is not updating in the collapse state or like the button thing" -->
+  <!-- 2026-11-19: "The system icon would be a phone on phone devices." -->
 
 - **A card's actions sit in one row, and it is dismissed from its top-right corner.** On a phone, two or three actions share one row in equal widths (`grid grid-cols-2`), and a single action takes the whole row; from `sm` up they sit at their own width beside the text. Buttons are 44px tall on a phone (`h-11`), 40px from `sm` up (`h-10`). A card that can be dismissed has its close button (a 36px X) pinned to the top-right corner with the text padded clear of it; a card without an X gets a "Not now" text button in the action row instead. Never let buttons wrap onto a second line, centre them in a left-aligned card, or leave a close button floating beside them. `NudgeCard` and `ActionRow` in `components/library-nudges.tsx` follow this.
   Why: "Just basic UX stuff." Wrapped, centred buttons and a stray X made a card read as unfinished.

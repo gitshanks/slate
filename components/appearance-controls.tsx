@@ -3,14 +3,30 @@
 import * as React from "react";
 import { useTheme } from "next-themes";
 import { flushSync } from "react-dom";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Smartphone, Sun, Tablet } from "lucide-react";
 import { LIQUID_SLIDER, LiquidSelector } from "@/components/liquid-selector";
 import { cn } from "@/lib/utils";
+
+/**
+ * System follows the device, so it is drawn as the device: a phone on a
+ * phone, a tablet on a tablet, a monitor anywhere else. CSS picks one of the
+ * three (`.system-icon` in app/globals.css), so the first paint is already
+ * right and nothing waits for JavaScript.
+ */
+export function SystemIcon({ className }: { className?: string }) {
+  return (
+    <span aria-hidden className={cn("system-icon inline-grid", className)}>
+      <Monitor className="system-icon-desktop h-full w-full" />
+      <Tablet className="system-icon-tablet h-full w-full" />
+      <Smartphone className="system-icon-phone h-full w-full" />
+    </span>
+  );
+}
 
 // System sits between the two fixed modes, so the control reads as a scale.
 export const THEME_MODES = [
   { value: "light", label: "Light", icon: Sun },
-  { value: "system", label: "System", icon: Monitor },
+  { value: "system", label: "System", icon: SystemIcon },
   { value: "dark", label: "Dark", icon: Moon },
 ] as const;
 

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useTheme } from "next-themes";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Popover,
@@ -10,7 +10,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { AccentSlider } from "@/components/accent-slider";
-import { THEME_MODES, ThemeSlider } from "@/components/appearance-controls";
+import {
+  SystemIcon,
+  THEME_MODES,
+  ThemeSlider,
+} from "@/components/appearance-controls";
 
 // The arriving icon turns in from a quarter turn back, slightly small and soft,
 // so the change reads as one object turning rather than two icons swapping.
@@ -28,7 +32,7 @@ function ModeIcon() {
   const { theme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
-  const icon = React.useRef<SVGSVGElement>(null);
+  const icon = React.useRef<HTMLSpanElement>(null);
   const previous = React.useRef<string | undefined>(undefined);
   const chosen = mounted ? (theme ?? "system") : undefined;
 
@@ -52,10 +56,10 @@ function ModeIcon() {
     );
   }
   const Icon =
-    THEME_MODES.find((mode) => mode.value === chosen)?.icon ?? Monitor;
+    THEME_MODES.find((mode) => mode.value === chosen)?.icon ?? SystemIcon;
   return (
-    <span aria-hidden className="grid h-4 w-4 place-items-center">
-      <Icon ref={icon} className="h-4 w-4" />
+    <span ref={icon} aria-hidden className="grid h-4 w-4 place-items-center">
+      <Icon className="h-4 w-4" />
     </span>
   );
 }
