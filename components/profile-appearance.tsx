@@ -11,17 +11,17 @@ export function ProfileAppearance({ index }: { index: number }) {
 
   return (
     <SettingsGroup label="Appearance" index={index}>
-      <SettingsRow title="Theme">
-        <ThemeSlider className="w-[13.5rem]" />
+      <SettingsRow title="Theme" className="flex-wrap gap-y-3">
+        <ThemeSlider className="w-[17rem]" />
       </SettingsRow>
       <SettingsRow
         title="Accent"
         description={
           ACCENTS.find((item) => item.id === accent)?.label ?? "Slate mint"
         }
-        className="flex-wrap"
+        className="flex-wrap gap-y-3"
       >
-        <AccentSlider className="w-[13.5rem]" />
+        <AccentSlider className="w-[17rem]" />
       </SettingsRow>
     </SettingsGroup>
   );

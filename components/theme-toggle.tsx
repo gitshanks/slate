@@ -84,7 +84,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         align="end"
         sideOffset={8}
         aria-label="Appearance"
-        className="w-[16.5rem] rounded-[1.375rem] p-2 shadow-lg"
+        className="w-[18rem] rounded-[1.375rem] p-2 shadow-lg"
       >
         <div className="flex flex-col gap-2">
           <ThemeSlider />

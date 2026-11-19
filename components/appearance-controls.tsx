@@ -17,8 +17,10 @@ export function SystemIcon({ className }: { className?: string }) {
   return (
     <span aria-hidden className={cn("system-icon inline-grid", className)}>
       <Monitor className="system-icon-desktop h-full w-full" />
-      <Tablet className="system-icon-tablet h-full w-full" />
-      <Smartphone className="system-icon-phone h-full w-full" />
+      {/* The device outlines fill their box edge to edge where the sun and
+          moon do not, so they are drawn a touch smaller to look the same size. */}
+      <Tablet className="system-icon-tablet h-full w-full scale-90" />
+      <Smartphone className="system-icon-phone h-full w-full scale-90" />
     </span>
   );
 }
@@ -93,6 +95,8 @@ const LAND_BEFORE_FADE = 300;
  * bead: tap a stop, or grab the thumb and slide it; let go and it is thrown
  * to the nearest stop and lands with a small overshoot. Stops show only their
  * icon; the name appears inside the thumb, so it is read where the thumb is.
+ * Give it 17rem (272px): every stop is then 88px, room for the longest name
+ * ("System" and its icon) with the same 12px or more each side.
  */
 export function ThemeSlider({ className }: { className?: string }) {
   const { theme, switchTheme } = useThemeSwitch();
