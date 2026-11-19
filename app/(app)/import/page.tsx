@@ -1,88 +1,56 @@
 import type { Metadata } from "next";
-import { ImportWidget } from "@/components/import-widget";
+import { ArrowUpRight } from "lucide-react";
+import { ImportExperience } from "@/components/import-experience";
 
 export const metadata: Metadata = {
   title: "slate · Import",
 };
 
+const SOURCES = [
+  {
+    service: "Letterboxd",
+    href: "https://letterboxd.com/settings/data/",
+    steps: "Settings, Data, Export your data. Unzip it and use watched.csv.",
+  },
+  {
+    service: "IMDb",
+    href: "https://www.imdb.com/list/ratings",
+    steps: "Your ratings, the ⋯ menu, Export. Use the CSV it sends.",
+  },
+  {
+    service: "Trakt",
+    href: "https://trakt.tv/users/settings",
+    steps: "Settings, Exports. Request a CSV of your watched history.",
+  },
+] as const;
+
 export default function ImportPage() {
   return (
-    <div className="max-w-3xl">
-      {/* Header */}
-      <div className="mb-6 sm:mb-10">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-          Import
-        </p>
-        <h1 className="mt-1 text-4xl font-semibold tracking-tight">
-          Bring it into slate
-        </h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Move an existing watch history over from Letterboxd, IMDb or Trakt.
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-5xl">
+      <h1 className="sr-only">Import your watch history</h1>
+      <ImportExperience />
 
-      <section>
-        <p className="mb-3 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-          From another service
-        </p>
-        <h2 className="text-xl font-semibold tracking-tight">Import a CSV</h2>
-        <p className="mb-4 mt-1 text-sm leading-relaxed text-muted-foreground">
-          slate matches each row on TMDB and saves it as watched. Safe to
-          re-import; titles already in your library keep their state.
-        </p>
-        <ImportWidget />
-      </section>
-
-      {/* Where to find your CSV — primary helper, not a footnote, so it sits
-          right under the widget at the same visual weight. */}
-      <section className="mt-10 sm:mt-12">
-        <p className="mb-3 text-xs uppercase tracking-[0.2em] text-muted-foreground font-mono">
-          Exporting from
-        </p>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <ExportHint
-            service="Letterboxd"
-            href="https://letterboxd.com/settings/data/"
-            steps="Settings → Data → Export your data → unzip → upload watched.csv"
-          />
-          <ExportHint
-            service="IMDb"
-            href="https://www.imdb.com/list/ratings"
-            steps="Your ratings → the ⋯ menu → Export → upload the CSV"
-          />
-          <ExportHint
-            service="Trakt"
-            href="https://trakt.tv/users/settings"
-            steps="Settings → Exports → request a CSV of your watched history"
-          />
-        </div>
-      </section>
+      <ul className="mt-10 grid gap-x-10 gap-y-6 sm:mt-12 sm:grid-cols-3">
+        {SOURCES.map(({ service, href, steps }) => (
+          <li key={service}>
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="group inline-flex items-center gap-1 text-sm font-medium text-foreground outline-none focus-visible:underline"
+            >
+              Export from {service}
+              <ArrowUpRight
+                aria-hidden
+                className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-150 ease-[var(--ease-ui-out)] group-hover:-translate-y-px group-hover:translate-x-px group-hover:text-foreground motion-reduce:transition-none"
+              />
+            </a>
+            <p className="mt-1.5 text-pretty text-sm leading-relaxed text-muted-foreground">
+              {steps}
+            </p>
+          </li>
+        ))}
+      </ul>
     </div>
-  );
-}
-
-function ExportHint({
-  service,
-  href,
-  steps,
-}: {
-  service: string;
-  href: string;
-  steps: string;
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer noopener"
-      className="block rounded-xl border border-border/60 bg-card/40 px-4 py-3 transition-colors hover:border-primary/40 hover:bg-card"
-    >
-      <span className="text-sm font-medium text-foreground">
-        {service} →
-      </span>
-      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-        {steps}
-      </p>
-    </a>
   );
 }

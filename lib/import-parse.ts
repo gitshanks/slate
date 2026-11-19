@@ -11,6 +11,9 @@
  * column detection falls through to "first column = title."
  */
 
+/** Rows one import batch may carry; the import page sends its file in pieces this size. */
+export const IMPORT_BATCH_LIMIT = 40;
+
 export interface ParsedRow {
   /** Cleaned query fed to TMDB search (after stripEpisode). */
   title: string;

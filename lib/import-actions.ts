@@ -10,7 +10,7 @@ import {
 } from "@/lib/tmdb";
 import { getOmdbMetadata, isOmdbConfigured } from "@/lib/omdb";
 import { getLibraryClient } from "@/lib/library-db";
-import { parseCsv, type ParsedRow } from "@/lib/import-parse";
+import { IMPORT_BATCH_LIMIT, parseCsv, type ParsedRow } from "@/lib/import-parse";
 
 /**
  * Single-shot library import. Accepts a CSV the user exported from Letterboxd
@@ -23,6 +23,14 @@ import { parseCsv, type ParsedRow } from "@/lib/import-parse";
  * earlier pipeline that had a review table, extension, and token flow.
  */
 
+export interface ImportedTitle {
+  tmdb_id: number;
+  media_type: "movie" | "tv";
+  title: string;
+  poster_path: string | null;
+  year: number | null;
+}
+
 export interface ImportResult {
   ok: boolean;
   error?: string;
@@ -30,15 +38,16 @@ export interface ImportResult {
   imported: number;
   /** Rows whose CSV title couldn't be matched on TMDB — surfaced in the UI. */
   unmatched: string[];
+  /** The matched titles, in file order, so the page can show their posters. */
+  titles: ImportedTitle[];
 }
 
-const EMPTY: ImportResult = { ok: false, imported: 0, unmatched: [] };
+const EMPTY: ImportResult = { ok: false, imported: 0, unmatched: [], titles: [] };
 
 export async function runImport(
   _prev: ImportResult | null,
   formData: FormData
 ): Promise<ImportResult> {
-  const db = await getLibraryClient();
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { ...EMPTY, error: "Pick a CSV file to import." };
@@ -52,7 +61,67 @@ export async function runImport(
   if (rows.length === 0) {
     return { ...EMPTY, error: "Couldn't find any rows. Is this a CSV with a Title/Name column?" };
   }
+  return importParsedRows(rows);
+}
 
+/**
+ * One piece of an import the browser has already parsed. The page reads the
+ * file itself (so it can show what is in it at once) and sends the rows in
+ * small batches, so each batch's posters can land while the next is matched.
+ * Rows come from the client, so every field is re-checked here.
+ */
+export async function importBatch(input: unknown): Promise<ImportResult> {
+  if (!Array.isArray(input) || input.length === 0) {
+    return { ...EMPTY, error: "Nothing to import." };
+  }
+  if (input.length > IMPORT_BATCH_LIMIT) {
+    return { ...EMPTY, error: "Too many rows in one batch." };
+  }
+  const rows: ParsedRow[] = [];
+  for (const item of input) {
+    const row = sanitiseRow(item);
+    if (row) rows.push(row);
+  }
+  if (rows.length === 0) return { ...EMPTY, ok: true };
+  return importParsedRows(rows);
+}
+
+function text(value: unknown, max: number): string | undefined {
+  return typeof value === "string" ? value.slice(0, max) : undefined;
+}
+
+function sanitiseRow(item: unknown): ParsedRow | null {
+  if (!item || typeof item !== "object") return null;
+  const raw = item as Record<string, unknown>;
+  const title = text(raw.title, 300) ?? "";
+  const sourceText = text(raw.sourceText, 400) ?? title;
+  if (!title.trim() && typeof raw.tmdbId !== "number" && !raw.imdbId) return null;
+  const year =
+    typeof raw.year === "number" && Number.isInteger(raw.year) && raw.year > 1800 && raw.year < 2200
+      ? raw.year
+      : undefined;
+  const tmdbId =
+    typeof raw.tmdbId === "number" && Number.isInteger(raw.tmdbId) && raw.tmdbId > 0
+      ? raw.tmdbId
+      : undefined;
+  const imdbId =
+    typeof raw.imdbId === "string" && /^tt\d{1,10}$/.test(raw.imdbId) ? raw.imdbId : undefined;
+  const mediaHint =
+    raw.mediaHint === "movie" || raw.mediaHint === "tv" ? raw.mediaHint : undefined;
+  return {
+    title,
+    sourceText,
+    year,
+    date: text(raw.date, 40),
+    tmdbId,
+    imdbId,
+    mediaHint,
+    isEpisode: raw.isEpisode === true,
+  };
+}
+
+async function importParsedRows(rows: ParsedRow[]): Promise<ImportResult> {
+  const db = await getLibraryClient();
   const matched = await mapPool(rows, CONCURRENCY, matchRow);
 
   const upserts: UpsertRow[] = [];
@@ -65,6 +134,13 @@ export async function runImport(
   // Collapse many-episodes-of-same-show down to one tv row with the earliest
   // watched_at. Trakt episode exports and re-scrapes both benefit from this.
   const deduped = dedupeByTmdbId(upserts);
+  const titles: ImportedTitle[] = deduped.map((row) => ({
+    tmdb_id: row.tmdb_id,
+    media_type: row.media_type,
+    title: row.title,
+    poster_path: row.poster_path,
+    year: row.release_date ? Number(row.release_date.slice(0, 4)) || null : null,
+  }));
 
   if (deduped.length > 0) {
     const { data: existing, error: readError } = await db
@@ -80,19 +156,11 @@ export async function runImport(
       (row) => !existingKeys.has(`${row.tmdb_id}:${row.media_type}`)
     );
 
-    if (newRows.length === 0) {
-      return {
-        ok: true,
-        imported: deduped.length,
-        unmatched,
-      };
-    }
-
-    const { error } = await db
-      .from("titles")
-      .insert(newRows);
-    if (error) {
-      return { ...EMPTY, error: `Database error: ${error.message}` };
+    if (newRows.length > 0) {
+      const { error } = await db.from("titles").insert(newRows);
+      if (error) {
+        return { ...EMPTY, error: `Database error: ${error.message}` };
+      }
     }
   }
 
@@ -100,6 +168,7 @@ export async function runImport(
     ok: true,
     imported: deduped.length,
     unmatched,
+    titles,
   };
 }
 

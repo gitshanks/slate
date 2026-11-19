@@ -1013,3 +1013,21 @@ html.theme-fading::view-transition-new(theme-trigger) {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ─── Import page (components/import-experience.tsx) ───────────── */
+/* Each step of the import arrives by rising a few pixels into place; the step
+   it replaces leaves at once, so the two never overlap. */
+.import-stage-in {
+  animation: import-stage-in 520ms var(--ease-ui-out) both;
+}
+@keyframes import-stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .import-stage-in {
+    animation: profile-reveal 200ms ease both;
+  }
+}
