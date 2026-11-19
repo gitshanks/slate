@@ -174,16 +174,20 @@ export function PublicListView({
                     "group grid h-[92px] w-full grid-cols-[14px_50px_minmax(0,1fr)_auto] items-center gap-3.5 rounded-xl text-left",
                     "transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
                     "lg:h-[100px] lg:grid-cols-[22px_56px_minmax(0,1fr)_auto] lg:gap-5",
-                    // A two-digit rank is twice as wide. On a phone there is no room for it to hang
-                    // left of the margin, so that row's poster and title step right instead.
-                    index >= 9 && "max-lg:grid-cols-[58px_50px_minmax(0,1fr)_auto]",
                     openTitle && openTitle.id !== title.id && "opacity-60",
                   )}
                 >
                   {/* The rank: very large and faint, right-aligned so the poster covers about half of it. */}
                   <span
                     aria-hidden
-                    className="-mr-[30px] justify-self-end whitespace-nowrap text-right text-[76px] font-extrabold leading-[76px] tracking-[-0.06em] text-white/[0.13] tabular-nums lg:-mr-[38px] lg:text-[104px] lg:leading-[100px]"
+                    className={cn(
+                      "-mr-[30px] justify-self-end whitespace-nowrap text-right text-[76px] font-extrabold leading-[76px] tracking-[-0.06em] text-white/[0.13] tabular-nums lg:-mr-[38px] lg:text-[104px] lg:leading-[100px]",
+                      // A two-digit rank is twice as wide. On a phone it starts at the same left edge
+                      // as the others and runs further under the poster, instead of being cut. It is
+                      // clipped inside the poster's right edge, so nothing shows beside the title.
+                      index >= 9 &&
+                        "max-lg:mr-0 max-lg:w-[70px] max-lg:justify-self-start max-lg:overflow-x-clip max-lg:text-left",
+                    )}
                   >
                     {index + 1}
                   </span>
