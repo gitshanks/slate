@@ -17,6 +17,8 @@ export interface SlateListItemExtra {
 
 export interface SlateListExtras {
   description?: string;
+  /** One line for the list's card on the hub and the home page. */
+  summary?: string;
   /** One small line under the list, such as how a score is worked out. */
   note?: string;
   /** TMDB backdrop path for the still at the top; the first film's is used when absent. */
@@ -30,6 +32,7 @@ export interface SlateListExtras {
 interface ListFile {
   slug: string;
   description?: string | null;
+  summary?: string | null;
   note?: string | null;
   hero?: string | null;
   heroPosition?: string | null;
@@ -43,6 +46,7 @@ const EXTRAS = new Map<string, SlateListExtras>(
     file.slug,
     {
       description: file.description ?? undefined,
+      summary: file.summary ?? undefined,
       note: file.note ?? undefined,
       hero: file.hero ?? undefined,
       heroPosition: file.heroPosition ?? undefined,
@@ -63,4 +67,9 @@ const EXTRAS = new Map<string, SlateListExtras>(
 
 export function getSlateListExtras(slug: string): SlateListExtras {
   return EXTRAS.get(slug) ?? { items: {} };
+}
+
+/** Only lists with a file here appear on the hub and the home page. */
+export function isListedSlateList(slug: string): boolean {
+  return EXTRAS.has(slug);
 }

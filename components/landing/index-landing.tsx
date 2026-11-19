@@ -18,9 +18,12 @@ import styles from "./index-landing.module.css";
 
 export function IndexLanding({
   backdrop,
+  sections,
   children,
 }: {
   backdrop: ReactNode;
+  /** Server-rendered sections shown between the hero and the closing call to action. */
+  sections?: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -161,7 +164,7 @@ export function IndexLanding({
           </div>
         </div>
 
-        <LandingDetails createHref={createHref} />
+        <LandingDetails createHref={createHref} sections={sections} />
 
         <footer className={styles.footer}>
           <Link href="/" aria-label="slate home">

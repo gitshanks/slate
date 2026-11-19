@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { getPublicProfile } from "@/lib/profiles";
+import { getSlateListExtras, isListedSlateList } from "@/lib/slate-list-content";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { supabase } from "@/lib/supabase";
 import type { ListRow, TitleRow } from "@/lib/types";
@@ -53,4 +54,58 @@ export const getSlateList = cache(async (slug: string): Promise<SlateList | null
     curator: profile.display_name,
     username: profile.username,
   };
+});
+
+/** The list that changes every week, shown first everywhere. */
+export const WEEKLY_SLUG = "this-week";
+
+export interface SlateListSummary {
+  slug: string;
+  name: string;
+  description: string | null;
+  /** TMDB backdrop path for the card. */
+  backdropPath: string | null;
+  createdAt: string;
+}
+
+/**
+ * Every list made by Slate, for the hub and the home page: the weekly list
+ * first, then newest first. Each card's picture is its first film's still.
+ */
+export const getSlateLists = cache(async (): Promise<SlateListSummary[]> => {
+  if (!SLATE_HOSTED) return [];
+  const profile = await getPublicProfile(SLATE_LIST_USERNAME);
+  if (!profile) return [];
+
+  const { data: lists, error } = await supabase
+    .from("lists")
+    .select("id, slug, name, description, created_at")
+    .eq("owner_id", profile.id)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+
+  const rows = (lists ?? []) as (Pick<ListRow, "id" | "slug" | "name" | "description"> & { created_at: string })[];
+  const summaries = await Promise.all(
+    rows.map(async (row) => {
+      const found = await getSlateList(row.slug);
+      return {
+        slug: row.slug,
+        name: row.name,
+        description: getSlateListExtras(row.slug).summary ?? row.description,
+        backdropPath: found?.titles.find((title) => title.backdrop_path)?.backdrop_path ?? null,
+        createdAt: row.created_at,
+        titleCount: found?.titles.length ?? 0,
+      };
+    }),
+  );
+  return summaries
+    .filter((list) => list.titleCount > 0 && isListedSlateList(list.slug))
+    .sort((a, b) => Number(b.slug === WEEKLY_SLUG) - Number(a.slug === WEEKLY_SLUG))
+    .map((list) => ({
+      slug: list.slug,
+      name: list.name,
+      description: list.description,
+      backdropPath: list.backdropPath,
+      createdAt: list.createdAt,
+    }));
 });

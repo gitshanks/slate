@@ -2,6 +2,7 @@
   "slug": "this-week",
   "name": "What to watch this week",
   "description": "This week's ten most popular films, ranked by their reviews.",
+  "summary": "This week's ten most popular films, ranked by their reviews.",
   "titles": [
     {
       "tmdbId": 791523,
