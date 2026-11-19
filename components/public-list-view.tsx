@@ -151,7 +151,7 @@ export function PublicListView({
             <SlateListTitle slug={slug} name={name} />
           </h1>
           {lede ? (
-            <p className="mt-2.5 max-w-2xl text-balance text-[15px] leading-[22px] text-white/60 lg:mt-4 lg:text-xl lg:leading-[30px]">
+            <p className="mt-2.5 max-w-2xl text-balance text-[15px] leading-[22px] text-white/60 lg:mt-4 lg:max-w-none lg:text-pretty lg:text-xl lg:leading-[30px]">
               {lede}
             </p>
           ) : null}
@@ -174,6 +174,9 @@ export function PublicListView({
                     "group grid h-[92px] w-full grid-cols-[14px_50px_minmax(0,1fr)_auto] items-center gap-3.5 rounded-xl text-left",
                     "transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
                     "lg:h-[100px] lg:grid-cols-[22px_56px_minmax(0,1fr)_auto] lg:gap-5",
+                    // A two-digit rank is twice as wide. On a phone there is no room for it to hang
+                    // left of the margin, so that row's poster and title step right instead.
+                    index >= 9 && "max-lg:grid-cols-[58px_50px_minmax(0,1fr)_auto]",
                     openTitle && openTitle.id !== title.id && "opacity-60",
                   )}
                 >
