@@ -293,7 +293,7 @@ export function LibraryNudges({
                 ? `${titleCount} titles saved. Keep them safe`
                 : "Keep your slate"
           }
-          body="Right now it lives only in this browser. Sign up free to keep it and open it on your phone and TV."
+          body="Right now it lives only in this browser. Sign up free to keep it and open it on your phone, computer and iPad."
           actions={<SignupActions analyticsArea={`library_${guestStage}`} />}
           onDismiss={() => dismiss(reachedStages)}
         />

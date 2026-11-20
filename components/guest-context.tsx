@@ -30,17 +30,13 @@ export const SIGNUP_REASONS = {
     title: "Sign up to plan with friends",
     body: "Shared lists keep everyone's picks in one place, and need an account for each person on them.",
   },
-  tv: {
-    title: "Sign up to watch on your TV",
-    body: "Your TV opens your slate by signing in, so it needs an account. Everything you saved comes with you.",
-  },
   ai: {
     title: "Sign up to keep asking",
     body: "You've used the questions guests get. Sign up for more, and keep everything you saved.",
   },
   save: {
     title: "Keep your slate",
-    body: "Right now your slate lives only in this browser. Sign up to keep it and use it on your phone and TV.",
+    body: "Right now your slate lives only in this browser. Sign up to keep it and open it on your phone, computer and iPad.",
   },
 } as const;
 

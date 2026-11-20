@@ -103,7 +103,7 @@ export function ProfileScreen({
             You&apos;re using Slate as a guest
           </h2>
           <p className="mt-2 max-w-prose text-sm leading-6 text-muted-foreground">
-            Your slate lives only in this browser for now. Sign up free to keep it, get a profile you can share, and open it on your phone and TV. Everything you saved comes with you.
+            Your slate lives only in this browser for now. Sign up free to keep it, get a profile you can share, and open it on your phone, computer and iPad. Everything you saved comes with you.
           </p>
           <SignupActions className="mt-5" analyticsArea="profile_guest" />
           {shelves ? <div className="mt-6">{shelvesNav(shelves)}</div> : null}

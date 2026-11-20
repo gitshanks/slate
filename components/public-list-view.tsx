@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Check, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { showListAddedToast } from "@/components/list-added-toast";
+import { guestSignupPath } from "@/lib/guest-id";
 import { PublicTitleDetailOverlay } from "@/components/spatial-poster-grid";
 import { PublicProfileTitleActions } from "@/components/public-profile-title-actions";
 import { SlateListTitle } from "@/components/slate-list-title";
@@ -65,15 +67,19 @@ export function PublicListView({
         setSaved(true);
         // A signed-out visitor now has a guest slate: no login wall, and a
         // nudge that it is theirs to keep.
-        toast.success(`${name} is on your slate`, viewerSignedIn ? undefined : {
-          description: "Sign up anytime to keep it on every device.",
+        showListAddedToast({
+          name,
+          count: titles.length,
+          posters: titles.slice(0, 3).map((title) => title.poster_path),
+          guest: !viewerSignedIn,
+          signupHref: guestSignupPath(null),
         });
       } catch (error) {
         if (isRedirect(error)) throw error;
         toast.error(error instanceof Error ? error.message : "That did not work. Try again.");
       }
     });
-  }, [name, slug, viewerSignedIn]);
+  }, [name, slug, titles, viewerSignedIn]);
 
   // Where guest mode is off, "Add to your slate" sends a signed-out visitor
   // to sign up (lib/slate-list-actions.ts). They come back here signed in
