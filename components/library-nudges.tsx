@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { createListFromTitles } from "@/lib/actions";
+import { SignupActions } from "@/components/guest-context";
 import { captureAnalytics } from "@/lib/analytics";
 import { posterUrl } from "@/lib/tmdb-image";
 import { cn } from "@/lib/utils";
@@ -29,10 +30,32 @@ export interface ListSuggestionNudge {
 const SMALL_LIBRARY_TITLES = 5;
 /** Shared with app/(app)/page.tsx, which reads it so hidden prompts never render. */
 export const NUDGE_COOKIE = "slate_nudges_hidden";
-type NudgeKind = "small" | "list";
+type GuestStage = "guestback" | "guest10" | "guest3";
+type NudgeKind = "small" | "list" | GuestStage;
+const NUDGE_KINDS = new Set<string>(["small", "list", "guestback", "guest10", "guest3"]);
 
-function hideNudge(kind: NudgeKind, hidden: Set<NudgeKind>) {
-  const next = new Set(hidden).add(kind);
+export interface GuestNudgeState {
+  listCount: number;
+  /** First came at least half a day ago. */
+  returning: boolean;
+}
+
+/**
+ * The milestones at which a guest is asked to keep their slate: a third title
+ * or a first list, a tenth title, and coming back another day. Each shows
+ * once; closing it quiets every milestone reached so far.
+ */
+function guestStages(guest: GuestNudgeState, titleCount: number): GuestStage[] {
+  const stages: GuestStage[] = [];
+  if (guest.returning) stages.push("guestback");
+  if (titleCount >= 10) stages.push("guest10");
+  if (titleCount >= 3 || guest.listCount > 0) stages.push("guest3");
+  return stages;
+}
+
+function hideNudge(kind: NudgeKind | NudgeKind[], hidden: Set<NudgeKind>) {
+  const next = new Set(hidden);
+  for (const item of Array.isArray(kind) ? kind : [kind]) next.add(item);
   // A cookie, not localStorage, so the server leaves hidden prompts out and
   // the shelf never shifts when they would have been removed after load.
   document.cookie = `${NUDGE_COOKIE}=${[...next].join(".")}; Path=/; Max-Age=31536000; SameSite=Lax`;
@@ -209,7 +232,9 @@ export function LibraryNudges({
   onOpenTitle,
   hiddenNudges = [],
   savedPosters = [],
+  guestNudge = null,
 }: {
+  guestNudge?: GuestNudgeState | null;
   savedPosters?: (string | null)[];
   titleCount: number;
   canPickMore: boolean;
@@ -220,14 +245,14 @@ export function LibraryNudges({
 }) {
   const router = useRouter();
   const [hidden, setHidden] = React.useState(
-    () => new Set(hiddenNudges.filter((kind): kind is NudgeKind => kind === "small" || kind === "list")),
+    () => new Set(hiddenNudges.filter((kind): kind is NudgeKind => NUDGE_KINDS.has(kind))),
   );
   const [creating, setCreating] = React.useState(false);
   const [createError, setCreateError] = React.useState("");
 
-  const dismiss = (which: NudgeKind) => {
+  const dismiss = (which: NudgeKind | NudgeKind[]) => {
     setHidden((current) => hideNudge(which, current));
-    captureAnalytics("nudge_dismissed", { nudge: which });
+    captureAnalytics("nudge_dismissed", { nudge: Array.isArray(which) ? which[0] : which });
   };
 
   const makeList = async () => {
@@ -248,10 +273,31 @@ export function LibraryNudges({
   const remaining = SMALL_LIBRARY_TITLES - titleCount;
   const showSmall = titleCount > 0 && remaining > 0 && !hidden.has("small");
   const showList = Boolean(listSuggestion) && !hidden.has("list");
-  if (!newEpisodes.length && !showSmall && !showList) return null;
+  const reachedStages = guestNudge ? guestStages(guestNudge, titleCount) : [];
+  const guestStage = reachedStages.find((stage) => !hidden.has(stage)) ?? null;
+  // One prompt card at a time: while a guest is asked to keep their slate,
+  // the others wait.
+  const showSmallCard = showSmall && !guestStage;
+  const showListCard = showList && !guestStage;
+  if (!newEpisodes.length && !showSmallCard && !showListCard && !guestStage) return null;
 
   return (
     <div className="mb-5 flex flex-col gap-3 md:mb-6">
+      {guestStage ? (
+        <NudgeCard
+          id="guest-signup-heading"
+          heading={
+            guestStage === "guestback"
+              ? "Welcome back. Your slate is still here"
+              : guestStage === "guest10"
+                ? `${titleCount} titles saved. Keep them safe`
+                : "Keep your slate"
+          }
+          body="Right now it lives only in this browser. Sign up free to keep it and open it on your phone and TV."
+          actions={<SignupActions analyticsArea={`library_${guestStage}`} />}
+          onDismiss={() => dismiss(reachedStages)}
+        />
+      ) : null}
       {newEpisodes.length ? (
         <section aria-labelledby="new-episodes-heading" className="app-tab-arrive">
           <h2 id="new-episodes-heading" className="mb-2 px-1 text-sm font-semibold text-foreground">
@@ -288,7 +334,7 @@ export function LibraryNudges({
         </section>
       ) : null}
 
-      {showSmall ? (
+      {showSmallCard ? (
         <NudgeCard
           id="small-library-heading"
           top={<LibrarySlots posters={savedPosters} count={titleCount} />}
@@ -299,7 +345,7 @@ export function LibraryNudges({
         />
       ) : null}
 
-      {showList && listSuggestion ? (
+      {showListCard && listSuggestion ? (
         <NudgeCard
           id="first-list-heading"
           top={

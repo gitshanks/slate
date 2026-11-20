@@ -4,6 +4,7 @@ import { Users } from "lucide-react";
 import { acceptSharedListInvite } from "@/lib/shared-list-actions";
 import { getAppSession } from "@/lib/app-access";
 import { resolveListInvite } from "@/lib/shared-lists";
+import { isGuestOwnerId } from "@/lib/guest-id";
 
 export const dynamic = "force-dynamic";
 
@@ -46,12 +47,12 @@ export default async function JoinListPage(props: { params: Promise<{ token: str
         <h1 className="mt-1 text-3xl font-semibold tracking-[-0.035em]">{invitation.list.name}</h1>
         {invitation.list.description ? <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{invitation.list.description}</p> : null}
         <p className="mt-8 text-sm leading-relaxed text-muted-foreground">You’ll be able to add, remove, and arrange titles together.</p>
-        {session?.user?.id ? (
+        {session?.user?.id && !isGuestOwnerId(session.user.id) ? (
           <form action={join} className="mt-6" data-analytics-form="shared_list_invite_accept">
             <button className="h-11 w-full rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-[filter,transform] hover:brightness-105 active:scale-[0.99]">Join list</button>
           </form>
         ) : (
-          <Link href={`/login?next=${encodeURIComponent(`/join/${token}`)}`} className="mt-6 flex h-11 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-[filter,transform] hover:brightness-105 active:scale-[0.99]">Continue to sign in</Link>
+          <Link href={`/login?${isGuestOwnerId(session?.user?.id) ? "mode=create&" : ""}next=${encodeURIComponent(`/join/${token}`)}`} className="mt-6 flex h-11 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-[filter,transform] hover:brightness-105 active:scale-[0.99]">{isGuestOwnerId(session?.user?.id) ? "Sign up to join" : "Continue to sign in"}</Link>
         )}
         <p className="mt-3 text-center text-[11px] text-muted-foreground">Private to the people invited.</p>
       </section>

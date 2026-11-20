@@ -3,6 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useGuest, useSignupHref } from "@/components/guest-context";
 import { usePathname } from "next/navigation";
 import { Ellipsis, LogOut, Upload, UserRound } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
@@ -105,6 +106,23 @@ export function OwnerMenu({
 }) {
   const pathname = usePathname();
   const profileActive = pathname.startsWith("/profile");
+  const { isGuest } = useGuest();
+  const signupHref = useSignupHref();
+
+  // A guest has no avatar and nothing to sign out of: where the avatar would
+  // be, a quiet way to keep their slate.
+  if (isGuest) {
+    return (
+      <Link
+        href={signupHref}
+        data-analytics-action="guest_signup"
+        data-analytics-area="top_bar"
+        className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-[filter,transform] duration-150 hover:brightness-105 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        Sign up
+      </Link>
+    );
+  }
 
   return (
     <DropdownMenu modal={false}>

@@ -1,5 +1,7 @@
 "use server";
 
+import { isGuestOwnerId } from "@/lib/guest-id";
+
 import { revalidatePath } from "next/cache";
 import { getLibraryOwnerId } from "@/lib/library-db";
 import { getProfileById } from "@/lib/profiles";
@@ -31,6 +33,9 @@ export async function updateProfile(
   const isPublic = formData.get("isPublic") === "on";
   const attemptSnapshot = JSON.stringify([displayName, username, isPublic]);
   const ownerId = await getLibraryOwnerId();
+  if (isGuestOwnerId(ownerId)) {
+    return { ok: false, message: "Sign up to make your profile.", attemptSnapshot };
+  }
   const current = await getProfileById(ownerId);
   if (!current) {
     return {

@@ -2,6 +2,23 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import { useGuest } from "@/components/guest-context";
+
+/** Questions a guest can ask before being asked to sign up. */
+const GUEST_AI_PROMPTS = 5;
+const GUEST_AI_COUNT_KEY = "slate:guest-ai-prompts";
+
+/** Count a guest's question; false once they have used their share. */
+function takeGuestPrompt(): boolean {
+  try {
+    const used = Number(localStorage.getItem(GUEST_AI_COUNT_KEY) ?? 0) || 0;
+    if (used >= GUEST_AI_PROMPTS) return false;
+    localStorage.setItem(GUEST_AI_COUNT_KEY, String(used + 1));
+  } catch {
+    // Storage blocked: let the question through.
+  }
+  return true;
+}
 
 // Wire shapes mirror lib/ai-chat.ts. Kept loose here so the client bundle
 // doesn't couple to the server-only module.
@@ -108,6 +125,7 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
   const [turns, setTurns] = React.useState<ChatTurn[]>([]);
   const [streaming, setStreaming] = React.useState(false);
   const abortRef = React.useRef<AbortController | null>(null);
+  const { isGuest, askToSignUp } = useGuest();
 
   // Rehydrate once on mount. We start from [] (matching SSR) and restore in an
   // effect to avoid a hydration mismatch; `hydrated` then gates the writer so
@@ -178,6 +196,10 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
     async (message: string) => {
       const trimmed = message.trim();
       if (!trimmed || streaming || abortRef.current) return;
+      if (isGuest && !takeGuestPrompt()) {
+        askToSignUp("ai");
+        return;
+      }
 
       const next: ChatTurn[] = [
         ...turns,
@@ -284,7 +306,7 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
         }
       }
     },
-    [turns, streaming, applyEvent],
+    [turns, streaming, applyEvent, isGuest, askToSignUp],
   );
 
   const reset = React.useCallback(() => {

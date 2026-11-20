@@ -20,6 +20,7 @@ function load(file, dependencies = {}) {
   return exports;
 }
 const helpers = load('lib/title-sharing.ts');
+const guestId = load('lib/guest-id.ts');
 
 test('shared links accept catalogue IDs, never profile or arbitrary return URLs', () => {
   for (const [type, id] of [['person', 1], ['movie', 0], ['tv', -1], ['movie', '1e3'], ['movie', '01'], ['tv', '3/notes'], ['tv', 1.5], ['movie', 10000000000]]) {
@@ -55,8 +56,9 @@ test('shared catalogue data cannot expose a library identity, status, rating, or
   assert.ok(!JSON.stringify(result).includes('secret'));
 });
 
-function actionFixture({ session = null, profile = null, fail = false } = {}) {
+function actionFixture({ session = null, profile = null, fail = false, guestMode = false } = {}) {
   const writes = [];
+  const guests = [];
   let reads = 0;
   const action = load('lib/shared-title-actions.ts', {
     '@/lib/title-sharing': helpers,
@@ -64,8 +66,10 @@ function actionFixture({ session = null, profile = null, fail = false } = {}) {
     '@/lib/app-access': { getAppSession: async () => { reads++; return session; } },
     '@/lib/profiles': { getProfileById: async () => profile },
     '@/lib/actions': { addTitle: async input => { writes.push(input); if (fail) throw new Error('DB unavailable'); return { id: 'saved-title', status: 'watched' }; } },
+    '@/lib/guest-session': { startGuestSession: async options => { guests.push(options); return 'guest:new'; } },
+    '@/lib/guest-token': { guestModeEnabled: () => guestMode },
   });
-  return { ...action, writes, reads: () => reads };
+  return { ...action, writes, guests, reads: () => reads };
 }
 
 test('anonymous saves carry the title through sign-up without writing a library', async () => {
@@ -74,6 +78,14 @@ test('anonymous saves carry the title through sign-up without writing a library'
   assert.equal(fixture.reads(), 0);
   const result = await fixture.saveSharedTitle('movie', 42);
   assert.equal(result.destination, helpers.sharedTitleLoginPath('movie', 42));
+  assert.equal(fixture.writes.length, 0);
+});
+
+test('with guest mode, an anonymous save starts a guest at the picks instead of a login wall', async () => {
+  const fixture = actionFixture({ guestMode: true });
+  const result = await fixture.saveSharedTitle('movie', 42);
+  assert.equal(result.destination, helpers.sharedTitleOnboardingPath('movie', 42));
+  assert.deepEqual(JSON.parse(JSON.stringify(fixture.guests)), [{ onboarded: false }]);
   assert.equal(fixture.writes.length, 0);
 });
 
@@ -113,6 +125,7 @@ function onboardingFixture(completed = false, saved = []) {
     '@/lib/public-mode': { SLATE_HOSTED: true },
     '@/lib/title-sharing': helpers,
     '@/lib/onboarding-titles': { getOnboardingTitles: async () => deck },
+    '@/lib/guest-id': guestId,
     '@/lib/shared-title-data': { getSharedTitle: async () => { lookups++; return { tmdb_id: 42, media_type: 'movie', title: 'A recommendation', overview: 'A plot', genres: [] }; } },
     '@/lib/library-nudges': {
       SMALL_LIBRARY_TITLES: 5,

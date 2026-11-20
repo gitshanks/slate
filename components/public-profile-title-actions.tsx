@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { ChevronDown, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { StatusPill } from "@/components/status-pill";
@@ -11,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { addTitle } from "@/lib/actions";
+import { saveTitleAsViewer } from "@/lib/guest-actions";
 import { updateCachedPublicTitleSavedTitle } from "@/lib/public-title-detail-cache";
 import type {
   PublicSpatialSavedTitle,
@@ -66,17 +65,7 @@ export function PublicProfileTitleActions({
         : "Up Next";
 
   let viewerControl: React.ReactNode;
-  if (!viewerSignedIn) {
-    viewerControl = (
-      <Link
-        href="/login"
-        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-background/55 px-3.5 text-xs font-medium text-foreground shadow-sm transition-[background-color,border-color,transform] hover:border-primary/35 hover:bg-accent active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <Plus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-        Add to library
-      </Link>
-    );
-  } else if (record) {
+  if (record) {
     viewerControl = (
       <StatusPill
         titleId={record.id}
@@ -88,7 +77,7 @@ export function PublicProfileTitleActions({
         }}
       />
     );
-  } else if (!detail) {
+  } else if (!detail && viewerSignedIn) {
     // Wait for the single ownership lookup so an already-saved title never gets
     // a duplicate add or a false toast.
     viewerControl = (
@@ -117,7 +106,7 @@ export function PublicProfileTitleActions({
               onClick={() => {
                 startTransition(async () => {
                   try {
-                    const row = await addTitle({
+                    const row = await saveTitleAsViewer({
                       tmdbId: title.tmdb_id,
                       mediaType: title.media_type,
                       status: value,

@@ -10,6 +10,7 @@ import { APP_ROOT, SLATE_HOSTED } from "@/lib/public-mode";
 import { redirect } from "next/navigation";
 import { getAppSession } from "@/lib/app-access";
 import { isAdminEmail } from "@/lib/admin-insights";
+import { isGuestOwnerId } from "@/lib/guest-id";
 
 export const metadata: Metadata = {
   title: "Profile · slate",
@@ -83,6 +84,7 @@ export default async function ProfilePage() {
       counts={counts}
       isAdmin={isAdminEmail(session?.user?.email)}
       signOutAction={signOutAction}
+      isGuest={isGuestOwnerId(profile.id)}
     />
   );
 }

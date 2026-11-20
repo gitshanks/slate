@@ -20,6 +20,7 @@ export type AnalyticsEvent =
   | "auth_method_selected"
   | "client_error"
   | "form_submitted"
+  | "guest_signup_prompted"
   | "import_completed"
   | "list_created"
   | "list_deleted"

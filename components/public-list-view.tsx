@@ -26,16 +26,18 @@ interface PublicListViewProps {
   viewerSignedIn?: boolean;
 }
 
+function isRedirect(error: unknown) {
+  return Boolean(
+    error && typeof error === "object" && "digest" in error &&
+      String((error as { digest: unknown }).digest).startsWith("NEXT_REDIRECT"),
+  );
+}
+
 // The page's one action is a quiet pill in the top bar, so the still, the
 // name and the list read as one piece (DESIGN.md, Interaction).
 const ACTION =
   "inline-flex h-9 items-center gap-1.5 rounded-full bg-background/55 px-3.5 text-[13px] font-semibold text-primary ring-1 ring-inset ring-primary/35 backdrop-blur-md transition-[background-color,transform] duration-150 hover:bg-background/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.97] disabled:opacity-70 sm:h-10 sm:px-4 sm:text-sm";
 
-/** Sign up, then land back on this list with it added (see the effect below). */
-function signupHref(slug: string): string {
-  const params = new URLSearchParams({ mode: "create", next: `/l/${slug}?add=1` });
-  return `/login?${params}`;
-}
 
 /**
  * A list made by Slate. A still from one of its films runs across the top
@@ -61,16 +63,21 @@ export function PublicListView({
       try {
         await addSlateListToLibrary(slug);
         setSaved(true);
-        toast.success(`${name} is on your slate`);
+        // A signed-out visitor now has a guest slate: no login wall, and a
+        // nudge that it is theirs to keep.
+        toast.success(`${name} is on your slate`, viewerSignedIn ? undefined : {
+          description: "Sign up anytime to keep it on every device.",
+        });
       } catch (error) {
+        if (isRedirect(error)) throw error;
         toast.error(error instanceof Error ? error.message : "That did not work. Try again.");
       }
     });
-  }, [name, slug]);
+  }, [name, slug, viewerSignedIn]);
 
-  // Someone who pressed "Add to your slate" before having an account comes
-  // back here signed in with ?add=1, so the list they asked for is added
-  // without a second press.
+  // Where guest mode is off, "Add to your slate" sends a signed-out visitor
+  // to sign up (lib/slate-list-actions.ts). They come back here signed in
+  // with ?add=1, so the list they asked for is added without a second press.
   const resumed = React.useRef(false);
   React.useEffect(() => {
     if (!viewerSignedIn || resumed.current) return;
@@ -148,13 +155,8 @@ export function PublicListView({
           <Link href="/" aria-label="slate home" className="flex items-center">
             <Image src="/brand/wordmark-light.svg" alt="slate" width={64} height={23} priority />
           </Link>
-          {!viewerSignedIn ? (
-            <Link href={signupHref(slug)} className={ACTION}>
-              <Plus aria-hidden className="size-4" />
-              Add to your slate
-            </Link>
-          ) : saved ? (
-            <Link href="/lists" className={ACTION}>
+          {saved ? (
+            <Link href={viewerSignedIn ? "/lists" : "/app"} className={ACTION}>
               <Check aria-hidden className="size-4" />
               On your slate
             </Link>

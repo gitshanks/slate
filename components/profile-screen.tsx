@@ -5,6 +5,7 @@ import { PrivacyPreferencesButton } from "@/components/analytics/privacy-prefere
 import { DeleteAccountSettings } from "@/components/delete-account-settings";
 import { ProfileAppearance } from "@/components/profile-appearance";
 import { ProfileSettingsForm } from "@/components/profile-settings-form";
+import { SignupActions } from "@/components/guest-context";
 import {
   SettingsGroup,
   SettingsRow,
@@ -21,6 +22,38 @@ export interface ProfileShelfCounts {
   watched: number;
 }
 
+function shelvesNav(shelves: { label: string; value: number; href: string }[]) {
+  return (
+    <nav
+      aria-label="Your shelves"
+      className="profile-rise grid grid-cols-3 border-y border-border/60"
+      style={{ "--i": 1 } as React.CSSProperties}
+    >
+      {shelves.map((shelf, index) => (
+        <Link
+          key={shelf.label}
+          href={shelf.href}
+          className={cn(
+            "group flex flex-col gap-1.5 py-5 outline-none transition-colors duration-150 focus-visible:bg-accent/60 sm:py-6",
+            index > 0 && "border-l border-border/60 pl-4 sm:pl-6",
+          )}
+        >
+          <span className="text-[1.75rem] font-semibold leading-none tracking-[-0.04em] tabular-nums sm:text-[2.25rem]">
+            {shelf.value.toLocaleString("en-US")}
+          </span>
+          <span className="flex items-center gap-0.5 text-[13px] text-muted-foreground transition-colors duration-150 group-hover:text-foreground">
+            {shelf.label}
+            <ChevronRight
+              aria-hidden
+              className="h-3.5 w-3.5 opacity-0 transition-[opacity,transform] duration-150 ease-[var(--ease-ui-out)] group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:opacity-100"
+            />
+          </span>
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 export function ProfileScreen({
   displayName,
   username,
@@ -32,7 +65,10 @@ export function ProfileScreen({
   counts,
   isAdmin,
   signOutAction,
+  isGuest = false,
 }: {
+  /** A guest has no profile to edit yet: the screen asks them to sign up. */
+  isGuest?: boolean;
   displayName: string;
   username: string;
   isPublic: boolean;
@@ -57,45 +93,32 @@ export function ProfileScreen({
     <div className="mx-auto w-full max-w-2xl pb-6 sm:pb-10">
       <h1 className="sr-only">Profile</h1>
 
-      <ProfileSettingsForm
-        displayName={displayName}
-        username={username}
-        isPublic={isPublic}
-        origin={origin}
-        avatarUrl={avatarUrl}
-        joined={joined}
-        shelves={
-          shelves ? (
-            <nav
-              aria-label="Your shelves"
-              className="profile-rise grid grid-cols-3 border-y border-border/60"
-              style={{ "--i": 1 } as React.CSSProperties}
-            >
-              {shelves.map((shelf, index) => (
-                <Link
-                  key={shelf.label}
-                  href={shelf.href}
-                  className={cn(
-                    "group flex flex-col gap-1.5 py-5 outline-none transition-colors duration-150 focus-visible:bg-accent/60 sm:py-6",
-                    index > 0 && "border-l border-border/60 pl-4 sm:pl-6",
-                  )}
-                >
-                  <span className="text-[1.75rem] font-semibold leading-none tracking-[-0.04em] tabular-nums sm:text-[2.25rem]">
-                    {shelf.value.toLocaleString("en-US")}
-                  </span>
-                  <span className="flex items-center gap-0.5 text-[13px] text-muted-foreground transition-colors duration-150 group-hover:text-foreground">
-                    {shelf.label}
-                    <ChevronRight
-                      aria-hidden
-                      className="h-3.5 w-3.5 opacity-0 transition-[opacity,transform] duration-150 ease-[var(--ease-ui-out)] group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:opacity-100"
-                    />
-                  </span>
-                </Link>
-              ))}
-            </nav>
-          ) : null
-        }
-      />
+      {isGuest ? (
+        <section
+          aria-labelledby="guest-profile-heading"
+          className="profile-rise rounded-2xl border border-border bg-card/60 p-5 sm:p-6"
+          style={{ "--i": 0 } as React.CSSProperties}
+        >
+          <h2 id="guest-profile-heading" className="text-balance text-xl font-semibold tracking-tight">
+            You&apos;re using Slate as a guest
+          </h2>
+          <p className="mt-2 max-w-prose text-sm leading-6 text-muted-foreground">
+            Your slate lives only in this browser for now. Sign up free to keep it, get a profile you can share, and open it on your phone and TV. Everything you saved comes with you.
+          </p>
+          <SignupActions className="mt-5" analyticsArea="profile_guest" />
+          {shelves ? <div className="mt-6">{shelvesNav(shelves)}</div> : null}
+        </section>
+      ) : (
+        <ProfileSettingsForm
+          displayName={displayName}
+          username={username}
+          isPublic={isPublic}
+          origin={origin}
+          avatarUrl={avatarUrl}
+          joined={joined}
+          shelves={shelves ? shelvesNav(shelves) : null}
+        />
+      )}
 
       <div className="mt-9 space-y-9">
         <ProfileAppearance index={3} />
@@ -133,26 +156,30 @@ export function ProfileScreen({
             </Link>
             <PrivacyPreferencesButton compact />
           </SettingsRow>
-          <SettingsRow
-            title="Signed in"
-            description={email ?? "This device is signed in to your account."}
-          >
-            <form
-              action={signOutAction}
-              data-analytics-reset="true"
-              data-analytics-form="sign_out"
+          {isGuest ? null : (
+            <SettingsRow
+              title="Signed in"
+              description={email ?? "This device is signed in to your account."}
             >
-              <button type="submit" className={settingsButtonClass}>
-                <LogOut className="h-3.5 w-3.5" />
-                Sign out
-              </button>
-            </form>
-          </SettingsRow>
+              <form
+                action={signOutAction}
+                data-analytics-reset="true"
+                data-analytics-form="sign_out"
+              >
+                <button type="submit" className={settingsButtonClass}>
+                  <LogOut className="h-3.5 w-3.5" />
+                  Sign out
+                </button>
+              </form>
+            </SettingsRow>
+          )}
         </SettingsGroup>
 
-        <SettingsGroup index={5}>
-          <DeleteAccountSettings />
-        </SettingsGroup>
+        {isGuest ? null : (
+          <SettingsGroup index={5}>
+            <DeleteAccountSettings />
+          </SettingsGroup>
+        )}
       </div>
     </div>
   );

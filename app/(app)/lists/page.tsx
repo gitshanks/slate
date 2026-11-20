@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/empty-state";
 import { CreateListForm } from "@/components/create-list-form";
 import { DeleteListButton } from "@/components/delete-list-button";
 import { ShareListButton } from "@/components/share-list-button";
+import { SignupGate } from "@/components/guest-context";
 import { ListPeople } from "@/components/list-people";
 import { ListPlus, Film } from "lucide-react";
 import { getAccessibleLists, getListCardRows } from "@/lib/shared-lists";
@@ -142,7 +143,7 @@ export default async function ListsPage() {
                     click propagation. Visible on hover (and always on touch). */}
                 <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
                   {SLATE_HOSTED ? (
-                    <ShareListButton listId={list.id} listName={list.name} owner={list.owner} members={list.members} isOwner={list.isOwner} iconOnly />
+                    <SignupGate reason="share"><ShareListButton listId={list.id} listName={list.name} owner={list.owner} members={list.members} isOwner={list.isOwner} iconOnly /></SignupGate>
                   ) : null}
                   {list.isOwner ? <DeleteListButton listId={list.id} listName={list.name} iconOnly /> : null}
                 </div>

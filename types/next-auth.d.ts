@@ -16,6 +16,7 @@ declare module "@auth/core/jwt" {
   interface JWT {
     userId?: string;
     emailAccountLinked?: boolean;
+    guestSeenOn?: string;
     accountCreatedAt?: string;
   }
 }

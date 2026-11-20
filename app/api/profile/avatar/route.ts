@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { getAppSession } from "@/lib/app-access";
+import { isGuestOwnerId } from "@/lib/guest-id";
 import { getProfileById, profileAvatarUrl } from "@/lib/profiles";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { supabase } from "@/lib/supabase";
@@ -29,7 +30,8 @@ function isValidImage(bytes: Uint8Array, mime: string): boolean {
 async function currentAccount() {
   if (!SLATE_HOSTED) return null;
   const session = await getAppSession();
-  if (!session?.user?.id) return null;
+  // A guest has no profile to put a photo on yet.
+  if (!session?.user?.id || isGuestOwnerId(session.user.id)) return null;
   const profile = await getProfileById(session.user.id);
   return profile ? { id: session.user.id, profile } : null;
 }
