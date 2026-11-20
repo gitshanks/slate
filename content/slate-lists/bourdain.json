@@ -1,0 +1,39 @@
+{
+  "slug": "bourdain",
+  "name": "Bourdain's real favourites",
+  "description": "Five films from Anthony Bourdain's own top ten. Not one is about food.",
+  "summary": "Five films from Anthony Bourdain's own top ten. Not one is about food.",
+  "titles": [
+    {
+      "tmdbId": 25680,
+      "mediaType": "movie",
+      "title": "The Friends of Eddie Coyle",
+      "line": "“Possibly Robert Mitchum’s finest performance.”"
+    },
+    {
+      "tmdbId": 11104,
+      "mediaType": "movie",
+      "title": "Chungking Express",
+      "line": "“The best, most romantic out there.”"
+    },
+    {
+      "tmdbId": 13446,
+      "mediaType": "movie",
+      "title": "Withnail & I",
+      "line": "“One of the funniest goddamn films ever made.”"
+    },
+    {
+      "tmdbId": 18030,
+      "mediaType": "movie",
+      "title": "Kiss Me Deadly",
+      "line": "“The ugliest, greasiest, darkest… Love it.”"
+    },
+    {
+      "tmdbId": 17295,
+      "mediaType": "movie",
+      "title": "The Battle of Algiers",
+      "line": "“The film that politicized me overnight.”"
+    }
+  ],
+  "heroPosition": "50% 30%"
+}
