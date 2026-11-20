@@ -1,0 +1,69 @@
+{
+  "slug": "shows-this-week",
+  "name": "Shows to watch this week",
+  "description": "Ten shows, scored on reviews and how many are watching.",
+  "summary": "Ten shows, scored on reviews and how many are watching.",
+  "titles": [
+    {
+      "tmdbId": 291507,
+      "mediaType": "tv",
+      "title": "The Body",
+      "value": "88"
+    },
+    {
+      "tmdbId": 84773,
+      "mediaType": "tv",
+      "title": "The Lord of the Rings: The Rings of Power",
+      "value": "74"
+    },
+    {
+      "tmdbId": 225385,
+      "mediaType": "tv",
+      "title": "Black Doves",
+      "value": "74"
+    },
+    {
+      "tmdbId": 213375,
+      "mediaType": "tv",
+      "title": "VisionQuest",
+      "value": "73"
+    },
+    {
+      "tmdbId": 247718,
+      "mediaType": "tv",
+      "title": "MobLand",
+      "value": "67"
+    },
+    {
+      "tmdbId": 126116,
+      "mediaType": "tv",
+      "title": "Time",
+      "value": "67"
+    },
+    {
+      "tmdbId": 124364,
+      "mediaType": "tv",
+      "title": "FROM",
+      "value": "65"
+    },
+    {
+      "tmdbId": 259909,
+      "mediaType": "tv",
+      "title": "Dexter: Resurrection",
+      "value": "62"
+    },
+    {
+      "tmdbId": 249565,
+      "mediaType": "tv",
+      "title": "The Good Daughter",
+      "value": "60"
+    },
+    {
+      "tmdbId": 292741,
+      "mediaType": "tv",
+      "title": "Nocturne",
+      "value": "59"
+    }
+  ],
+  "heroPosition": "50% 30%"
+}

@@ -1,5 +1,6 @@
 import bond from "@/content/slate-lists/7-for-007.json";
 import thanksgiving from "@/content/slate-lists/thanksgiving-peace-treaty.json";
+import showsThisWeek from "@/content/slate-lists/shows-this-week.json";
 import thisWeek from "@/content/slate-lists/this-week.json";
 
 /**
@@ -39,7 +40,7 @@ interface ListFile {
   titles: { tmdbId: number; mediaType?: string; value?: string | number | null; line?: string | null }[];
 }
 
-const FILES = [bond, thanksgiving, thisWeek] as ListFile[];
+const FILES = [bond, thanksgiving, thisWeek, showsThisWeek] as ListFile[];
 
 const EXTRAS = new Map<string, SlateListExtras>(
   FILES.map((file) => [
