@@ -77,7 +77,6 @@ struct TitleDetailView: View {
         .preferredColorScheme(.dark)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .slateHidesChrome()
         .task(id: title.id) { await load() }
         .sheet(item: $presentedSheet) { sheet in
             switch sheet {

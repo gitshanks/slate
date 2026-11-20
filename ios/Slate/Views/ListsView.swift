@@ -179,6 +179,7 @@ private struct ListDetailView: View {
     let listId: String
     @State private var detail: SlateListDetailPayload?
     @State private var dragging: SlateTitle?
+    @State private var lastDrop = Date.distantPast
     @State private var editing = false
     @State private var adding = false
     @State private var deleting = false
@@ -209,7 +210,8 @@ private struct ListDetailView: View {
                             }
                             .buttonStyle(SlatePressStyle())
                             .onDrag {
-                                dragging = title
+                                // SwiftUI asks for the item once more just after a drop.
+                                if Date().timeIntervalSince(lastDrop) > 1.5 { dragging = title }
                                 return NSItemProvider(object: title.id as NSString)
                             } preview: { PosterDragPreview(title: title) }
                             .onDrop(
@@ -239,7 +241,6 @@ private struct ListDetailView: View {
         }
         }
         .background(SlatePalette.background)
-        .slateHidesChrome()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -303,6 +304,8 @@ private struct ListDetailView: View {
     }
 
     private func commitOrder(_ values: [SlateTitle]) {
+        lastDrop = Date()
+        dragging = nil
         Task {
             do { try await model.reorder(listId: listId, titles: values) }
             catch { model.presentedError = error.localizedDescription; await load() }

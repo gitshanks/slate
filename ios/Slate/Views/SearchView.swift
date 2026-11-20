@@ -251,7 +251,6 @@ struct DiscoverTitleView: View {
         .preferredColorScheme(.dark)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .slateHidesChrome()
         .task { await load() }
         .fullScreenCover(item: $trailer) { trailer in
             TrailerPlayerView(trailer: trailer)
@@ -393,7 +392,6 @@ struct PersonView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .slateHidesChrome()
         .task {
             do { person = try await model.person(id: personId) }
             catch { model.presentedError = error.localizedDescription }

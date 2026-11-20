@@ -219,6 +219,13 @@ final class AppModel: ObservableObject {
             updated.position = position
             return updated
         }
+        #if DEBUG
+        if SlatePreview.isOn {
+            guard SlatePreview.failsReorder else { return }
+            titles = original
+            throw APIClientError.invalidConfiguration
+        }
+        #endif
         do {
             try await authenticated { try await api.reorderStatus(status, titleIds: ids, accessToken: $0) }
             try? localStore?.replace(with: titles)
