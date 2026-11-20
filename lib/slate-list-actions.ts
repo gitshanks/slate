@@ -13,7 +13,9 @@ import { asViewerOrGuest } from "@/lib/guest-session";
 export async function addSlateListToLibrary(slug: string): Promise<{ added: number }> {
   const found = await getSlateList(slug);
   if (!found) throw new Error("That list is no longer here.");
-  return asViewerOrGuest(() => copySlateList(found), `/login?mode=create&next=/l/${encodeURIComponent(slug)}`);
+  // Without guest mode: sign up, then back to the list with it added.
+  const signup = `/login?${new URLSearchParams({ mode: "create", next: `/l/${found.list.slug}?add=1` })}`;
+  return asViewerOrGuest(() => copySlateList(found), signup);
 }
 
 /**
