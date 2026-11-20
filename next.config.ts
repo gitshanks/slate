@@ -11,12 +11,14 @@ const PUBLIC_MODE =
   process.env.NEXT_PUBLIC_SLATE_HOSTED === "1";
 
 // Stable per-deploy identifier surfaced to the client and to /api/version.
-// On Vercel we get the commit SHA for free; everywhere else we fall back to
+// On Vercel and Cloudflare Workers Builds we get the commit SHA for free;
+// everywhere else we fall back to
 // the build's wall-clock timestamp so a fresh `next build` always produces a
 // new id. The running server process and the client bundle disagree iff the
 // user is on a stale tab — that's the trigger for the refresh banner.
 const BUILD_ID =
   process.env.VERCEL_GIT_COMMIT_SHA ||
+  process.env.WORKERS_CI_COMMIT_SHA ||
   process.env.NEXT_PUBLIC_BUILD_ID ||
   String(Date.now());
 
@@ -36,9 +38,6 @@ const nextConfig: NextConfig = {
   },
   turbopack: {
     root: path.join(__dirname),
-  },
-  experimental: {
-    viewTransition: true,
   },
   async rewrites() {
     if (!PUBLIC_MODE) return [];

@@ -48,21 +48,53 @@ function configureTypeParsers(pgTypes: typeof import("pg").types): void {
 
 // ─── Connection pool (lazy singleton) ───────────────────────────────
 
+// Cloudflare Workers can't reuse a socket opened by one request in another, so
+// a process-wide Pool breaks there ("Cannot perform I/O on behalf of a
+// different request"). On Workers each query or transaction opens its own
+// short-lived client instead; Neon's pooled URL (pgbouncer) keeps that cheap.
+const ON_WORKERS =
+  typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers";
+
+type Queryable = Pick<Pool, "query" | "connect">;
+
 let pool: Pool | null = null;
 
-function getPool(): Pool {
+function connectionString(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not set");
+  return url;
+}
+
+async function loadPg(): Promise<typeof import("pg")> {
+  // On Workers there is no node_modules at runtime, so load pg through the
+  // bundler; elsewhere use a real Node require (see the note above).
+  const pg = ON_WORKERS
+    ? ((await import("pg")).default as unknown as typeof import("pg"))
+    : (createRequire(import.meta.url)("pg") as typeof import("pg"));
+  configureTypeParsers(pg.types);
+  return pg;
+}
+
+async function getPool(): Promise<Queryable> {
+  if (ON_WORKERS) {
+    const pg = await loadPg();
+    // A one-connection pool per call: query() and connect()/release() behave
+    // as usual, and end() is called once the caller is done (see withPool).
+    return new pg.Pool({
+      connectionString: connectionString(),
+      max: 1,
+      connectionTimeoutMillis: 15_000,
+    });
+  }
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString) throw new Error("DATABASE_URL is not set");
     // Real Node require → the genuine external pg package, not a bundled copy.
     // Reached only at query time (runtime), after connection() has resolved, so
     // a static prerender never evaluates pg.
-    const pg = createRequire(import.meta.url)("pg") as typeof import("pg");
-    configureTypeParsers(pg.types);
+    const pg = await loadPg();
     // SSL is driven by the connection string's `sslmode` (Neon's pooled URL
     // includes `sslmode=require`); local Postgres URLs omit it.
     pool = new pg.Pool({
-      connectionString,
+      connectionString: connectionString(),
       max: 10,
       idleTimeoutMillis: 10_000,
       connectionTimeoutMillis: 15_000,
@@ -74,6 +106,16 @@ function getPool(): Pool {
     });
   }
   return pool;
+}
+
+/** Run `work` against the pool, closing the per-call pool on Workers. */
+async function withPool<T>(work: (p: Queryable) => Promise<T>): Promise<T> {
+  const p = await getPool();
+  try {
+    return await work(p);
+  } finally {
+    if (ON_WORKERS) await (p as Pool).end().catch(() => {});
+  }
 }
 
 // ─── Error mapping ──────────────────────────────────────────────────
@@ -130,7 +172,7 @@ async function execute(state: BuilderState): Promise<QueryResult> {
 
   try {
     const { text, params } = buildQuery(state);
-    const res = await getPool().query(text, params as unknown[]);
+    const res = await withPool((p) => p.query(text, params as unknown[]));
     const rows = res.rows as Record<string, unknown>[];
 
     if (state.op === "select") {
@@ -232,22 +274,24 @@ export async function runNeonQuery<Row extends Record<string, unknown> = Record<
   text: string,
   params: unknown[] = [],
 ): Promise<Row[]> {
-  const result = await getPool().query(text, params);
+  const result = await withPool((p) => p.query(text, params));
   return result.rows as Row[];
 }
 
 /** Keep related mutations atomic on the same pooled connection. */
 export async function runNeonTransaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
-  const client = await getPool().connect();
-  try {
-    await client.query("begin");
-    const result = await work(client);
-    await client.query("commit");
-    return result;
-  } catch (error) {
-    await client.query("rollback");
-    throw error;
-  } finally {
-    client.release();
-  }
+  return withPool(async (p) => {
+    const client = await p.connect();
+    try {
+      await client.query("begin");
+      const result = await work(client);
+      await client.query("commit");
+      return result;
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
+  });
 }

@@ -1,0 +1,34 @@
+// Cloudflare Workers config for Slate (see docs/cloudflare.md).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "slate",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    // Lets the worker call itself, which OpenNext uses for caching.
+    { "binding": "WORKER_SELF_REFERENCE", "service": "slate" }
+  ],
+  "r2_buckets": [
+    // Cached pages and unstable_cache data (ISR).
+    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "slate-opennext-cache" }
+  ],
+  "d1_databases": [
+    // Tag cache, so revalidatePath() works across requests.
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "slate-opennext-tags",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+    }
+  ],
+  "durable_objects": {
+    // Queue for time-based revalidation (export const revalidate = …).
+    "bindings": [{ "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DOQueueHandler"] }],
+  "observability": { "enabled": true }
+}
