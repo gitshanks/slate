@@ -13,6 +13,8 @@ import { SLATE_HOSTED, SLATE_PUBLIC } from "@/lib/public-mode";
 import { getAppSession } from "@/lib/app-access";
 import { AnalyticsIdentity } from "@/components/analytics/analytics-identity";
 import { redirect } from "next/navigation";
+import { GuestProvider } from "@/components/guest-context";
+import { isGuestOwnerId } from "@/lib/guest-id";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // This layout and the data-access layer are the authorization boundary.
@@ -27,13 +29,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
   // Lists you own and lists shared with you, for every add-to-list control.
   const lists = await getEditableListOptions().catch(() => []);
+  const isGuest = isGuestOwnerId(ownerId);
 
   return (
     // AiConversationProvider wraps everything so the command palette and the
     // /discover page share one live AI thread across client-side navigation.
+    <GuestProvider isGuest={isGuest}>
     <AiConversationProvider>
       <ImageArrival />
-      {SLATE_HOSTED ? (
+      {/* Guests stay anonymous in analytics; signing up identifies the
+          person and joins their guest visits to the account. */}
+      {SLATE_HOSTED && !isGuest ? (
         <AnalyticsIdentity
           id={ownerId}
           email={session?.user?.email}
@@ -64,5 +70,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </CommandPaletteProvider>
     </AiConversationProvider>
+    </GuestProvider>
   );
 }

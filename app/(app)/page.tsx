@@ -11,6 +11,7 @@ import { SLATE_HOSTED } from "@/lib/public-mode";
 import { fetchTitlesByStatus } from "@/lib/title-filters";
 import { getNewEpisodes, suggestList } from "@/lib/library-nudges";
 import type { TitleRow } from "@/lib/types";
+import { guestIsReturning, isGuestOwnerId } from "@/lib/guest-id";
 
 export const metadata: Metadata = {
   title: "Library · slate",
@@ -62,12 +63,20 @@ export default async function LibraryPage() {
   const listSuggestion = lists.length ? null : suggestList(titles);
   const hiddenNudges = ((await cookies()).get("slate_nudges_hidden")?.value ?? "").split(".");
   const newEpisodes = await getNewEpisodes(ownerId, watching.titles).catch(() => []);
+  const guestNudge =
+    isGuestOwnerId(ownerId) && profile
+      ? {
+          listCount: lists.length,
+          returning: guestIsReturning(profile.created_at),
+        }
+      : null;
 
   return (
     <Suspense fallback={null}>
       <LibraryCollectionView
         newEpisodes={newEpisodes}
         hiddenNudges={hiddenNudges}
+        guestNudge={guestNudge}
         listSuggestion={listSuggestion}
         canPickMore={SLATE_HOSTED}
         titles={titles}

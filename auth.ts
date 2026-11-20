@@ -8,6 +8,9 @@ import { belongsToAccount } from "@/lib/account-session";
 import { resolveNativeOwner } from "@/lib/native-api/account";
 import { SLATE_HOSTED } from "@/lib/public-mode";
 import { recordSignupSource } from "@/lib/signup-source-server";
+import { isGuestOwnerId } from "@/lib/guest-id";
+import { verifyGuestToken } from "@/lib/guest-token";
+import { claimGuestForAccount, touchGuest } from "@/lib/guest-server";
 import {
   accountOwnerForEmail,
   consumeEmailCode,
@@ -64,6 +67,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
+    // A guest is signed in by the server alone (lib/guest-session.ts), with a
+    // token it signed when it made the guest account. Nobody can name an
+    // account here: only a guest id the server issued verifies.
+    Credentials({
+      id: "guest",
+      name: "Guest",
+      credentials: { token: { type: "text" } },
+      async authorize(credentials) {
+        const guestId = await verifyGuestToken(credentials.token);
+        return guestId ? { id: guestId, name: "Guest" } : null;
+      },
+    }),
     Google({
       authorization: {
         params: {
@@ -84,6 +99,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ account, profile, user }) {
       if (account?.provider === "email-code") {
         return Boolean(user.id && user.email);
+      }
+      if (account?.provider === "guest") {
+        return isGuestOwnerId(user.id);
       }
       if (account?.provider === "apple" && account.providerAccountId) {
         // Same identity table as the iOS app, so one Apple ID is one slate
@@ -145,11 +163,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // refreshing an old cookie must never restore a deleted identity.
         if (!account && !belongsToAccount(token, currentProfile.created_at)) return null;
         token.accountCreatedAt = currentProfile.created_at;
-        if (account) {
+        if (account && isGuestOwnerId(token.userId)) {
+          // A guest is not a signup: attribution waits for the real account.
+        } else if (account) {
+          // A guest who signs up (or into an existing account) brings their
+          // slate with them, before the first page of the account loads.
+          await claimGuestForAccount(token.userId);
           try {
             await recordSignupSource(token.userId);
           } catch {
             // Attribution is additive and must never block a sign-in.
+          }
+        }
+      }
+      if (!account && isGuestOwnerId(token.userId)) {
+        const today = new Date().toISOString().slice(0, 10);
+        if (token.guestSeenOn !== today) {
+          try {
+            await touchGuest(token.userId as string);
+            token.guestSeenOn = today;
+          } catch {
+            // Only keeps an active guest from idle pruning; retried tomorrow.
           }
         }
       }

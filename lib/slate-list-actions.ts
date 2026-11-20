@@ -3,16 +3,27 @@
 import { addTitle, addTitleToList, createListFromTitles } from "@/lib/actions";
 import { getLibraryClient } from "@/lib/library-db";
 import { getSlateList } from "@/lib/slate-lists";
+import { asViewerOrGuest } from "@/lib/guest-session";
+
+/**
+ * Copy a list made by Slate into the viewer's own slate. A signed-out visitor
+ * (most often someone who tapped through from a reel) gets a guest slate on
+ * the spot instead of a login wall, and can sign up to keep it later.
+ */
+export async function addSlateListToLibrary(slug: string): Promise<{ added: number }> {
+  const found = await getSlateList(slug);
+  if (!found) throw new Error("That list is no longer here.");
+  return asViewerOrGuest(() => copySlateList(found), `/login?mode=create&next=/l/${encodeURIComponent(slug)}`);
+}
 
 /**
  * Copy a list made by Slate into the signed-in person's own slate: every title
  * goes into Up Next (titles already saved keep their shelf) and a list of the
  * same name holds them in Slate's order. Safe to press twice.
  */
-export async function addSlateListToLibrary(slug: string): Promise<{ added: number }> {
-  const found = await getSlateList(slug);
-  if (!found) throw new Error("That list is no longer here.");
-
+async function copySlateList(
+  found: NonNullable<Awaited<ReturnType<typeof getSlateList>>>,
+): Promise<{ added: number }> {
   const titleIds: string[] = [];
   for (const title of found.titles) {
     const row = await addTitle({

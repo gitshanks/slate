@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/empty-state";
 import { AddToListPicker } from "@/components/add-to-list-picker";
 import { DeleteListButton } from "@/components/delete-list-button";
 import { ShareListButton } from "@/components/share-list-button";
+import { SignupGate } from "@/components/guest-context";
 import { ListPeople } from "@/components/list-people";
 import { ListTvToggle } from "@/components/list-tv-toggle";
 import { ListHeader } from "@/components/list-header";
@@ -76,8 +77,8 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
         ) : null}
         actions={
           <>
-            <ListTvToggle listId={list.id} onTv={!hiddenOnTv.has(list.id)} />
-            {SLATE_HOSTED ? <ShareListButton listId={list.id} listName={list.name} owner={list.owner} members={list.members} isOwner={list.isOwner} /> : null}
+            <SignupGate reason="tv"><ListTvToggle listId={list.id} onTv={!hiddenOnTv.has(list.id)} /></SignupGate>
+            {SLATE_HOSTED ? <SignupGate reason="share"><ShareListButton listId={list.id} listName={list.name} owner={list.owner} members={list.members} isOwner={list.isOwner} /></SignupGate> : null}
           </>
         }
         trailing={list.isOwner ? <DeleteListButton listId={list.id} listName={list.name} iconOnly className="h-9 w-9" /> : null}

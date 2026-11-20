@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { ChevronDown, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { StatusPill } from "@/components/status-pill";
@@ -11,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { addTitle } from "@/lib/actions";
+import { saveTitleAsViewer } from "@/lib/guest-actions";
 import type { TitleStatus } from "@/lib/types";
 
 const STATUS_OPTIONS: {
@@ -23,32 +22,23 @@ const STATUS_OPTIONS: {
   { value: "watched", label: "Watched" },
 ];
 
-/** Add control for the standalone shared title page (`/u/:user/title/:id`). */
+/**
+ * Add control for the standalone shared title page (`/u/:user/title/:id`).
+ * A signed-out visitor saves straight into a guest slate, no login wall.
+ */
 export function PublicTitlePageAddControl({
   tmdbId,
   mediaType,
-  viewerSignedIn,
   initialSaved,
 }: {
   tmdbId: number;
   mediaType: "movie" | "tv";
-  viewerSignedIn: boolean;
+  /** Unused: a signed-out visitor saves into a guest slate too. */
+  viewerSignedIn?: boolean;
   initialSaved: { id: string; status: TitleStatus } | null;
 }) {
   const [isPending, startTransition] = React.useTransition();
   const [saved, setSaved] = React.useState(initialSaved);
-
-  if (!viewerSignedIn) {
-    return (
-      <Link
-        href="/login"
-        className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-      >
-        <Plus className="h-3.5 w-3.5" aria-hidden />
-        Add to your library
-      </Link>
-    );
-  }
 
   if (saved) {
     return (
@@ -80,7 +70,7 @@ export function PublicTitlePageAddControl({
             onClick={() => {
               startTransition(async () => {
                 try {
-                  const row = await addTitle({
+                  const row = await saveTitleAsViewer({
                     tmdbId,
                     mediaType,
                     status: value,

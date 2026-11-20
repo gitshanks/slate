@@ -6,6 +6,7 @@ import { getAppSession } from "@/lib/app-access";
 import { getOnboardingTitles } from "@/lib/onboarding-titles";
 import { getProfileById } from "@/lib/profiles";
 import { SLATE_HOSTED } from "@/lib/public-mode";
+import { isGuestOwnerId } from "@/lib/guest-id";
 import { countLibraryTitles, savedTitleKeys, SMALL_LIBRARY_TITLES } from "@/lib/library-nudges";
 import { getSharedTitle } from "@/lib/shared-title-data";
 import { sharedTitleFromPath, sharedTitleLoginPath, titleSharePath } from "@/lib/title-sharing";
@@ -55,12 +56,14 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
 
   return (
     <>
-      <AnalyticsIdentity
-        id={profile.id}
-        email={session.user.email}
-        displayName={profile.display_name}
-        createdAt={profile.created_at}
-      />
+      {isGuestOwnerId(profile.id) ? null : (
+        <AnalyticsIdentity
+          id={profile.id}
+          email={session.user.email}
+          displayName={profile.display_name}
+          createdAt={profile.created_at}
+        />
+      )}
       <OnboardingDeck titles={titles} returnTo={returnTo} more={more} />
     </>
   );

@@ -39,7 +39,9 @@ const ACTIVITY_CTE = `
   people as (
     select id, created_at, onboarding_completed_at, is_public, display_name, username
     from profiles
-    where id <> $1
+    -- Guests are not signups. Their activity counts once they sign up and
+    -- their slate moves into the account.
+    where id <> $1 and id not like 'guest:%'
   ),
   activity as (
     select owner_id, added_at as at from titles
@@ -176,7 +178,7 @@ const titleStatSql = (valueExpr: string, where = "true") => `
   select tmdb_id, media_type, max(title) as title, max(poster_path) as poster_path,
          count(distinct owner_id)::int as people, (${valueExpr})::int as value
   from titles
-  where owner_id in (select id from profiles where id <> $1) and ${where}
+  where owner_id in (select id from profiles where id <> $1 and id not like 'guest:%') and ${where}
   group by tmdb_id, media_type
   having (${valueExpr}) > 0
   order by value desc, people desc, max(added_at) desc
@@ -266,13 +268,13 @@ export async function getInsights(viewerId: string | null): Promise<Insights> {
          cross join lateral jsonb_array_elements(
            case when jsonb_typeof(t.genres) = 'array' then t.genres else '[]'::jsonb end
          ) g
-         where t.owner_id in (select id from profiles where id <> $1) and g->>'name' is not null
+         where t.owner_id in (select id from profiles where id <> $1 and id not like 'guest:%') and g->>'name' is not null
          group by 1 order by count desc limit 10`,
         [exclude],
       ),
       runNeonQuery<{ media_type: string; status: string; count: number }>(
         `select media_type, status, count(*)::int as count from titles
-         where owner_id in (select id from profiles where id <> $1)
+         where owner_id in (select id from profiles where id <> $1 and id not like 'guest:%')
          group by 1, 2`,
         [exclude],
       ),

@@ -87,6 +87,11 @@ export function runAsLibraryOwner<T>(ownerId: string, fn: () => T): T {
   return nativeOwner.run(ownerId, fn);
 }
 
+/** The owner set by runAsLibraryOwner, when the code is running inside it. */
+export function explicitLibraryOwner(): string | undefined {
+  return nativeOwner.getStore();
+}
+
 export const getLibraryOwnerId = cache(async () => {
   const native = nativeOwner.getStore();
   if (native) return native;

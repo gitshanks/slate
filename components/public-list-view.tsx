@@ -26,6 +26,13 @@ interface PublicListViewProps {
   viewerSignedIn?: boolean;
 }
 
+function isRedirect(error: unknown) {
+  return Boolean(
+    error && typeof error === "object" && "digest" in error &&
+      String((error as { digest: unknown }).digest).startsWith("NEXT_REDIRECT"),
+  );
+}
+
 // The page's one action is a quiet pill in the top bar, so the still, the
 // name and the list read as one piece (DESIGN.md, Interaction).
 const ACTION =
@@ -55,12 +62,17 @@ export function PublicListView({
       try {
         await addSlateListToLibrary(slug);
         setSaved(true);
-        toast.success(`${name} is on your slate`);
+        // A signed-out visitor now has a guest slate: no login wall, and a
+        // nudge that it is theirs to keep.
+        toast.success(`${name} is on your slate`, viewerSignedIn ? undefined : {
+          description: "Sign up anytime to keep it on every device.",
+        });
       } catch (error) {
+        if (isRedirect(error)) throw error;
         toast.error(error instanceof Error ? error.message : "That did not work. Try again.");
       }
     });
-  }, [name, slug]);
+  }, [name, slug, viewerSignedIn]);
 
   const open = React.useCallback(
     (title: TitleRow) => {
@@ -128,13 +140,8 @@ export function PublicListView({
           <Link href="/" aria-label="slate home" className="flex items-center">
             <Image src="/brand/wordmark-light.svg" alt="slate" width={64} height={23} priority />
           </Link>
-          {!viewerSignedIn ? (
-            <Link href="/login" className={ACTION}>
-              <Plus aria-hidden className="size-4" />
-              Add to your slate
-            </Link>
-          ) : saved ? (
-            <Link href="/lists" className={ACTION}>
+          {saved ? (
+            <Link href={viewerSignedIn ? "/lists" : "/app"} className={ACTION}>
               <Check aria-hidden className="size-4" />
               On your slate
             </Link>

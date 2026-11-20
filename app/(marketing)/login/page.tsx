@@ -10,6 +10,9 @@ import { SLATE_HOSTED } from "@/lib/public-mode";
 import { safeRedirectPath } from "@/lib/email-auth-core";
 import { emailSignInConfigured } from "@/lib/email-auth";
 import { appleSignInConfigured } from "@/lib/apple-auth";
+import { isGuestOwnerId } from "@/lib/guest-id";
+import { guestModeEnabled } from "@/lib/guest-token";
+import { startAsGuest } from "@/lib/guest-actions";
 import styles from "./login.module.css";
 
 export const metadata: Metadata = {
@@ -36,7 +39,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const rawNext = Array.isArray(query.next) ? query.next[0] : query.next;
   const creating = rawMode === "create";
   const redirectTo = safeRedirectPath(rawNext);
-  if (session?.user?.id) redirect(redirectTo);
+  // A guest comes here to sign up and keep their slate, so only a real
+  // account is sent on.
+  const isGuest = isGuestOwnerId(session?.user?.id);
+  if (session?.user?.id && !isGuest) redirect(redirectTo);
+  const canTryAsGuest = !session?.user?.id && guestModeEnabled();
   const emailEnabled = emailSignInConfigured();
   const appleEnabled = appleSignInConfigured();
   const error = rawError ? loginErrorMessage(rawError) : null;
@@ -54,8 +61,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     >
       <div className={styles.authInner}>
         <h1 id="auth-title">
-          {creating ? "Create your slate" : "Sign in to slate"}
+          {isGuest ? "Keep your slate" : creating ? "Create your slate" : "Sign in to slate"}
         </h1>
+        {isGuest ? (
+          <p className={styles.guestNote}>
+            Everything you saved as a guest comes with you, into a new slate or one you already have.
+          </p>
+        ) : null}
 
         {error ? <LoginError title={error.title} body={error.body} /> : null}
 
@@ -84,6 +96,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               redirectTo={redirectTo}
             />
           </div>
+        ) : null}
+
+        {canTryAsGuest && creating ? (
+          <form action={startAsGuest} className={styles.guestTry}>
+            <input type="hidden" name="next" value={rawNext ?? ""} />
+            <button type="submit" data-analytics-action="guest_start" data-analytics-area="login">
+              Try it first, no account needed
+            </button>
+          </form>
         ) : null}
 
         <p className={styles.switchMode}>

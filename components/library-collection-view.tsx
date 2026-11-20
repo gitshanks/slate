@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import {
   LibraryNudges,
+  type GuestNudgeState,
   SmallLibraryActions,
   type ListSuggestionNudge,
   type NewEpisodeNudge,
@@ -81,6 +82,8 @@ interface LibraryCollectionViewProps {
   listSuggestion?: ListSuggestionNudge | null;
   canPickMore?: boolean;
   hiddenNudges?: string[];
+  /** Set for a guest: drives the "keep your slate" prompt. */
+  guestNudge?: GuestNudgeState | null;
 }
 
 export function LibraryCollectionView({
@@ -93,6 +96,7 @@ export function LibraryCollectionView({
   listSuggestion = null,
   canPickMore = false,
   hiddenNudges = [],
+  guestNudge = null,
 }: LibraryCollectionViewProps) {
   const searchParams = useSearchParams();
   const { activate: activateSmartSearch } = useCommandPalette();
@@ -450,6 +454,7 @@ export function LibraryCollectionView({
               titleCount={titles.length}
               canPickMore={canPickMore}
               hiddenNudges={hiddenNudges}
+              guestNudge={guestNudge}
               savedPosters={titles.slice(0, 5).map((title) => title.poster_path)}
               newEpisodes={newEpisodes}
               listSuggestion={listSuggestion}
