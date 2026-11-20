@@ -77,7 +77,7 @@ export default async function ListDetailPage(props: PageProps<"/lists/[slug]">) 
         ) : null}
         actions={
           <>
-            <SignupGate reason="tv"><ListTvToggle listId={list.id} onTv={!hiddenOnTv.has(list.id)} /></SignupGate>
+            <ListTvToggle listId={list.id} onTv={!hiddenOnTv.has(list.id)} />
             {SLATE_HOSTED ? <SignupGate reason="share"><ShareListButton listId={list.id} listName={list.name} owner={list.owner} members={list.members} isOwner={list.isOwner} /></SignupGate> : null}
           </>
         }
