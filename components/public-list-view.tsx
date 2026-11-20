@@ -31,6 +31,12 @@ interface PublicListViewProps {
 const ACTION =
   "inline-flex h-9 items-center gap-1.5 rounded-full bg-background/55 px-3.5 text-[13px] font-semibold text-primary ring-1 ring-inset ring-primary/35 backdrop-blur-md transition-[background-color,transform] duration-150 hover:bg-background/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.97] disabled:opacity-70 sm:h-10 sm:px-4 sm:text-sm";
 
+/** Sign up, then land back on this list with it added (see the effect below). */
+function signupHref(slug: string): string {
+  const params = new URLSearchParams({ mode: "create", next: `/l/${slug}?add=1` });
+  return `/login?${params}`;
+}
+
 /**
  * A list made by Slate. A still from one of its films runs across the top
  * with the list's name over it. The films are a ranked list: a very large,
@@ -61,6 +67,20 @@ export function PublicListView({
       }
     });
   }, [name, slug]);
+
+  // Someone who pressed "Add to your slate" before having an account comes
+  // back here signed in with ?add=1, so the list they asked for is added
+  // without a second press.
+  const resumed = React.useRef(false);
+  React.useEffect(() => {
+    if (!viewerSignedIn || resumed.current) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("add") !== "1") return;
+    resumed.current = true;
+    url.searchParams.delete("add");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    addList();
+  }, [addList, viewerSignedIn]);
 
   const open = React.useCallback(
     (title: TitleRow) => {
@@ -129,7 +149,7 @@ export function PublicListView({
             <Image src="/brand/wordmark-light.svg" alt="slate" width={64} height={23} priority />
           </Link>
           {!viewerSignedIn ? (
-            <Link href="/login" className={ACTION}>
+            <Link href={signupHref(slug)} className={ACTION}>
               <Plus aria-hidden className="size-4" />
               Add to your slate
             </Link>
