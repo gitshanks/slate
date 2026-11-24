@@ -5,11 +5,11 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.028, green: 0.026, blue: 0.031).ignoresSafeArea()
+            SlatePalette.background.ignoresSafeArea()
             switch model.state {
             case .launching:
                 ProgressView()
-                    .tint(.white)
+                    .tint(SlatePalette.text)
                     .transition(.opacity)
             case .signedOut, .signingIn:
                 SignInView()

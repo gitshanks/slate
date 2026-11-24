@@ -9,7 +9,7 @@ struct SlateApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(model)
-                .preferredColorScheme(.dark)
+                .onAppear { SlateAppearance.applyStored() }
                 .task { await model.bootstrap() }
                 .onOpenURL { url in
                     if !GIDSignIn.sharedInstance.handle(url) {

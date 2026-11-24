@@ -70,8 +70,7 @@ struct ImportRecommendationsView: View {
             .background(SlatePalette.background)
             .toolbar(.hidden, for: .navigationBar)
         }
-        .tint(.white)
-        .preferredColorScheme(.dark)
+        .tint(SlatePalette.text)
         .task {
             if initialText?.isEmpty == false, resolution == nil { await resolve() }
         }
@@ -83,7 +82,7 @@ struct ImportRecommendationsView: View {
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(SlatePalette.text)
                         .frame(width: 44, height: 44)
                         .contentShape(.rect)
                 }
@@ -105,7 +104,7 @@ struct ImportRecommendationsView: View {
                     prompt: Text("Paste a link").foregroundColor(SlatePalette.mutedText)
                 )
                 .font(.system(size: 15))
-                .foregroundStyle(.white)
+                .foregroundStyle(SlatePalette.text)
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -156,7 +155,7 @@ struct ImportRecommendationsView: View {
                         : source.map { "\(count) found in \($0)" } ?? "\(count) found"
                 )
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(SlatePalette.text)
                 .lineLimit(2)
                 .padding(.top, 24)
                 if let warning = resolution.warning {
@@ -181,7 +180,7 @@ struct ImportRecommendationsView: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(saved ? SlatePalette.onAccent : .white)
                 .frame(width: 24, height: 24)
-                .background(saved ? SlatePalette.accent : .black.opacity(0.62), in: .circle)
+                .background(saved ? SlatePalette.accent : SlatePalette.background.opacity(0.62), in: .circle)
                 .padding(6)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }

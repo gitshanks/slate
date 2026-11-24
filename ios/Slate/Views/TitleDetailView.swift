@@ -25,7 +25,7 @@ struct TitleDetailView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .top) {
-                Color.black.ignoresSafeArea()
+                SlatePalette.background.ignoresSafeArea()
                 backdrop
                     .frame(width: proxy.size.width)
                     .clipped()
@@ -44,7 +44,7 @@ struct TitleDetailView: View {
                         if let overview = currentTitle.overview, !overview.isEmpty {
                             Text(overview)
                                 .font(.system(size: 16))
-                                .foregroundStyle(.white.opacity(0.82))
+                                .foregroundStyle(SlatePalette.text.opacity(0.82))
                                 .lineSpacing(5)
                                 .padding(.top, 24)
                         }
@@ -56,7 +56,7 @@ struct TitleDetailView: View {
 
                         if loading {
                             ProgressView()
-                                .tint(.white)
+                                .tint(SlatePalette.text)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 70)
                         } else if let detail {
@@ -74,7 +74,6 @@ struct TitleDetailView: View {
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .preferredColorScheme(.dark)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .slateHidesChrome()
@@ -138,7 +137,7 @@ struct TitleDetailView: View {
                 if case .success(let image) = phase {
                     image.resizable().scaledToFill()
                 } else {
-                    Rectangle().fill(Color(white: 0.08))
+                    Rectangle().fill(SlatePalette.placeholder)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -146,12 +145,12 @@ struct TitleDetailView: View {
             .clipped()
 
             LinearGradient(
-                colors: [.black.opacity(0.42), .black.opacity(0.68), .black],
+                colors: [SlatePalette.background.opacity(0.42), SlatePalette.background.opacity(0.68),  SlatePalette.background],
                 startPoint: .top,
                 endPoint: .bottom
             )
             LinearGradient(
-                colors: [.black.opacity(0.82), .black.opacity(0.22)],
+                colors: [SlatePalette.background.opacity(0.82), SlatePalette.background.opacity(0.22)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
@@ -251,17 +250,17 @@ struct TitleDetailView: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Your note")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(SlatePalette.text)
             Text(review)
                 .font(.system(size: 15))
-                .foregroundStyle(.white.opacity(0.84))
+                .foregroundStyle(SlatePalette.text.opacity(0.84))
                 .lineSpacing(4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .background(.white.opacity(0.055), in: .rect(cornerRadius: 18))
+        .background(SlatePalette.text.opacity(0.055), in: .rect(cornerRadius: 18))
         .overlay {
-            RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.1), lineWidth: 0.7)
+            RoundedRectangle(cornerRadius: 18).stroke(SlatePalette.text.opacity(0.1), lineWidth: 0.7)
         }
     }
 
@@ -284,26 +283,26 @@ struct TitleDetailView: View {
                                         image.resizable().scaledToFill()
                                     } else {
                                         ZStack {
-                                            Color.white.opacity(0.06)
+                                            SlatePalette.text.opacity(0.06)
                                             Text(initials(person.name))
                                                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                                                .foregroundStyle(.white.opacity(0.48))
+                                                .foregroundStyle(SlatePalette.text.opacity(0.48))
                                         }
                                     }
                                 }
                                 .aspectRatio(1, contentMode: .fit)
                                 .clipShape(.rect(cornerRadius: 13))
                                 .overlay {
-                                    RoundedRectangle(cornerRadius: 13).stroke(.white.opacity(0.09), lineWidth: 0.7)
+                                    RoundedRectangle(cornerRadius: 13).stroke(SlatePalette.text.opacity(0.09), lineWidth: 0.7)
                                 }
                                 Text(person.name)
                                     .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(SlatePalette.text)
                                     .lineLimit(1)
                                 if let subtitle = person.subtitle {
                                     Text(subtitle)
                                         .font(.system(size: 10))
-                                        .foregroundStyle(.white.opacity(0.5))
+                                        .foregroundStyle(SlatePalette.text.opacity(0.5))
                                         .lineLimit(1)
                                 }
                             }
@@ -338,19 +337,19 @@ struct TitleDetailView: View {
                                     if case .success(let image) = phase {
                                         image.resizable().scaledToFill()
                                     } else {
-                                        Color.white.opacity(0.06)
+                                        SlatePalette.text.opacity(0.06)
                                     }
                                 }
                                 .aspectRatio(2 / 3, contentMode: .fit)
                                 .clipShape(.rect(cornerRadius: 13))
                                 Text(recommendation.title)
                                     .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(SlatePalette.text)
                                     .lineLimit(1)
                                 if let year = recommendation.year {
                                     Text(year)
                                         .font(.system(size: 11))
-                                        .foregroundStyle(.white.opacity(0.48))
+                                        .foregroundStyle(SlatePalette.text.opacity(0.48))
                                 }
                             }
                         }
@@ -407,33 +406,33 @@ struct TitleDetailView: View {
     private func actionPill(_ label: String, icon: String, highlighted: Bool = false) -> some View {
         Label(label, systemImage: icon)
             .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(highlighted ? SlatePalette.accent : .white.opacity(0.82))
+            .foregroundStyle(highlighted ? SlatePalette.accent : SlatePalette.text.opacity(0.82))
             .padding(.horizontal, 14)
             .frame(height: 40)
             .background(
                 highlighted
                     ? SlatePalette.accent.opacity(0.19)
-                    : .white.opacity(0.07),
+                    : SlatePalette.text.opacity(0.07),
                 in: .capsule
             )
             .overlay {
                 Capsule().stroke(
                     highlighted
                         ? SlatePalette.accent.opacity(0.35)
-                        : .white.opacity(0.12),
+                        : SlatePalette.text.opacity(0.12),
                     lineWidth: 0.7
                 )
             }
     }
 
     private var separator: some View {
-        Text("·").foregroundStyle(.white.opacity(0.32))
+        Text("·").foregroundStyle(SlatePalette.text.opacity(0.32))
     }
 
     private func metadataText(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 12))
-            .foregroundStyle(.white.opacity(0.66))
+            .foregroundStyle(SlatePalette.text.opacity(0.66))
     }
 
     private func ratingChip(label: String, value: String) -> some View {
@@ -442,11 +441,11 @@ struct TitleDetailView: View {
             Text(value)
         }
         .font(.system(size: 11))
-        .foregroundStyle(.white.opacity(0.8))
+        .foregroundStyle(SlatePalette.text.opacity(0.8))
         .padding(.horizontal, 7)
         .frame(height: 22)
-        .background(.black.opacity(0.48), in: .capsule)
-        .overlay { Capsule().stroke(.white.opacity(0.1), lineWidth: 0.6) }
+        .background(SlatePalette.background.opacity(0.48), in: .capsule)
+        .overlay { Capsule().stroke(SlatePalette.text.opacity(0.1), lineWidth: 0.6) }
     }
 
     private func runtimeLabel(_ minutes: Int) -> String {
@@ -547,8 +546,8 @@ private struct NoteEditorSheet: View {
                 TextEditor(text: $value)
                     .scrollContentBackground(.hidden)
                     .padding(10)
-                    .background(.white.opacity(0.06), in: .rect(cornerRadius: 14))
-                    .overlay { RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.1)) }
+                    .background(SlatePalette.text.opacity(0.06), in: .rect(cornerRadius: 14))
+                    .overlay { RoundedRectangle(cornerRadius: 14).stroke(SlatePalette.text.opacity(0.1)) }
             }
             .padding(18)
             .navigationTitle(title)
@@ -587,7 +586,7 @@ private struct ProviderPickerSheet: View {
                         CachedAsyncPhaseImage(url: provider.logoURL) { phase in
                             if case .success(let image) = phase {
                                 image.resizable().scaledToFill()
-                            } else { Color.white.opacity(0.08) }
+                            } else { SlatePalette.text.opacity(0.08) }
                         }
                         .frame(width: 42, height: 42)
                         .clipShape(.rect(cornerRadius: 10))
@@ -619,7 +618,7 @@ private struct ProviderPickerSheet: View {
     }
 }
 
-private struct ListPickerSheet: View {
+struct ListPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     let lists: [TitleListOption]
     let onAdd: (TitleListOption) async -> Bool
@@ -668,6 +667,53 @@ private struct ListPickerSheet: View {
             .scrollContentBackground(.hidden)
             .navigationTitle("Add to list")
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+/// Add a saved title to one of your lists, or to a new one, from anywhere
+/// the title page isn't open (Previews, search).
+struct AddToListSheet: View {
+    @EnvironmentObject private var model: AppModel
+    let title: SlateTitle
+    @State private var lists: [TitleListOption]?
+
+    var body: some View {
+        Group {
+            if let lists {
+                ListPickerSheet(
+                    lists: lists,
+                    onAdd: { list in
+                        do {
+                            _ = try await model.addTitle(title.id, toList: list.id)
+                            return true
+                        } catch {
+                            model.presentedError = error.localizedDescription
+                            return false
+                        }
+                    },
+                    onCreate: { name in
+                        do {
+                            _ = try await model.addTitle(title.id, newListName: name)
+                            return true
+                        } catch {
+                            model.presentedError = error.localizedDescription
+                            return false
+                        }
+                    }
+                )
+            } else {
+                ProgressView().tint(SlatePalette.mutedText)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationBackground(SlatePalette.surface)
+        .task {
+            lists = (try? await model.titleDetail(id: title.id).lists) ?? model.lists.map {
+                TitleListOption(id: $0.id, slug: $0.slug, name: $0.name, description: $0.description,
+                                createdAt: $0.createdAt, updatedAt: $0.updatedAt, containsTitle: false)
+            }
         }
     }
 }

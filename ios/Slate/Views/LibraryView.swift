@@ -184,8 +184,12 @@ struct LibraryScreen: View {
     @EnvironmentObject private var model: AppModel
     @Binding var shelf: Shelf
     @Binding var filters: LibraryFilters
+    var viewMode: LibraryViewMode = .shelf
+    /// What is typed in the search field narrows the shelf as you type.
+    var query = ""
     let onAdd: () -> Void
     let onAddFromLink: () -> Void
+    var onOpenTitle: (SlateTitle) -> Void = { _ in }
 
     #if DEBUG
     @State private var sheetOpen = SlatePreview.sheet == "filters"
@@ -212,8 +216,12 @@ struct LibraryScreen: View {
             if shelf != .watched { value.reaction = "" }
             return value
         }()
-        let visible = filterAndSort(model.titles, shelf: shelf, filters: effective)
-        let canReorder = shelf.status != nil && effective.sort.isEmpty && effective.activeCount == 0
+        let filtered = filterAndSort(model.titles, shelf: shelf, filters: effective)
+        let needle = query.lowercased()
+        let visible = needle.isEmpty ? filtered : filtered.filter {
+            "\($0.title) \($0.originalTitle ?? "")".lowercased().contains(needle)
+        }
+        let canReorder = shelf.status != nil && effective.sort.isEmpty && effective.activeCount == 0 && needle.isEmpty
         let shown = canReorder ? (moved ?? visible) : visible
 
         GeometryReader { proxy in
@@ -242,9 +250,13 @@ struct LibraryScreen: View {
 
                 if model.titles.isEmpty {
                     EmptyLibrary(onAdd: onAdd, onAddFromLink: onAddFromLink)
+                } else if viewMode == .space {
+                    LibrarySpaceView(titles: visible, onOpen: onOpenTitle)
+                        .transition(.opacity)
                 } else {
                     ScrollView {
                         VStack(spacing: 0) {
+                            if needle.isEmpty {
                             LibraryNudges(
                                 titles: model.titles,
                                 newEpisodes: model.newEpisodes,
@@ -252,18 +264,19 @@ struct LibraryScreen: View {
                                 onAdd: onAdd,
                                 onAddFromLink: onAddFromLink
                             )
+                            }
 
                             if shown.isEmpty {
                                 SlateEmptyMessage(
                                     title: "No titles match",
-                                    message: "Try another shelf or clear a filter."
+                                    message: "Try another filter or search."
                                 )
                                 .padding(.top, 72)
                             } else {
                                 grid(shown, width: proxy.size.width, reorderable: canReorder)
                             }
                         }
-                        .padding(.horizontal, SlateMetrics.gutter)
+                        .padding(.horizontal, 12)
                         .padding(.bottom, 16)
                         .slateArrive(on: GridKey(shelf: shelf, filters: effective))
                     }
@@ -295,17 +308,17 @@ struct LibraryScreen: View {
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(24)
             .presentationBackground(SlatePalette.surface)
-            .preferredColorScheme(.dark)
         }
     }
 
     private func grid(_ titles: [SlateTitle], width: CGFloat, reorderable: Bool) -> some View {
-        LazyVGrid(columns: SlateMetrics.posterColumns(for: width), spacing: SlateMetrics.posterGap) {
+        let layout = SlateMetrics.libraryGrid(for: width)
+        return LazyVGrid(columns: layout.columns, spacing: layout.rowGap) {
             ForEach(titles) { title in
                 let link = NavigationLink {
                     TitleDetailView(title: title)
                 } label: {
-                    PosterTile(title: title)
+                    LibraryPosterCard(title: title, compact: layout.compact)
                         .opacity(dragging?.id == title.id ? 0.3 : 1)
                 }
                 .buttonStyle(SlatePressStyle())
@@ -393,7 +406,7 @@ private struct FilterPanel: View {
             HStack {
                 Text("Filters")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(SlatePalette.text)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
                 if filters.activeCount > 0 {
@@ -534,7 +547,7 @@ private struct SortRow: View {
             HStack {
                 Text(label)
                     .font(.system(size: 14, weight: active ? .medium : .regular))
-                    .foregroundStyle(active ? .white : SlatePalette.mutedText)
+                    .foregroundStyle(active ? SlatePalette.text : SlatePalette.mutedText)
                     .lineLimit(1)
                 Spacer()
                 if active {

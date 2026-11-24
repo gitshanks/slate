@@ -22,7 +22,7 @@ struct ProfileView: View {
         let remoteAvatar = CachedAsyncImage(url: shownAvatarURL) { image in
             image.resizable().scaledToFill()
         } placeholder: {
-            Circle().fill(.white.opacity(0.07)).overlay {
+            Circle().fill(SlatePalette.text.opacity(0.07)).overlay {
                 Text(shownInitials).font(.title2.bold()).foregroundStyle(.secondary)
             }
         }
@@ -40,7 +40,7 @@ struct ProfileView: View {
                         }
                         .frame(width: 72, height: 72)
                         .clipShape(.circle)
-                        .overlay { Circle().stroke(.white.opacity(0.13), lineWidth: 0.8) }
+                        .overlay { Circle().stroke(SlatePalette.text.opacity(0.13), lineWidth: 0.8) }
                     }
                     .buttonStyle(SlatePressStyle())
                     .accessibilityLabel("Change your photo")
@@ -49,7 +49,7 @@ struct ProfileView: View {
                         TextField("Your name", text: $displayName)
                             .font(.system(size: 26, weight: .bold))
                             .tracking(-0.6)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(SlatePalette.text)
                             .textInputAutocapitalization(.words)
                             .focused($focused, equals: .displayName)
                             .submitLabel(.done)
@@ -88,7 +88,7 @@ struct ProfileView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Share your slate")
                                 .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(SlatePalette.text)
                             Text(isPublic ? "Anyone with your link can browse it." : "Only you can see it.")
                                 .font(.system(size: 13))
                                 .foregroundStyle(SlatePalette.mutedText)
@@ -108,7 +108,7 @@ struct ProfileView: View {
                                     .frame(width: 22)
                                 Text("s1ate.space/u/\(username)")
                                     .font(.system(size: 15))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(SlatePalette.text)
                                     .lineLimit(1)
                                     .truncationMode(.middle)
                                 Spacer(minLength: 0)
@@ -169,7 +169,7 @@ struct ProfileView: View {
         VStack(spacing: 2) {
             Text("\(model.titles.filter { $0.status == status }.count)")
                 .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(SlatePalette.text)
             Text(label)
                 .font(.system(size: 12))
                 .foregroundStyle(SlatePalette.mutedText)

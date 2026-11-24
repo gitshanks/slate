@@ -16,6 +16,8 @@ enum SlatePreview {
     static var shelf: String? { isOn ? defaults.string(forKey: "slateShelf") : nil }
     static var sheet: String? { isOn ? defaults.string(forKey: "slateSheet") : nil }
     static var format: String? { isOn ? defaults.string(forKey: "slateFormat") : nil }
+    static var view: String? { isOn ? defaults.string(forKey: "slateView") : nil }
+    static var query: String? { isOn ? defaults.string(forKey: "slateQuery") : nil }
     static var moveShelf: Int? {
         isOn && defaults.object(forKey: "slateMoveShelf") != nil ? defaults.integer(forKey: "slateMoveShelf") : nil
     }
@@ -106,10 +108,12 @@ enum SlatePreview {
     }
 
     static var rails: [DiscoverRail] {
-        ["Because of what you watched", "Trending this week", "In cinemas now", "On Netflix"]
-            .enumerated().map { rail, name in
-                DiscoverRail(
-                    id: "rail-\(rail)",
+        [("recommended", "Based on your library"), ("trending", "Trending this week"),
+         ("nowPlaying", "Now playing"), ("service-netflix", "On Netflix")]
+            .enumerated().map { rail, entry in
+                let (id, name) = entry
+                return DiscoverRail(
+                    id: id,
                     title: name,
                     items: (0..<10).map { index in
                         DiscoverRailItem(
@@ -132,6 +136,28 @@ enum SlatePreview {
             description: "Seven films to watch before the next Bond is cast, in the order we would watch them.",
             curator: "Slate",
             titles: rails[0].items + rails[1].items.prefix(3)
+        )
+    }
+
+    static func search(_ query: String) -> CatalogSearchPayload {
+        CatalogSearchPayload(
+            results: (0..<8).map { index in
+                CatalogTitle(
+                    tmdbId: 900 + index,
+                    mediaType: index % 3 == 1 ? .tv : .movie,
+                    title: index == 0 ? query.capitalized : "\(query.capitalized): Part \(index + 1)",
+                    originalTitle: nil,
+                    overview: nil,
+                    posterPath: "/\(posters[(index + 3) % posters.count]).jpg",
+                    backdropPath: nil,
+                    releaseDate: "\(2026 - index * 3)-03-01",
+                    tmdbRating: 6.4 + Double(index % 4) * 0.4,
+                    saved: index == 2 ? SavedTitleReference(id: "preview-2", status: .watched) : nil
+                )
+            },
+            people: [CatalogPerson(id: 77, name: "\(query.capitalized) Ray", profilePath: nil, knownForDepartment: "Acting", knownFor: [])],
+            approximate: false,
+            approximateQuery: nil
         )
     }
 

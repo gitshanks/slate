@@ -8,20 +8,25 @@
 
 /* Begin PBXBuildFile section */
 		06B316E1DACF6DFA239F39D4 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = F3630C11C7B4C972119BCC3E /* GoogleSignInSwift */; };
+		0761D332300CA61A6C4E3805 /* PreviewsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5B4E40CD1CDA42725C7C75B /* PreviewsView.swift */; };
 		0B0E0D7566600049B0E790D6 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C98B91A63E0400C858E9AEBF /* AppModel.swift */; };
 		0D246E28F4EAEB46202C2177 /* LocalLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2600EBA6545B7C799B1214F2 /* LocalLibraryStore.swift */; };
 		117FA89EE7CCBD9F2DC8CA77 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C11B5704D112B07F510916D /* APIClient.swift */; };
 		13B2751197A4DBDF108ECDC4 /* SlateShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8F1A9C2BF0DD82AD18D275C7 /* SlateShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		21AB604E7BCE4551BE27B8A1 /* Appearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8A4150115758CFE13241CD1 /* Appearance.swift */; };
 		2BBCDC832645C2DB32143528 /* LiquidSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843D8B72D03BBED050FE6261 /* LiquidSelector.swift */; };
+		31C26521BEA470A78A5FE53B /* WebParityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16D803323D7A8B80629A926B /* WebParityModels.swift */; };
 		34379BF2E1C89C8147B35959 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC76003A943697829D93B061 /* RootView.swift */; };
 		4067D925F11F17AA15759EF8 /* SlateApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684C3A6D70FBBD57AA4A098E /* SlateApp.swift */; };
 		4503A99F0DDEB1D2D32FFB77 /* ListsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F13C29F2E10537F5EC01A70D /* ListsView.swift */; };
 		46971A2142727CD97173FAB0 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 81A172791584050D093B6E0E /* GRDB */; };
+		50DA715E55A8E81AFF2D124E /* SmartSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39F3D72702A9E68026E0ABD7 /* SmartSearch.swift */; };
 		521BFE72A96B8F9B6BF18473 /* DebugPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FAC002394E9184FF7243713 /* DebugPreview.swift */; };
 		5222B71C6C3A9C5CFA34C389 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = F53CBBF554415347B1C735E8 /* GoogleSignIn */; };
 		65BD63804076B0857DF23AC3 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0E5DD68D24D3565128F1EDD /* SignInView.swift */; };
 		72FA1E4E12D14DDB979461F8 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB5343C5D793D62550226DD /* SearchView.swift */; };
 		78D0443F368DAE2CECE30161 /* TrailerPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AF372B3889CCF8F6B4699AC /* TrailerPlayerView.swift */; };
+		812F1875CAAD3F05AEB21F12 /* AskSlateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB5D89A62B3B88003D7367A /* AskSlateView.swift */; };
 		8BE2D7197D9E5AA117D49EBD /* LibraryNudges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8077CA3C6559A18CF000F4F2 /* LibraryNudges.swift */; };
 		8F238784A547D4B718FA76C2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AF2FF8F054673DFF516CE16C /* Assets.xcassets */; };
 		8FAD13177B4739FB58312363 /* SlateChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A66AB274E3865469654D32DF /* SlateChrome.swift */; };
@@ -31,6 +36,7 @@
 		AC7EB8CBAF293798AD68AD52 /* ImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5252B860EEF0F5C85AA35B6 /* ImageCache.swift */; };
 		B9A2A337E22141F252C58B25 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97078D66BF1256768A956757 /* ShareViewController.swift */; };
 		C6F7D96D7091FBE5809221DD /* ImportRecommendationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2438A51A5D8BB1FB30865346 /* ImportRecommendationsView.swift */; };
+		CADE75C5E250D85FACF90722 /* LibrarySpaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 362BE14B18BF0CAEC06EDE71 /* LibrarySpaceView.swift */; };
 		CBBF3DEAE826423CD9D47599 /* TitleDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB92CB283BD8A52070405C /* TitleDetailView.swift */; };
 		D85E4E7A438E342AB3473EE6 /* DiscoverHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A09DAAE469B2646B65E8FEF6 /* DiscoverHomeView.swift */; };
 		E7501926F7554FFC3AF76FEB /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83A438C05FC7638677E73EDA /* KeychainStore.swift */; };
@@ -62,8 +68,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		16D803323D7A8B80629A926B /* WebParityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebParityModels.swift; sourceTree = "<group>"; };
 		2438A51A5D8BB1FB30865346 /* ImportRecommendationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportRecommendationsView.swift; sourceTree = "<group>"; };
 		2600EBA6545B7C799B1214F2 /* LocalLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLibraryStore.swift; sourceTree = "<group>"; };
+		362BE14B18BF0CAEC06EDE71 /* LibrarySpaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySpaceView.swift; sourceTree = "<group>"; };
+		39F3D72702A9E68026E0ABD7 /* SmartSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartSearch.swift; sourceTree = "<group>"; };
 		3DB5343C5D793D62550226DD /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		4BBB92CB283BD8A52070405C /* TitleDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleDetailView.swift; sourceTree = "<group>"; };
 		5AF372B3889CCF8F6B4699AC /* TrailerPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrailerPlayerView.swift; sourceTree = "<group>"; };
@@ -82,6 +91,7 @@
 		A09DAAE469B2646B65E8FEF6 /* DiscoverHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverHomeView.swift; sourceTree = "<group>"; };
 		A66AB274E3865469654D32DF /* SlateChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlateChrome.swift; sourceTree = "<group>"; };
 		AF2FF8F054673DFF516CE16C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B8A4150115758CFE13241CD1 /* Appearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Appearance.swift; sourceTree = "<group>"; };
 		C0E5DD68D24D3565128F1EDD /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		C381A4066D62242E5D4EE83D /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		C98B91A63E0400C858E9AEBF /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
@@ -89,8 +99,10 @@
 		CCD5D85D2B12BF59A465BCB6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D894A56720A4907256863B27 /* Slate.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Slate.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9240939ED4336FFF94ADAEB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		E5B4E40CD1CDA42725C7C75B /* PreviewsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewsView.swift; sourceTree = "<group>"; };
 		F13C29F2E10537F5EC01A70D /* ListsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsView.swift; sourceTree = "<group>"; };
 		F5252B860EEF0F5C85AA35B6 /* ImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCache.swift; sourceTree = "<group>"; };
+		FCB5D89A62B3B88003D7367A /* AskSlateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskSlateView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -110,18 +122,23 @@
 		3FBE6735AE5C84D84CB28BFE /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				B8A4150115758CFE13241CD1 /* Appearance.swift */,
+				FCB5D89A62B3B88003D7367A /* AskSlateView.swift */,
 				A09DAAE469B2646B65E8FEF6 /* DiscoverHomeView.swift */,
 				2438A51A5D8BB1FB30865346 /* ImportRecommendationsView.swift */,
 				8077CA3C6559A18CF000F4F2 /* LibraryNudges.swift */,
+				362BE14B18BF0CAEC06EDE71 /* LibrarySpaceView.swift */,
 				86F2EF904F5EC6691CFF6C74 /* LibraryView.swift */,
 				843D8B72D03BBED050FE6261 /* LiquidSelector.swift */,
 				F13C29F2E10537F5EC01A70D /* ListsView.swift */,
 				5E3E18EE42E8545800901F7D /* MainTabView.swift */,
+				E5B4E40CD1CDA42725C7C75B /* PreviewsView.swift */,
 				C381A4066D62242E5D4EE83D /* ProfileView.swift */,
 				CC76003A943697829D93B061 /* RootView.swift */,
 				3DB5343C5D793D62550226DD /* SearchView.swift */,
 				C0E5DD68D24D3565128F1EDD /* SignInView.swift */,
 				A66AB274E3865469654D32DF /* SlateChrome.swift */,
+				39F3D72702A9E68026E0ABD7 /* SmartSearch.swift */,
 				4BBB92CB283BD8A52070405C /* TitleDetailView.swift */,
 				5AF372B3889CCF8F6B4699AC /* TrailerPlayerView.swift */,
 			);
@@ -202,6 +219,7 @@
 			isa = PBXGroup;
 			children = (
 				8F8ACB5DAA18890C20EAFAD3 /* Models.swift */,
+				16D803323D7A8B80629A926B /* WebParityModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -309,26 +327,32 @@
 			files = (
 				117FA89EE7CCBD9F2DC8CA77 /* APIClient.swift in Sources */,
 				0B0E0D7566600049B0E790D6 /* AppModel.swift in Sources */,
+				21AB604E7BCE4551BE27B8A1 /* Appearance.swift in Sources */,
+				812F1875CAAD3F05AEB21F12 /* AskSlateView.swift in Sources */,
 				521BFE72A96B8F9B6BF18473 /* DebugPreview.swift in Sources */,
 				D85E4E7A438E342AB3473EE6 /* DiscoverHomeView.swift in Sources */,
 				AC7EB8CBAF293798AD68AD52 /* ImageCache.swift in Sources */,
 				C6F7D96D7091FBE5809221DD /* ImportRecommendationsView.swift in Sources */,
 				E7501926F7554FFC3AF76FEB /* KeychainStore.swift in Sources */,
 				8BE2D7197D9E5AA117D49EBD /* LibraryNudges.swift in Sources */,
+				CADE75C5E250D85FACF90722 /* LibrarySpaceView.swift in Sources */,
 				A31D5F75C89951359476AE61 /* LibraryView.swift in Sources */,
 				2BBCDC832645C2DB32143528 /* LiquidSelector.swift in Sources */,
 				4503A99F0DDEB1D2D32FFB77 /* ListsView.swift in Sources */,
 				0D246E28F4EAEB46202C2177 /* LocalLibraryStore.swift in Sources */,
 				92D1A50AF2B75EADDD6F4695 /* MainTabView.swift in Sources */,
 				F5915F8BF10D63B6E81D2169 /* Models.swift in Sources */,
+				0761D332300CA61A6C4E3805 /* PreviewsView.swift in Sources */,
 				AA6866761AA7FEF3033BFC39 /* ProfileView.swift in Sources */,
 				34379BF2E1C89C8147B35959 /* RootView.swift in Sources */,
 				72FA1E4E12D14DDB979461F8 /* SearchView.swift in Sources */,
 				65BD63804076B0857DF23AC3 /* SignInView.swift in Sources */,
 				4067D925F11F17AA15759EF8 /* SlateApp.swift in Sources */,
 				8FAD13177B4739FB58312363 /* SlateChrome.swift in Sources */,
+				50DA715E55A8E81AFF2D124E /* SmartSearch.swift in Sources */,
 				CBBF3DEAE826423CD9D47599 /* TitleDetailView.swift in Sources */,
 				78D0443F368DAE2CECE30161 /* TrailerPlayerView.swift in Sources */,
+				31C26521BEA470A78A5FE53B /* WebParityModels.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -413,7 +437,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -511,7 +535,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;

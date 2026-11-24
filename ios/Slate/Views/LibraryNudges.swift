@@ -119,7 +119,7 @@ struct LibraryNudges: View {
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(SlatePalette.mutedText)
                                     .frame(width: 48, height: 72)
-                                    .background(.white.opacity(0.06), in: .rect(cornerRadius: 8))
+                                    .background(SlatePalette.text.opacity(0.06), in: .rect(cornerRadius: 8))
                             }
                         }
                     } actions: {
@@ -138,7 +138,7 @@ struct LibraryNudges: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("New episodes")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(SlatePalette.text)
                 .accessibilityAddTraits(.isHeader)
             // The row runs to both screen edges; its first poster lines up with the grid.
             ScrollView(.horizontal, showsIndicators: false) {
@@ -154,7 +154,7 @@ struct LibraryNudges: View {
                                 PosterFrame(url: item.posterURL, title: item.title)
                                 Text(item.title)
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(SlatePalette.text)
                                     .lineLimit(1)
                                     .padding(.top, 6)
                                 (Text("S\(item.season) E\(item.episode)")
@@ -213,7 +213,7 @@ private struct NudgeCard<Top: View, Actions: View>: View {
                 top()
                 Text(heading)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(SlatePalette.text)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 12)
                     .accessibilityAddTraits(.isHeader)
@@ -272,7 +272,7 @@ private struct LibrarySlots: View {
                     NudgeThumb(url: path(at: index).flatMap { URL(string: "https://image.tmdb.org/t/p/w185\($0)") })
                 } else {
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(.white.opacity(0.16), lineWidth: 1)
+                        .stroke(SlatePalette.text.opacity(0.16), lineWidth: 1)
                         .frame(width: 48, height: 72)
                 }
             }

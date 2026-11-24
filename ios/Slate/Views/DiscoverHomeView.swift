@@ -1,41 +1,61 @@
 import SwiftUI
 
-/// Discover: what to watch next, as rails of posters (the web's Discover page).
+/// Discover (`components/discover-default.tsx`): "Find what's next", then the
+/// web's three rails, each poster named, with its type and year.
 struct DiscoverHomeScreen: View {
     @EnvironmentObject private var model: AppModel
 
+    /// The rails the web shows, in its order. The service rails of the native
+    /// endpoint belong to the TV app.
+    private static let webRails = ["recommended", "trending", "nowPlaying"]
+
     var body: some View {
-        Group {
-            if let rails = model.discoverRails {
-                if rails.isEmpty {
-                    VStack(spacing: 16) {
-                        SlateEmptyMessage(
-                            title: "Discover is not loading",
-                            message: "Check your connection and try again."
-                        )
-                        SlateSecondaryButton("Try again") {
-                            Task { await model.loadDiscover(force: true) }
-                        }
-                        .frame(width: 160)
-                    }
-                    .padding(.horizontal, 24)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 28) {
-                            ForEach(rails) { rail in
-                                DiscoverRailRow(rail: rail)
-                            }
-                        }
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    SlateMonoLabel("Discover", size: 12)
+                    Text("Find what’s next")
+                        .font(.system(size: 30, weight: .semibold))
+                        .tracking(-0.8)
+                        .foregroundStyle(SlatePalette.text)
                         .padding(.top, 4)
-                        .padding(.bottom, 16)
+                        .accessibilityAddTraits(.isHeader)
+
+                    if let rails = model.discoverRails {
+                        let shown = rails.filter { Self.webRails.contains($0.id) }
+                            .sorted { (Self.webRails.firstIndex(of: $0.id) ?? 9) < (Self.webRails.firstIndex(of: $1.id) ?? 9) }
+                        let visible = shown.isEmpty ? rails : shown
+                        if visible.isEmpty {
+                            VStack(spacing: 16) {
+                                SlateEmptyMessage(
+                                    title: "Discover is not loading",
+                                    message: "Check your connection and try again."
+                                )
+                                SlateSecondaryButton("Try again") {
+                                    Task { await model.loadDiscover(force: true) }
+                                }
+                                .frame(width: 160)
+                            }
+                            .padding(.top, 80)
+                            .frame(maxWidth: .infinity)
+                        } else {
+                            LazyVStack(alignment: .leading, spacing: 32) {
+                                ForEach(visible) { rail in
+                                    DiscoverRailRow(rail: rail, width: proxy.size.width)
+                                }
+                            }
+                            .padding(.top, 32)
+                            .slateArrive(on: visible.count)
+                        }
+                    } else {
+                        DiscoverPlaceholder(width: proxy.size.width).padding(.top, 32)
                     }
-                    .refreshable { await model.loadDiscover(force: true) }
-                    .slateArrive(on: rails.count)
                 }
-            } else {
-                DiscoverPlaceholder()
+                .padding(.horizontal, 12)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
             }
+            .refreshable { await model.loadDiscover(force: true) }
         }
         .background(SlatePalette.background)
         .toolbar(.hidden, for: .navigationBar)
@@ -43,57 +63,70 @@ struct DiscoverHomeScreen: View {
     }
 }
 
+/// Four posters fit the width of a phone, as in the Library.
+private func railPosterWidth(_ width: CGFloat) -> CGFloat {
+    width < 640 ? (width - 24 - 24) / 4 : 150
+}
+
 private struct DiscoverRailRow: View {
     @EnvironmentObject private var model: AppModel
     let rail: DiscoverRail
+    let width: CGFloat
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Text(rail.title)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, SlateMetrics.gutter)
+                .font(.system(size: 22, weight: .semibold))
+                .tracking(-0.4)
+                .foregroundStyle(SlatePalette.text)
                 .accessibilityAddTraits(.isHeader)
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: SlateMetrics.posterGap) {
+                LazyHStack(alignment: .top, spacing: 8) {
                     ForEach(rail.items) { item in
                         NavigationLink {
                             DiscoverTitleView(mediaType: item.mediaType, tmdbId: item.tmdbId)
                         } label: {
-                            RailPoster(item: item, saved: item.saved || model.hasSaved(item))
-                                .frame(width: 116)
+                            LabeledPoster(
+                                url: item.posterURL,
+                                title: item.title,
+                                leading: item.mediaType == .movie ? "Film" : "Series",
+                                trailing: item.releaseDate.map { String($0.prefix(4)) },
+                                saved: item.saved || model.hasSaved(item)
+                            )
+                            .frame(width: railPosterWidth(width))
                         }
                         .buttonStyle(SlatePressStyle())
                     }
                 }
-                .padding(.horizontal, SlateMetrics.gutter)
             }
+            .padding(.horizontal, -12)
+            .contentMargins(.horizontal, 12, for: .scrollContent)
         }
     }
 }
 
 /// The shape of Discover while it loads: the rails' own layout, held in place.
 private struct DiscoverPlaceholder: View {
+    let width: CGFloat
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
+        VStack(alignment: .leading, spacing: 32) {
             ForEach(0..<3, id: \.self) { _ in
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 16) {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(SlatePalette.fill)
-                        .frame(width: 148, height: 18)
-                    HStack(spacing: SlateMetrics.posterGap) {
-                        ForEach(0..<8, id: \.self) { _ in
+                        .frame(width: 200, height: 22)
+                    HStack(spacing: 8) {
+                        ForEach(0..<6, id: \.self) { _ in
                             RoundedRectangle(cornerRadius: SlateMetrics.posterCorner)
                                 .fill(SlatePalette.fill)
-                                .frame(width: 116, height: 174)
+                                .frame(width: railPosterWidth(width), height: railPosterWidth(width) * 1.5)
                         }
                     }
                 }
-                .padding(.leading, SlateMetrics.gutter)
             }
         }
-        .padding(.top, 4)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .clipped()
         .accessibilityLabel("Loading Discover")
     }
@@ -139,8 +172,7 @@ struct CuratedListScreen: View {
                 }
             }
         }
-        .tint(.white)
-        .preferredColorScheme(.dark)
+        .tint(SlatePalette.text)
         .task(id: slug) {
             do { list = try await model.curatedList(slug: slug) }
             catch { failed = true }
@@ -154,7 +186,7 @@ struct CuratedListScreen: View {
                 Text(list.name)
                     .font(.system(size: 34, weight: .semibold))
                     .tracking(-1)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(SlatePalette.text)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 Text("A list by \(list.curator)")
@@ -166,7 +198,7 @@ struct CuratedListScreen: View {
                     Text(description)
                         .font(.system(size: 16))
                         .lineSpacing(5)
-                        .foregroundStyle(.white.opacity(0.66))
+                        .foregroundStyle(SlatePalette.text.opacity(0.66))
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 12)
                 }

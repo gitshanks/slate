@@ -15,7 +15,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "0.2.0"
-    CURRENT_PROJECT_VERSION: "2"
+    CURRENT_PROJECT_VERSION: "3"
     SLATE_API_BASE_URL: https://www.s1ate.space/api/v1
     GOOGLE_IOS_CLIENT_ID: 712869496808-nounasfl9qtcsdjesijtmk25eptvo416.apps.googleusercontent.com
     GOOGLE_SERVER_CLIENT_ID: ""
@@ -49,6 +49,9 @@ targets:
       path: Slate/Info.plist
       properties:
         CFBundleDisplayName: slate
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
         CFBundleURLTypes:
           - CFBundleTypeRole: Editor
             CFBundleURLSchemes:
@@ -65,7 +68,11 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        UIUserInterfaceStyle: Dark
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
   SlateShare:
     type: app-extension
     platform: iOS
@@ -80,6 +87,8 @@ targets:
       path: SlateShare/Info.plist
       properties:
         CFBundleDisplayName: slate
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController

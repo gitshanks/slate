@@ -404,6 +404,48 @@ actor APIClient {
         )
     }
 
+    /// Slate's AI over the library, as NDJSON events: text deltas, title
+    /// results, then done.
+    func aiChat(messages: [AIChatMessage], accessToken: String) async throws -> URLSession.AsyncBytes {
+        var request = URLRequest(url: baseURL.appending(path: "ai/chat"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = 60
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/x-ndjson", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try encoder.encode(["messages": messages])
+        let (bytes, response) = try await session.bytes(for: request)
+        guard let http = response as? HTTPURLResponse else { throw APIClientError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            var data = Data()
+            for try await byte in bytes { data.append(byte) }
+            let message = try? decoder.decode(APIErrorEnvelope.self, from: data).error.message
+            throw APIClientError.server(status: http.statusCode, message: message ?? "Slate couldn't answer that.")
+        }
+        return bytes
+    }
+
+    /// The public trailer feed behind Previews (`/api/public/previews`).
+    func previews(seed: String, batch: Int, exclude: [String]) async throws -> PreviewBatch {
+        var components = URLComponents(
+            url: baseURL.deletingLastPathComponent().appending(path: "public/previews"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "seed", value: seed),
+            URLQueryItem(name: "batch", value: String(batch)),
+            URLQueryItem(name: "exclude", value: exclude.suffix(240).joined(separator: ",")),
+        ]
+        guard let url = components?.url else { throw APIClientError.invalidConfiguration }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 30
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw APIClientError.invalidResponse
+        }
+        return try JSONDecoder().decode(PreviewBatch.self, from: data)
+    }
+
     private func send<Output: Decodable>(
         path: String,
         method: String = "GET",

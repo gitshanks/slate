@@ -122,7 +122,46 @@ final class AppModel: ObservableObject {
     }
 
     func search(_ query: String) async throws -> CatalogSearchPayload {
-        try await authenticated { try await api.search(query: query, accessToken: $0) }
+        #if DEBUG
+        if SlatePreview.isOn { return SlatePreview.search(query) }
+        #endif
+        return try await authenticated { try await api.search(query: query, accessToken: $0) }
+    }
+
+    /// The next batch of trailers for Previews, leaving out what was shown.
+    func previews(seed: String, batch: Int, exclude: [String]) async throws -> PreviewBatch {
+        try await api.previews(seed: seed, batch: batch, exclude: exclude)
+    }
+
+    /// Asks Slate's AI; the answer arrives as events, line by line.
+    func askSlate(_ messages: [AIChatMessage]) -> AsyncThrowingStream<AIChatEvent, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    #if DEBUG
+                    if SlatePreview.isOn {
+                        for word in "Here are a few that fit, all a little cosy and a little sinister.".split(separator: " ") {
+                            try await Task.sleep(for: .milliseconds(60))
+                            continuation.yield(.text("\(word) "))
+                        }
+                        continuation.yield(.done)
+                        continuation.finish()
+                        return
+                    }
+                    #endif
+                    let bytes = try await authenticated { token in
+                        try await api.aiChat(messages: messages, accessToken: token)
+                    }
+                    for try await line in bytes.lines {
+                        if let event = AIChatEvent(line: line) { continuation.yield(event) }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 
     func discover(mediaType: MediaType, tmdbId: Int) async throws -> DiscoverDetailPayload {

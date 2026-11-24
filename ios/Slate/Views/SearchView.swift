@@ -1,131 +1,11 @@
 import SwiftUI
 
-struct SearchView: View {
-    @EnvironmentObject private var model: AppModel
-    let onClose: () -> Void
-    var onAddFromLink: () -> Void = {}
-    @State private var query = ""
-    @State private var payload: CatalogSearchPayload?
-    @State private var loading = false
-    @FocusState private var searchFocused: Bool
-
-    private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .overlay(Color.black.opacity(0.42))
-                .ignoresSafeArea()
-                .onTapGesture { onClose() }
-
-            NavigationStack {
-                VStack(spacing: 0) {
-                    HStack(spacing: 11) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(.secondary)
-                        TextField("Search titles, cast, and crew", text: $query)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .focused($searchFocused)
-                            .submitLabel(.search)
-                        if !query.isEmpty {
-                            Button { query = "" } label: {
-                                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        Button("Cancel", action: onClose)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(SlatePalette.accent)
-                    }
-                    .padding(.horizontal, 14)
-                    .frame(height: 52)
-                    .background(Color(red: 0.075, green: 0.075, blue: 0.082), in: .rect(cornerRadius: 16))
-                    .overlay { RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.11), lineWidth: 0.7) }
-                    .padding(.horizontal, 14)
-                    .padding(.top, 10)
-                    .padding(.bottom, 10)
-
-                    ScrollView {
-                        if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text("Search a title, an actor or a filmmaker. What you already saved shows with a tick.")
-                                    .font(.system(size: 14))
-                                    .lineSpacing(3)
-                                    .foregroundStyle(SlatePalette.mutedText)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                SlateSecondaryButton("Add from a link instead", action: onAddFromLink)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, SlateMetrics.gutter)
-                            .padding(.top, 8)
-                        } else if loading && payload == nil {
-                            ProgressView().tint(.white).padding(.top, 80)
-                        } else if let payload {
-                            if !payload.people.isEmpty {
-                                SearchPeopleRail(people: payload.people)
-                            }
-                            if payload.approximate, let approximate = payload.approximateQuery {
-                                Text("Showing close matches for “\(approximate)”")
-                                    .font(.caption).foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 18)
-                                    .padding(.top, 18)
-                            }
-                            LazyVGrid(columns: columns, spacing: 24) {
-                                ForEach(payload.results) { title in
-                                    NavigationLink {
-                                        if let saved = title.saved,
-                                           let libraryTitle = model.titles.first(where: { $0.id == saved.id }) {
-                                            TitleDetailView(title: libraryTitle)
-                                        } else {
-                                            DiscoverTitleView(mediaType: title.mediaType, tmdbId: title.tmdbId)
-                                        }
-                                    } label: {
-                                        CatalogPosterCard(title: title)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                            .padding(18)
-                        }
-                    }
-                }
-                .background(Color.black.opacity(0.78))
-                .toolbar(.hidden, for: .navigationBar)
-            }
-            .frame(maxHeight: .infinity)
-            .background(Color.black.opacity(0.76))
-            .onTapGesture { }
-        }
-        .task(id: query) { await performSearch() }
-        .task { searchFocused = true }
-    }
-
-    private func performSearch() async {
-        let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { payload = nil; loading = false; return }
-        loading = true
-        do {
-            try await Task.sleep(for: .milliseconds(260))
-            guard !Task.isCancelled else { return }
-            payload = try await model.search(value)
-        } catch is CancellationError {
-        } catch {
-            model.presentedError = error.localizedDescription
-        }
-        loading = false
-    }
-}
-
 private struct SearchPeopleRail: View {
     let people: [CatalogPerson]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
-            Text("People").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
+            Text("People").font(.system(size: 15, weight: .semibold)).foregroundStyle(SlatePalette.text)
                 .padding(.horizontal, 18)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
@@ -134,7 +14,7 @@ private struct SearchPeopleRail: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 CachedAsyncImage(url: person.profileURL) { image in
                                     image.resizable().scaledToFill()
-                                } placeholder: { Color.white.opacity(0.06) }
+                                } placeholder: { SlatePalette.text.opacity(0.06) }
                                 .frame(width: 92, height: 92)
                                 .clipShape(.rect(cornerRadius: 15))
                                 Text(person.name).font(.caption.weight(.semibold)).foregroundStyle(.primary).lineLimit(1)
@@ -160,10 +40,10 @@ struct CatalogPosterCard: View {
             ZStack(alignment: .topTrailing) {
                 CachedAsyncImage(url: title.posterURL) { image in
                     image.resizable().scaledToFill()
-                } placeholder: { Color.white.opacity(0.06) }
+                } placeholder: { SlatePalette.text.opacity(0.06) }
                 .aspectRatio(2 / 3, contentMode: .fit)
                 .clipShape(.rect(cornerRadius: 15))
-                .overlay { RoundedRectangle(cornerRadius: 15).stroke(.white.opacity(0.1), lineWidth: 0.7) }
+                .overlay { RoundedRectangle(cornerRadius: 15).stroke(SlatePalette.text.opacity(0.1), lineWidth: 0.7) }
                 if title.saved != nil {
                     Image(systemName: "checkmark")
                         .font(.caption.bold()).foregroundStyle(SlatePalette.onAccent)
@@ -193,12 +73,12 @@ struct DiscoverTitleView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .top) {
-                Color.black.ignoresSafeArea()
+                SlatePalette.background.ignoresSafeArea()
                 if let backdrop = detail?.title.backdropURL {
-                    CachedAsyncImage(url: backdrop) { image in image.resizable().scaledToFill() } placeholder: { Color(white: 0.07) }
+                    CachedAsyncImage(url: backdrop) { image in image.resizable().scaledToFill() } placeholder: { SlatePalette.placeholder }
                         .frame(width: proxy.size.width, height: 760)
                         .clipped()
-                    LinearGradient(colors: [.black.opacity(0.42), .black.opacity(0.68), .black], startPoint: .top, endPoint: .bottom)
+                    LinearGradient(colors: [SlatePalette.background.opacity(0.42), SlatePalette.background.opacity(0.68),  SlatePalette.background], startPoint: .top, endPoint: .bottom)
                         .frame(width: proxy.size.width, height: 760)
                 }
                 ScrollView {
@@ -230,7 +110,7 @@ struct DiscoverTitleView: View {
                             }
                             .padding(.top, 22)
                             if let overview = detail.title.overview, !overview.isEmpty {
-                                Text(overview).font(.system(size: 16)).foregroundStyle(.white.opacity(0.82)).lineSpacing(5).padding(.top, 24)
+                                Text(overview).font(.system(size: 16)).foregroundStyle(SlatePalette.text.opacity(0.82)).lineSpacing(5).padding(.top, 24)
                             }
                             DiscoverPeopleSection(label: "Cast", people: detail.cast)
                             DiscoverPeopleSection(label: "Crew", people: detail.crew)
@@ -241,14 +121,13 @@ struct DiscoverTitleView: View {
                         .padding(.top, 30)
                         .padding(.bottom, 56)
                     } else if loading {
-                        ProgressView().tint(.white).padding(.top, 220)
+                        ProgressView().tint(SlatePalette.text).padding(.top, 220)
                     }
                 }
                 .frame(width: proxy.size.width)
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .preferredColorScheme(.dark)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .slateHidesChrome()
@@ -289,7 +168,7 @@ private struct DiscoverMetadata: View {
                 ForEach(title.genres.prefix(3), id: \.id) { genre in Text("·"); Text(genre.name) }
                 if let imdb = title.imdbRating { Text("·"); Text("IMDb \(String(format: "%.1f", imdb))") }
             }
-            .font(.system(size: 13)).foregroundStyle(.white.opacity(0.66))
+            .font(.system(size: 13)).foregroundStyle(SlatePalette.text.opacity(0.66))
         }
     }
 }
@@ -301,9 +180,9 @@ private struct DiscoverPill: View {
     init(_ label: String, icon: String, highlighted: Bool = false) { self.label = label; self.icon = icon; self.highlighted = highlighted }
     var body: some View {
         Label(label, systemImage: icon).font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(highlighted ? SlatePalette.accent : .white.opacity(0.84))
+            .foregroundStyle(highlighted ? SlatePalette.accent : SlatePalette.text.opacity(0.84))
             .padding(.horizontal, 14).frame(height: 40)
-            .background(highlighted ? SlatePalette.accent.opacity(0.19) : .white.opacity(0.07), in: .capsule)
+            .background(highlighted ? SlatePalette.accent.opacity(0.19) : SlatePalette.text.opacity(0.07), in: .capsule)
     }
 }
 
@@ -318,10 +197,10 @@ private struct DiscoverPeopleSection: View {
                     ForEach(people) { person in
                         NavigationLink { PersonView(personId: person.id) } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                CachedAsyncImage(url: person.profileURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
+                                CachedAsyncImage(url: person.profileURL) { image in image.resizable().scaledToFill() } placeholder: { SlatePalette.text.opacity(0.06) }
                                     .aspectRatio(1, contentMode: .fit).clipShape(.rect(cornerRadius: 13))
-                                Text(person.name).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                                Text(person.subtitle ?? "").font(.system(size: 10)).foregroundStyle(.white.opacity(0.5)).lineLimit(1)
+                                Text(person.name).font(.system(size: 11, weight: .semibold)).foregroundStyle(SlatePalette.text).lineLimit(1)
+                                Text(person.subtitle ?? "").font(.system(size: 10)).foregroundStyle(SlatePalette.text.opacity(0.5)).lineLimit(1)
                             }
                         }.buttonStyle(.plain)
                     }
@@ -342,10 +221,10 @@ private struct DiscoverRecommendations: View {
                     ForEach(items) { title in
                         NavigationLink { DiscoverTitleView(mediaType: title.mediaType, tmdbId: title.tmdbId) } label: {
                             VStack(alignment: .leading, spacing: 7) {
-                                CachedAsyncImage(url: title.posterURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
+                                CachedAsyncImage(url: title.posterURL) { image in image.resizable().scaledToFill() } placeholder: { SlatePalette.text.opacity(0.06) }
                                     .aspectRatio(2 / 3, contentMode: .fit).clipShape(.rect(cornerRadius: 13))
-                                Text(title.title).font(.system(size: 12, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                                Text(title.year ?? "").font(.system(size: 11)).foregroundStyle(.white.opacity(0.48))
+                                Text(title.title).font(.system(size: 12, weight: .semibold)).foregroundStyle(SlatePalette.text).lineLimit(1)
+                                Text(title.year ?? "").font(.system(size: 11)).foregroundStyle(SlatePalette.text.opacity(0.48))
                             }
                         }.buttonStyle(.plain)
                     }
@@ -365,7 +244,7 @@ struct PersonView: View {
             if let person {
                 VStack(alignment: .leading, spacing: 24) {
                     HStack(alignment: .top, spacing: 20) {
-                        CachedAsyncImage(url: person.profileURL) { image in image.resizable().scaledToFill() } placeholder: { Color.white.opacity(0.06) }
+                        CachedAsyncImage(url: person.profileURL) { image in image.resizable().scaledToFill() } placeholder: { SlatePalette.text.opacity(0.06) }
                             .frame(width: 128, height: 192).clipShape(.rect(cornerRadius: 18))
                         VStack(alignment: .leading, spacing: 8) {
                             Text(person.name).font(.system(size: 30, weight: .bold)).tracking(-0.8)
@@ -375,7 +254,7 @@ struct PersonView: View {
                         }
                     }
                     if let biography = person.biography, !biography.isEmpty {
-                        Text(biography).foregroundStyle(.white.opacity(0.8)).lineSpacing(5)
+                        Text(biography).foregroundStyle(SlatePalette.text.opacity(0.8)).lineSpacing(5)
                     }
                     if !person.knownFor.isEmpty {
                         Text("Known for").font(.title2.bold()).padding(.top, 10)
@@ -389,7 +268,7 @@ struct PersonView: View {
                     }
                 }.padding(18)
             } else {
-                ProgressView().tint(.white).padding(.top, 170)
+                ProgressView().tint(SlatePalette.text).padding(.top, 170)
             }
         }
         .navigationBarTitleDisplayMode(.inline)

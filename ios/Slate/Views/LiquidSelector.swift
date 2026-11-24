@@ -17,6 +17,8 @@ struct LiquidSprings: Equatable {
     static let control = LiquidSprings(leadStiffness: 380, leadDamping: 29, tailStiffness: 235, tailDamping: 26)
     /// The dock only: the same motion, played slower.
     static let dock = LiquidSprings(leadStiffness: 250, leadDamping: 23, tailStiffness: 150, tailDamping: 21)
+    /// A slider you throw: the front lands with a visible overshoot.
+    static let slider = LiquidSprings(leadStiffness: 320, leadDamping: 20, tailStiffness: 210, tailDamping: 21)
 }
 
 /// Where the body's two edges are, in option positions (0 is the first
@@ -210,6 +212,9 @@ struct LiquidSelector<Item: View>: View {
     var reportsReselect = false
     let onSelect: (Int) -> Void
     @ViewBuilder let item: (Int) -> Item
+    /// What the body shows for an option, when it differs from the resting
+    /// label (the theme slider names the chosen stop only inside the thumb).
+    var ink: ((Int) -> AnyView)?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var motion: LiquidMotion
@@ -227,6 +232,7 @@ struct LiquidSelector<Item: View>: View {
         inset: CGFloat = 4,
         reportsReselect: Bool = false,
         onSelect: @escaping (Int) -> Void,
+        ink: ((Int) -> AnyView)? = nil,
         @ViewBuilder item: @escaping (Int) -> Item
     ) {
         self.count = count
@@ -237,6 +243,7 @@ struct LiquidSelector<Item: View>: View {
         self.inset = inset
         self.reportsReselect = reportsReselect
         self.onSelect = onSelect
+        self.ink = ink
         self.item = item
         _motion = State(initialValue: LiquidMotion(at: selectedIndex))
         _shown = State(initialValue: selectedIndex)
@@ -311,6 +318,10 @@ struct LiquidSelector<Item: View>: View {
                             .onTapGesture { choose(index) }
                             .accessibilityElement(children: .combine)
                             .accessibilityAddTraits(index == shown ? [.isButton, .isSelected] : .isButton)
+                    } else if let ink {
+                        ink(index)
+                            .fixedSize()
+                            .frame(width: width, height: height)
                     } else {
                         item(index)
                             .padding(.horizontal, 6)

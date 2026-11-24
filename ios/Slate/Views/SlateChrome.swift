@@ -1,10 +1,11 @@
 import SwiftUI
 import UIKit
 
-/// The primary destinations of the dock.
+/// The primary destinations of the dock (`components/bottom-nav.tsx`).
 enum SlateTab: String, CaseIterable, Identifiable {
     case library
     case discover
+    case previews
     case lists
 
     var id: String { rawValue }
@@ -13,6 +14,7 @@ enum SlateTab: String, CaseIterable, Identifiable {
         switch self {
         case .library: "Library"
         case .discover: "Discover"
+        case .previews: "Previews"
         case .lists: "Lists"
         }
     }
@@ -21,25 +23,79 @@ enum SlateTab: String, CaseIterable, Identifiable {
         switch self {
         case .library: "square.grid.2x2"
         case .discover: "safari"
-        case .lists: "square.stack"
+        case .previews: "movieclapper"
+        case .lists: "square.3.layers.3d"
         }
     }
 }
 
-/// The web app's dark tokens (app/globals.css, `.dark`).
+/// The Library's two views: the shelf of posters, and Space, every poster on
+/// one canvas you pan and zoom.
+enum LibraryViewMode: String, CaseIterable {
+    case shelf, space
+}
+
+/// The web app's tokens (app/globals.css: `:root` for light, `.dark` for
+/// dark). Each colour follows the appearance the person chose.
 enum SlatePalette {
-    static let background = Color(red: 0.039, green: 0.039, blue: 0.043)
-    static let surface = Color(red: 0.067, green: 0.067, blue: 0.075)
-    static let accent = Color(red: 0.678, green: 0.922, blue: 0.702)
-    static let onAccent = Color(red: 0.059, green: 0.122, blue: 0.071)
-    static let mutedText = Color(red: 0.584, green: 0.584, blue: 0.616)
-    static let muted = Color.white.opacity(0.52)
-    static let hairline = Color.white.opacity(0.085)
-    static let border = Color(red: 0.133, green: 0.133, blue: 0.145)
-    static let fill = Color.white.opacity(0.055)
-    static let raised = Color(red: 0.086, green: 0.086, blue: 0.094)
-    static let placeholder = Color(red: 0.106, green: 0.106, blue: 0.118)
-    static let danger = Color(red: 1, green: 0.42, blue: 0.478)
+    static let background = Color(light: (0.981, 0.984, 0.989), dark: (0.039, 0.039, 0.043))
+    static let surface = Color(light: (1, 1, 1), dark: (0.067, 0.067, 0.075))
+    static let accent = Color(light: (0.229, 0.511, 0.258), dark: (0.678, 0.922, 0.702))
+    static let onAccent = Color(light: (1, 1, 1), dark: (0.059, 0.122, 0.071))
+    /// The page's ink: body text and the base of every hairline and wash.
+    static let text = Color(light: (0.079, 0.098, 0.141), dark: (0.98, 0.98, 0.98))
+    static let mutedText = Color(light: (0.364, 0.388, 0.436), dark: (0.584, 0.584, 0.616))
+    static let muted = text.opacity(0.52)
+    static let hairline = text.opacity(0.085)
+    static let border = Color(light: (0.887, 0.896, 0.913), dark: (0.133, 0.133, 0.145))
+    static let fill = text.opacity(0.055)
+    static let raised = Color(light: (1, 1, 1), dark: (0.086, 0.086, 0.094))
+    static let placeholder = Color(light: (0.943, 0.948, 0.957), dark: (0.106, 0.106, 0.118))
+    static let danger = Color(light: (0.88, 0.16, 0.16), dark: (1, 0.42, 0.478))
+}
+
+extension Color {
+    /// One colour for light appearance and one for dark.
+    init(light: (Double, Double, Double), dark: (Double, Double, Double)) {
+        self.init(uiColor: UIColor { traits in
+            let c = traits.userInterfaceStyle == .dark ? dark : light
+            return UIColor(red: c.0, green: c.1, blue: c.2, alpha: 1)
+        })
+    }
+}
+
+/// Light, System or Dark, as on the web's theme slider. Stored on the device.
+enum SlateTheme: String, CaseIterable, Identifiable {
+    case light, system, dark
+
+    var id: String { rawValue }
+    static let storageKey = "slate.theme"
+
+    var label: String {
+        switch self {
+        case .light: "Light"
+        case .system: "System"
+        case .dark: "Dark"
+        }
+    }
+
+    /// System shows the device it follows: a phone on a phone, a tablet on
+    /// an iPad (DESIGN.md, Interaction).
+    var icon: String {
+        switch self {
+        case .light: "sun.max"
+        case .system: UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
+        case .dark: "moon"
+        }
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .light: .light
+        case .system: nil
+        case .dark: .dark
+        }
+    }
 }
 
 enum SlateMetrics {
@@ -55,6 +111,20 @@ enum SlateMetrics {
         let available = width - gutter * 2
         let count = max(3, Int((available + posterGap) / (132 + posterGap)))
         return Array(repeating: GridItem(.flexible(), spacing: posterGap), count: count)
+    }
+
+    /// The Library's grid at the web's breakpoints (`LIBRARY_POSTER_GRID_CLASS_NAME`):
+    /// four small posters a row on a phone, then three, four, five and six as
+    /// the window widens.
+    static func libraryGrid(for width: CGFloat) -> (columns: [GridItem], rowGap: CGFloat, compact: Bool) {
+        let (count, gap, rowGap): (Int, CGFloat, CGFloat) = switch width {
+        case ..<640: (4, 8, 16)
+        case ..<768: (3, 20, 40)
+        case ..<1024: (4, 20, 40)
+        case ..<1536: (5, 20, 40)
+        default: (6, 20, 40)
+        }
+        return (Array(repeating: GridItem(.flexible(), spacing: gap), count: count), rowGap, width < 640)
     }
 }
 
@@ -101,25 +171,40 @@ private struct SlateArrive<Key: Equatable>: ViewModifier {
 
 struct SlateChrome<Content: View>: View {
     @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var search: SearchSession
     @Binding var selection: SlateTab
     let profileIsOpen: Bool
+    /// Previews runs edge to edge, with no top bar.
+    var showsTopBar = true
+    /// Library, Discover and Lists carry the search field under the top bar.
+    var showsSearch = true
+    var viewMode: Binding<LibraryViewMode>?
     let onLogo: () -> Void
     let onAdd: () -> Void
     let onProfile: () -> Void
+    let onOpenTitle: (SlateTitle) -> Void
+    let onOpenCatalog: (CatalogTitle) -> Void
+    let onOpenPerson: (Int) -> Void
     @ViewBuilder let content: () -> Content
 
     @State private var chromeHidden = false
 
     var body: some View {
         VStack(spacing: 0) {
-            if !chromeHidden {
+            if !chromeHidden && showsTopBar {
                 SlateTopBar(
                     profile: model.profile,
                     avatarData: model.avatarData,
                     profileIsOpen: profileIsOpen,
+                    viewMode: viewMode,
                     onLogo: onLogo,
                     onProfile: onProfile
                 )
+                if showsSearch {
+                    SmartSearchBar()
+                        .padding(.horizontal, SlateMetrics.gutter)
+                        .padding(.bottom, 10)
+                }
             }
 
             content()
@@ -127,8 +212,28 @@ struct SlateChrome<Content: View>: View {
                 .onPreferenceChange(SlateChromeHidden.self) { hidden in
                     if hidden != chromeHidden { chromeHidden = hidden }
                 }
+                .overlay(alignment: .top) {
+                    if search.isActive && !chromeHidden && showsTopBar && showsSearch {
+                        ZStack(alignment: .top) {
+                            SlatePalette.background.opacity(0.55)
+                                .ignoresSafeArea()
+                                .onTapGesture { search.dismiss() }
+                            SearchPanel(
+                                onOpenTitle: { search.dismiss(); onOpenTitle($0) },
+                                onOpenCatalog: { search.isActive = false; onOpenCatalog($0) },
+                                onOpenPerson: { search.isActive = false; onOpenPerson($0) }
+                            )
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxHeight: .infinity, alignment: .top)
+                            .padding(.horizontal, SlateMetrics.gutter)
+                            .padding(.bottom, 12)
+                        }
+                        .transition(.opacity.combined(with: .offset(y: -6)))
+                    }
+                }
+                .animation(.smooth(duration: 0.2), value: search.isActive)
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    if !chromeHidden {
+                    if !chromeHidden && !(search.isActive && showsSearch) {
                         SlateDock(selection: $selection, onAdd: onAdd)
                     }
                 }
@@ -141,11 +246,12 @@ struct SlateTopBar: View {
     let profile: SlateProfile?
     let avatarData: Data?
     let profileIsOpen: Bool
+    var viewMode: Binding<LibraryViewMode>?
     let onLogo: () -> Void
     let onProfile: () -> Void
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 8) {
             Button(action: onLogo) {
                 SlateAppWordmark()
             }
@@ -153,6 +259,24 @@ struct SlateTopBar: View {
             .accessibilityLabel("Slate home")
 
             Spacer()
+
+            if let viewMode {
+                LiquidSelector(
+                    count: 2,
+                    selectedIndex: viewMode.wrappedValue == .shelf ? 0 : 1,
+                    onSelect: { viewMode.wrappedValue = $0 == 0 ? .shelf : .space }
+                ) { index in
+                    Image(systemName: index == 0 ? "square.grid.2x2" : "cube")
+                        .font(.system(size: 16, weight: .medium))
+                        .frame(width: 30)
+                        .accessibilityLabel(index == 0 ? "Shelf" : "Space")
+                }
+                .frame(width: 104, height: 44)
+                .overlay { Capsule().stroke(SlatePalette.border, lineWidth: 1) }
+                .accessibilityLabel("Library view")
+            }
+
+            ThemeButton()
 
             ProfileAvatarButton(profile: profile, data: avatarData, action: onProfile)
                 .overlay {
@@ -164,27 +288,19 @@ struct SlateTopBar: View {
         }
         .padding(.leading, SlateMetrics.gutter)
         .padding(.trailing, 9)
-        .frame(height: 56)
+        .frame(height: 60)
         .background(SlatePalette.background)
     }
 }
 
+/// The wordmark alone, as the web's header sets it (`public/brand/wordmark-*.svg`).
 struct SlateAppWordmark: View {
     var body: some View {
-        HStack(spacing: 6) {
-            VStack(alignment: .leading, spacing: 2.5) {
-                Capsule().fill(Color.white).frame(width: 12, height: 3.5)
-                HStack(spacing: 2.5) {
-                    Capsule().fill(Color.white).frame(width: 4.75, height: 3.5)
-                    Capsule().fill(Color.white).frame(width: 4.75, height: 3.5)
-                }
-            }
-            Text("slate")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .tracking(-1.1)
-                .foregroundStyle(.white)
-        }
-        .fixedSize()
+        Text("slate")
+            .font(.system(size: 27, weight: .bold))
+            .tracking(-1.2)
+            .foregroundStyle(SlatePalette.text)
+            .fixedSize()
     }
 }
 
@@ -216,7 +332,7 @@ struct SlateDock: View {
                 }
             }
             .frame(height: 60)
-            .overlay { Capsule().stroke(.white.opacity(0.12), lineWidth: 1) }
+            .overlay { Capsule().stroke(SlatePalette.text.opacity(0.12), lineWidth: 1) }
 
             Button(action: onAdd) {
                 Image(systemName: "plus")
@@ -224,7 +340,7 @@ struct SlateDock: View {
                     .foregroundStyle(SlatePalette.accent)
                     .frame(width: 60, height: 60)
                     .background(SlatePalette.raised, in: .circle)
-                    .overlay { Circle().stroke(.white.opacity(0.14), lineWidth: 1) }
+                    .overlay { Circle().stroke(SlatePalette.text.opacity(0.14), lineWidth: 1) }
             }
             .buttonStyle(SlatePressStyle())
             .accessibilityLabel("Find and add a title")
@@ -260,7 +376,7 @@ struct SlateScreenTitle<Trailing: View>: View {
             Text(title)
                 .font(.system(size: 30, weight: .bold))
                 .tracking(-0.8)
-                .foregroundStyle(.white)
+                .foregroundStyle(SlatePalette.text)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityAddTraits(.isHeader)
             trailing()
@@ -321,7 +437,7 @@ struct SlateSecondaryButton: View {
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
-                .foregroundStyle(.white)
+                .foregroundStyle(SlatePalette.text)
                 .padding(.horizontal, 16)
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
@@ -342,7 +458,7 @@ struct SlateEmptyMessage: View {
         VStack(spacing: 6) {
             Text(title)
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(SlatePalette.text)
             Text(message)
                 .font(.system(size: 14))
                 .lineSpacing(3)
@@ -406,9 +522,10 @@ extension PosterFrame where Overlay == EmptyView {
 /// small badge.
 struct PosterTile: View {
     let title: SlateTitle
+    var corner: CGFloat = SlateMetrics.posterCorner
 
     var body: some View {
-        PosterFrame(url: title.posterURL, title: title.title) {
+        PosterFrame(url: title.posterURL, title: title.title, corner: corner) {
             if let rating = title.rating {
                 Image(systemName: rating >= 3 ? "heart.fill" : rating >= 2 ? "hand.thumbsup.fill" : "hand.thumbsdown.fill")
                     .font(.system(size: 11, weight: .semibold))
@@ -422,6 +539,45 @@ struct PosterTile: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(title.title)
+    }
+}
+
+/// A Library poster as the web's profile cards draw it: a border in the
+/// shelf's tone (mint for Watching, faint mint for Watched), and under it the
+/// title, the shelf in small capitals and the year.
+struct LibraryPosterCard: View {
+    let title: SlateTitle
+    var compact = true
+
+    private var tone: (border: Color, meta: Color) {
+        switch title.status {
+        case .watching: (SlatePalette.accent.opacity(0.8), SlatePalette.accent)
+        case .watched: (SlatePalette.accent.opacity(0.35), SlatePalette.accent.opacity(0.65))
+        default: (SlatePalette.border, SlatePalette.mutedText)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 2 : 4) {
+            PosterTile(title: title, corner: 16)
+                .overlay { RoundedRectangle(cornerRadius: 16).stroke(tone.border, lineWidth: 1) }
+                .shadow(color: .black.opacity(0.35), radius: 14, y: 10)
+            Text(title.title)
+                .font(.system(size: compact ? 10 : 12, weight: .medium))
+                .foregroundStyle(SlatePalette.text.opacity(0.85))
+                .lineLimit(1)
+                .padding(.top, compact ? 4 : 6)
+            HStack(spacing: 4) {
+                SlateMonoLabel(title.status.label, color: tone.meta, size: compact ? 7.5 : 9)
+                Spacer(minLength: 0)
+                if let year = title.year {
+                    SlateMonoLabel(year, color: SlatePalette.mutedText.opacity(0.7), size: compact ? 7.5 : 9)
+                }
+            }
+        }
+        .padding(.horizontal, 1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title.title), \(title.status.label)\(title.year.map { ", \($0)" } ?? "")")
     }
 }
 
