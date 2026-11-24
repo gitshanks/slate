@@ -1,4 +1,8 @@
+import { revalidatePath } from "next/cache";
+import { deleteAccountData } from "@/lib/account-deletion";
+import { runNeonTransaction } from "@/lib/neon-client";
 import { getProfileById } from "@/lib/profiles";
+import { SLATE_HOSTED } from "@/lib/public-mode";
 import { profileDTO } from "@/lib/native-api/dto";
 import {
   apiData,
@@ -82,6 +86,38 @@ export async function PATCH(request: Request) {
     const profile = await getProfileById(claims.ownerId);
     if (!profile) throw new NativeApiError(404, "not_found", "Profile not found.");
     return apiData(profileDTO(profile, new URL(request.url).origin));
+  } catch (error) {
+    return apiError(error);
+  }
+}
+
+/**
+ * Deletes the signed-in account, as the web's Delete account does. Device
+ * sessions go with the profile through the foreign-key cascade.
+ */
+export async function DELETE(request: Request) {
+  try {
+    const claims = await authenticateNativeRequest(request);
+    const body = await readJsonObject(request);
+    if (body.confirmation !== "DELETE") {
+      throw new NativeApiError(400, "bad_request", "Type DELETE to confirm.");
+    }
+    if (!SLATE_HOSTED || !process.env.DATABASE_URL) {
+      throw new NativeApiError(503, "configuration_error", "Account deletion is unavailable on this installation.");
+    }
+    const profile = await getProfileById(claims.ownerId);
+    if (!profile) throw new NativeApiError(404, "not_found", "This account no longer exists.");
+    try {
+      await runNeonTransaction((client) => deleteAccountData(client, claims.ownerId, null));
+    } catch {
+      throw new NativeApiError(
+        500,
+        "internal_error",
+        "Your account couldn't be deleted. No changes were saved. Please try again.",
+      );
+    }
+    revalidatePath(`/u/${profile.username}`);
+    return apiData({ deleted: true });
   } catch (error) {
     return apiError(error);
   }

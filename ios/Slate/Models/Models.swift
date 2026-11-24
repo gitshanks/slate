@@ -356,6 +356,10 @@ struct DiscoverRailItem: Codable, Identifiable, Hashable {
     let posterPath: String?
     let releaseDate: String?
     let saved: Bool
+    /// On a list made by Slate: a short value shown large (a score) and a line
+    /// under the title (who the film is for).
+    var value: String?
+    var line: String?
 
     var posterURL: URL? {
         guard let posterPath else { return nil }
@@ -363,16 +367,19 @@ struct DiscoverRailItem: Codable, Identifiable, Hashable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case tmdbId, mediaType, title, posterPath, releaseDate, saved
+        case tmdbId, mediaType, title, posterPath, releaseDate, saved, value, line
     }
 
-    init(tmdbId: Int, mediaType: MediaType, title: String, posterPath: String?, releaseDate: String?, saved: Bool) {
+    init(tmdbId: Int, mediaType: MediaType, title: String, posterPath: String?, releaseDate: String?, saved: Bool,
+         value: String? = nil, line: String? = nil) {
         self.tmdbId = tmdbId
         self.mediaType = mediaType
         self.title = title
         self.posterPath = posterPath
         self.releaseDate = releaseDate
         self.saved = saved
+        self.value = value
+        self.line = line
     }
 
     init(from decoder: Decoder) throws {
@@ -383,6 +390,8 @@ struct DiscoverRailItem: Codable, Identifiable, Hashable {
         posterPath = try values.decodeIfPresent(String.self, forKey: .posterPath)
         releaseDate = try values.decodeIfPresent(String.self, forKey: .releaseDate)
         saved = try values.decodeIfPresent(Bool.self, forKey: .saved) ?? false
+        value = try values.decodeIfPresent(String.self, forKey: .value)
+        line = try values.decodeIfPresent(String.self, forKey: .line)
     }
 }
 
@@ -402,7 +411,13 @@ struct CuratedList: Codable, Hashable {
     let name: String
     let description: String?
     let curator: String
+    var heroPath: String?
+    var note: String?
     let titles: [DiscoverRailItem]
+
+    var heroURL: URL? {
+        heroPath.flatMap { URL(string: "https://image.tmdb.org/t/p/w1280\($0)") }
+    }
 }
 
 struct CuratedListAdded: Codable {

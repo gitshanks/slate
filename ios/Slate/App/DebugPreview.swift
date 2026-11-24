@@ -135,7 +135,12 @@ enum SlatePreview {
             name: "7 for 007",
             description: "Seven films to watch before the next Bond is cast, in the order we would watch them.",
             curator: "Slate",
-            titles: rails[0].items + rails[1].items.prefix(3)
+            heroPath: "/\(posters[0]).jpg",
+            titles: (rails[0].items.prefix(7)).enumerated().map { index, item in
+                var item = item
+                item.line = "\(2005 + index * 3), as someone memorable"
+                return item
+            }
         )
     }
 

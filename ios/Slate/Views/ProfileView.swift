@@ -11,6 +11,9 @@ struct ProfileView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var previewData: Data?
     @State private var saveTask: Task<Void, Never>?
+    @State private var copied = false
+    @State private var deleting = false
+    var onOpenShelf: (Shelf) -> Void = { _ in }
     @FocusState private var focused: Field?
 
     private enum Field { case displayName, username }
@@ -68,77 +71,122 @@ struct ProfileView: View {
                     }
                 }
 
-                // What is on each shelf, in the Library's own words.
+                if let joined {
+                    Text("Joined \(joined)")
+                        .font(.system(size: 13))
+                        .foregroundStyle(SlatePalette.mutedText)
+                        .padding(.top, 10)
+                }
+
+                // What is on each shelf: a tap opens it in the Library.
                 HStack(spacing: 0) {
-                    shelfCount("Up Next", .want)
+                    shelfCount("Up next", .upNext, first: true)
                     shelfCount("Watching", .watching)
                     shelfCount("Watched", .watched)
                 }
-                .padding(.vertical, 16)
-                .background(SlatePalette.surface, in: .rect(cornerRadius: 16))
-                .overlay { RoundedRectangle(cornerRadius: 16).stroke(SlatePalette.border, lineWidth: 1) }
-                .padding(.top, 24)
+                .overlay(alignment: .top) { Rectangle().fill(SlatePalette.border.opacity(0.6)).frame(height: 1) }
+                .overlay(alignment: .bottom) { Rectangle().fill(SlatePalette.border.opacity(0.6)).frame(height: 1) }
+                .padding(.top, 20)
 
-                VStack(spacing: 0) {
-                    HStack(spacing: 14) {
-                        Image(systemName: isPublic ? "globe" : "lock")
-                            .font(.system(size: 17))
-                            .foregroundStyle(SlatePalette.mutedText)
-                            .frame(width: 22)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Share your slate")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(SlatePalette.text)
-                            Text(isPublic ? "Anyone with your link can browse it." : "Only you can see it.")
-                                .font(.system(size: 13))
-                                .foregroundStyle(SlatePalette.mutedText)
-                        }
-                        Spacer()
+                settingsGroup("Sharing") {
+                    settingsRow(
+                        "Share your slate",
+                        description: isPublic ? "Anyone with the link can browse your shelves." : "Only you can see your shelves."
+                    ) {
                         Toggle("Share your slate", isOn: $isPublic).labelsHidden().tint(SlatePalette.accent)
                     }
-                    .padding(16)
-
                     if isPublic, let url = publicURL {
-                        Divider().overlay(SlatePalette.border)
-                        ShareLink(item: url, subject: Text("\(displayName)'s slate")) {
-                            HStack(spacing: 14) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 17))
-                                    .foregroundStyle(SlatePalette.mutedText)
-                                    .frame(width: 22)
-                                Text("s1ate.space/u/\(username)")
-                                    .font(.system(size: 15))
+                        groupDivider
+                        HStack(spacing: 10) {
+                            Image(systemName: "link")
+                                .font(.system(size: 14))
+                                .foregroundStyle(SlatePalette.mutedText)
+                            Text("s1ate.space/u/\(username)")
+                                .font(.system(size: 14))
+                                .foregroundStyle(SlatePalette.mutedText)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer(minLength: 8)
+                            Button {
+                                UIPasteboard.general.url = url
+                                copied = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { copied = false }
+                            } label: {
+                                Text(copied ? "Copied" : "Copy link")
+                                    .font(.system(size: 13, weight: .medium))
                                     .foregroundStyle(SlatePalette.text)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                                Spacer(minLength: 0)
+                                    .padding(.horizontal, 14)
+                                    .frame(height: 36)
+                                    .background(SlatePalette.fill, in: .rect(cornerRadius: 12))
+                                    .overlay { RoundedRectangle(cornerRadius: 12).stroke(SlatePalette.border, lineWidth: 1) }
                             }
-                            .padding(16)
-                            .contentShape(.rect)
+                            .buttonStyle(SlatePressStyle())
+                            .accessibilityLabel("Copy public profile link")
+                            ShareLink(item: url, subject: Text("\(displayName)'s slate")) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(SlatePalette.text)
+                                    .frame(width: 36, height: 36)
+                                    .background(SlatePalette.fill, in: .rect(cornerRadius: 12))
+                                    .overlay { RoundedRectangle(cornerRadius: 12).stroke(SlatePalette.border, lineWidth: 1) }
+                            }
+                            .accessibilityLabel("Share your slate")
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                    }
+                }
+
+                settingsGroup("Appearance") {
+                    // On a phone the slider sits under its title, so it keeps
+                    // its full width (DESIGN.md, Motion).
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Theme")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(SlatePalette.text)
+                        ThemeSlider()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                settingsGroup("Account") {
+                    settingsRow("Data and privacy", description: "Review what slate collects.") {
+                        Link(destination: URL(string: "https://www.s1ate.space/privacy")!) {
+                            Text("Read details")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(SlatePalette.accent)
+                                .frame(height: 36)
+                        }
+                    }
+                    groupDivider
+                    settingsRow("Signed in", description: "This device is signed in to your account.") {
+                        Button {
+                            Task { await model.signOut(); dismiss() }
+                        } label: {
+                            Text("Sign out")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(SlatePalette.text)
+                                .padding(.horizontal, 14)
+                                .frame(height: 36)
+                                .background(SlatePalette.fill, in: .rect(cornerRadius: 12))
+                                .overlay { RoundedRectangle(cornerRadius: 12).stroke(SlatePalette.border, lineWidth: 1) }
                         }
                         .buttonStyle(SlatePressStyle())
                     }
-
-                    Divider().overlay(SlatePalette.border)
-                    Button {
-                        Task { await model.signOut(); dismiss() }
-                    } label: {
-                        HStack(spacing: 14) {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                                .font(.system(size: 17))
-                                .frame(width: 22)
-                            Text("Sign out").font(.system(size: 15, weight: .medium))
-                            Spacer(minLength: 0)
+                    groupDivider
+                    settingsRow("Delete account", description: "Permanently remove your profile, library, and lists you own.") {
+                        Button { deleting = true } label: {
+                            Text("Delete…")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(SlatePalette.danger)
+                                .padding(.horizontal, 14)
+                                .frame(height: 36)
                         }
-                        .foregroundStyle(SlatePalette.danger)
-                        .padding(16)
-                        .contentShape(.rect)
+                        .buttonStyle(SlatePressStyle())
                     }
-                    .buttonStyle(SlatePressStyle())
                 }
-                .background(SlatePalette.surface, in: .rect(cornerRadius: 16))
-                .overlay { RoundedRectangle(cornerRadius: 16).stroke(SlatePalette.border, lineWidth: 1) }
-                .padding(.top, 12)
             }
             .padding(.horizontal, SlateMetrics.gutter)
             .padding(.top, 8)
@@ -148,6 +196,7 @@ struct ProfileView: View {
         }
         .background(SlatePalette.background)
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $deleting) { DeleteAccountSheet() }
         .onAppear { hydrate() }
         .onChange(of: displayName) { _, _ in scheduleSave() }
         .onChange(of: username) { _, newValue in
@@ -165,17 +214,83 @@ struct ProfileView: View {
         }
     }
 
-    private func shelfCount(_ label: String, _ status: LibraryStatus) -> some View {
-        VStack(spacing: 2) {
-            Text("\(model.titles.filter { $0.status == status }.count)")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(SlatePalette.text)
-            Text(label)
-                .font(.system(size: 12))
-                .foregroundStyle(SlatePalette.mutedText)
+    private func shelfCount(_ label: String, _ shelf: Shelf, first: Bool = false) -> some View {
+        Button { onOpenShelf(shelf) } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("\(model.titles.filter { $0.status == shelf.status }.count)")
+                    .font(.system(size: 28, weight: .semibold))
+                    .tracking(-1.1)
+                    .monospacedDigit()
+                    .foregroundStyle(SlatePalette.text)
+                Text(label)
+                    .font(.system(size: 13))
+                    .foregroundStyle(SlatePalette.mutedText)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, first ? 0 : 16)
+            .padding(.vertical, 20)
+            .overlay(alignment: .leading) {
+                if !first { Rectangle().fill(SlatePalette.border.opacity(0.6)).frame(width: 1) }
+            }
+            .contentShape(.rect)
         }
-        .frame(maxWidth: .infinity)
+        .buttonStyle(SlatePressStyle())
         .accessibilityElement(children: .combine)
+    }
+
+    /// A quiet label over one hairlined card (`components/settings-group.tsx`).
+    private func settingsGroup<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(label)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(SlatePalette.mutedText)
+                .padding(.horizontal, 4)
+            VStack(spacing: 0) { content() }
+                .background(SlatePalette.surface.opacity(0.5), in: .rect(cornerRadius: 20))
+                .overlay { RoundedRectangle(cornerRadius: 20).stroke(SlatePalette.border.opacity(0.7), lineWidth: 1) }
+        }
+        .padding(.top, 36)
+    }
+
+    private func settingsRow<Trailing: View>(
+        _ title: String,
+        description: String? = nil,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(SlatePalette.text)
+                if let description {
+                    Text(description)
+                        .font(.system(size: 13))
+                        .foregroundStyle(SlatePalette.mutedText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 0)
+            trailing()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .frame(minHeight: 72)
+    }
+
+    private var groupDivider: some View {
+        Rectangle().fill(SlatePalette.border.opacity(0.6)).frame(height: 1)
+    }
+
+    /// "March 2025", from the profile's creation date.
+    private var joined: String? {
+        guard let created = model.profile?.createdAt else { return nil }
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let date = parser.date(from: created) ?? ISO8601DateFormatter().date(from: created)
+        guard let date else { return nil }
+        let format = DateFormatter()
+        format.dateFormat = "MMMM yyyy"
+        return format.string(from: date)
     }
 
     private var publicURL: URL? {
@@ -240,5 +355,84 @@ private extension UIImage {
             }
         }
         return nil
+    }
+}
+
+/// Deleting the account (`components/delete-account-settings.tsx`): what goes,
+/// that it can't be undone, and DELETE typed to confirm.
+private struct DeleteAccountSheet: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirmation = ""
+    @State private var pending = false
+    @State private var message: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Delete your Slate account?")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(SlatePalette.text)
+            Text("This permanently deletes your profile, saved titles, ratings, notes, and preview preferences. Lists you own will be deleted for everyone. You will leave lists owned by others. You will be signed out on every device.")
+                .font(.system(size: 15))
+                .lineSpacing(4)
+                .foregroundStyle(SlatePalette.mutedText)
+            Text("This cannot be undone. You can sign up again with the same email or Google account and start fresh.")
+                .font(.system(size: 12))
+                .foregroundStyle(SlatePalette.mutedText)
+            VStack(alignment: .leading, spacing: 8) {
+                (Text("Type ") + Text("DELETE").font(.system(size: 14, weight: .bold, design: .monospaced)) + Text(" to confirm"))
+                    .font(.system(size: 14))
+                    .foregroundStyle(SlatePalette.text)
+                TextField("", text: $confirmation)
+                    .font(.system(size: 15, design: .monospaced))
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .disabled(pending)
+                    .padding(.horizontal, 12)
+                    .frame(height: 44)
+                    .background(SlatePalette.background, in: .rect(cornerRadius: 12))
+                    .overlay { RoundedRectangle(cornerRadius: 12).stroke(SlatePalette.border, lineWidth: 1) }
+            }
+            if let message {
+                Text(message).font(.system(size: 14)).foregroundStyle(SlatePalette.danger)
+            }
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
+                Button("Keep my account") { dismiss() }
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(SlatePalette.text)
+                    .padding(.horizontal, 16)
+                    .frame(height: 40)
+                    .overlay { Capsule().stroke(SlatePalette.border, lineWidth: 1) }
+                    .buttonStyle(SlatePressStyle())
+                    .disabled(pending)
+                Button {
+                    pending = true
+                    message = nil
+                    Task {
+                        do {
+                            try await model.deleteAccount()
+                        } catch {
+                            message = error.localizedDescription
+                            pending = false
+                        }
+                    }
+                } label: {
+                    Text(pending ? "Deleting…" : "Permanently delete")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .frame(height: 40)
+                        .background(SlatePalette.danger.opacity(confirmation == "DELETE" && !pending ? 1 : 0.4), in: .capsule)
+                }
+                .buttonStyle(SlatePressStyle())
+                .disabled(pending || confirmation != "DELETE")
+            }
+        }
+        .padding(22)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(SlatePalette.surface.ignoresSafeArea())
+        .presentationDetents([.medium, .large])
+        .interactiveDismissDisabled(pending)
     }
 }

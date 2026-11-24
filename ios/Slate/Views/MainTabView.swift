@@ -71,7 +71,11 @@ struct MainTabView: View {
             NavigationStack(path: $path) {
                 Group {
                     if showProfile {
-                        ProfileView()
+                        ProfileView(onOpenShelf: { value in
+                            shelf = value
+                            showProfile = false
+                            selection = .library
+                        })
                     } else {
                         rootScreen
                     }

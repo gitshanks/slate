@@ -158,3 +158,7 @@ enum TMDBGenres {
 
     static func name(for id: Int) -> String? { names[id] }
 }
+
+struct AccountDeleted: Decodable {
+    let deleted: Bool
+}

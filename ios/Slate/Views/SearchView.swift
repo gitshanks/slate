@@ -107,6 +107,11 @@ struct DiscoverTitleView: View {
                                 if let providers = detail.watchProviders, !providers.providers.isEmpty {
                                     Link(destination: providers.link) { DiscoverPill("Watch", icon: "tv") }
                                 }
+                                ShareLink(
+                                    item: titleShareURL(mediaType, tmdbId),
+                                    subject: Text("\(detail.title.title) · slate"),
+                                    message: Text("Thought you might like \(detail.title.title).")
+                                ) { DiscoverPill("Share", icon: "square.and.arrow.up") }
                             }
                             .padding(.top, 22)
                             if let overview = detail.title.overview, !overview.isEmpty {

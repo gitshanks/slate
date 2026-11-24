@@ -2,6 +2,7 @@ import { libraryClientForOwner } from "@/lib/library-db";
 import { addNativeTitle } from "@/lib/native-api/catalog";
 import { apiData, apiError, NativeApiError } from "@/lib/native-api/http";
 import { authenticateNativeRequest } from "@/lib/native-api/tokens";
+import { getSlateListExtras } from "@/lib/slate-list-content";
 import { getSlateList } from "@/lib/slate-lists";
 import { slugify } from "@/lib/utils";
 
@@ -32,19 +33,28 @@ export async function GET(request: Request, context: Context) {
         (row) => `${row.media_type}:${row.tmdb_id}`,
       ),
     );
+    // The page's own words and still, as the web's /l/<slug> shows them.
+    const extras = getSlateListExtras(found.list.slug);
     return apiData({
       slug: found.list.slug,
       name: found.list.name,
-      description: found.list.description,
+      description: extras.description ?? found.list.description,
       curator: found.curator,
-      titles: found.titles.map((title) => ({
-        tmdbId: title.tmdb_id,
-        mediaType: title.media_type,
-        title: title.title,
-        posterPath: title.poster_path,
-        releaseDate: title.release_date,
-        saved: saved.has(`${title.media_type}:${title.tmdb_id}`),
-      })),
+      heroPath: extras.hero ?? found.titles.find((title) => title.backdrop_path)?.backdrop_path ?? null,
+      note: extras.note ?? null,
+      titles: found.titles.map((title) => {
+        const extra = extras.items[`${title.media_type}:${title.tmdb_id}`];
+        return {
+          tmdbId: title.tmdb_id,
+          mediaType: title.media_type,
+          title: title.title,
+          posterPath: title.poster_path,
+          releaseDate: title.release_date,
+          saved: saved.has(`${title.media_type}:${title.tmdb_id}`),
+          value: extra?.value ?? null,
+          line: extra?.line ?? null,
+        };
+      }),
     });
   } catch (error) {
     return apiError(error);

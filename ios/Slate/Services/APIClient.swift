@@ -404,6 +404,16 @@ actor APIClient {
         )
     }
 
+    /// Deletes the account and everything in it (`DELETE /me`).
+    func deleteAccount(accessToken: String) async throws {
+        let _: AccountDeleted = try await send(
+            path: "me",
+            method: "DELETE",
+            accessToken: accessToken,
+            body: ["confirmation": "DELETE"]
+        )
+    }
+
     /// Slate's AI over the library, as NDJSON events: text deltas, title
     /// results, then done.
     func aiChat(messages: [AIChatMessage], accessToken: String) async throws -> URLSession.AsyncBytes {

@@ -420,6 +420,15 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Deletes the account on the server, then forgets it on this device.
+    func deleteAccount() async throws {
+        #if DEBUG
+        if SlatePreview.isOn { return }
+        #endif
+        try await authenticated { try await api.deleteAccount(accessToken: $0) }
+        await signOut()
+    }
+
     func signOut() async {
         let accessToken = tokens?.accessToken
         clearLocalSession()

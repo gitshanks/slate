@@ -242,6 +242,15 @@ struct TitleDetailView: View {
                 } label: {
                     actionPill("More", icon: "ellipsis")
                 }
+
+                ShareLink(
+                    item: titleShareURL(currentTitle.mediaType, currentTitle.tmdbId),
+                    subject: Text("\(currentTitle.title) · slate"),
+                    message: Text("Thought you might like \(currentTitle.title).")
+                ) {
+                    actionPill("Share", icon: "square.and.arrow.up")
+                }
+                .accessibilityLabel("Share title")
             }
         }
     }
@@ -716,4 +725,10 @@ struct AddToListSheet: View {
             }
         }
     }
+}
+
+/// The public link for a title (`titleSharePath`): the trailer and details in
+/// one page anyone can open.
+func titleShareURL(_ mediaType: MediaType, _ tmdbId: Int) -> URL {
+    URL(string: "https://www.s1ate.space/t/\(mediaType.rawValue)/\(tmdbId)")!
 }

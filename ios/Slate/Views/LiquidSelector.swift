@@ -257,16 +257,35 @@ struct LiquidSelector<Item: View>: View {
             )
             let slots = LiquidSlots(count: count, total: size.width, natural: natural)
             let blob = slots.body(lead: motion.lead, tail: motion.tail, in: size)
+            // An index below zero shows no option as chosen (the dock while
+            // Profile is open).
+            let none = selectedIndex < 0 && dragPosition == nil
 
             ZStack(alignment: .topLeading) {
                 Capsule()
                     .fill(SlatePalette.accent)
                     .frame(width: blob.width, height: blob.height)
                     .offset(x: blob.minX, y: blob.minY)
+                    .opacity(none ? 0 : 1)
 
-                // Resting labels, which also take the taps.
+                // Resting labels, which also take the taps. When the body
+                // draws a different label, the resting one is cut away under it.
                 labels(slots: slots, height: size.height, measuring: true)
                     .foregroundStyle(restColor)
+                    .mask(alignment: .topLeading) {
+                        if ink != nil && !none {
+                            Rectangle()
+                                .overlay(alignment: .topLeading) {
+                                    Capsule()
+                                        .frame(width: blob.width, height: blob.height)
+                                        .offset(x: blob.minX, y: blob.minY)
+                                        .blendMode(.destinationOut)
+                                }
+                                .compositingGroup()
+                        } else {
+                            Rectangle()
+                        }
+                    }
 
                 // The same labels in the ink colour, visible only inside the body.
                 labels(slots: slots, height: size.height, measuring: false)
@@ -278,6 +297,7 @@ struct LiquidSelector<Item: View>: View {
                     }
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
+                    .opacity(none ? 0 : 1)
             }
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .padding(inset)
@@ -289,7 +309,9 @@ struct LiquidSelector<Item: View>: View {
         .onPreferenceChange(LiquidLabelWidths.self) { widths in
             if widths != natural { natural = widths }
         }
+        .animation(.easeOut(duration: 0.18), value: selectedIndex < 0)
         .onChange(of: selectedIndex) { _, value in
+            guard value >= 0 else { return }
             guard value != shown || motion.target != Double(value) else { return }
             shown = value
             motion.settle(at: Double(value), springs: springs, animated: !reduceMotion)
@@ -364,7 +386,7 @@ struct LiquidSelector<Item: View>: View {
 
     private func choose(_ index: Int) {
         let target = min(max(index, 0), count - 1)
-        let changed = target != selectedIndex
+        let changed = target != selectedIndex || selectedIndex < 0
         shown = target
         motion.settle(at: Double(target), springs: springs, animated: !reduceMotion)
         guard changed || reportsReselect else { return }

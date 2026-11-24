@@ -132,8 +132,10 @@ private struct DiscoverPlaceholder: View {
     }
 }
 
-/// A list made by Slate, opened from a s1ate.space/l/<slug> link: its name, why
-/// it exists, one action across the full width, and the posters.
+/// A list made by Slate (`components/public-list-view.tsx`), opened from a
+/// s1ate.space/l/<slug> link: a still across the top with the name over it,
+/// the list's words, then the films ranked, each with a large faint number
+/// half behind its poster and the line the list gives it.
 struct CuratedListScreen: View {
     @EnvironmentObject private var model: AppModel
     let slug: String
@@ -147,28 +149,30 @@ struct CuratedListScreen: View {
 
     var body: some View {
         NavigationStack {
-            GeometryReader { proxy in
-                Group {
-                    if failed {
-                        SlateEmptyMessage(
-                            title: "That list is no longer here",
-                            message: "It may have been renamed or taken down."
-                        )
-                        .padding(.horizontal, 24)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if let list {
-                        content(list, width: proxy.size.width)
-                    } else {
-                        Color.clear
-                    }
+            Group {
+                if failed {
+                    SlateEmptyMessage(
+                        title: "That list is no longer here",
+                        message: "It may have been renamed or taken down."
+                    )
+                    .padding(.horizontal, 24)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let list {
+                    content(list)
+                } else {
+                    Color.clear
                 }
             }
-            .background(SlatePalette.background)
+            .background(SlatePalette.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(action: onClose) { Image(systemName: "xmark") }
                         .accessibilityLabel("Close")
+                }
+                if list != nil {
+                    ToolbarItem(placement: .primaryAction) { addButton }
                 }
             }
         }
@@ -179,53 +183,89 @@ struct CuratedListScreen: View {
         }
     }
 
-    private func content(_ list: CuratedList, width: CGFloat) -> some View {
-        let everySaved = saved || list.titles.allSatisfy { $0.saved }
-        return ScrollView {
+    /// The page's one action: a quiet pill in the top bar.
+    private var addButton: some View {
+        Button {
+            if saved { onOpenLists() } else { add() }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: saved ? "checkmark" : "plus").font(.system(size: 12, weight: .semibold))
+                Text(saving ? "Adding…" : saved ? "On your slate" : "Add to your slate")
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(SlatePalette.accent)
+            .padding(.horizontal, 14)
+            .frame(height: 36)
+            .background(SlatePalette.background.opacity(0.55), in: .capsule)
+            .overlay { Capsule().stroke(SlatePalette.accent.opacity(0.35), lineWidth: 1) }
+        }
+        .buttonStyle(SlatePressStyle())
+        .disabled(saving)
+    }
+
+    private func content(_ list: CuratedList) -> some View {
+        ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text(list.name)
-                    .font(.system(size: 34, weight: .semibold))
-                    .tracking(-1)
-                    .foregroundStyle(SlatePalette.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                Text("A list by \(list.curator)")
-                    .font(.system(size: 14))
-                    .foregroundStyle(SlatePalette.accent)
-                    .padding(.top, 6)
+                ZStack(alignment: .bottomLeading) {
+                    CachedAsyncImage(url: list.heroURL) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        SlatePalette.placeholder
+                    }
+                    .frame(height: 340)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+                    LinearGradient(
+                        colors: [SlatePalette.background.opacity(0), SlatePalette.background.opacity(0.35), SlatePalette.background],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    Text(list.name)
+                        .font(.system(size: 40, weight: .bold))
+                        .tracking(-1.4)
+                        .foregroundStyle(SlatePalette.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 4)
+                }
+                .frame(height: 340)
+
                 if let description = list.description,
                    !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text(description)
                         .font(.system(size: 16))
                         .lineSpacing(5)
-                        .foregroundStyle(SlatePalette.text.opacity(0.66))
+                        .foregroundStyle(SlatePalette.text.opacity(0.6))
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 12)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
                 }
-                SlatePrimaryButton(
-                    saving ? "Adding" : saved ? "On your slate. Open your lists" : "Add to your slate",
-                    enabled: !saving
-                ) {
-                    if saved { onOpenLists() } else { add() }
-                }
-                .padding(.top, 24)
-                .padding(.bottom, 14)
 
-                LazyVGrid(columns: SlateMetrics.posterColumns(for: width), spacing: SlateMetrics.posterGap) {
-                    ForEach(list.titles) { item in
+                VStack(spacing: 4) {
+                    ForEach(Array(list.titles.enumerated()), id: \.element.id) { index, item in
                         NavigationLink {
-                            DiscoverTitleView(mediaType: item.mediaType, tmdbId: item.tmdbId)
+                            CatalogDestinationByID(mediaType: item.mediaType, tmdbId: item.tmdbId)
                         } label: {
-                            RailPoster(item: item, saved: everySaved || item.saved)
+                            RankedRow(rank: index + 1, item: item)
                         }
                         .buttonStyle(SlatePressStyle())
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+
+                if let note = list.note {
+                    Text(note)
+                        .font(.system(size: 13))
+                        .foregroundStyle(SlatePalette.text.opacity(0.6))
+                        .padding(.horizontal, 20)
+                        .padding(.top, 28)
+                }
             }
-            .padding(.horizontal, SlateMetrics.gutter)
-            .padding(.top, 8)
-            .padding(.bottom, 32)
+            .padding(.bottom, 40)
         }
+        .ignoresSafeArea(edges: .top)
         .slateArrive(on: list.slug)
     }
 
@@ -240,5 +280,56 @@ struct CuratedListScreen: View {
             }
             saving = false
         }
+    }
+}
+
+/// One film on a ranked list.
+private struct RankedRow: View {
+    let rank: Int
+    let item: DiscoverRailItem
+
+    var body: some View {
+        HStack(spacing: 14) {
+            // The rank: very large and faint, right-aligned so the poster
+            // covers about half of it.
+            Text("\(rank)")
+                .font(.system(size: 76, weight: .heavy))
+                .tracking(-4.5)
+                .monospacedDigit()
+                .foregroundStyle(SlatePalette.text.opacity(0.13))
+                .fixedSize()
+                .frame(width: 14, alignment: .trailing)
+                .offset(x: rank >= 10 ? 44 : 30)
+                .zIndex(0)
+            PosterFrame(url: item.posterURL, title: item.title, corner: 8)
+                .frame(width: 50, height: 75)
+                .zIndex(1)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .tracking(-0.2)
+                    .foregroundStyle(SlatePalette.text)
+                    .lineLimit(2)
+                if let line = item.line {
+                    Text(line)
+                        .font(.system(size: 13))
+                        .foregroundStyle(SlatePalette.text.opacity(0.6))
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 0)
+            if let value = item.value {
+                Text(value)
+                    .font(.system(size: 46, weight: .light))
+                    .tracking(-2.3)
+                    .monospacedDigit()
+                    .foregroundStyle(SlatePalette.accent)
+            }
+        }
+        .frame(height: 92)
+        .contentShape(.rect)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(rank). \(item.title)\(item.value.map { ", \($0)" } ?? "")")
     }
 }

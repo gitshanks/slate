@@ -234,7 +234,7 @@ struct SlateChrome<Content: View>: View {
                 .animation(.smooth(duration: 0.2), value: search.isActive)
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     if !chromeHidden && !(search.isActive && showsSearch) {
-                        SlateDock(selection: $selection, onAdd: onAdd)
+                        SlateDock(selection: $selection, showsSelection: !profileIsOpen, onAdd: onAdd)
                     }
                 }
         }
@@ -309,13 +309,14 @@ struct SlateAppWordmark: View {
 /// a title.
 struct SlateDock: View {
     @Binding var selection: SlateTab
+    var showsSelection = true
     let onAdd: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
             LiquidSelector(
                 count: SlateTab.allCases.count,
-                selectedIndex: SlateTab.allCases.firstIndex(of: selection) ?? 0,
+                selectedIndex: showsSelection ? SlateTab.allCases.firstIndex(of: selection) ?? 0 : -1,
                 springs: .dock,
                 trackColor: SlatePalette.raised,
                 reportsReselect: true,
