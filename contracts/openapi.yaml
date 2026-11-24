@@ -115,6 +115,11 @@ paths:
         '200':
           description: Device session revoked.
   /me:
+    delete:
+      summary: 'Delete the signed-in account and everything it owns. Body: { "confirmation": "DELETE" }.'
+      operationId: deleteMe
+      responses:
+        '200': { description: '{ deleted: true }' }
     get:
       summary: Read the signed-in profile.
       operationId: getMe
@@ -466,6 +471,85 @@ paths:
       operationId: removeAvatar
       responses:
         '200': { description: Avatar removed. }
+  /onboarding:
+    get:
+      summary: 'Whether the account still needs its first-run picks, and the deck. ?more=1 deals a second round to a library under five titles.'
+      operationId: getOnboarding
+      responses:
+        '200': { description: '{ needed, more, titles: [{ tmdbId, mediaType, title, overview, posterPath, backdropPath, releaseDate, genres }] }' }
+    post:
+      summary: Save the titles kept to Up Next, in order, and mark the account as started.
+      operationId: completeOnboarding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                selections: { type: array, maxItems: 50, items: { type: object, required: [tmdbId, mediaType] } }
+                more: { type: boolean }
+      responses:
+        '200': { description: '{ savedCount, message }' }
+  /onboarding/suggestions:
+    post:
+      summary: Titles related to those kept in the deck.
+      operationId: onboardingSuggestions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kept, passed]
+              properties:
+                kept: { type: array, maxItems: 10 }
+                passed: { type: array, maxItems: 10 }
+      responses:
+        '200': { description: '{ titles }' }
+  /import/parse:
+    post:
+      summary: 'Read a Letterboxd, IMDb or Trakt CSV (the body, text/csv, up to 5 MB) into rows.'
+      operationId: parseImport
+      requestBody:
+        required: true
+        content:
+          text/csv: {}
+      responses:
+        '200': { description: '{ rows }' }
+  /import:
+    post:
+      summary: Match one batch of parsed rows (up to 40) on TMDB and save them.
+      operationId: importBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rows]
+              properties:
+                rows: { type: array, maxItems: 40 }
+      responses:
+        '200': { description: '{ imported, unmatched, titles: [{ tmdb_id, media_type, title, poster_path, year }] }' }
+  /lists/{id}/invite:
+    post:
+      summary: A fresh 30-day invite link for a list the caller owns; it replaces the previous one.
+      operationId: createListInvite
+      responses:
+        '200': { description: '{ url, expiresAt }' }
+  /lists/{id}/leave:
+    post:
+      summary: Leave a list someone else owns.
+      operationId: leaveList
+      responses:
+        '200': { description: '{ left: true }' }
+  /lists/{id}/members/{profileId}:
+    delete:
+      summary: The owner takes someone off a list.
+      operationId: removeListMember
+      responses:
+        '200': { description: '{ removed: true }' }
 components:
   securitySchemes:
     bearerAuth:

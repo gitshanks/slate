@@ -9,7 +9,7 @@ Slate now has first-party native clients for both platforms:
 
 Both apps sign in to the existing Slate account, restore the session across launches, load cached data immediately, and refresh from Neon. They follow the web app's phone layout: a dark, poster-first library, mint as the only accent, and a floating dock.
 
-Android was rebuilt in November 2026 to match the web app. iOS still has the August layout (five tabs, chip filters) apart from the removal of frameXTV; `docs/ios-port-handover.md` lists what to port and how, and it has to be done on a Mac.
+Android was rebuilt in November 2026 to match the web app. iOS was ported to that rebuild, then brought level with the web in late November (Previews, search under the top bar, themes, Space, first-run picks, importing history, sharing lists); `docs/ios-web-parity.md` lists each screen and what is still different.
 
 The Android feature set includes:
 
