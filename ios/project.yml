@@ -15,7 +15,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "0.2.0"
-    CURRENT_PROJECT_VERSION: "3"
+    CURRENT_PROJECT_VERSION: "4"
     SLATE_API_BASE_URL: https://www.s1ate.space/api/v1
     GOOGLE_IOS_CLIENT_ID: 712869496808-nounasfl9qtcsdjesijtmk25eptvo416.apps.googleusercontent.com
     GOOGLE_SERVER_CLIENT_ID: ""
