@@ -279,6 +279,10 @@ struct SlateListSummary: Codable, Identifiable, Hashable {
     let updatedAt: String
     let count: Int
     let posterPaths: [String]
+    /// Sharing, from servers that send it: who owns the list and who else is on it.
+    var isOwner: Bool?
+    var owner: ListPerson?
+    var members: [ListPerson]?
 
     var posters: [URL] {
         posterPaths.compactMap { URL(string: "https://image.tmdb.org/t/p/w342\($0)") }

@@ -430,6 +430,18 @@ actor APIClient {
         try await send(path: "import", method: "POST", accessToken: accessToken, body: ["rows": rows])
     }
 
+    func createListInvite(listId: String, accessToken: String) async throws -> ListInvite {
+        try await send(path: "lists/\(listId)/invite", method: "POST", accessToken: accessToken, body: [String: String]())
+    }
+
+    func leaveList(listId: String, accessToken: String) async throws {
+        let _: ListLeft = try await send(path: "lists/\(listId)/leave", method: "POST", accessToken: accessToken, body: [String: String]())
+    }
+
+    func removeListMember(listId: String, profileId: String, accessToken: String) async throws {
+        let _: ListMemberRemoved = try await send(path: "lists/\(listId)/members/\(profileId)", method: "DELETE", accessToken: accessToken)
+    }
+
     /// Deletes the account and everything in it (`DELETE /me`).
     func deleteAccount(accessToken: String) async throws {
         let _: AccountDeleted = try await send(

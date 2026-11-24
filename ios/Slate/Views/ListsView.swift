@@ -10,6 +10,7 @@ struct ListsScreen: View {
     /// A new list opens straight into adding titles, as on the web.
     @State private var justCreated: String?
     @State private var openCreated: SlateListSummary?
+    @State private var sharing: SlateListSummary?
 
     var body: some View {
         ScrollView {
@@ -66,22 +67,23 @@ struct ListsScreen: View {
                         ForEach(summaries) { list in
                             ZStack(alignment: .topTrailing) {
                                 NavigationLink {
-                                    ListDetailView(listId: list.id, startAdding: list.id == justCreated)
+                                    ListDetailView(listId: list.id, summary: list, startAdding: list.id == justCreated)
                                 } label: {
                                     ListSummaryCard(list: list)
                                 }
                                 .buttonStyle(.plain)
 
                                 HStack(spacing: 7) {
-                                    if let url = URL(string: "https://www.s1ate.space/lists/\(list.slug)") {
-                                        ShareLink(item: url, subject: Text(list.name)) {
-                                            listCardAction("square.and.arrow.up", label: "Share \(list.name)")
-                                        }
-                                    }
-                                    Button { deleting = list } label: {
-                                        listCardAction("trash", label: "Delete \(list.name)")
+                                    Button { sharing = list } label: {
+                                        listCardAction("person.badge.plus", label: "Share \(list.name)")
                                     }
                                     .buttonStyle(SlatePressStyle())
+                                    if list.isOwner ?? true {
+                                        Button { deleting = list } label: {
+                                            listCardAction("trash", label: "Delete \(list.name)")
+                                        }
+                                        .buttonStyle(SlatePressStyle())
+                                    }
                                 }
                                 .padding(11)
                             }
@@ -113,8 +115,11 @@ struct ListsScreen: View {
                 }
             }
         }
+        .sheet(item: $sharing) { list in
+            ShareListSheet(list: list) { summaries.removeAll { $0.id == list.id } }
+        }
         .navigationDestination(item: $openCreated) { list in
-            ListDetailView(listId: list.id, startAdding: true)
+            ListDetailView(listId: list.id, summary: list, startAdding: true)
         }
         .confirmationDialog(
             "Delete \(deleting?.name ?? "this list")?",
@@ -175,7 +180,10 @@ private struct ListSummaryCard: View {
                 } else {
                     GeometryReader { proxy in
                         let covers = Array(list.posters.prefix(4))
-                        let height = proxy.size.height * 0.78
+                        // 78% of the cover's height, unless the fan would
+                        // be wider than the card (24 pt clear each side).
+                        let fit = (proxy.size.width - 48 - CGFloat(covers.count - 1) * 8) / CGFloat(covers.count) * 1.5
+                        let height = min(proxy.size.height * 0.78, fit)
                         HStack(spacing: 8) {
                             ForEach(Array(covers.enumerated()), id: \.offset) { index, url in
                                 CachedAsyncImage(url: url) { image in
@@ -211,6 +219,15 @@ private struct ListSummaryCard: View {
                         .foregroundStyle(SlatePalette.mutedText)
                         .fixedSize()
                 }
+                if list.isOwner == false, let owner = list.owner {
+                    Text("Shared by \(owner.displayName)")
+                        .font(.system(size: 12))
+                        .foregroundStyle(SlatePalette.accent.opacity(0.8))
+                } else if let members = list.members, !members.isEmpty {
+                    Text("Shared with \(members.count)")
+                        .font(.system(size: 12))
+                        .foregroundStyle(SlatePalette.accent.opacity(0.8))
+                }
                 if let description = list.description, !description.isEmpty {
                     Text(description)
                         .font(.system(size: 14))
@@ -230,7 +247,9 @@ private struct ListDetailView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
     let listId: String
+    var summary: SlateListSummary?
     var startAdding = false
+    @State private var sharing = false
     @State private var detail: SlateListDetailPayload?
     @State private var dragging: SlateTitle?
     @State private var editing = false
@@ -319,19 +338,27 @@ private struct ListDetailView: View {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button { adding = true } label: { Image(systemName: "plus") }
                 Menu {
-                    Button { editing = true } label: { Label("Edit list", systemImage: "pencil") }
-                    if let profile = model.profile, profile.isPublic,
-                       let url = URL(string: "https://www.s1ate.space/u/\(profile.username)") {
-                        ShareLink(item: url) { Label("Share your slate", systemImage: "square.and.arrow.up") }
+                    if summary?.isOwner ?? true {
+                        Button { editing = true } label: { Label("Edit list", systemImage: "pencil") }
                     }
-                    Divider()
-                    Button(role: .destructive) { deleting = true } label: { Label("Delete list", systemImage: "trash") }
+                    if summary != nil {
+                        Button { sharing = true } label: { Label("Share list", systemImage: "person.badge.plus") }
+                    }
+                    if summary?.isOwner ?? true {
+                        Divider()
+                        Button(role: .destructive) { deleting = true } label: { Label("Delete list", systemImage: "trash") }
+                    }
                 } label: { Image(systemName: "ellipsis") }
             }
         }
         .task {
             await load()
             if startAdding { adding = true }
+        }
+        .sheet(isPresented: $sharing) {
+            if let summary {
+                ShareListSheet(list: summary) { dismiss() }
+            }
         }
         .sheet(isPresented: $adding) {
             AddCandidatesSheet(candidates: detail?.candidates ?? []) { title in
@@ -590,5 +617,154 @@ private struct ListField: ViewModifier {
             .padding(.vertical, 11)
             .background(SlatePalette.background, in: .rect(cornerRadius: 10))
             .overlay { RoundedRectangle(cornerRadius: 10).stroke(SlatePalette.border, lineWidth: 1) }
+    }
+}
+
+/// Sharing a list (`components/share-list-button.tsx`): who has access, an
+/// invite link to copy or send, and for someone else's list, a way to leave.
+struct ShareListSheet: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    let list: SlateListSummary
+    var onLeft: () -> Void = {}
+    @State private var members: [ListPerson]
+    @State private var invite: URL?
+    @State private var creating = false
+    @State private var copied = false
+    @State private var message: String?
+
+    init(list: SlateListSummary, onLeft: @escaping () -> Void = {}) {
+        self.list = list
+        self.onLeft = onLeft
+        _members = State(initialValue: list.members ?? [])
+    }
+
+    private var isOwner: Bool { list.isOwner ?? true }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Share list")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(SlatePalette.text)
+            Text("Everyone here can add, remove, and arrange titles.")
+                .font(.system(size: 14))
+                .foregroundStyle(SlatePalette.mutedText)
+
+            VStack(alignment: .leading, spacing: 10) {
+                SlateMonoLabel("People with access")
+                if let owner = list.owner {
+                    personRow(owner, trailing: Text("Owner").font(.system(size: 13)).foregroundStyle(SlatePalette.mutedText))
+                } else if let profile = model.profile {
+                    personRow(
+                        ListPerson(id: profile.id, displayName: profile.displayName, avatarUrl: profile.avatarUrl),
+                        trailing: Text("Owner").font(.system(size: 13)).foregroundStyle(SlatePalette.mutedText)
+                    )
+                }
+                ForEach(members) { member in
+                    personRow(member, trailing: Group {
+                        if isOwner {
+                            Button("Remove") { Task { await remove(member) } }
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(SlatePalette.danger)
+                        } else if member.id == model.profile?.id {
+                            Text("You").font(.system(size: 13)).foregroundStyle(SlatePalette.mutedText)
+                        }
+                    })
+                }
+            }
+            .padding(.top, 4)
+
+            if let message {
+                Text(message).font(.system(size: 14)).foregroundStyle(SlatePalette.danger)
+            }
+
+            if isOwner {
+                if let invite {
+                    HStack(spacing: 8) {
+                        SlatePrimaryButton(copied ? "Invite link copied" : "Copy invite link") {
+                            UIPasteboard.general.url = invite
+                            copied = true
+                        }
+                        ShareLink(item: invite, subject: Text(list.name), message: Text("Join my list \(list.name) on Slate.")) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(SlatePalette.text)
+                                .frame(width: 44, height: 44)
+                                .background(SlatePalette.fill, in: .circle)
+                                .overlay { Circle().stroke(SlatePalette.border, lineWidth: 1) }
+                        }
+                        .accessibilityLabel("Send the invite link")
+                    }
+                } else {
+                    SlatePrimaryButton(creating ? "Creating link…" : "Copy invite link", enabled: !creating) {
+                        Task { await makeInvite() }
+                    }
+                }
+                Text("Invite links expire after 30 days.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(SlatePalette.mutedText)
+            } else {
+                SlateSecondaryButton("Leave this list") { Task { await leave() } }
+            }
+        }
+        .padding(22)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(SlatePalette.surface.ignoresSafeArea())
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func personRow<Trailing: View>(_ person: ListPerson, trailing: Trailing) -> some View {
+        HStack(spacing: 12) {
+            CachedAsyncImage(url: person.avatarUrl) { image in
+                image.resizable().scaledToFill()
+            } placeholder: {
+                Circle().fill(SlatePalette.fill).overlay {
+                    Text(String(person.displayName.prefix(1)).uppercased())
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(SlatePalette.mutedText)
+                }
+            }
+            .frame(width: 32, height: 32)
+            .clipShape(.circle)
+            Text(person.displayName)
+                .font(.system(size: 15))
+                .foregroundStyle(SlatePalette.text)
+            Spacer()
+            trailing
+        }
+    }
+
+    private func makeInvite() async {
+        creating = true
+        message = nil
+        do {
+            let url = try await model.createListInvite(listId: list.id)
+            invite = url
+            UIPasteboard.general.url = url
+            copied = true
+        } catch {
+            message = "Couldn’t create an invite"
+        }
+        creating = false
+    }
+
+    private func remove(_ member: ListPerson) async {
+        do {
+            try await model.removeListMember(listId: list.id, profileId: member.id)
+            members.removeAll { $0.id == member.id }
+        } catch {
+            message = "Couldn’t update access"
+        }
+    }
+
+    private func leave() async {
+        do {
+            try await model.leaveList(listId: list.id)
+            dismiss()
+            onLeft()
+        } catch {
+            message = "Couldn’t leave the list"
+        }
     }
 }

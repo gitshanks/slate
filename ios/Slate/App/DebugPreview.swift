@@ -185,6 +185,24 @@ enum SlatePreview {
         )
     }
 
+    static var lists: [SlateListSummary] {
+        guard defaults.bool(forKey: "slateLists") else { return [] }
+        return [
+            SlateListSummary(
+                id: "list-1", slug: "cozy-winter", name: "Cozy winter", description: "For the long dark evenings.",
+                createdAt: "2026-11-01T00:00:00Z", updatedAt: "2026-11-01T00:00:00Z", count: 12,
+                posterPaths: posters.prefix(4).map { "/\($0).jpg" }, isOwner: true, owner: nil,
+                members: [ListPerson(id: "p2", displayName: "Sam", avatarUrl: nil)]
+            ),
+            SlateListSummary(
+                id: "list-2", slug: "a24-horror", name: "A24 horror", description: nil,
+                createdAt: "2026-11-01T00:00:00Z", updatedAt: "2026-11-01T00:00:00Z", count: 7,
+                posterPaths: posters.dropFirst(5).prefix(3).map { "/\($0).jpg" }, isOwner: false,
+                owner: ListPerson(id: "p3", displayName: "Ana", avatarUrl: nil), members: []
+            ),
+        ]
+    }
+
     static var linkResolution: SharedLinkResolution {
         SharedLinkResolution(
             source: SharedLinkSource(url: "https://example.com", hostname: "example.com", title: "The best films of the year"),

@@ -269,7 +269,7 @@ final class AppModel: ObservableObject {
 
     func listSummaries() async throws -> [SlateListSummary] {
         #if DEBUG
-        if SlatePreview.isOn { return [] }
+        if SlatePreview.isOn { return SlatePreview.lists }
         #endif
         return try await authenticated { try await api.listSummaries(accessToken: $0).lists }
     }
@@ -455,6 +455,19 @@ final class AppModel: ObservableObject {
 
     func importBatch(_ rows: [ImportRow]) async throws -> ImportBatchResult {
         try await authenticated { try await api.importBatch(rows, accessToken: $0) }
+    }
+
+    func createListInvite(listId: String) async throws -> URL {
+        try await authenticated { try await api.createListInvite(listId: listId, accessToken: $0).url }
+    }
+
+    func leaveList(listId: String) async throws {
+        try await authenticated { try await api.leaveList(listId: listId, accessToken: $0) }
+        lists.removeAll { $0.id == listId }
+    }
+
+    func removeListMember(listId: String, profileId: String) async throws {
+        try await authenticated { try await api.removeListMember(listId: listId, profileId: profileId, accessToken: $0) }
     }
 
     /// Deletes the account on the server, then forgets it on this device.

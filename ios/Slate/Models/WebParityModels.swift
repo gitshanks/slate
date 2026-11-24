@@ -240,3 +240,19 @@ struct ImportBatchResult: Decodable {
     let unmatched: [String]
     let titles: [ImportedTitle]
 }
+
+// MARK: - Shared lists
+
+struct ListPerson: Codable, Identifiable, Hashable {
+    let id: String
+    let displayName: String
+    let avatarUrl: URL?
+}
+
+struct ListInvite: Decodable {
+    let url: URL
+    let expiresAt: String
+}
+
+struct ListLeft: Decodable { let left: Bool }
+struct ListMemberRemoved: Decodable { let removed: Bool }
