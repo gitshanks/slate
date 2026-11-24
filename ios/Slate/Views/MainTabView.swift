@@ -23,6 +23,8 @@ struct MainTabView: View {
     @State private var shelf: Shelf = .upNext
     @State private var filters = LibraryFilters()
     @State private var viewMode: LibraryViewMode = .shelf
+    @State private var onboarding: OnboardingPayload?
+    @State private var importingHistory = false
 
     private struct ListLink: Identifiable {
         let id: String
@@ -119,6 +121,25 @@ struct MainTabView: View {
                 onClose: { showImport = false }
             )
         }
+        .fullScreenCover(item: $onboarding) { payload in
+            OnboardingView(payload: payload) {
+                onboarding = nil
+                shelf = .upNext
+                selection = .library
+            }
+        }
+        .sheet(isPresented: $importingHistory) {
+            ImportHistoryView(onOpenLibrary: {
+                showProfile = false
+                selection = .library
+            })
+        }
+        .task {
+            // A new account starts with the picks, as on the web.
+            if let payload = await model.onboarding(), payload.needed, !payload.titles.isEmpty {
+                onboarding = payload
+            }
+        }
         .sheet(item: $search.askPrompt) { prompt in
             AskSlateView(firstQuestion: prompt.text)
         }
@@ -162,6 +183,7 @@ struct MainTabView: View {
             if let format = SlatePreview.format { filters.format = format }
             if SlatePreview.sheet == "import" { model.inboundSharedText = "https://example.com" }
             if SlatePreview.sheet == "list" { model.pendingListSlug = "preview" }
+            if SlatePreview.sheet == "history" { importingHistory = true }
             if SlatePreview.sheet == "search" {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     search.activate()
@@ -175,6 +197,15 @@ struct MainTabView: View {
             }
         }
         #endif
+    }
+
+    /// Another round of picks for a small library ("Pick a few").
+    private func pickMore() async {
+        if let payload = await model.onboarding(more: true), payload.needed, !payload.titles.isEmpty {
+            onboarding = payload
+        } else {
+            search.activate()
+        }
     }
 
     @ViewBuilder
@@ -191,7 +222,9 @@ struct MainTabView: View {
                     importText = nil
                     showImport = true
                 },
-                onOpenTitle: { path.append(SlateRoute.title($0)) }
+                onOpenTitle: { path.append(SlateRoute.title($0)) },
+                onPickMore: { Task { await pickMore() } },
+                onImport: { importingHistory = true }
             )
         case .discover:
             DiscoverHomeScreen()

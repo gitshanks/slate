@@ -404,6 +404,32 @@ actor APIClient {
         )
     }
 
+    func onboarding(more: Bool, accessToken: String) async throws -> OnboardingPayload {
+        try await send(
+            path: "onboarding",
+            queryItems: more ? [URLQueryItem(name: "more", value: "1")] : [],
+            accessToken: accessToken
+        )
+    }
+
+    func onboardingSuggestions(kept: [OnboardingPick], passed: [OnboardingPick], accessToken: String) async throws -> OnboardingSuggestions {
+        struct Body: Encodable { let kept: [OnboardingPick]; let passed: [OnboardingPick] }
+        return try await send(path: "onboarding/suggestions", method: "POST", accessToken: accessToken, body: Body(kept: kept, passed: passed))
+    }
+
+    func completeOnboarding(selections: [OnboardingPick], more: Bool, accessToken: String) async throws -> OnboardingSaved {
+        struct Body: Encodable { let selections: [OnboardingPick]; let more: Bool }
+        return try await send(path: "onboarding", method: "POST", accessToken: accessToken, body: Body(selections: selections, more: more))
+    }
+
+    func parseImport(csv: Data, accessToken: String) async throws -> ImportRows {
+        try await sendRaw(path: "import/parse", method: "POST", accessToken: accessToken, contentType: "text/csv; charset=utf-8", body: csv)
+    }
+
+    func importBatch(_ rows: [ImportRow], accessToken: String) async throws -> ImportBatchResult {
+        try await send(path: "import", method: "POST", accessToken: accessToken, body: ["rows": rows])
+    }
+
     /// Deletes the account and everything in it (`DELETE /me`).
     func deleteAccount(accessToken: String) async throws {
         let _: AccountDeleted = try await send(

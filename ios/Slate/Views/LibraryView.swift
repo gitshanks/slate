@@ -190,6 +190,8 @@ struct LibraryScreen: View {
     let onAdd: () -> Void
     let onAddFromLink: () -> Void
     var onOpenTitle: (SlateTitle) -> Void = { _ in }
+    var onPickMore: () -> Void = {}
+    var onImport: () -> Void = {}
 
     #if DEBUG
     @State private var sheetOpen = SlatePreview.sheet == "filters"
@@ -249,7 +251,7 @@ struct LibraryScreen: View {
                 .padding(.bottom, 12)
 
                 if model.titles.isEmpty {
-                    EmptyLibrary(onAdd: onAdd, onAddFromLink: onAddFromLink)
+                    EmptyLibrary(onAdd: onAdd, onPickMore: onPickMore, onImport: onImport)
                 } else if viewMode == .space {
                     LibrarySpaceView(titles: visible, onOpen: onOpenTitle)
                         .transition(.opacity)
@@ -261,8 +263,8 @@ struct LibraryScreen: View {
                                 titles: model.titles,
                                 newEpisodes: model.newEpisodes,
                                 hasLists: !model.lists.isEmpty,
-                                onAdd: onAdd,
-                                onAddFromLink: onAddFromLink
+                                onPickMore: onPickMore,
+                                onImport: onImport
                             )
                             }
 
@@ -567,16 +569,28 @@ private struct SortRow: View {
 
 private struct EmptyLibrary: View {
     let onAdd: () -> Void
-    let onAddFromLink: () -> Void
+    let onPickMore: () -> Void
+    let onImport: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
+            Image(systemName: "film")
+                .font(.system(size: 22, weight: .medium))
+                .foregroundStyle(SlatePalette.mutedText)
+                .frame(width: 56, height: 56)
+                .background(SlatePalette.fill, in: .rect(cornerRadius: 16))
+                .overlay { RoundedRectangle(cornerRadius: 16).stroke(SlatePalette.border, lineWidth: 1) }
+                .padding(.bottom, 16)
             SlateEmptyMessage(
                 title: "Your slate is empty",
-                message: "Add the first title you do not want to forget, or bring some over from a link."
+                message: "Add the first title you do not want to forget, pick from a few, or bring your history over."
             )
             SlatePrimaryButton("Add a title", action: onAdd).padding(.top, 20)
-            SlateSecondaryButton("Add from a link", action: onAddFromLink).padding(.top, 8)
+            HStack(spacing: 8) {
+                SlateSecondaryButton("Pick a few", action: onPickMore)
+                SlateSecondaryButton("Import history", action: onImport)
+            }
+            .padding(.top, 8)
         }
         .padding(.horizontal, 24)
         .frame(maxWidth: 320)

@@ -420,6 +420,43 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// The first-run picks, when this account still needs them (or `more`
+    /// for a second round on a small library). An older server without the
+    /// route means no picks.
+    func onboarding(more: Bool = false) async -> OnboardingPayload? {
+        #if DEBUG
+        if SlatePreview.isOn { return more || SlatePreview.sheet == "onboarding" ? SlatePreview.onboarding : nil }
+        #endif
+        return try? await authenticated { try await api.onboarding(more: more, accessToken: $0) }
+    }
+
+    func onboardingSuggestions(kept: [OnboardingPick], passed: [OnboardingPick]) async throws -> [OnboardingTitle] {
+        #if DEBUG
+        if SlatePreview.isOn { return Array(SlatePreview.onboarding.titles.reversed()) }
+        #endif
+        return try await authenticated {
+            try await api.onboardingSuggestions(kept: kept, passed: passed, accessToken: $0).titles
+        }
+    }
+
+    func completeOnboarding(_ selections: [OnboardingPick], more: Bool) async throws {
+        #if DEBUG
+        if SlatePreview.isOn { return }
+        #endif
+        _ = try await authenticated {
+            try await api.completeOnboarding(selections: selections, more: more, accessToken: $0)
+        }
+        await refreshLibrary()
+    }
+
+    func parseImport(_ csv: Data) async throws -> [ImportRow] {
+        try await authenticated { try await api.parseImport(csv: csv, accessToken: $0).rows }
+    }
+
+    func importBatch(_ rows: [ImportRow]) async throws -> ImportBatchResult {
+        try await authenticated { try await api.importBatch(rows, accessToken: $0) }
+    }
+
     /// Deletes the account on the server, then forgets it on this device.
     func deleteAccount() async throws {
         #if DEBUG

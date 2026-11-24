@@ -70,8 +70,8 @@ struct LibraryNudges: View {
     let titles: [SlateTitle]
     let newEpisodes: [NewEpisode]
     let hasLists: Bool
-    let onAdd: () -> Void
-    let onAddFromLink: () -> Void
+    let onPickMore: () -> Void
+    let onImport: () -> Void
 
     @State private var hidden = Set(UserDefaults.standard.stringArray(forKey: hiddenPromptsKey) ?? [])
     @State private var creating = false
@@ -92,13 +92,13 @@ struct LibraryNudges: View {
                 if showSmall {
                     NudgeCard(
                         heading: "\(remaining) more and Slate gets to know your taste",
-                        message: "Recommendations learn from what you save. Search for a few, or pull them in from a link.",
+                        message: "Recommendations and Previews learn from what you save. Pick a few we chose, or import from Letterboxd or IMDb.",
                         onDismiss: { hide("small") }
                     ) {
                         LibrarySlots(posterPaths: titles.prefix(smallLibraryTitles).map(\.posterPath), count: titles.count)
                     } actions: {
-                        SlatePrimaryButton("Find titles", action: onAdd)
-                        SlateSecondaryButton("Add from a link", action: onAddFromLink)
+                        SlatePrimaryButton("Pick a few", action: onPickMore)
+                        SlateSecondaryButton("Import history", action: onImport)
                     }
                 }
 

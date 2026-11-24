@@ -166,6 +166,25 @@ enum SlatePreview {
         )
     }
 
+    static var onboarding: OnboardingPayload {
+        OnboardingPayload(
+            needed: true,
+            more: false,
+            titles: (0..<10).map { index in
+                OnboardingTitle(
+                    tmdbId: 3000 + index,
+                    mediaType: index % 3 == 0 ? .tv : .movie,
+                    title: "Pick \(index + 1): a title worth keeping",
+                    overview: "A made-up title for checking the first-run picks. Keep it for later, or pass.",
+                    posterPath: "/\(posters[index % posters.count]).jpg",
+                    backdropPath: "/\(posters[index % posters.count]).jpg",
+                    releaseDate: "\(2026 - index)-04-01",
+                    genres: ["Drama", "Thriller"]
+                )
+            }
+        )
+    }
+
     static var linkResolution: SharedLinkResolution {
         SharedLinkResolution(
             source: SharedLinkSource(url: "https://example.com", hostname: "example.com", title: "The best films of the year"),

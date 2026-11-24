@@ -162,3 +162,81 @@ enum TMDBGenres {
 struct AccountDeleted: Decodable {
     let deleted: Bool
 }
+
+// MARK: - First-run picks (`/api/v1/onboarding`)
+
+struct OnboardingTitle: Codable, Identifiable, Hashable {
+    let tmdbId: Int
+    let mediaType: MediaType
+    let title: String
+    let overview: String
+    let posterPath: String
+    let backdropPath: String
+    let releaseDate: String?
+    let genres: [String]
+
+    var id: String { "\(mediaType.rawValue):\(tmdbId)" }
+    var year: String? { releaseDate.flatMap { $0.isEmpty ? nil : String($0.prefix(4)) } }
+    var posterURL: URL? { URL(string: "https://image.tmdb.org/t/p/w500\(posterPath)") }
+    var backdropURL: URL? { URL(string: "https://image.tmdb.org/t/p/w1280\(backdropPath)") }
+    var pick: OnboardingPick { OnboardingPick(tmdbId: tmdbId, mediaType: mediaType) }
+}
+
+struct OnboardingPick: Codable, Hashable {
+    let tmdbId: Int
+    let mediaType: MediaType
+}
+
+struct OnboardingPayload: Decodable, Identifiable {
+    var id: String { titles.first?.id ?? "none" }
+    let needed: Bool
+    let more: Bool
+    let titles: [OnboardingTitle]
+}
+
+struct OnboardingSuggestions: Decodable {
+    let titles: [OnboardingTitle]
+}
+
+struct OnboardingSaved: Decodable {
+    let savedCount: Int
+}
+
+// MARK: - Importing history (`/api/v1/import`)
+
+/// One row of an export, as the server read it. Sent back unchanged.
+struct ImportRow: Codable, Hashable {
+    let title: String
+    let sourceText: String
+    var year: Int?
+    var date: String?
+    var tmdbId: Int?
+    var imdbId: String?
+    var mediaHint: String?
+    var isEpisode: Bool?
+}
+
+struct ImportRows: Decodable {
+    let rows: [ImportRow]
+}
+
+struct ImportedTitle: Decodable, Identifiable, Hashable {
+    let tmdbId: Int
+    let mediaType: MediaType
+    let title: String
+    let posterPath: String?
+    let year: Int?
+
+    var id: String { "\(mediaType.rawValue):\(tmdbId)" }
+    var posterURL: URL? { posterPath.flatMap { URL(string: "https://image.tmdb.org/t/p/w342\($0)") } }
+
+    private enum CodingKeys: String, CodingKey {
+        case tmdbId = "tmdb_id", mediaType = "media_type", title, posterPath = "poster_path", year
+    }
+}
+
+struct ImportBatchResult: Decodable {
+    let imported: Int
+    let unmatched: [String]
+    let titles: [ImportedTitle]
+}
