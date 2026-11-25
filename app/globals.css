@@ -977,6 +977,197 @@ body:has(#app-bottom-nav)
   }
 }
 
+/* ─── Profile (components/profile-taste.tsx) ───────────────────── */
+/* Sections rise in 40 ms apart from 45% opacity, never from nothing. The
+   Top 4 are dealt in one by one with a slight tilt that settles; a pick
+   dropped into a slot in the picker springs into place. Counts tick up once:
+   a registered integer property animates and a counter prints it, so the
+   real number is in the HTML and shows as is without the animation. The
+   backdrop drifts at half speed as it scrolls away (scroll timelines only),
+   and the header gives way to a blurred bar. Reduced motion keeps only
+   crossfades. */
+@property --n {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+
+.taste-rise {
+  animation: taste-rise 420ms var(--ease-ui-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+@keyframes taste-rise {
+  from {
+    opacity: 0.45;
+    transform: translateY(10px);
+  }
+}
+
+.taste-deal {
+  animation: taste-deal 620ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  animation-delay: calc(120ms + var(--i, 0) * 70ms);
+}
+
+.taste-deal:nth-child(even) {
+  --tilt: 2deg;
+}
+
+@keyframes taste-deal {
+  from {
+    opacity: 0;
+    transform: translateY(18px) rotate(var(--tilt, -2deg)) scale(0.94);
+  }
+}
+
+.taste-drop {
+  animation: taste-drop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes taste-drop {
+  from {
+    opacity: 0.4;
+    transform: scale(0.86);
+  }
+}
+
+.taste-poster {
+  transition: transform 180ms var(--ease-ui-out);
+}
+
+.taste-poster:hover {
+  transform: translateY(-3px);
+}
+
+.taste-poster:active {
+  transform: scale(0.97);
+}
+
+.taste-count {
+  display: inline-block;
+}
+
+.taste-count-ticker {
+  display: none;
+}
+
+@supports (animation-timeline: auto) or (counter-reset: n var(--n)) {
+  .taste-count-ticker {
+    display: inline;
+    counter-reset: n var(--n);
+    animation: taste-count 900ms var(--ease-ui-out) 160ms both;
+  }
+
+  .taste-count-ticker::after {
+    content: counter(n);
+  }
+
+  .taste-count-ticker + .taste-count-value {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@keyframes taste-count {
+  from {
+    --n: 0;
+  }
+}
+
+.taste-bar-fill,
+.taste-month,
+.taste-progress {
+  animation: taste-grow 700ms var(--ease-ui-out) both;
+  animation-delay: calc(200ms + var(--i, 0) * 35ms);
+}
+
+@keyframes taste-grow {
+  from {
+    opacity: 0.45;
+    scale: 0 1;
+  }
+}
+
+.taste-month {
+  animation-name: taste-grow-up;
+}
+
+@keyframes taste-grow-up {
+  from {
+    opacity: 0.45;
+    scale: 1 0;
+  }
+}
+
+.taste-hero-empty {
+  background-color: hsl(var(--card));
+  background-image: radial-gradient(hsl(var(--primary) / 0.12) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+@supports (animation-timeline: view()) {
+  .taste-hero-image {
+    animation: taste-drift linear both;
+    animation-timeline: view();
+    animation-range: exit 0% exit 100%;
+  }
+
+  @keyframes taste-drift {
+    to {
+      transform: translateY(40%);
+    }
+  }
+}
+
+.taste-bar-inner {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+  transition:
+    opacity 220ms var(--ease-ui-out),
+    transform 260ms var(--ease-ui-out);
+}
+
+.taste-bar[data-collapsed="true"] .taste-bar-inner {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .taste-rise,
+  .taste-deal,
+  .taste-drop,
+  .taste-bar-fill,
+  .taste-month,
+  .taste-progress {
+    animation: profile-reveal 220ms var(--ease-ui-out) both;
+  }
+
+  .taste-count-ticker {
+    animation: none;
+  }
+
+  .taste-hero-image {
+    animation: none;
+  }
+
+  .taste-poster,
+  .taste-poster:hover,
+  .taste-poster:active {
+    transform: none;
+  }
+
+  .taste-bar-inner {
+    transform: none;
+    transition: opacity 220ms linear;
+  }
+}
+
 /* ─── Theme change (components/appearance-controls.tsx) ────────── */
 /* The new theme fades in over a still picture of the old one, which stays
    opaque underneath, so the page never dips through transparency. An even

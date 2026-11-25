@@ -550,6 +550,27 @@ paths:
       operationId: removeListMember
       responses:
         '200': { description: '{ removed: true }' }
+  /me/taste:
+    get:
+      summary: The numbers on the profile, worked out from the caller's library.
+      operationId: getProfileTaste
+      responses:
+        '200': { description: '{ top, hours, hoursThisYear, counts { watched, watching, upNext, lists }, total, watching, recent, films, shows, genres [{ name, share }], ratings { loved, liked, disliked, rated, verdict } | null, year { year, months[12], total }, tagline }. top, watching and recent hold { id, tmdbId, mediaType, title, posterPath, backdropPath, year, status, rating }; watching adds progressLabel and progress.' }
+  /me/top:
+    put:
+      summary: Replace the Top 4 with up to four title ids from the caller's slate, in order. Unknown or dropped ids are left out.
+      operationId: setTopTitles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids: { type: array, items: { type: string, format: uuid }, maxItems: 4 }
+      responses:
+        '200': { description: '{ ids }, the Top 4 as saved.' }
 components:
   securitySchemes:
     bearerAuth:

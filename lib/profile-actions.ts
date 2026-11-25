@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getLibraryOwnerId } from "@/lib/library-db";
 import { getProfileById } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
+import { saveTopTitleIds } from "@/lib/profile-taste";
 
 export interface ProfileActionState {
   ok: boolean;
@@ -96,6 +97,7 @@ export async function updateProfile(
   }
 
   revalidatePath("/profile");
+  revalidatePath("/profile/settings");
   // Hosted /app rewrites to /; refresh its sharing controls after profile edits.
   revalidatePath("/");
   revalidatePath(`/u/${current.username}`);
@@ -108,4 +110,24 @@ export async function updateProfile(
     isPublic,
     attemptSnapshot,
   };
+}
+
+/** Save the ordered Top 4 shown on the profile. Returns the ids kept. */
+export async function setTopTitles(
+  ids: string[]
+): Promise<{ ok: true; ids: string[] } | { ok: false; message: string }> {
+  const ownerId = await getLibraryOwnerId();
+  if (isGuestOwnerId(ownerId)) {
+    return { ok: false, message: "Sign up to pick your Top 4." };
+  }
+  const profile = await getProfileById(ownerId);
+  if (!profile) return { ok: false, message: "Profile not found." };
+  try {
+    const saved = await saveTopTitleIds(ownerId, ids);
+    revalidatePath("/profile");
+    revalidatePath(`/u/${profile.username}`);
+    return { ok: true, ids: saved };
+  } catch {
+    return { ok: false, message: "Your Top 4 didn't save. Try again." };
+  }
 }

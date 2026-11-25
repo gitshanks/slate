@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { ChevronRight, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { PrivacyPreferencesButton } from "@/components/analytics/privacy-preferences-button";
 import { DeleteAccountSettings } from "@/components/delete-account-settings";
 import { ProfileAppearance } from "@/components/profile-appearance";
@@ -91,7 +91,16 @@ export function ProfileScreen({
 
   return (
     <div className="mx-auto w-full max-w-2xl pb-6 sm:pb-10">
-      <h1 className="sr-only">Profile</h1>
+      <div className="profile-rise mb-6 flex items-center gap-2" style={{ "--i": 0 } as React.CSSProperties}>
+        <Link
+          href="/profile"
+          aria-label="Back to your profile"
+          className="-ml-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Link>
+        <h1 className="text-2xl font-semibold tracking-[-0.03em]">Settings</h1>
+      </div>
 
       {isGuest ? (
         <section

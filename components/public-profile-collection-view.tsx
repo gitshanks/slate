@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowUpRight,
@@ -278,7 +279,11 @@ export function PublicProfileCollectionView({
         </div>
 
         <div className="pointer-events-auto grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-0.5 lg:gap-x-2.5 xl:gap-x-5">
-          <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 pl-0.5 md:gap-1.5 lg:gap-2.5 xl:justify-self-start">
+          <Link
+            href={`/u/${username}`}
+            aria-label={`${displayName}'s profile`}
+            className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 rounded-full pl-0.5 outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-primary md:gap-1.5 lg:gap-2.5 xl:justify-self-start"
+          >
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -300,7 +305,7 @@ export function PublicProfileCollectionView({
                 @{username}
               </p>
             </div>
-          </div>
+          </Link>
 
           <div className="col-start-2 row-start-1 flex shrink-0 items-center justify-end gap-1 md:col-start-3 md:gap-1 lg:gap-2 xl:justify-self-end">
             <ViewSwitcher

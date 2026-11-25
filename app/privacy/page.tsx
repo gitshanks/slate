@@ -82,7 +82,7 @@ export default function PrivacyPage() {
 
             <PolicySection title="Keeping and deleting information">
               <p>
-                Account data is kept while you use Slate. You can <Link href="/profile" className={textLink}>delete your account in Profile settings</Link>. This removes your profile, library, notes, ratings, preferences, and lists you own, and signs you out on every device. Owned shared lists are removed for their members too.
+                Account data is kept while you use Slate. You can <Link href="/profile/settings" className={textLink}>delete your account in Settings</Link>. This removes your profile, library, notes, ratings, preferences, and lists you own, and signs you out on every device. Owned shared lists are removed for their members too.
               </p>
               <p>
                 Previously collected analytics follows our analytics provider’s retention settings. Contact us to request its deletion. Some records may need to be retained for security or legal obligations.

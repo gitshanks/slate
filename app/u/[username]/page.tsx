@@ -1,27 +1,12 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { PublicProfileCollectionView } from "@/components/public-profile-collection-view";
+import { ProfileTaste } from "@/components/profile-taste";
+import { PublicProfileHeader } from "@/components/public-profile-header";
 import { getAppSession } from "@/lib/app-access";
+import { getProfileTaste, getTasteRows } from "@/lib/profile-taste";
 import { getPublicProfile, profileAvatarUrl } from "@/lib/profiles";
-import { siteOrigin } from "@/lib/site-url";
-import { fetchTitlesByStatusForOwner } from "@/lib/title-filters";
-import type { TitleRow } from "@/lib/types";
 import { SLATE_HOSTED } from "@/lib/public-mode";
-
-function interleaveShelves(shelves: TitleRow[][]) {
-  const longestShelf = Math.max(0, ...shelves.map((shelf) => shelf.length));
-  const titles: TitleRow[] = [];
-
-  for (let index = 0; index < longestShelf; index += 1) {
-    for (const shelf of shelves) {
-      const title = shelf[index];
-      if (title) titles.push(title);
-    }
-  }
-
-  return titles;
-}
+import { siteOrigin } from "@/lib/site-url";
 
 export async function generateMetadata({
   params,
@@ -38,16 +23,16 @@ export async function generateMetadata({
   }
   const origin = siteOrigin();
   const canonical = `${origin}/u/${profile.username}`;
-  const description = `See what ${profile.display_name} wants to watch, is watching, and has watched.`;
+  const description = `${profile.display_name}'s Top 4, what they're watching and what they love, on slate.`;
 
   return {
     metadataBase: new URL(origin),
-    title: `${profile.display_name}'s watchlist · slate`,
+    title: `${profile.display_name} · slate`,
     description,
     alternates: { canonical },
     openGraph: {
       title: `${profile.display_name}'s slate`,
-      description: `Browse ${profile.display_name}'s shelves on slate.`,
+      description,
       url: canonical,
       siteName: "slate",
       type: "profile",
@@ -55,7 +40,7 @@ export async function generateMetadata({
     twitter: {
       card: "summary_large_image",
       title: `${profile.display_name}'s slate`,
-      description: `Browse ${profile.display_name}'s shelves on slate.`,
+      description,
     },
   };
 }
@@ -69,40 +54,47 @@ export default async function PublicProfilePage({
   const { username } = await params;
   const profile = await getPublicProfile(username);
   if (!profile) notFound();
-  const avatarUrl = profileAvatarUrl(profile);
 
-  const [watchlist, watching, watched] = await Promise.all([
-    fetchTitlesByStatusForOwner(profile.id, "want"),
-    fetchTitlesByStatusForOwner(profile.id, "watching"),
-    fetchTitlesByStatusForOwner(profile.id, "watched"),
+  const taste = await getProfileTaste(profile.id);
+  const [rows, viewerSignedIn] = await Promise.all([
+    getTasteRows(profile.id, taste),
+    getAppSession()
+      .then((session) => Boolean(session?.user?.id))
+      .catch(() => false),
   ]);
-  const titles = interleaveShelves([
-    watchlist.titles,
-    watching.titles,
-    watched.titles,
-  ]);
-  let viewerSignedIn = false;
-  try {
-    const session = await getAppSession();
-    viewerSignedIn = Boolean(session?.user?.id);
-  } catch {
-    viewerSignedIn = false;
-  }
+  const created = new Date(profile.created_at);
+  const joined = Number.isNaN(created.getTime())
+    ? null
+    : created.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      });
+  const space = `/u/${profile.username}/space`;
 
   return (
-    <main
-      data-public-profile-index
-      className="dark min-h-dvh w-full bg-[#080a09] text-foreground"
-    >
-      <Suspense fallback={null}>
-        <PublicProfileCollectionView
-          titles={titles}
-          username={profile.username}
-          displayName={profile.display_name}
-          avatarUrl={avatarUrl}
-          viewerSignedIn={viewerSignedIn}
-        />
-      </Suspense>
+    // data-public-profile-index keeps public pages dark and hides the
+    // layout's bar; this page floats its own over the backdrop.
+    <main data-public-profile-index className="dark relative min-h-dvh w-full bg-background text-foreground">
+      <PublicProfileHeader overlay />
+      <ProfileTaste
+        mode="visitor"
+        displayName={profile.display_name}
+        username={profile.username}
+        avatarUrl={profileAvatarUrl(profile)}
+        joined={joined}
+        isPublic
+        taste={taste}
+        rows={rows}
+        spaceHref={space}
+        shelfHrefs={{
+          watched: `${space}?spaceStatus=watched`,
+          watching: `${space}?spaceStatus=watching`,
+          want: `${space}?spaceStatus=want`,
+        }}
+        listsHref={null}
+        viewerSignedIn={viewerSignedIn}
+      />
     </main>
   );
 }

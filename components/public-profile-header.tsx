@@ -1,13 +1,28 @@
 import Image from "next/image";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
-export function PublicProfileHeader() {
+/**
+ * The wordmark and "Make your own". On a profile it floats over the backdrop
+ * (`overlay`); elsewhere it is a bar of its own.
+ */
+export function PublicProfileHeader({ overlay = false }: { overlay?: boolean }) {
   return (
     <header
-      data-public-profile-header
-      className="relative z-20 border-b border-border/60 bg-background/70 backdrop-blur-xl"
+      {...(overlay ? {} : { "data-public-profile-header": "" })}
+      className={cn(
+        "z-20",
+        overlay
+          ? "absolute inset-x-0 top-0"
+          : "relative border-b border-border/60 bg-background/70 backdrop-blur-xl",
+      )}
     >
-      <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-10">
+      <div
+        className={cn(
+          "mx-auto flex h-14 items-center justify-between sm:h-16",
+          overlay ? "max-w-6xl px-5 sm:px-6" : "max-w-[1600px] px-4 sm:px-6 lg:px-10",
+        )}
+      >
         <Link href="/" aria-label="slate home" className="flex items-center">
           <Image
             src="/brand/wordmark-light.svg"
@@ -28,7 +43,12 @@ export function PublicProfileHeader() {
         </Link>
         <Link
           href="/login"
-          className="inline-flex h-9 items-center rounded-full border border-border bg-card px-3.5 text-xs font-medium transition-colors hover:bg-accent sm:px-4 sm:text-sm"
+          className={cn(
+            "inline-flex h-9 items-center rounded-full border px-3.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:px-4 sm:text-sm",
+            overlay
+              ? "border-foreground/15 bg-background/45 backdrop-blur-xl hover:bg-background/70"
+              : "border-border bg-card hover:bg-accent",
+          )}
         >
           Make your own
         </Link>

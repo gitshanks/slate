@@ -183,6 +183,8 @@ create table if not exists profiles (
   identity_customized boolean not null default false,
   onboarding_completed_at timestamptz,
   is_public     boolean not null default false,
+  -- Top 4, in order; the first one's backdrop heads the profile.
+  top_title_ids uuid[] not null default '{}',
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
