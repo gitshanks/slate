@@ -17,52 +17,37 @@ export type { ProfileTaste } from "@/lib/profile-taste-core";
 const TASTE_COLUMNS =
   "id, tmdb_id, media_type, title, poster_path, backdrop_path, release_date, runtime, genres, status, rating, added_at, watched_at, current_season, current_episode, seasons";
 
-let schemaPromise: Promise<boolean> | null = null;
-
 /**
- * Add the Top 4 column the first time a profile is read or saved, the same
- * way the onboarding marker arrived (supabase/migrations/20261125_profile_top_titles.sql
- * is the same change for a fresh database). The column holds title ids in
- * order; ids of titles since removed are skipped when it is read.
+ * The Top 4 lives in profiles.top_title_ids: title ids in order, added by
+ * supabase/migrations/20261125_profile_top_titles.sql (`npm run
+ * db:migrate:top`). The app never changes the schema itself. Until the
+ * migration runs, profiles read as having no Top 4 and saving one fails.
+ * Ids of titles since removed are skipped when the profile is read.
  */
-export function ensureTopTitlesSchema() {
-  if (!process.env.DATABASE_URL) return Promise.resolve(false);
-  if (!schemaPromise) {
-    schemaPromise = runNeonQuery(`
-      do $$
-      begin
-        if not exists (
-          select 1
-          from information_schema.columns
-          where table_schema = current_schema()
-            and table_name = 'profiles'
-            and column_name = 'top_title_ids'
-        ) then
-          alter table profiles add column top_title_ids uuid[] not null default '{}';
-        end if;
-      end $$;
-    `)
-      .then(() => true)
-      .catch((error) => {
-        schemaPromise = null;
-        throw error;
-      });
-  }
-  return schemaPromise;
+function missingTopColumn(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error ? String(error.code ?? "") : "";
+  const message = "message" in error ? String(error.message ?? "") : "";
+  return /top_title_ids/.test(message) && (code === "42703" || /does not exist/i.test(message));
 }
 
 export async function getTopTitleIds(ownerId: string): Promise<string[]> {
-  if (!(await ensureTopTitlesSchema())) return [];
-  const rows = await runNeonQuery<{ top_title_ids: string[] | null }>(
-    "select top_title_ids from profiles where id = $1",
-    [ownerId],
-  );
-  return rows[0]?.top_title_ids ?? [];
+  if (!process.env.DATABASE_URL) return [];
+  try {
+    const rows = await runNeonQuery<{ top_title_ids: string[] | null }>(
+      "select top_title_ids from profiles where id = $1",
+      [ownerId],
+    );
+    return rows[0]?.top_title_ids ?? [];
+  } catch (error) {
+    if (missingTopColumn(error)) return [];
+    throw error;
+  }
 }
 
 /** Save an ordered Top 4, keeping only titles on this owner's slate. */
 export async function saveTopTitleIds(ownerId: string, ids: unknown): Promise<string[]> {
-  if (!(await ensureTopTitlesSchema())) {
+  if (!process.env.DATABASE_URL) {
     throw new Error("Top 4 needs the hosted database.");
   }
   const candidates = Array.isArray(ids)
@@ -75,10 +60,17 @@ export async function saveTopTitleIds(ownerId: string, ids: unknown): Promise<st
       )
     : [];
   const clean = normalizeTopIds(candidates, new Set(owned.map((row) => row.id)));
-  await runNeonQuery(
-    "update profiles set top_title_ids = $2::uuid[], updated_at = now() where id = $1",
-    [ownerId, clean],
-  );
+  try {
+    await runNeonQuery(
+      "update profiles set top_title_ids = $2::uuid[], updated_at = now() where id = $1",
+      [ownerId, clean],
+    );
+  } catch (error) {
+    if (missingTopColumn(error)) {
+      throw new Error("Top 4 needs the profile_top_titles migration: run npm run db:migrate:top.");
+    }
+    throw error;
+  }
   return clean;
 }
 

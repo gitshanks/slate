@@ -152,6 +152,18 @@ afterward enter the first-account setup once. Supabase deployments can apply
 [`supabase/migrations/20260928_account_onboarding.sql`](./supabase/migrations/20260928_account_onboarding.sql)
 in the SQL editor.
 
+The profile's Top 4 needs one more column, `profiles.top_title_ids`. The app
+never adds it itself, so apply it before deploying the profile:
+
+```bash
+npm run db:migrate:top
+```
+
+Add `--check` to see whether it is already there. Until it runs, profiles show
+no Top 4 and saving one fails. Supabase deployments can apply
+[`supabase/migrations/20261125_profile_top_titles.sql`](./supabase/migrations/20261125_profile_top_titles.sql)
+in the SQL editor.
+
 Prefer Supabase, or already have another Postgres? Set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` instead of `DATABASE_URL` — the data layer uses whichever backend is configured.
 
 ### Hosted account mode

@@ -14,6 +14,7 @@
     "db:migrate:episodes": "node scripts/apply-watched-episodes-migration.mjs",
     "db:migrate:email-auth": "node scripts/apply-email-auth-migration.mjs",
     "db:migrate:onboarding": "node scripts/apply-onboarding-migration.mjs",
+    "db:migrate:top": "node scripts/apply-top-titles-migration.mjs",
     "db:backfill:omdb": "node scripts/backfill-omdb-plots.mjs",
     "lists:publish": "node scripts/publish-slate-list.mjs"
   },

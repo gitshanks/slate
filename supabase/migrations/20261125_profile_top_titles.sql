@@ -1,7 +1,8 @@
 -- Top 4: the four titles someone picks to stand for their taste, in order.
 -- The first one's backdrop heads their profile. Ids point into titles; ones
--- since removed are skipped when the profile is read. The app also adds this
--- column on first use (lib/profile-taste.ts).
+-- since removed are skipped when the profile is read. The app never adds this
+-- column itself: apply it with `npm run db:migrate:top`, or run this file in
+-- the Supabase SQL editor. Until then profiles show no Top 4.
 do $$
 begin
   if not exists (
