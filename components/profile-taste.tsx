@@ -151,8 +151,8 @@ function SectionHead({
   aside?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <h2 id={id} className="text-[13px] font-medium text-muted-foreground">
+    <div className="flex min-w-0 items-baseline justify-between gap-3">
+      <h2 id={id} className="min-w-0 truncate text-[13px] font-medium text-muted-foreground">
         {title}
       </h2>
       {aside}
@@ -237,6 +237,9 @@ export function ProfileTaste({
   const close = React.useCallback(() => setOpenTitle(null), []);
 
   const top = taste?.top ?? [];
+  // Nobody picked these: the slate's favourites stand in until its owner
+  // changes them, and nothing is saved until then.
+  const suggested = Boolean(taste?.topSuggested);
   const hero = top[0] ?? null;
   const heroSrc = hero ? backdropUrl(hero.backdropPath, "w1280") : null;
   const watchedAny = (taste?.counts.watched ?? 0) > 0;
@@ -285,6 +288,7 @@ export function ProfileTaste({
 
   return (
     <div
+      data-mode={mode}
       className={cn(
         "taste relative",
         // In the app the page sits in padded scroll area; the backdrop runs
@@ -324,29 +328,29 @@ export function ProfileTaste({
       <header className="relative">
         <div
           className={cn(
-            "taste-hero relative h-[15.5rem] overflow-hidden sm:h-[20rem] md:h-[23rem]",
+            "taste-hero relative overflow-hidden",
             !heroSrc && "taste-hero-empty",
           )}
         >
           {heroSrc ? (
-            <div className="taste-hero-image absolute inset-0">
+            <div className="taste-hero-image absolute inset-x-0 bottom-0 top-[-40%]">
               <Image
                 src={heroSrc}
                 alt=""
                 fill
                 priority
                 sizes="100vw"
-                className="object-cover"
+                className="object-cover object-[50%_30%]"
               />
             </div>
           ) : null}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/40 to-background" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/35 to-background" />
           {ownerControls ? (
-            <div className="absolute right-4 top-4 flex gap-2 sm:right-6">{ownerControls}</div>
+            <div className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] flex gap-2 sm:right-6">{ownerControls}</div>
           ) : null}
         </div>
 
-        <div className="relative mx-auto -mt-16 max-w-6xl px-5 sm:-mt-24 sm:px-6">
+        <div className="relative mx-auto -mt-16 max-w-6xl px-4 sm:-mt-24 sm:px-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-8">
             <div className="flex flex-col gap-3.5 md:flex-row md:items-end md:gap-6">
               <Avatar
@@ -407,7 +411,7 @@ export function ProfileTaste({
         </div>
       </header>
 
-      <div className="mx-auto mt-8 flex max-w-6xl flex-col gap-9 px-5 sm:px-6 md:mt-12 md:gap-12">
+      <div className="mx-auto mt-8 flex max-w-6xl flex-col gap-9 px-4 sm:px-6 md:mt-12 md:gap-12">
         {mode === "guest" ? (
           <section
             aria-labelledby="guest-profile-heading"
@@ -435,15 +439,15 @@ export function ProfileTaste({
               {top.length || !owner ? (
                 <SectionHead
                   id="taste-top"
-                  title="Top 4"
+                  title={owner && suggested ? "Top 4 · picked for you" : "Top 4"}
                   aside={
                     owner ? (
                       <button
                         type="button"
                         onClick={() => setPickerOpen(true)}
-                        className="rounded-md text-[13px] font-medium text-primary transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className="shrink-0 rounded-md text-[13px] font-medium text-primary transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
-                        Edit
+                        {suggested ? "Make it yours" : "Edit"}
                       </button>
                     ) : null
                   }
@@ -458,7 +462,7 @@ export function ProfileTaste({
                   </p>
                 </div>
               )}
-              <ol className="grid grid-cols-4 gap-2 sm:gap-4">
+              <ol className="grid grid-cols-4 gap-2 pb-5 sm:gap-4 sm:pb-7">
                 {Array.from({ length: 4 }, (_, index) => {
                   const poster = top[index];
                   if (!poster) {
@@ -483,13 +487,13 @@ export function ProfileTaste({
                   }
                   const anchor = `taste-top-${poster.id}`;
                   return (
-                    <li key={poster.id} className="taste-deal flex min-w-0 flex-col gap-1.5" style={rise(index)}>
+                    <li key={poster.id} className="taste-deal relative min-w-0" style={rise(index)}>
                       <button
                         id={anchor}
                         type="button"
                         onClick={() => open(poster, anchor)}
                         aria-label={`Number ${index + 1}: ${poster.title}`}
-                        className="taste-poster rounded-[10px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:rounded-[14px]"
+                        className="taste-poster block w-full rounded-[10px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:rounded-[14px]"
                       >
                         <Poster
                           poster={poster}
@@ -497,9 +501,7 @@ export function ProfileTaste({
                           className="rounded-[10px] shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.08),0_14px_30px_-16px_rgb(0_0_0/0.7)] sm:rounded-[14px]"
                         />
                       </button>
-                      <span aria-hidden className="text-[11px] tabular-nums text-muted-foreground">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
+                      <span aria-hidden className="taste-rank">{index + 1}</span>
                     </li>
                   );
                 })}
@@ -600,9 +602,9 @@ export function ProfileTaste({
         ) : null}
 
         {taste && (taste.watching.length || taste.recent.length) ? (
-          <div className="grid gap-9 md:grid-cols-2 md:gap-12">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-9 md:grid-cols-2 md:gap-12">
             {taste.watching.length ? (
-              <section aria-labelledby="taste-now" className="taste-rise flex flex-col gap-3" style={rise(section++)}>
+              <section aria-labelledby="taste-now" className="taste-rise flex min-w-0 flex-col gap-3" style={rise(section++)}>
                 <SectionHead id="taste-now" title="Watching now" />
                 <ul className="flex flex-col gap-2">
                   {taste.watching.map((poster) => {
@@ -639,7 +641,7 @@ export function ProfileTaste({
             ) : null}
 
             {taste.recent.length ? (
-              <section aria-labelledby="taste-recent" className="taste-rise flex flex-col gap-3" style={rise(section++)}>
+              <section aria-labelledby="taste-recent" className="taste-rise flex min-w-0 flex-col gap-3" style={rise(section++)}>
                 <SectionHead
                   id="taste-recent"
                   title="Recently watched"
@@ -685,7 +687,7 @@ export function ProfileTaste({
         ) : null}
 
         {taste && watchedAny ? (
-          <div className="grid gap-9 md:grid-cols-3 md:gap-8">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-9 md:grid-cols-3 md:gap-8">
             {taste.genres.length ? (
               <section aria-labelledby="taste-genres" className="taste-rise flex flex-col gap-3.5" style={rise(section++)}>
                 <SectionHead

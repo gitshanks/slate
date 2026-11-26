@@ -118,6 +118,31 @@ describe("profile taste", () => {
       now: NOW,
     });
     assert.deepEqual(taste.top.map((t) => t.id), ["b", "a"]);
+    assert.equal(taste.topSuggested, false);
+  });
+
+  it("pre-picks a Top 4 from loved, then liked, then most watched", () => {
+    const poster = "/p.jpg";
+    const taste = computeProfileTaste({
+      titles: [
+        row({ id: "long", poster_path: poster, runtime: 200 }),
+        row({ id: "short", poster_path: poster, runtime: 80 }),
+        row({ id: "liked", poster_path: poster, rating: 2, runtime: 90 }),
+        row({ id: "loved", poster_path: poster, rating: 3, runtime: 95 }),
+        row({ id: "lovedBackdrop", poster_path: poster, rating: 3, runtime: 90, backdrop_path: "/b.jpg" }),
+        row({ id: "disliked", poster_path: poster, rating: 1, runtime: 300 }),
+        row({ id: "noPoster", rating: 3, runtime: 300 }),
+        row({ id: "want", poster_path: poster, status: "want", rating: 3 }),
+      ],
+      episodes: [],
+      listCount: 0,
+      topIds: [],
+      now: NOW,
+    });
+    // Loved by time, then liked, then the longest seen; the one with a
+    // backdrop leads because it becomes the header.
+    assert.deepEqual(taste.top.map((t) => t.id), ["lovedBackdrop", "loved", "liked", "long"]);
+    assert.equal(taste.topSuggested, true);
   });
 
   it("cleans a submitted Top 4", () => {

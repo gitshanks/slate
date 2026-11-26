@@ -13,14 +13,14 @@ export function PublicProfileHeader({ overlay = false }: { overlay?: boolean }) 
       className={cn(
         "z-20",
         overlay
-          ? "absolute inset-x-0 top-0"
+          ? "absolute inset-x-0 top-0 pt-[env(safe-area-inset-top)]"
           : "relative border-b border-border/60 bg-background/70 backdrop-blur-xl",
       )}
     >
       <div
         className={cn(
           "mx-auto flex h-14 items-center justify-between sm:h-16",
-          overlay ? "max-w-6xl px-5 sm:px-6" : "max-w-[1600px] px-4 sm:px-6 lg:px-10",
+          overlay ? "max-w-6xl px-4 sm:px-6" : "max-w-[1600px] px-4 sm:px-6 lg:px-10",
         )}
       >
         <Link href="/" aria-label="slate home" className="flex items-center">

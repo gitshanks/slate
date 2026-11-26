@@ -43,6 +43,11 @@ export interface TasteGenre {
 
 export interface ProfileTaste {
   top: TastePoster[];
+  /**
+   * True when nobody picked this Top 4: it was pre-picked from the slate
+   * (see suggestTop) and is shown but never saved until its owner changes it.
+   */
+  topSuggested: boolean;
   hours: number;
   hoursThisYear: number;
   counts: { watched: number; watching: number; upNext: number; lists: number };
@@ -297,11 +302,12 @@ export function computeProfileTaste({
     .slice(0, 4)
     .map(tastePoster);
 
-  const top = topIds
+  const picked = topIds
     .map((id) => byId.get(id))
     .filter((row): row is TasteTitleRow => Boolean(row) && row!.status !== "dropped")
-    .slice(0, TOP_TITLES_MAX)
-    .map(tastePoster);
+    .slice(0, TOP_TITLES_MAX);
+  const suggested = picked.length ? [] : suggestTop(titles, episodesByTitle);
+  const top = (picked.length ? picked : suggested).map(tastePoster);
 
   const tagline =
     counts.watched >= 5 && genres.length >= 2
@@ -310,6 +316,7 @@ export function computeProfileTaste({
 
   return {
     top,
+    topSuggested: !picked.length && suggested.length > 0,
     hours: Math.round(minutes / 60),
     hoursThisYear: Math.round(minutesThisYear / 60),
     counts,
@@ -323,6 +330,53 @@ export function computeProfileTaste({
     year: { year, months, total: months.reduce((sum, n) => sum + n, 0) },
     tagline,
   };
+}
+
+/** Minutes someone spent on a title: a film's runtime, a show's episodes. */
+function minutesOn(row: TasteTitleRow, episodesByTitle: Map<string, TasteEpisodeRow[]>): number {
+  if (row.media_type === "movie") return row.status === "watched" ? row.runtime ?? 0 : 0;
+  const perEpisode = row.runtime || EPISODE_MINUTES_FALLBACK;
+  const marked = episodesByTitle.get(row.id)?.length ?? 0;
+  if (marked) return marked * perEpisode;
+  if (row.status === "watched") return totalEpisodes(row.seasons ?? []) * perEpisode;
+  return episodesBefore(row) * perEpisode;
+}
+
+/**
+ * A Top 4 for someone who hasn't picked one, so a profile never starts empty:
+ * Loved titles first, then Liked, then everything else seen, and within each
+ * the ones they spent the most time on, then the most recent. Disliked titles
+ * and anything without a poster are left out, and the first one with a
+ * backdrop leads, because the first title's backdrop is the header.
+ */
+export function suggestTop(
+  titles: TasteTitleRow[],
+  episodesByTitle: Map<string, TasteEpisodeRow[]> = new Map(),
+): TasteTitleRow[] {
+  const rank = (row: TasteTitleRow) => {
+    const rating = row.rating == null ? null : Number(row.rating);
+    return rating === 3 ? 2 : rating === 2 ? 1 : 0;
+  };
+  const ranked = titles
+    .filter(
+      (row) =>
+        (row.status === "watched" || row.status === "watching") &&
+        row.poster_path &&
+        Number(row.rating) !== 1,
+    )
+    .map((row) => ({ row, rank: rank(row), minutes: minutesOn(row, episodesByTitle) }))
+    .sort(
+      (a, b) =>
+        b.rank - a.rank ||
+        b.minutes - a.minutes ||
+        time(b.row.watched_at ?? b.row.added_at) - time(a.row.watched_at ?? a.row.added_at) ||
+        a.row.id.localeCompare(b.row.id),
+    )
+    .slice(0, TOP_TITLES_MAX)
+    .map((entry) => entry.row);
+  const lead = ranked.findIndex((row) => row.backdrop_path);
+  if (lead > 0) ranked.unshift(...ranked.splice(lead, 1));
+  return ranked;
 }
 
 /** Keep a picked list valid: known ids, no repeats, at most four. */
