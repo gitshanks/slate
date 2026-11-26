@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { Camera, LoaderCircle, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -118,9 +119,12 @@ async function responseMessage(response: Response, fallback: string) {
 export function ProfileAvatarEditor({
   avatarUrl,
   displayName,
+  round = false,
 }: {
   avatarUrl: string | null;
   displayName: string;
+  /** A circle ringed in the page colour, as the profile header shows it. */
+  round?: boolean;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -194,7 +198,12 @@ export function ProfileAvatarEditor({
         disabled={uploading}
         aria-label={currentAvatar ? "Change profile photo" : "Add profile photo"}
         title={currentAvatar ? "Change profile photo" : "Add profile photo"}
-        className="relative block h-[5.5rem] w-[5.5rem] overflow-hidden rounded-[1.6rem] bg-card text-muted-foreground outline-none ring-1 ring-foreground/10 transition-[box-shadow,transform] duration-150 ease-[var(--ease-ui-out)] hover:ring-foreground/25 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none sm:h-28 sm:w-28 sm:rounded-[2rem]"
+        className={cn(
+          "relative block h-[5.5rem] w-[5.5rem] overflow-hidden bg-card text-muted-foreground outline-none transition-[box-shadow,transform] duration-150 ease-[var(--ease-ui-out)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none",
+          round
+            ? "rounded-full border-4 border-background"
+            : "rounded-[1.6rem] ring-1 ring-foreground/10 hover:ring-foreground/25 sm:h-28 sm:w-28 sm:rounded-[2rem]",
+        )}
       >
         {currentAvatar ? (
           // eslint-disable-next-line @next/next/no-img-element

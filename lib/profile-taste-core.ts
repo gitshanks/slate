@@ -67,8 +67,10 @@ export interface ProfileTaste {
     verdict: "Generous" | "Balanced" | "Tough";
   } | null;
   year: { year: number; months: number[]; total: number };
-  /** "Mostly sci-fi and drama", from the top genres; null on a thin slate. */
+  /** The bio when there is one, else "Mostly sci-fi and drama" from the top genres; null on a thin slate. */
   tagline: string | null;
+  /** What the owner wrote themselves, for Edit profile. */
+  bio: string | null;
 }
 
 /** The parts of a title row the profile reads. */
@@ -158,12 +160,15 @@ export function computeProfileTaste({
   episodes,
   listCount,
   topIds,
+  bio = null,
   now = new Date(),
 }: {
   titles: TasteTitleRow[];
   episodes: TasteEpisodeRow[];
   listCount: number;
   topIds: string[];
+  /** The owner's own line, which stands in for the one written for them. */
+  bio?: string | null;
   now?: Date;
 }): ProfileTaste {
   const year = now.getUTCFullYear();
@@ -310,9 +315,10 @@ export function computeProfileTaste({
   const top = (picked.length ? picked : suggested).map(tastePoster);
 
   const tagline =
-    counts.watched >= 5 && genres.length >= 2
+    bio?.trim() ||
+    (counts.watched >= 5 && genres.length >= 2
       ? `Mostly ${genres[0].name.toLowerCase()} and ${genres[1].name.toLowerCase()}`
-      : null;
+      : null);
 
   return {
     top,
@@ -329,6 +335,7 @@ export function computeProfileTaste({
     ratings,
     year: { year, months, total: months.reduce((sum, n) => sum + n, 0) },
     tagline,
+    bio: bio?.trim() || null,
   };
 }
 

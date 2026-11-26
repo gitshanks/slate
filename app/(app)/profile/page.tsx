@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ProfileTaste } from "@/components/profile-taste";
 import { isGuestOwnerId } from "@/lib/guest-id";
 import { getLibraryOwnerId } from "@/lib/library-db";
-import { getProfileTaste, getTasteRows, getTopCandidates } from "@/lib/profile-taste";
+import { getProfileBio, getProfileTaste, getTasteRows, getTopCandidates } from "@/lib/profile-taste";
 import { getProfileById, profileAvatarUrl } from "@/lib/profiles";
 import { APP_ROOT, SLATE_HOSTED } from "@/lib/public-mode";
 import { getEditableListOptions } from "@/lib/shared-lists";
@@ -27,11 +27,12 @@ function joinedLabel(createdAt: string) {
 export default async function ProfilePage() {
   if (!SLATE_HOSTED) redirect(APP_ROOT);
   const ownerId = await getLibraryOwnerId();
-  const [profile, taste, candidates, lists] = await Promise.all([
+  const [profile, taste, candidates, lists, bio] = await Promise.all([
     getProfileById(ownerId),
     getProfileTaste(ownerId),
     getTopCandidates(ownerId),
     getEditableListOptions().catch(() => []),
+    getProfileBio(ownerId),
   ]);
   if (!profile) redirect("/profile/settings");
   const rows = await getTasteRows(ownerId, taste);
@@ -49,8 +50,15 @@ export default async function ProfilePage() {
       rows={rows}
       candidates={candidates}
       lists={lists}
-      spaceHref={library("?view=space")}
-      shelfHrefs={{ watched: "/watched", watching: "/watching", want: APP_ROOT }}
+      // Everything opens in the Library, on the shelf it names: the older
+      // Watched and Watching pages are not where a slate is browsed now.
+      spaceHref={library("?status=all")}
+      shelfHrefs={{
+        watched: library("?status=watched"),
+        watching: library("?status=watching"),
+        want: library("?status=want"),
+      }}
+      bioSupported={bio.supported}
       listsHref="/lists"
     />
   );

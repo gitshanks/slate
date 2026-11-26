@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getLibraryOwnerId } from "@/lib/library-db";
 import { getProfileById } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
-import { saveTopTitleIds } from "@/lib/profile-taste";
+import { saveProfileBio, saveTopTitleIds } from "@/lib/profile-taste";
 
 export interface ProfileActionState {
   ok: boolean;
@@ -130,4 +130,41 @@ export async function setTopTitles(
   } catch {
     return { ok: false, message: "Your Top 4 didn't save. Try again." };
   }
+}
+
+export interface ProfileEdits {
+  displayName: string;
+  username: string;
+  isPublic: boolean;
+  /** Left out when the bio column isn't there yet. */
+  bio?: string;
+  /** Sent only when the backdrop choice reordered the Top 4. */
+  topIds?: string[];
+}
+
+/**
+ * Save everything Edit profile changes in one go: name, handle and privacy
+ * first (the part that can be refused, say for a taken handle), then the bio
+ * and the Top 4 order that picks the backdrop.
+ */
+export async function saveProfileEdits(
+  edits: ProfileEdits
+): Promise<{ ok: true; username: string } | { ok: false; message: string }> {
+  const form = new FormData();
+  form.set("displayName", edits.displayName);
+  form.set("username", edits.username);
+  if (edits.isPublic) form.set("isPublic", "on");
+  const identity = await updateProfile({ ok: false, message: "" }, form);
+  if (!identity.ok) return { ok: false, message: identity.message };
+
+  const ownerId = await getLibraryOwnerId();
+  try {
+    if (edits.bio !== undefined) await saveProfileBio(ownerId, edits.bio);
+    if (edits.topIds) await saveTopTitleIds(ownerId, edits.topIds);
+  } catch {
+    return { ok: false, message: "Your name saved, but the rest didn't. Try again." };
+  }
+  revalidatePath("/profile");
+  revalidatePath(`/u/${identity.username}`);
+  return { ok: true, username: identity.username ?? edits.username };
 }

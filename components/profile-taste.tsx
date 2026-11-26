@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { LibraryTitleActions } from "@/components/library-title-actions";
 import { PublicProfileTitleActions } from "@/components/public-profile-title-actions";
 import { ProfileTopPicker, type TopCandidate } from "@/components/profile-top-picker";
+import { ProfileEditSheet } from "@/components/profile-edit-sheet";
 import {
   CollectionTitleDetailOverlay,
   type TitleDetailSource,
@@ -56,11 +57,13 @@ export interface ProfileTasteProps {
   /** Owner only: everything that can go in the Top 4. */
   candidates?: TopCandidate[];
   lists?: { id: string; name: string }[];
-  /** Where the whole slate opens: the Library's Space, or the public wall. */
+  /** Where the whole slate opens: the Library, or the public wall. */
   spaceHref: string;
   shelfHrefs: { watched: string; watching: string; want: string };
   listsHref: string | null;
   viewerSignedIn?: boolean;
+  /** Owner only: whether the bio column exists yet. */
+  bioSupported?: boolean;
 }
 
 const MONTHS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
@@ -187,6 +190,7 @@ export function ProfileTaste({
   shelfHrefs,
   listsHref,
   viewerSignedIn = false,
+  bioSupported = false,
 }: ProfileTasteProps) {
   const owner = mode === "owner";
   const visitor = mode === "visitor";
@@ -195,6 +199,7 @@ export function ProfileTaste({
     anchor: string;
   } | null>(null);
   const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(false);
   const sentinelRef = React.useRef<HTMLDivElement>(null);
 
@@ -302,9 +307,9 @@ export function ProfileTaste({
       <div
         data-collapsed={collapsed ? "true" : "false"}
         aria-hidden={!collapsed}
-        className={cn("taste-bar sticky top-0 z-30 h-0", !visitor && "md:top-16")}
+        className="taste-bar sticky top-0 z-30 h-0"
       >
-        <div className="taste-bar-inner relative overflow-hidden border-b border-border/60">
+        <div className="taste-bar-inner relative overflow-hidden border-b border-border/60 pt-[env(safe-area-inset-top)]">
           {heroSrc ? (
             <Image src={heroSrc} alt="" fill sizes="100vw" className="object-cover opacity-60" data-image-arrival="off" />
           ) : null}
@@ -333,14 +338,14 @@ export function ProfileTaste({
           )}
         >
           {heroSrc ? (
-            <div className="taste-hero-image absolute inset-x-0 bottom-0 top-[-40%]">
+            <div className="taste-hero-image absolute inset-0">
               <Image
                 src={heroSrc}
                 alt=""
                 fill
                 priority
                 sizes="100vw"
-                className="object-cover object-[50%_30%]"
+                className="object-cover object-[50%_25%]"
               />
             </div>
           ) : null}
@@ -380,10 +385,10 @@ export function ProfileTaste({
 
             {owner ? (
               <div className="grid grid-cols-2 gap-2 md:flex md:pb-1.5">
-                <Link href="/profile/settings" className={cn(pillButton, "border border-border bg-card hover:bg-accent")}>
+                <button type="button" onClick={() => setEditOpen(true)} className={cn(pillButton, "border border-border bg-card hover:bg-accent")}>
                   <Pencil className="h-3.5 w-3.5" />
                   Edit profile
-                </Link>
+                </button>
                 {isPublic ? (
                   <button type="button" onClick={share} className={cn(pillButton, "bg-primary font-semibold text-primary-foreground hover:bg-primary/90")}>
                     <Share2 className="h-3.5 w-3.5" />
@@ -462,7 +467,7 @@ export function ProfileTaste({
                   </p>
                 </div>
               )}
-              <ol className="grid grid-cols-4 gap-2 pb-5 sm:gap-4 sm:pb-7">
+              <ol className="grid grid-cols-4 gap-2 sm:gap-4">
                 {Array.from({ length: 4 }, (_, index) => {
                   const poster = top[index];
                   if (!poster) {
@@ -487,12 +492,12 @@ export function ProfileTaste({
                   }
                   const anchor = `taste-top-${poster.id}`;
                   return (
-                    <li key={poster.id} className="taste-deal relative min-w-0" style={rise(index)}>
+                    <li key={poster.id} className="taste-deal min-w-0" style={rise(index)}>
                       <button
                         id={anchor}
                         type="button"
                         onClick={() => open(poster, anchor)}
-                        aria-label={`Number ${index + 1}: ${poster.title}`}
+                        aria-label={poster.title}
                         className="taste-poster block w-full rounded-[10px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:rounded-[14px]"
                       >
                         <Poster
@@ -501,7 +506,6 @@ export function ProfileTaste({
                           className="rounded-[10px] shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.08),0_14px_30px_-16px_rgb(0_0_0/0.7)] sm:rounded-[14px]"
                         />
                       </button>
-                      <span aria-hidden className="taste-rank">{index + 1}</span>
                     </li>
                   );
                 })}
@@ -606,30 +610,39 @@ export function ProfileTaste({
             {taste.watching.length ? (
               <section aria-labelledby="taste-now" className="taste-rise flex min-w-0 flex-col gap-3" style={rise(section++)}>
                 <SectionHead id="taste-now" title="Watching now" />
-                <ul className="flex flex-col gap-2">
+                {/* A rail of backdrops, each with a thin progress line and the
+                    next episode, that runs off the edge of a phone. */}
+                <ul className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6 md:mx-0 md:scroll-px-0 md:px-0 [&::-webkit-scrollbar]:hidden">
                   {taste.watching.map((poster) => {
                     const anchor = `taste-now-${poster.id}`;
+                    const src =
+                      backdropUrl(poster.backdropPath, "w780") ?? posterUrl(poster.posterPath, "w342");
                     return (
-                      <li key={poster.id}>
+                      <li key={poster.id} className="w-[min(17rem,72vw)] shrink-0 snap-start md:w-[15rem]">
                         <button
                           id={anchor}
                           type="button"
                           onClick={() => open(poster, anchor)}
-                          className="flex w-full items-center gap-3.5 rounded-[18px] border border-border/70 bg-card p-3 text-left transition-[background-color,transform] duration-150 hover:bg-accent/60 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          aria-label={[poster.title, poster.progressLabel].filter(Boolean).join(", ")}
+                          className="taste-poster group flex w-full flex-col gap-2 rounded-[14px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
-                          <Poster poster={poster} sizes="48px" className="w-12 shrink-0 rounded-lg [&>span:first-child]:hidden" />
-                          <span className="flex min-w-0 flex-1 flex-col gap-2">
-                            <span className="truncate text-[15px] font-semibold tracking-[-0.01em]">{poster.title}</span>
-                            {poster.progressLabel ? (
-                              <span className="text-[13px] text-muted-foreground">{poster.progressLabel}</span>
+                          <span className="relative block aspect-video w-full overflow-hidden rounded-[14px] bg-card shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.08),0_14px_30px_-18px_rgb(0_0_0/0.7)]">
+                            {src ? (
+                              <Image src={src} alt="" fill sizes="(min-width: 768px) 240px, 72vw" className="object-cover" />
                             ) : null}
                             {poster.progress != null ? (
-                              <span className="h-1 overflow-hidden rounded-full bg-foreground/10">
+                              <span className="absolute inset-x-0 bottom-0 h-[3px] bg-black/40">
                                 <span
-                                  className="taste-progress block h-full origin-left rounded-full bg-primary"
+                                  className="taste-progress block h-full origin-left bg-primary"
                                   style={{ transform: `scaleX(${poster.progress})` }}
                                 />
                               </span>
+                            ) : null}
+                          </span>
+                          <span className="flex min-w-0 flex-col gap-0.5 px-0.5">
+                            <span className="truncate text-[15px] font-semibold tracking-[-0.01em]">{poster.title}</span>
+                            {poster.progressLabel ? (
+                              <span className="truncate text-[13px] text-muted-foreground">{poster.progressLabel}</span>
                             ) : null}
                           </span>
                         </button>
@@ -647,7 +660,7 @@ export function ProfileTaste({
                   title="Recently watched"
                   aside={
                     owner ? (
-                      <Link href="/watched" className="rounded-md text-[13px] font-medium text-primary hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                      <Link href={shelfHrefs.watched} className="shrink-0 rounded-md text-[13px] font-medium text-primary hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                         All watched
                       </Link>
                     ) : null
@@ -831,7 +844,7 @@ export function ProfileTaste({
               <span className="text-[13px] text-muted-foreground md:text-sm">
                 {visitor
                   ? `The full wall of ${displayName}'s ${plural(taste.total, "title", "titles")}.`
-                  : `${plural(taste.total, "title", "titles")} in Space.`}
+                  : `All ${plural(taste.total, "title", "titles")} in your Library.`}
               </span>
             </span>
             <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5" />
@@ -872,12 +885,29 @@ export function ProfileTaste({
       ) : null}
 
       {owner ? (
-        <ProfileTopPicker
-          open={pickerOpen}
-          onOpenChange={setPickerOpen}
-          initial={top.map((poster) => poster.id)}
-          candidates={candidates}
-        />
+        <>
+          <ProfileTopPicker
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            initial={top.map((poster) => poster.id)}
+            candidates={candidates}
+          />
+          <ProfileEditSheet
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            displayName={displayName}
+            username={username}
+            avatarUrl={avatarUrl}
+            isPublic={isPublic}
+            bio={taste?.bio ?? null}
+            bioSupported={bioSupported}
+            top={top}
+            onEditTop={() => {
+              setEditOpen(false);
+              setPickerOpen(true);
+            }}
+          />
+        </>
       ) : null}
     </div>
   );

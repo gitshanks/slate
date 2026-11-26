@@ -109,6 +109,19 @@ describe("profile taste", () => {
     assert.equal(taste.tagline, null);
   });
 
+  it("shows the owner's own bio in place of the written line", () => {
+    const taste = computeProfileTaste({
+      titles: [row({ id: "1", rating: 3 })],
+      episodes: [],
+      listCount: 0,
+      topIds: [],
+      bio: "  Horror first, questions later ",
+      now: NOW,
+    });
+    assert.equal(taste.bio, "Horror first, questions later");
+    assert.equal(taste.tagline, "Horror first, questions later");
+  });
+
   it("keeps the Top 4 in order and drops titles no longer on the slate", () => {
     const taste = computeProfileTaste({
       titles: [row({ id: "a" }), row({ id: "b" }), row({ id: "gone", status: "dropped" })],

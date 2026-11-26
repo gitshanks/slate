@@ -48,7 +48,9 @@ export function TopNav({
 
   // The unified Library owns the same collection chrome as shared profiles.
   // Other app routes retain this global navigation bar.
-  if (pathname === APP_ROOT || pathname === "/previews") return null;
+  // The profile's backdrop runs to the top of the screen, under the status
+  // bar, with its own settings and share buttons, so it has no bar either.
+  if (pathname === APP_ROOT || pathname === "/previews" || pathname === "/profile") return null;
 
   const toolbarSearch = (
     <SmartSearchBar surfaceId={`top-nav-smart-search-${pathname}`} />

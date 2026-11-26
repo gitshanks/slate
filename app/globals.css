@@ -1103,53 +1103,23 @@ body:has(#app-bottom-nav)
   }
 }
 
-/* The header runs to the very top: on a public profile, under the status bar
-   of a home-screen app too, so there is never a band of plain page above it.
-   The image box reaches 40% above the header so the drift below never opens
-   a gap, whatever a browser counts as the top of the view. */
+/* The header runs to the very top of the screen, under the status bar of a
+   home-screen app too, on your own profile as on a public one, so there is
+   never a band of plain page above it. */
 .taste-hero {
-  height: 15.5rem;
-}
-
-.taste[data-mode="visitor"] .taste-hero {
   height: calc(15.5rem + env(safe-area-inset-top));
 }
 
 @media (min-width: 640px) {
-  .taste-hero,
-  .taste[data-mode="visitor"] .taste-hero {
+  .taste-hero {
     height: calc(20rem + env(safe-area-inset-top));
   }
 }
 
 @media (min-width: 768px) {
-  .taste-hero,
-  .taste[data-mode="visitor"] .taste-hero {
+  .taste-hero {
     height: calc(23rem + env(safe-area-inset-top));
   }
-}
-
-/* A Top 4 rank: a big outlined numeral over the poster's lower-left corner,
-   half on the poster and half below it. Number one is drawn in the accent. */
-.taste-rank {
-  position: absolute;
-  left: 0.3rem;
-  bottom: -0.42em;
-  z-index: 1;
-  font-size: clamp(2.75rem, 12vw, 5rem);
-  font-weight: 800;
-  line-height: 0.8;
-  letter-spacing: -0.06em;
-  font-variant-numeric: tabular-nums;
-  color: transparent;
-  -webkit-text-stroke: 1.5px hsl(var(--foreground) / 0.9);
-  filter: drop-shadow(0 2px 8px rgb(0 0 0 / 0.55));
-  pointer-events: none;
-  user-select: none;
-}
-
-.taste-deal:first-child .taste-rank {
-  -webkit-text-stroke-color: hsl(var(--primary));
 }
 
 .taste-hero-empty {
@@ -1165,9 +1135,16 @@ body:has(#app-bottom-nav)
     animation-range: exit 0% exit 100%;
   }
 
+  /* Grown from the bottom edge as it moves down, so its top never comes
+     away from the top of the header (1.25 - 1 > 0.2). The image sits in the
+     header at rest, so nothing of it is hidden above the screen. */
+  .taste-hero-image {
+    transform-origin: 50% 100%;
+  }
+
   @keyframes taste-drift {
     to {
-      transform: translateY(25%);
+      transform: translateY(20%) scale(1.25);
     }
   }
 }

@@ -47,3 +47,13 @@ Rules learned from corrections on this project. Read this before any UI work. Ea
   The same holds for a page header's action on a phone (`components/public-list-view.tsx`): a single action spans the full width (`w-full sm:w-auto`) and nothing sits beside it, so a count such as "7 titles" shows only from `sm` up.
   <!-- 2026-11-17: "make it add to your slate and span it full width instead of like in the mobile view which we are seeing, instead of like 7 titles being there" (on the list page made by Slate) -->
   <!-- 2026-11-15: "The buttons should be in one row. If there's one button, it can take the full row. The close button should be at top right corner. If we don't want to add a close button, add a not now button. Just basic UX stuff. I think you did a good job, but very mediocre. You can do better." (on the Library prompt cards at phone width) -->
+
+## Images and order
+
+- **An ordered row of posters carries no rank marks.** A Top 4 (or any ranked set of posters) shows the posters in order and nothing else: no 01 to 04 labels, no big or outlined numerals over the art. The order speaks for itself; a screen reader gets the title alone.
+  Why: plain labels looked unfinished and the outlined numerals that replaced them "look really tacky".
+  <!-- 2026-11-25: "drop the plain 01–04 labels", then "The big outlined 1 2 3 4 numerals look really tacky. Remove them. No rank labels at all; the order speaks for itself." -->
+
+- **A backdrop keeps its subject in frame.** A full-width backdrop sits entirely inside its box at rest: never stretch the image box above the visible area to make room for a scroll effect, since the top of a TMDB backdrop is where the faces are. Favour the upper part when the box crops vertically (`object-[50%_25%]`), and make any scroll drift grow from the bottom edge (`translateY` with a larger `scale`, origin at the bottom) so it can't open a gap at the top. A screen whose backdrop reaches the top has no app bar over it; its own buttons sit below the safe area.
+  Why: the drift box reached 40% above the header, so on a phone "only the legs show", and the app bar left a black band above the backdrop.
+  <!-- 2026-11-25: "The backdrop crops Spider-Man's head and shoulders off, so only the legs show." and "On my own profile the slate header bar is solid black and the backdrop starts below it." -->

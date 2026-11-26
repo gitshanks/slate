@@ -186,9 +186,6 @@ export function ProfileTopPicker({
                     </>
                   ) : null}
                 </button>
-                <span aria-hidden className="mt-1 block text-[11px] tabular-nums text-muted-foreground">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
                 {pick ? (
                   <button
                     type="button"

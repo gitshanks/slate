@@ -45,6 +45,53 @@ export async function getTopTitleIds(ownerId: string): Promise<string[]> {
   }
 }
 
+/**
+ * The bio lives in profiles.bio, added by
+ * supabase/migrations/20261126_profile_bio.sql (`npm run db:migrate:bio`).
+ * Until it runs, `supported` is false and Edit profile hides the field.
+ */
+export const BIO_MAX = 160;
+
+function missingColumn(error: unknown, column: string): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error ? String(error.code ?? "") : "";
+  const message = "message" in error ? String(error.message ?? "") : "";
+  return message.includes(column) && (code === "42703" || /does not exist/i.test(message));
+}
+
+export async function getProfileBio(
+  ownerId: string,
+): Promise<{ supported: boolean; bio: string | null }> {
+  if (!process.env.DATABASE_URL) return { supported: false, bio: null };
+  try {
+    const rows = await runNeonQuery<{ bio: string | null }>(
+      "select bio from profiles where id = $1",
+      [ownerId],
+    );
+    return { supported: true, bio: rows[0]?.bio?.trim() || null };
+  } catch {
+    // Before the migration (or if the read fails) the field stays hidden.
+    return { supported: false, bio: null };
+  }
+}
+
+/** Save a bio: whitespace runs collapse, empty clears it. */
+export async function saveProfileBio(ownerId: string, bio: string): Promise<string | null> {
+  const clean = bio.replace(/\s+/g, " ").trim().slice(0, BIO_MAX) || null;
+  try {
+    await runNeonQuery(
+      "update profiles set bio = $2, updated_at = now() where id = $1",
+      [ownerId, clean],
+    );
+  } catch (error) {
+    if (missingColumn(error, "bio")) {
+      throw new Error("Bio needs the profile_bio migration: run npm run db:migrate:bio.");
+    }
+    throw error;
+  }
+  return clean;
+}
+
 /** Save an ordered Top 4, keeping only titles on this owner's slate. */
 export async function saveTopTitleIds(ownerId: string, ids: unknown): Promise<string[]> {
   if (!process.env.DATABASE_URL) {
@@ -79,17 +126,19 @@ type LibraryRead = {
   episodes: TasteEpisodeRow[];
   listCount: number;
   topIds: string[];
+  bio: string | null;
 } | null;
 
 /** One read of an owner's library, shared by everything on the profile. */
 const readLibrary = cache(async (ownerId: string): Promise<LibraryRead> => {
   const db = libraryClientForOwner(ownerId);
   try {
-    const [titles, episodes, lists, topIds] = await Promise.all([
+    const [titles, episodes, lists, topIds, bio] = await Promise.all([
       db.from("titles").select(TASTE_COLUMNS),
       db.from("watched_episodes").select("title_id, watched_at"),
       db.from("lists").select("id"),
       getTopTitleIds(ownerId).catch(() => [] as string[]),
+      getProfileBio(ownerId),
     ]);
     if (titles.error) return null;
     return {
@@ -98,6 +147,7 @@ const readLibrary = cache(async (ownerId: string): Promise<LibraryRead> => {
       episodes: (episodes.error ? [] : episodes.data ?? []) as unknown as TasteEpisodeRow[],
       listCount: lists.error ? 0 : (lists.data ?? []).length,
       topIds,
+      bio: bio.bio,
     };
   } catch {
     return null;
